@@ -55,7 +55,7 @@ The preprocessing step are illustrated in the [demo notebook](https://github.com
 The use of PCA is shown in the [demo notebook](https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/PCA_demo.ipynb)
 
 ## Visual stimulation
-
+	
 ### Set of stimuli
 
 [...]
