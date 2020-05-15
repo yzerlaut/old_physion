@@ -37,11 +37,11 @@ Use [Suite2P](https://github.com/MouseLand/suite2p), see instructions in the doc
 
 #### Preprocessing of Calcium signals
 
-See the ![notebook][https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/preprocessing_demo.ipynb]
+See the [notebook](https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/preprocessing_demo.ipynb)
 
 #### Use Principal Component Analysis to characterize the
 
-See the ![notebook][https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/PCA_demo.ipynb]
+See the [notebook](https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/PCA_demo.ipynb)
 
 ## Visual stimulation
 
