@@ -69,7 +69,7 @@ Function convert([,i])
 		fname = stringfromlist(i,filelist)
 		fname2 = ReplaceString(".pxp", fname, ".h5")
 		LoadData/O fname
-		Print i, ") [...] generating", fname2
+		Print "i=", i, ") generating", fname2
 		convert_to_hdf5(fname2)
 		i += 1          //move to next file
     while(i<itemsinlist(filelist)) 
