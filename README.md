@@ -2,15 +2,15 @@
 
 *Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortices*
 
-## 
+## Modules
 
-- [electrophy/README.md](Electrophysiology)
-- Calcium imaging
-- Visual stimulation
-- Behavioral monitoring
+- [Electrophysiology](electrophy/README.md)
+- [Calcium imaging](Ca-imaging/README.md)
+- [Visual stimulation](visual-stim/README.md)
+- [Behavioral monitoring](behavioral-montoring/README.md)
 - ...
 
-## How to get set up ?
+## How do I get set up ?
 
 #### 1) Get a scientific python distribution
 
