@@ -1,6 +1,14 @@
 # Tools and pipelines for cortical physiology
 
-> Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortices 
+*Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortices*
+
+## 
+
+- [electrophy/README.md](Electrophysiology)
+- Calcium imaging
+- Visual stimulation
+- Behavioral monitoring
+- ...
 
 ## How to get set up ?
 
@@ -40,27 +48,7 @@ jupyter notebook Ca-imaging/preprocessing_demo.ipynb
 ```
 You can then run cells and play with the code in your browser.
 
-## Analysis of Calcium imaging
+## Troubleshooting / Issues
 
-#### Registration and Cell detection
-
-Use [Suite2P](https://github.com/MouseLand/suite2p), see instructions in the documentation at [http://mouseland.github.io/suite2p](http://mouseland.github.io/suite2p)
-
-#### Preprocessing of Calcium signals
-
-The preprocessing step are illustrated in the [demo notebook](https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/preprocessing_demo.ipynb)
-
-#### Use Principal Component Analysis to find patterns of population activity
-
-The use of PCA is shown in the [demo notebook](https://github.com/yzerlaut/cortical-physio-icm/blob/master/Ca-imaging/PCA_demo.ipynb)
-
-## Visual stimulation
-	
-### Set of stimuli
-
-[...]
-
-### Realign physiological recordings
-
-[...]
+Use the dedicated [https://github.com/yzerlaut/cortical-physio-icm/issues](Issues) interface of Github.
 
