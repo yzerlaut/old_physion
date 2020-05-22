@@ -10,7 +10,7 @@ Function convert_to_temp_hdf5()
     Print filename
     HDF5CreateFile /O h5_id as filename
     HDF5CreateGroup /Z h5_id, "/", root_id
-    HDF5SaveGroup /O /R :, root_id, "/"
+    HDF5SaveGroup  /L=7 /O /R :, root_id, "/"
     HDF5CloseGroup root_id
     HDF5CloseFile h5_id 
 end
@@ -73,7 +73,7 @@ Function convert([,i])
 	do
 		fname = stringfromlist(i,filelist)
 		fname2 = ReplaceString(".pxp", fname, ".h5")
-		LoadData /O fname
+		LoadData /O /L=7 fname
 		Print "i=", i, ") generating", fname2
 		convert_to_temp_hdf5()
 		MoveFile /I=0 /O "C:\\Windows\\Temp\\temp.h5" as fname2
