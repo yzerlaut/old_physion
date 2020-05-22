@@ -50,5 +50,5 @@ You can then run cells and play with the code in your browser.
 
 ## Troubleshooting / Issues
 
-Use the dedicated [https://github.com/yzerlaut/cortical-physio-icm/issues](Issues) interface of Github.
+Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
 
