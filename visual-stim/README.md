@@ -4,6 +4,8 @@
 
 The stimulus presentation relies on (PsychoPy)[https://www.psychopy.org], follow the installation instructions from the website.
 
+The custom code for the GUI and the set of stimulus lies in the present repository: ("psychopy_code" folder)[./psychopy_code/] and ("gui" folder)[./gui/] 
+
 ### Screen settings
 
 The physical (visual space) and biological (neuronal space) settings are depicted on Figure {geometry}. 
