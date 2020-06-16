@@ -3,6 +3,7 @@ import numpy as np
 
 SCREEN = [800,600]
 
+
 class visual_stim:
 
     def __init__(self, protocol='Single-Stimulus', stimulus='light-level'):

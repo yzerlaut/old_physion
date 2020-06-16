@@ -11,11 +11,18 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 PROTOCOLS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
 
 STIMULI = {
-    'light-level':{},
-    'full-field-grating':{},
-    'drifting-FF-grating':{},
+    # simple screen at constant light level
+    'light-level':{
+        'light-level':0.5,
+        'light-level-1':-1., 'light-level-2':1., 'N-light-level':3},
+    # 
+    'full-field-grating':{
+        'angle':90,
+        'angle-1':-1., 'angle-2':1., 'N-angle':6},
     'center-grating':{},
     'surround-grating':{},
+    'inverse-RF-grating':{},
+    'drifting-FF-grating':{},
     'center-surround-grating':{},
     'Natural-Image':{},
     'full-field-grating+VEM':{},
@@ -34,7 +41,7 @@ class Window(QtWidgets.QMainWindow):
         button_length = 100
         
         self.setWindowTitle('Visual Stimulation Program')
-        self.setGeometry(200, 200, button_length*len(LABELS), 200)
+        self.setGeometry(200, 200, 1.01*button_length*len(LABELS), 200)
 
         # protocol change
         label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
@@ -42,7 +49,7 @@ class Window(QtWidgets.QMainWindow):
         label1.move(100, 50)
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.addItems(['']+PROTOCOLS)
-        self.cbp.currentIndexChanged.connect(self.change_protocol)
+        # self.cbp.currentIndexChanged.connect(self.change_protocol)
         self.cbp.setMinimumWidth(250)
         self.cbp.move(70, 80)
 
@@ -52,14 +59,13 @@ class Window(QtWidgets.QMainWindow):
         label2.move(100, 110)
         self.cbs = QtWidgets.QComboBox(self)
         self.cbs.addItems(['']+list(STIMULI.keys()))
-        self.cbs.currentIndexChanged.connect(self.change_stimulus)
+        # self.cbs.currentIndexChanged.connect(self.change_stimulus)
         self.cbs.setMinimumWidth(250)
         self.cbs.move(70, 140)
 
 
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('&File')
-        self.fileMenu = mainMenu.addMenu('&Configuration')
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
@@ -79,6 +85,9 @@ class Window(QtWidgets.QMainWindow):
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
+            
+        LABELS = ["Load Config", "Save Config"]
+        FUNCTIONS = [self.load_config, self.save_config]
 
         self.show()
 
@@ -97,6 +106,12 @@ class Window(QtWidgets.QMainWindow):
     
     def quit(self):
         sys.exit()
+        
+    def save_config(self):
+        pass
+    
+    def load_config(self):
+        pass
 
     def change_protocol(self):
         print(self.cbp.currentText())
