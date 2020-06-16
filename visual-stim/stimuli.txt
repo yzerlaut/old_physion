@@ -1,190 +1,9 @@
-Title: \qquad \quad Modeling the Early Visual System in Mice\newline From Screen Display to Layer 4 network activity in V1
-Authors: Yann Zerlaut$^{1,*}$
-Short Title: A Model of the Early Visual System
-Short Authors: Y. Zerlaut
+Title: Set of Visual Stimuli
+Authors: Cellular and circuit physiology labs
 Affiliations: {1} ICM Brain and Spine institute, Paris, France.
-Correspondence: yann.zerlaut@icm-institute.org
+Correspondence: <firstname.lastname>@icm-institute.org
 
-* Abstract
-
-\begin{itemize}
-\item We build a minimal model of the early visual system in mouse
-\item The model relies on considering the visual pathway up to Layer 4 as a set of gabor filters randomly sampling the visual space. Temporal filtering implements delay and adaptation in the early visual system. Linear-Nonlinear-Poisson (LNP) model combining the spatial and temporal filtering translates visual stimuli into action potentials in Layer 4.
-\item Single cell receptive fields vary randomly in: 1) spatial location, 2) spatial frequency, 3) spatial extent, 4) excentricity, 5) spatial phase. Only simple cells considered.
-\item We add a virtual saccadic eye movement to model the active exploration of the visual space in awake mouse
-\item We analyze the response of the model to various static and dynamic (time-varying) visual stimuli: full-field gratings, center and surround grating stimuli, drifting gratings, sparse noise, dense noise, center-surround stimuli, natural images.
-\end{itemize}
-
-* Methods
-
-*** Physical and biological setting
-
-The physical (visual space) and biological (neuronal space) settings are depicted on Figure {geometry}. 
-
-[[Figure {geometry} around here]]
-
-The visual space considered by the model corresponds to the monocular field of a given eye (e.g. left eye on Figure {geometry}) in the visual system of the mouse. 
-
-The visual space is therefore described by the following parameters:
-
-\begin{ center }
-\begin{tabular}{c|c|c}
-\textbf{Name} & \textbf{Symbol} & \textbf{Value}\\
-\hline
-Angular height of the visual field & $h_{vf}$ & {height_VF}\(^{o}\)\\
-Angular width of the visual field & $w_{vf}$ & {width_VF}\(^{o}\)\\
-Field center from antero-posterior axis & $c_{vf}$ & {center_VF}\(^{o}\)
-\end{tabular}
-\end{ center }
-
-The neuronal space considered by the model corresponds to the Layer IV network contralateral to the visual space (i.e. right hemisphere on the schematic of Figure {geometry}). Rough estimates of cell densities give $\sim N^{L4}_{cells}$ pyramidal cells in layer IV per $\sim${Area_cells}mm$^2$ of cortex (from Makram et al. (2015), density of cells in layer IV is 177.10$^3$neurons/mm$^3$, layer IV height is 200$\mu$m and about half of the cells are pyramidal cells). 
-
-This network is therefore described by the following parameters:
-
-\begin{ center }
-\begin{tabular}{c|c|c}
-\textbf{Name} & \textbf{Symbol} & \textbf{Value} \\
-\hline
-Cell number of Layer IV population & $N^{L4}_{cells}$ & {Ncells} \\
-Area of Layer IV population covered & $A^{L4}_{cells}$ & $\sim${Area_cells}mm$^2$
-\end{tabular}
-\end{ center }
-
-% \TODO{find an estimate of retinotopic mapping on mouse V1}
-
-*** Gabor filters for the visual receptive fields
-
-Individual cells have a spatial dependency to visual inputs model by Gabor filters. A gabor filter is parametrized by the following quantities:
-
-\begin{itemize}
-\item $\vec{x}_{0}$ a center position in the 2 dimensional visual space (in degrees from the center of the visual spaces)
-\item $\theta$ the orientation of the gabor filter 
-\item $f$ the spatial frequency
-\item $\Psi$ the spatial phase
-\item $\sigma$ the spatial extent of the filter
-\item $\beta$ the filter's excentricity (i.e. the factor shrinking the spatial extent in the non-prefered orientation direction)
-\end{itemize}
-
-[[Figure {gabor} around here]]
-
-Defining the vector $\vec{u}$ as the unitary vector of orientation
-$\theta$ and the vector $\vec{v}$ as the unitary vector perpendicular
-to $\vec{v}$, And it is defined by:
-
-\begin{equation}
-\label{eq:gabor}
-G(\vec{x}) = \cos\Big( 2 \pi f (\vec{x}-\vec{x_0}) \cdot \vec{u} + \Phi \Big) \,
-         e^{\frac{\big((\vec{x}-\vec{x_0}) \cdot \vec{u}\big)^2 +
-                   \beta \big((\vec{x}-\vec{x_0}) \cdot \vec{v}\big)^2}{2 \, \sigma^2}}
-\end{equation}
-
-We vary those factors independently in Figure {gabor}.
-
-*** Spatial filtering of visual content
-
-Following a movie presentation define by a set of luminance value $M_{x,y}(t)$ shown at pixel positions $[x,y]$ at time $t$, the spatial filtering for a cell $i$ associated to a Gabor filter signal $s_i(t)$ is defined by:
-
-\begin{equation}
-s_i(t) = \frac{1}{N_i} \sum_{(x,y) \in \mathcal{D}^{xy}_i} G_i(x,y) M_{x,y}(t)
-\end{equation}
-
-$\mathcal{D}^{xy}_i$ is the cell-specific summation domain (for computational efficiecy, we limit the convolution with the screen signal $M_{x,y}(t)$ to the area relevant to the cell $i$), it defined by a circle covering {convolve_extent_factor} times the size of the Gabor filter $\sigma_i$ around the center $\vec_{x_i}$). $N_i$ is the cell-specific normalization factor, it is the norm of the two-dimensional gabor filter $G_i$, i.e.:
-
-\begin{equation}
-N_i = \sum_{ (x,y) \in \mathcal{D}_{xy} } G_i(x,y) \cdot G_i(x,y)
-\end{equation}
-
-[[Figure {cell-props} around here]]
-
-*** Distribution of receptive field properties over cells
-
-For the {Ncells} neurons of our population we draw their properties from random distribution. We use the characterization of Stinger et al. (2019) as an estimate for the distribution of Gabor filter properties.
-
-The distribution of the horizontal and vertical potitions of the center of the receptive fields are taken as uniform within the 
-
-Note that we neglect the bimodal distribution of the spatial phase $\psi$ parameter observed in Stringer et al. (2019).
-
-As no particular correlation structure between parameters was reported, the features are hypothesized uncorrelated and we draw them independently. 
-
-In Figure {cell-props}, we show for a given random realization of the receptive field properties, the histogram over cells of the spatial features of the receptive field properties.
-
-In Figure {RF-in-visual-space}, we show how those spatial different filters sum (and largely cancel) over the visual space.
-
-[[Figure {RF-in-visual-space} around here]]
-
-*** Non-linear processing and temporal filtering: modeling thresholding, delays and adaptation in the early visual system
-
-[[Figure {LNP-model} around here]]
-
-We now describe the non-linear processing and the temporal filtering shaping the activity of a single cell. The constraints to derive the dynamical system were the following: 1) the final rate should be strictly positive, 2) it should be sensitive to positive deflection of the input signal (the output of the spatial filtering), 3) it should be a first-order differential system for simplicity. See in Figure {LNP-model} that those constraints are matched.
-
-The signal output coming from the cell-specific spatial filter is first non-linearly trasnformed using the threshold-linear function $x \rightarrow \max(0, x)$. Then, to model delays along the visual pathway as well as adaptation (the dampening of activity over time for a constant stimulus presentation), this signal is then fed into a first order dynamical system (see Equation {dyn-system}). This dynamical system has two components: 1) a low-pass filtering component to include delays (of time constant $\tau_{delay}$) and 2) an adaptation dynamics, an activity-dependent variable builds up over time (with a time-constant $\tau_{adapt}$) to diminish the level of activity in response to a sustained input. The fraction of adaptation is set by the constant $F_a$ that quantifies the fraction of activity remaning when the adaptation has reached its stationary level. Finally the time-varying signal $r_i(t)$ (that can have negative values because of the adaptation variable $a(t)$) is converted into a firing rate by applying the threshold-linear function again, by adding a baseline firing level $R_0$ and using a slope factor $R_A$ to convert the unitless dynamical variable into a firing rate.
-
-The parameters are the following:
-
-\begin{ center }
-\begin{tabular}{c|c|c}
-\textbf{Name} & \textbf{Symbol} & \textbf{Value} \\
-\hline
-Delay time constant & $\tau_{delay}$ & {tau_delay} s \\
-Adaptation time constant & $\tau_{adapt}$ & {tau_adapt} s \\
-Fraction of adaptation & $F_a$ & {fraction_adapt} \\
-Baseline rate of firing activity & $R_0$ & {NL_baseline} Hz \\
-Slope rate for firing activity & $R_A$ & {NL_slope_Hz_per_Null} Hz
-\end{tabular}
-\end{ center }
-
-\vspace{.5cm}
-
-For a cell $i$ whose Gabor filter output over time is the signal $s_i(t)$, the equations governing the time evolution of its firing rate $R_i(t)$ forms the following dynamical system:
-
-\begin{equation}
-\label{eq:dyn-system}
-\left\{
-\begin{split}
-\tau_{ delay } \cdot \frac{ dr_i }{ dt } & = \max\big(0,s_i(t)\big) -r_i(t)  - a_i(t) \\
-\tau_{ adapt } \cdot \frac{ da_i }{ dt } & =  \frac{1-F_a}{F_a} \cdot r_i(t) -a_i(t) \\
-R_i(t) & = R_0 + R_A \cdot \max\big(0,r_i(t)\big)
-\end{split}
-\right.
-\end{equation}
-
-Finally, to get a spiking output for cell $i$, the time-varying rate $R_i(t)$ is then transformed into a set of discrete time events (a spike pattern) using the properties of the Poisson process. 
-
-The different steps of the transformation are illustrated on Figure {LNP-model}.
-
-*** Saccadic eye movement
-
-[[Figure {SEM-model} around here]]
-
-The eye movement model is adapted from Baudot et al. (2013). 
-
-Eye-movements are classically decomposed into intermittent ballistic movements, i.e. saccades, of large but variable amplitude, separated by fixation episodes. During fixation, the mean position of the eye drifts slowly in time, with superimposed very low amplitude tremors at high frequency (40–100 Hz range) as well as microsaccades (Baudot et al., 2013). 
-
-Here, we restrict our model of the retinal flow to the large-amplitude saccadic movement and neglect the high-frequency microsaccades. The large amplitude saccades was modelled as a trajectory between randomly picked positions within the modelled field of view of the animal (see Figure {geometry}). The intersaccadic intervals were then calculated using a linear approximation of the relationship established for saccadic and head gaze movements in the freely behaving cat (Collewijn, 1977). The relationship between sacccade amplitude ($A_S$) and saccade duration $D_S$ was:
-
-\begin{equation}
-D_S = \Gamma_{DA} \cdot A_S + D_S^{min}
-\end{equation}
-where $D_S$ is expressed in ms and $A_s$ in steradian degrees ($^o$) of visual angle, with the parameters:
-\begin{ center }
-\begin{tabular}{c|c|c}
-\textbf{Name} & \textbf{Symbol} & \textbf{Value} \\
-\hline
-Duration-Amplitude slope of saccades & \Gamma_{DA} & {saccade_duration_distance_slope}s/$^o$ \\
-Minimum saccadde duration  & D_S^{min} & {saccade_duration_distance_shift}s
-\end{tabular}
-\end{ center }
-
-An example of a saccadic eye movement is shown in Figure {SEM-model}.
-
-*** Set of visual stimuli
-
-[[Figure {static-stimuli} around here]]
-
-[[Figure {dynamic-stimuli} around here]]
-
-To feed the model, we implemented a set of visual stimuli classically used in visual neuroscience. We provide a graphical illustration of those stimuli in Figure {static-stimuli} and Figure {dynamic-stimuli} as well as a description below with their parameters.
+* Main text
 
 We implement two classes of stimuli: 1) static stimuli, i.e. stimuli where the visual contant is fixed over time (though possibly with a delayed onset to have the ability to analyze stimulus-evoked activity) and 2) dynamic stimuli, the content displayed in the visual space is changing over time.
 
@@ -277,63 +96,8 @@ The list of implemented dynamic stimuli is the following:
       \end{itemize}
 \end{enumerate}
 
-*** Model response
-
-[[Figure {response-grating} around here]]
-
-[[Figure {response-grating-SEM} around here]]
-
-[[Figure {response-drifting-grating} around here]]
-
-[[Figure {response-drifting-grating-SEM} around here]]
-
-[[Figure {response-sparse-noise} around here]]
-
-[[Figure {response-sparse-noise-SEM} around here]]
-
-[[Figure {response-dense-noise} around here]]
-
-[[Figure {response-dense-noise-SEM} around here]]
-
-[[Figure {response-natural-image} around here]]
-
-[[Figure {response-natural-image-SEM} around here]]
-
-[[Figure {response-center-surround} around here]]
-
-[[Figure {response-center-surround-SEM} around here]]
-
-We show the response of the model to:
-\begin{itemize}
-\item static full-field grating in Figure {response-grating}
-\item static full-field grating with saccadic eye movement (SEM) in Figure {response-grating-SEM}
-\item drifting full-field grating in Figure {response-drifting-grating}
-\item drifting full-field grating with SEM in Figure {response-drifting-grating-SEM}
-\item sparse noise in Figure {response-sparse-noise}
-\item sparse noise with SEM in Figure {response-sparse-noise-SEM}
-\end{itemize}
-
 * Figures
 
-*** Physical and biological spaces considered in the model.
-#+options : {'label':'geometry', 'extent':'singlecolumn', 'file':'figs/drawing.png', 'page_position':'b!'}
-The model aims at describing the transformation between luminescence values on the screen and neuronal activity in the Layer 4 of the visual cortex.
-
-*** Gabor filter parametrization.
-#+options : {'label':'gabor', 'extent':'singlecolumn', 'file':'figs/gabor.png'}
-From a standard configuration (top left panel, see parameters), we vary the center $\vec{x_0}$, the orientation $\theta$, the spatial frequency $f$, the spatial extent $\sigma$, the spatial phase $\psi$ and the excentricity $\beta$.
-
-*** Receptive field properties over cells.
-#+options : {'label':'cell-props', 'extent':'singlecolumn', 'file':'figs/cell-props.png', 'page_position':'b!'}
-Distribution of the Gabor filters properties over the {Ncells} of the model. From left to right: the horizontal position of the center $\vec{x_0}$ (denoted as $x_0$, i.e. angular distance from the left of the visual space), the vertical position of the center $\vec{x_0}$ (denoted as $y_0$, i.e. angular distance from the bottom of the visual space), the spatial extent $\sigma$, the spatial frequency $f$ (in cycles per degree), the orientation $\theta$, the spatial phase $\psi$ and the excentricity $\beta$.
-
-*** Sampling of the visual space in the model.
-#+options : {'label':'RF-in-visual-space', 'extent':'singlecolumn', 'file':'figs/RF.png'}
-On the top plot, we show the weighted sum (weighted as 1/$N_{cells}$) of the Gabor filters associated to each cell of the modeled population. In the bottom plot, we show the Gabor filter of randomly picked cells within the population.
-
-*** Non-linear processing and temporal filtering in the model.
-#+options : {'label':'LNP-model', 'extent':'singlecolumn', 'file':'figs/LNP-model.png', 'page_position':'t!'}
-On the top plot, we show an example input signal designed for illustration purpose (i.e. the signal that would come from the spatial filtering through the cell-specific Gabor filters). Below we show the resulting "processed signal", i.e. the signal after being non-linearly processed (through the threshold-linear function) and temporally filtered (through delay and adaptation). Below is the transformation into rate by using the slope factor and by adding the baseline rate. At the bottom we show the Poisson process transformation of the rate signal (shown for 10 different realisation of the random process).
 *** Modeling saccadic eye movement (SEM).
 #+options : {'label':'SEM-model', 'extent':'singlecolumn', 'file':'figs/SEM-model.png', 'page_position':'t!'}
 Showing the SEM on the image (top plot, the color gradient codes for time) together with its horizontal (x) and vertical (y) projection over time (bottom plots, same color code as top plot). The thin dashed line correspond to the center of the visual field.
@@ -346,40 +110,10 @@ Showing various examples for each stimulus type (corresponding to different para
 #+options : {'label':'dynamic-stimuli', 'extent':'doublecolumn', 'file':'figs/dynamic-stimuli.png', 'page_position':'htb!'}
 Showing a single example of each stimulus type, each panel is a temporal snapshot of the stimulus (see time annotation at the top of each plot).
 
-*** Static full-field grating.
-#+options : {'label':'response-grating', 'extent':'singlecolumn', 'file':'figs/response-grating-.png'}
-
-*** Static full-field grating with SEM.
-#+options : {'label':'response-grating-SEM', 'extent':'singlecolumn', 'file':'figs/response-grating-saccadic.png'}
-
-*** Drifting full-field grating.
-#+options : {'label':'response-drifting-grating', 'extent':'singlecolumn', 'file':'figs/response-drifting-grating-.png'}
-
-*** Drifting full-field grating with SEM.
-#+options : {'label':'response-drifting-grating-SEM', 'extent':'singlecolumn', 'file':'figs/response-drifting-grating-saccadic.png'}
-
-*** Sparse noise.
-#+options : {'label':'response-sparse-noise', 'extent':'singlecolumn', 'file':'figs/response-sparse-noise-.png'}
-*** Sparse noise with SEM.
-#+options : {'label':'response-sparse-noise-SEM', 'extent':'singlecolumn', 'file':'figs/response-sparse-noise-saccadic.png'}
-*** Dense noise.
-#+options : {'label':'response-dense-noise', 'extent':'singlecolumn', 'file':'figs/response-dense-noise-.png'}
-*** Dense noise with SEM.
-#+options : {'label':'response-dense-noise-SEM', 'extent':'singlecolumn', 'file':'figs/response-dense-noise-saccadic.png'}
-
-*** Natural image.
-#+options : {'label':'response-natural-image', 'extent':'singlecolumn', 'file':'figs/response-natural-image-.png'}
-*** Natural image with SEM.
-#+options : {'label':'response-natural-image-SEM', 'extent':'singlecolumn', 'file':'figs/response-natural-image-saccadic.png'}
-
-*** Center surround protocol.
-#+options : {'label':'response-center-surround', 'extent':'singlecolumn', 'file':'figs/response-center-surround-.png'}
-*** Center surround protocol with SEM.
-#+options : {'label':'response-center-surround-SEM', 'extent':'singlecolumn', 'file':'figs/response-center-surround-saccadic.png'}
 
 * Tables
 
-*** Parameters of the visual and neuronal space considered.
+*** Parameters of the visual space considered.
 #+options : {'label':'space', 'extent':'singlecolumn'}
 Associated to Figure {geometry}.
 | Name                                    | Symbol   | Value | Unit   |
@@ -396,32 +130,3 @@ Field center from antero-posterior axis & $c_{VF}$ & 45 & \(^{o}\)\\
 Distance between screen and eye & \(d_{SE}\) & 20 & cm
 \end{tabular}
 \end{ center }
-
-*** Caption for the second table
-#+options : {'label':'Tab2', 'extent':'doublecolumn'}
-Subcaption for the second table
-| model   | \(P_0\)(mV) | \(P_\mu\)(mV)             | \(P_\sigma\)(mV) | \(P_\tau\)(mV) |
-|---------+-------------+---------------------------+------------------+----------------|
-| simple  | 8           | 9                         |                4 |            387 |
-|---------+-------------+---------------------------+------------------+----------------|
-| complex | \(\pi/d^4\) | \(\frac{\pi}{\sqrt{28}}\) |               23 |              3 |
-|---------+-------------+---------------------------+------------------+----------------|
-| none    | 0           | 0                         |                0 |              0 |
-|---------+-------------+---------------------------+------------------+----------------|
-\begin{ center }
-\begin{tabular}{lrrrr}
-model & \(P_0\)(mV) & \(P_\mu\)(mV) & \(P_\sigma\)(mV) & \(P_\tau\)(mV)\\
-\hline
-simple & 8 & 9 & 4 & 387\\
-\hline
-complex & \(\pi/d^4\) & \(\frac{\pi}{\sqrt{28}}\) & 23 & 3\\
-\hline
-none & 0 & 0 & 0 & 0\\
-\hline
-\end{tabular}
-\end{ center }
-
-* ksjdfhskfhj
-
-# \item We generate sample electrophysiological traces
-# \item We generate sample traces of Ca$^{2+}$ imaging experiments in response to experimental characterizations

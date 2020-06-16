@@ -2,43 +2,27 @@
 
 ## Configuration/Installation
 
+The stimulus presentation relies on (PsychoPy)[https://www.psychopy.org], follow the installation instructions from the website.
+
 ### Screen settings
 
-[...]
+The physical (visual space) and biological (neuronal space) settings are depicted on Figure {geometry}. 
+
+[[Figure {geometry} around here]]
+
+The visual space considered by the model corresponds to the monocular field of a given eye (e.g. left eye on Figure {geometry}) in the visual system of the mouse. 
+
+The visual space covered by the screen is therefore described by the following parameters:
+
+- Angular height of the visual field
+- Angular width of the visual field
+- Field center from antero-posterior axis
+
+
 
 ## Set of stimuli
 
-We describe here the set of visual stimuli available in the module with their *parameters*.
-
-### Static stimuli
-
-#### 'black-screen'
-
-#### 'grey-screen'
-
-#### 'white-screen'
-
-#### 'static-full-field-grating'
-
-#### 'static-center-grating'
-
-#### 'static-center-surround-grating'
-
-#### 'static-surround-grating'
-
-#### 'natural-image'
-
-### Dynamic stimuli
-
-#### 'full-field-drifting-grating'
-
-#### 'sparse-noise'
-
-#### 'dense-noise'
-
-#### 'gaussian-blob-appearance'
-
-#### 'center-surround-protocols'
+We describe  the set of visual stimuli available in the module with their *parameters* in the (Stimulus Documentation)[stimuli.pdf].
 
 
 ## Realign physiological recordings
