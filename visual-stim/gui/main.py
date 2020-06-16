@@ -2,9 +2,8 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget
 
 import sys, os, pathlib
-sys.path.append('./')
-sys.path.append(str(pathlib.Path(__file__).resolve()))
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from psychopy_code.stimuli import visual_stim
 
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
@@ -12,8 +11,15 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 PROTOCOLS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
 
 STIMULI = {
-    'grating':{},
-    '':{},
+    'light-level':{},
+    'full-field-grating':{},
+    'drifting-FF-grating':{},
+    'center-grating':{},
+    'surround-grating':{},
+    'center-surround-grating':{},
+    'Natural-Image':{},
+    'full-field-grating+VEM':{},
+    'natural-image+VEM':{},
 }
 
 class Window(QtWidgets.QMainWindow):
@@ -31,21 +37,21 @@ class Window(QtWidgets.QMainWindow):
         self.setGeometry(200, 200, button_length*len(LABELS), 200)
 
         # protocol change
-        label1 = QtWidgets.QLabel("/|===> Protocol <===|\\", self)
-        label1.setMinimumWidth(300)
+        label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
+        label1.setMinimumWidth(320)
         label1.move(100, 50)
         self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems(PROTOCOLS)
+        self.cbp.addItems(['']+PROTOCOLS)
         self.cbp.currentIndexChanged.connect(self.change_protocol)
         self.cbp.setMinimumWidth(250)
         self.cbp.move(70, 80)
 
         # stimulus pick
-        label2 = QtWidgets.QLabel("/|===> Stimulus <===|\\", self)
-        label2.setMinimumWidth(300)
+        label2 = QtWidgets.QLabel("  /|===> Stimulus <===|\\", self)
+        label2.setMinimumWidth(330)
         label2.move(100, 110)
         self.cbs = QtWidgets.QComboBox(self)
-        self.cbs.addItems(list(STIMULI.keys()))
+        self.cbs.addItems(['']+list(STIMULI.keys()))
         self.cbs.currentIndexChanged.connect(self.change_stimulus)
         self.cbs.setMinimumWidth(250)
         self.cbs.move(70, 140)
@@ -77,10 +83,13 @@ class Window(QtWidgets.QMainWindow):
 
         
     def initialize(self):
-        pass
+        self.stim = visual_stim(protocol=self.cbp.currentText(),
+                                stimulus=self.cbs.currentText())
+        self.stim.build_protocol(a=0)
     
     def run(self):
-        pass
+        self.initialize()
+        self.stim.show()
     
     def stop(self):
         pass
@@ -89,10 +98,15 @@ class Window(QtWidgets.QMainWindow):
         sys.exit()
 
     def change_protocol(self):
-        pass
+        print(self.cbp.currentText())
+        
     def change_stimulus(self):
-        pass
-    
+        print(self.cbs.currentText())
+
+    def create_params_window(self):
+        window = QtWidgets.QDialog()
+
+        
     def save_results(self):
         if 'NSI' in self.data:
             results_filename = '.'.join(self.filename.split('.')[:-1]) if '.' in self.filename else self.filename
