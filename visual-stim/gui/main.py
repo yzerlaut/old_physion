@@ -59,6 +59,7 @@ class Window(QtWidgets.QMainWindow):
 
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('&File')
+        self.fileMenu = mainMenu.addMenu('&Configuration')
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
