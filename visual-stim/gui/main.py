@@ -4,19 +4,22 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from psychopy_code.stimuli import visual_stim
+from params_window import *
 from default_params import STIMULI
-from params_window import draw_window
+import json
 
 PROTOCOLS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
-
 
 class Window(QtWidgets.QMainWindow):
     
     def __init__(self, app, parent=None):
         
         super(Window, self).__init__(parent)
-        self.STIMULI = STIMULI
+        
+        self.protocol = None # by default, can be loaded by the interface
+        self.params_window = None
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -81,7 +84,6 @@ class Window(QtWidgets.QMainWindow):
         self.show()
 
         
-        
     def initialize(self):
         self.statusBar.showMessage('[...] preparing stimulation')
         self.stim = visual_stim(protocol=self.cbp.currentText(),
@@ -104,19 +106,34 @@ class Window(QtWidgets.QMainWindow):
         sys.exit()
         
     def save_protocol(self):
-        pass
-    
+        if self.params_window is not None:
+            self.protocol = extract_params_from_window(self)
+            with open('protocol.json', 'w') as fp:
+                json.dump(self.protocol, fp)
+                self.statusBar.showMessage('protocol saved as "protocol.json"')
+        else:
+            self.statusBar.showMessage('No protocol data available')
+            
     def load_protocol(self):
-        pass
+        try:
+            with open('protocol.json', 'r') as fp:
+                self.protocol = json.load(fp)
+            self.statusBar.showMessage('successfully loaded "protocol.json"')
+            self.params_window = draw_window(self)
+            self.params_window.show()
+        except FileNotFoundError:
+            self.statusBar.showMessage('protocol file not found !')
 
     def set_folder(self):
         pass
 
     def change_protocol(self):
+        self.protocol = None
         self.params_window = draw_window(self)
         self.params_window.show()
         
     def change_stimulus(self):
+        self.protocol = None
         self.params_window = draw_window(self)
         self.params_window.show()
 

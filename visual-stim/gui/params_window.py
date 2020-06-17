@@ -1,5 +1,9 @@
 from PyQt5 import QtWidgets
 
+import sys, os, pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from default_params import STIMULI
+
 LS = 25 # linespace
 
 
@@ -9,6 +13,7 @@ def draw_window(main_win):
     window = QtWidgets.QDialog()
     window.setWindowTitle('%s -- %s' % (main_win.cbp.currentText(),
                                         main_win.cbs.currentText()))
+
     if main_win.cbp.currentText()=='':
         window.setGeometry(500, 100, 400, 40)
         QtWidgets.QLabel("\n"+10*' '+"Need to choose a presentation ! ", window)
@@ -16,42 +21,65 @@ def draw_window(main_win):
         window.setGeometry(500, 100, 400, 40)
         QtWidgets.QLabel("\n"+10*' '+"Need to choose a stimulus ! ", window)
     else:
-        if main_win.cbp.currentText()=='Single-Stimulus':
+
+        if main_win.protocol is None:
+            main_win.protocol = STIMULI[main_win.cbs.currentText()]
+            main_win.protocol['Presentation'] = main_win.cbp.currentText()
+            main_win.protocol['Stimulus'] = main_win.cbs.currentText()
+
+        if main_win.protocol['Presentation']=='Single-Stimulus':
             set_single_stim_params_window(main_win, window)
-        elif main_win.cbp.currentText()=='Stimuli-Sequence':
+        elif main_win.protocol['Presentation']=='Stimuli-Sequence':
             set_stim_sequence_params_window(main_win, window)
-        elif main_win.cbp.currentText()=='Randomized-Sequence':
+        elif main_win.protocol['Presentation']=='Randomized-Sequence':
             set_random_sequence_params_window(main_win, window)
         else:
-            QtWidgets.QLabel("\n"+10*' '+"Need to choose a stimulus ! ", window)
+            QtWidgets.QLabel("Presentation type not recognized ", window)
 
     return window
 
+def extract_params_from_window(main_win):
+
+    
+    if main_win.protocol['Presentation']=='Single-Stimulus':
+        protocol = extract_params_from_single_stim_window(main_win)
+    else:
+        protocol = {}
+    # elif main_win.protocol['Presentation']=='Stimuli-Sequence':
+    #     protocol = extract_params_from_single_stim_window(main_win)
+    # elif main_win.protocol['Presentation']=='Randomized-Sequence':
+    #     set_random_sequence_params_window(main_win, window)
+    protocol['Presentation'] = main_win.cbp.currentText()
+    protocol['Stimulus'] = main_win.cbs.currentText()
+
+    return protocol
+
+################################################
+############# Single-Stimulus ##################
+################################################
 
 def set_single_stim_params_window(main_win, window):
     """
     """
-    params_dict = main_win.STIMULI[main_win.cbs.currentText()]
-    params_keys = get_params_keys(params_dict)
+    params_keys = get_params_keys(main_win.protocol)
     window.setGeometry(500, 100, 320, LS*(7+len(params_keys)))
     QtWidgets.QLabel("  =======  Stimulus settings ======== ", window).move(5, LS)
     for i, key in enumerate(params_keys):
         QtWidgets.QLabel(key.split(' (')[0], window).move(20, LS*(2+i))
         setattr(window, key, QtWidgets.QDoubleSpinBox(window))
         getattr(window, key).move(150, LS*(2+i)-.15*LS)
-        getattr(window, key).setValue(params_dict[key])
+        getattr(window, key).setValue(main_win.protocol[key])
         getattr(window, key).setSuffix(' ('+key.split(' (')[1])
     QtWidgets.QLabel(65*'-', window).move(0, LS*(2+len(params_keys)))
     QtWidgets.QLabel("  ======  Presentation settings ======= ", window).move(0, LS*(3+len(params_keys)))
     QtWidgets.QLabel(" Duration: ", window).move(0, LS*(4+len(params_keys)))
     window.durationBox = QtWidgets.QDoubleSpinBox(window)
     window.durationBox.move(100, LS*(4+len(params_keys))-.15*LS)
-    window.durationBox.setSuffix(' ms')
+    window.durationBox.setSuffix(' s')
     QtWidgets.QLabel(" Pre-stim: ", window).move(0, LS*(5+len(params_keys)))
     window.prestimBox = QtWidgets.QDoubleSpinBox(window)
     window.prestimBox.move(100, LS*(5+len(params_keys))-.15*LS)
-    window.prestimBox.setSuffix(' ms')
-    window.prestimBox.setSuffix(' ms')
+    window.prestimBox.setSuffix(' s')
     window.prestimType = QtWidgets.QComboBox(window)
     window.prestimType.addItems(['Black Screen' ,'Grey Screen', 'White Screen'])
     window.prestimType.move(200, LS*(5+len(params_keys))-.15*LS)
@@ -59,10 +87,24 @@ def set_single_stim_params_window(main_win, window):
     QtWidgets.QLabel(" Post-stim: ", window).move(0, LS*(6+len(params_keys)))
     window.poststimBox = QtWidgets.QDoubleSpinBox(window)
     window.poststimBox.move(100, LS*(6+len(params_keys))-.15*LS)
-    window.poststimBox.setSuffix(' ms')
+    window.poststimBox.setSuffix(' s')
     window.poststimType = QtWidgets.QComboBox(window)
     window.poststimType.addItems(['Black Screen' ,'Grey Screen', 'White Screen'])
     window.poststimType.move(200, LS*(6+len(params_keys))-.15*LS)
+
+
+def extract_params_from_single_stim_window(main_win):
+
+    protocol = {}
+    params_keys = get_params_keys(STIMULI[main_win.cbs.currentText()])
+    for i, key in enumerate(params_keys):
+        protocol[key] = getattr(main_win.params_window, key).value()
+    protocol['presentation-duration'] = main_win.params_window.durationBox.value()
+    protocol['presentation-prestim-delay'] = main_win.params_window.prestimBox.value()
+    protocol['presentation-poststim-period'] = main_win.params_window.poststimBox.value()
+    protocol['presentation-prestim-screen'] = main_win.params_window.prestimType.currentText()
+    protocol['presentation-poststim-screen'] = main_win.params_window.poststimType.currentText()
+    return protocol
     
 
 def set_stim_sequence_params_window(main_win, window):
@@ -74,11 +116,12 @@ def set_random_sequence_params_window(main_win, window):
 def get_params_keys(stim_dict):
     keys = []
     for key in stim_dict:
-        if not ((key[-2:]=='-1') or (key[-2:]=='-2') or (key[:2]=='N-')):
+        if not ((key[-2:]=='-1') or (key[-2:]=='-2') or (key[:2]=='N-')\
+                or (key=='Presentation') or (key=='Stimulus') or key[:13]=='presentation-'):
             keys.append(key)
     return keys
-        
 
+    
 def set_recording_params(window, x0=10, y0=30):
     # front text
     Data_label = QtWidgets.QLabel("===> Acquisition parameters:", window)
