@@ -5,7 +5,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.stimuli import visual_stim
-from stim_parameters import STIMULI
+from default_params import STIMULI
 from params_window import draw_window
 
 PROTOCOLS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
