@@ -100,7 +100,8 @@ class Window(QtWidgets.QMainWindow):
         self.stim.show()
     
     def stop(self):
-        pass
+        self.close()
+        core.quit()
     
     def quit(self):
         sys.exit()
