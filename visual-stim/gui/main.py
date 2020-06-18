@@ -1,16 +1,15 @@
-import sys
+import sys, time
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
-from psychopy_code.stimuli import visual_stim
+from psychopy_code.stimuli import build_stim
 from params_window import *
-from default_params import STIMULI
+from default_params import STIMULI, PRESENTATIONS
 import json
 
-PROTOCOLS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
 
 class Window(QtWidgets.QMainWindow):
     
@@ -19,6 +18,7 @@ class Window(QtWidgets.QMainWindow):
         super(Window, self).__init__(parent)
         
         self.protocol = None # by default, can be loaded by the interface
+        self.stim, self.init = None, False
         self.params_window = None
         
         # buttons and functions
@@ -34,7 +34,7 @@ class Window(QtWidgets.QMainWindow):
         label1.setMinimumWidth(320)
         label1.move(100, 50)
         self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems(['']+PROTOCOLS)
+        self.cbp.addItems(['']+PRESENTATIONS)
         self.cbp.currentIndexChanged.connect(self.change_protocol)
         self.cbp.setMinimumWidth(250)
         self.cbp.move(70, 80)
@@ -85,25 +85,34 @@ class Window(QtWidgets.QMainWindow):
 
         
     def initialize(self):
-        self.statusBar.showMessage('[...] preparing stimulation')
-        self.stim = visual_stim(protocol=self.cbp.currentText(),
-                                stimulus=self.cbs.currentText())
-        self.stim.build_protocol(a=0)
-        self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
-
+        if (self.protocol is None) and (\
+           (self.cbp.currentText()=='') or (self.cbs.currentText()=='')):
+            self.statusBar.showMessage('Need to set parameters in the GUI or to load a protocol !')
+        else:
+            self.statusBar.showMessage('[...] preparing stimulation')
+            self.protocol = extract_params_from_window(self)
+            self.stim = build_stim(self.protocol)
+            # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
+            self.statusBar.showMessage('stimulation ready !')
+            self.init = True
         
     def run(self):
-        self.statusBar.showMessage('[...] preparing stimulation')
-        self.stim = visual_stim(protocol=self.cbp.currentText(),
-                                stimulus=self.cbs.currentText())
-        self.stim.build_protocol(a=0)
-        self.stim.show()
+        if (self.stim is None) or not self.init:
+            self.statusBar.showMessage('Need to initialize the stimulation !')
+        else:
+            self.statusBar.showMessage('stimulation running [...]')
+            self.stim.run()
+            self.stim.close()
+            self.init = False
     
     def stop(self):
-        self.close()
-        core.quit()
+        if self.stim is not None:
+            self.stim.close()
+            self.init = False
     
     def quit(self):
+        if self.stim is not None:
+            self.stim.quit()
         sys.exit()
         
     def save_protocol(self):
@@ -116,26 +125,31 @@ class Window(QtWidgets.QMainWindow):
             self.statusBar.showMessage('No protocol data available')
             
     def load_protocol(self):
+        filename = 'protocol.json'
         try:
-            with open('protocol.json', 'r') as fp:
+            with open(filename, 'r') as fp:
                 self.protocol = json.load(fp)
-            self.statusBar.showMessage('successfully loaded "protocol.json"')
-            self.params_window = draw_window(self)
+            # update main window
+            s1, s2 = self.protocol['Presentation'], self.protocol['Stimulus']
+            self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
+            self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
+            self.statusBar.showMessage('successfully loaded "%s"' % filename)
+            # draw params window
+            self.params_window = draw_window(self, self.protocol)
+            # self.params_window = draw_window(self, self.protocol)
             self.params_window.show()
         except FileNotFoundError:
-            self.statusBar.showMessage('protocol file not found !')
+            self.statusBar.showMessage('protocol file "%s" not found !' % filename)
 
     def set_folder(self):
         pass
 
     def change_protocol(self):
-        self.protocol = None
-        self.params_window = draw_window(self)
+        self.params_window = draw_window(self, None)
         self.params_window.show()
         
     def change_stimulus(self):
-        self.protocol = None
-        self.params_window = draw_window(self)
+        self.params_window = draw_window(self, None)
         self.params_window.show()
 
     def create_params_window(self):

@@ -1,4 +1,4 @@
-from psychopy import visual, core, event, clock #import some libraries from PsychoPy
+from psychopy import visual, core, clock #import some libraries from PsychoPy
 import numpy as np
 import sys
 
@@ -139,7 +139,7 @@ if sys.argv[-1]=='drifting-grating':
     #draw the stimuli and update the window
     start = clock.getTime()
     prev = start
-    while (clock.getTime()-start)<5:
+    while (clock.getTime()-start)<3:
         grating.setPhase(df*(clock.getTime()-prev), '+') # advance phase
         prev = clock.getTime()
         grating.draw()
