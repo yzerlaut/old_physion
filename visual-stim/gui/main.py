@@ -18,6 +18,7 @@ class Window(QtWidgets.QMainWindow):
         super(Window, self).__init__(parent)
         
         self.protocol = None # by default, can be loaded by the interface
+        self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init = None, False
         self.params_window = None
         self.data_folder = tempfile.gettempdir()
@@ -112,6 +113,7 @@ class Window(QtWidgets.QMainWindow):
         if (self.stim is None) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
         else:
+            self.save_experiment()
             self.statusBar.showMessage('stimulation running [...]')
             self.stim.run()
             self.stim.close()
@@ -126,12 +128,16 @@ class Window(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.stim.quit()
         sys.exit()
+
+    def save_experiment(self):
+        full_exp = dict(**self.protocol, **self.experiment)
+        np.savez(os.path.join(self.data_folder,'test.npz'), **full_exp)
+        
         
     def save_protocol(self):
         if self.params_window is not None:
             self.protocol = extract_params_from_window(self)
             self.protocol['data-folder'] = self.data_folder
-            self.protocol['protocol-folder'] = self.protocol_folder
             with open('protocol.json', 'w') as fp:
                 json.dump(self.protocol, fp)
                 self.statusBar.showMessage('protocol saved as "protocol.json"')
