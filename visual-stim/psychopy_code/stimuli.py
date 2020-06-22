@@ -84,9 +84,9 @@ class visual_stim:
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
                                 color=self.protocol['presentation-prestim-screen'])
-        if 'presentation-middlestim-screen' in self.protocol:
-            self.blank_middle = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
-                                color=self.protocol['presentation-middlestim-screen'])
+        if 'presentation-interstim-screen' in self.protocol:
+            self.blank_inter = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
+                                                  color=self.protocol['presentation-interstim-screen'])
         self.blank_end = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
                                 color=self.protocol['presentation-poststim-screen'])
 
@@ -128,12 +128,12 @@ class visual_stim:
             clock.wait(self.protocol['presentation-poststim-period'])
 
     # screen for interstim
-    def middle_screen(self, parent):
+    def inter_screen(self, parent):
         if not parent.stop_flag:
-            self.blank_middle.draw()
+            self.blank_inter.draw()
             self.off.draw()
             self.win.flip()
-            clock.wait(self.protocol['presentation-middle-period'])
+            clock.wait(self.protocol['presentation-interstim-period'])
             
     # showing a single static pattern
     def single_static_patterns_presentation(self, parent, PATTERNS, duration):
@@ -257,7 +257,7 @@ class SET_of_full_field_grating_stim(visual_stim):
             self.single_static_patterns_presentation(parent,
                                                          self.PATTERNS[i],
                                                          self.protocol['presentation-duration'])
-            self.middle_screen(parent)
+            self.inter_screen(parent)
         self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
         
@@ -413,7 +413,7 @@ class SET_of_full_field_drifting_grating_stim(visual_stim):
                 self.single_dynamic_gratings_presentation(parent,
                                                           self.PATTERNS[i],
                                                           self.protocol['presentation-duration'])
-                self.middle_screen(parent)
+                self.inter_screen(parent)
         self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
         
