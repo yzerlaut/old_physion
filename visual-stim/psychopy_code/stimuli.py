@@ -127,6 +127,14 @@ class visual_stim:
             self.win.flip()
             clock.wait(self.protocol['presentation-poststim-period'])
 
+    # screen for interstim
+    def middle_screen(self, parent):
+        if not parent.stop_flag:
+            self.blank_middle.draw()
+            self.off.draw()
+            self.win.flip()
+            clock.wait(self.protocol['presentation-middle-period'])
+            
     # showing a single static pattern
     def single_static_patterns_presentation(self, parent, PATTERNS, duration):
         start = clock.getTime()
@@ -242,14 +250,15 @@ class SET_of_full_field_grating_stim(visual_stim):
         
         
     def run(self, parent):
+        self.start_screen(parent)
         for i in self.experiment['index']:
             if stop_signal(parent):
                 break
-            self.start_screen(parent)
             self.single_static_patterns_presentation(parent,
                                                          self.PATTERNS[i],
                                                          self.protocol['presentation-duration'])
-            self.end_screen(parent)
+            self.middle_screen(parent)
+        self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
         
         
@@ -395,16 +404,17 @@ class SET_of_full_field_drifting_grating_stim(visual_stim):
         self.experiment['index'] = np.arange(len(self.PATTERNS))
 
     def run(self, parent):
+        self.start_screen(parent)
         for i in self.experiment['index']:
             if stop_signal(parent):
                 break
             self.speed = self.experiment['speeds'][i]
             if not parent.stop_flag:
-                self.start_screen(parent)
                 self.single_dynamic_gratings_presentation(parent,
                                                           self.PATTERNS[i],
                                                           self.protocol['presentation-duration'])
-                self.end_screen(parent)
+                self.middle_screen(parent)
+        self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
         
 
