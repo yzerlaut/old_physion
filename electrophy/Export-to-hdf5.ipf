@@ -1,16 +1,13 @@
 ﻿#pragma TextEncoding = "UTF-8"
-#pragma rtGlobals=3		// Use modern global access method and strict wave access.
+// #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
-Function convert_to_temp_hdf5()
+Function convert_to_hdf5(filename)
 
     String filename   
     Variable root_id, h5_id
-    filename = "C:\\Windows\\Temp\\temp.h5"
-    //SetDataFolder root:
-    Print filename
-    HDF5CreateFile /O h5_id as filename
-    HDF5CreateGroup /Z h5_id, "/", root_id
-    HDF5SaveGroup  /L=7 /O /R :, root_id, "/"
+    HDF5CreateFile h5_id as filename
+    HDF5CreateGroup h5_id, "/", root_id
+    HDF5SaveGroup  /VAR=1 /L=7 /O /R :, root_id, "/"
     HDF5CloseGroup root_id
     HDF5CloseFile h5_id 
 end
@@ -62,6 +59,14 @@ static function /s sanitizeFilePath(path)
     return path
 end
 
+Function CleanUpWorkSpace()
+	KillWaves/A
+	KillVariables/A
+	KillStrings/A
+	KillDataFolder GetDataFolder(1)
+end
+
+
 Function convert([,i])
    variable i
 	
@@ -73,10 +78,11 @@ Function convert([,i])
 	do
 		fname = stringfromlist(i,filelist)
 		fname2 = ReplaceString(".pxp", fname, ".h5")
-		LoadData /O /L=7 fname
+		CleanUpWorkSpace()
+		LoadData /O /L=7 /R fname
 		Print "i=", i, ") generating", fname2
-		convert_to_temp_hdf5()
-		MoveFile /I=0 /O "C:\\Windows\\Temp\\temp.h5" as fname2
+		//convert_to_hdf5(fname2)		
+		//MoveFile /I=0 /O FILE_LOCATION as fname2
 		i += 1          //move to next file
     while(i<itemsinlist(filelist)	)
     Print "[ok] successful conversion of", S_path 
