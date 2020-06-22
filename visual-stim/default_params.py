@@ -18,6 +18,8 @@ PRESENTATION = {
     'presentation-poststim-screen':-1,
     # repetition
     'N-repeat':2,
+    'shuffling-seed':1,
+    'starting-index':0,
 }
 
 STIMULI = {

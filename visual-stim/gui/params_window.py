@@ -103,7 +103,7 @@ def set_multiple_stim_params_window(parent, window, protocol):
     """
     """
     params_keys = get_params_keys(protocol, stimulus=protocol['Stimulus'])
-    window.setGeometry(500, 100, 600, LS*(11+len(params_keys)))
+    window.setGeometry(500, 100, 600, LS*(13+len(params_keys)))
     QtWidgets.QLabel("  "+20*"="+" Set-of-Stimuli settings "+20*"=", window).move(5, LS)
     QtWidgets.QLabel("|| Params ", window).move(5, 2*LS)
     QtWidgets.QLabel("|| Low-value ", window).move(150, 2*LS)
@@ -177,11 +177,24 @@ def set_multiple_stim_params_window(parent, window, protocol):
     window.poststimType.move(200, LS*(8+len(params_keys))-.15*LS)
 
 
+    # Starting index props
+    QtWidgets.QLabel("    Starting index for Set-of-Stimuli: ", window).move(0, LS*(9+len(params_keys)))
+    window.i0Box = QtWidgets.QSpinBox(window)
+    window.i0Box.setValue(protocol['starting-index'])
+    window.i0Box.move(240, LS*(9+len(params_keys))-.15*LS)
+
     # N-repeat props
-    QtWidgets.QLabel("    N-repeat of full Set-of-Stimuli: ", window).move(0, LS*(9+len(params_keys)))
+    QtWidgets.QLabel("    N-repeat of full Set-of-Stimuli: ", window).move(0, LS*(10+len(params_keys)))
     window.NrepeatBox = QtWidgets.QSpinBox(window)
     window.NrepeatBox.setValue(protocol['N-repeat'])
-    window.NrepeatBox.move(200, LS*(9+len(params_keys))-.15*LS)
+    window.NrepeatBox.move(240, LS*(10+len(params_keys))-.15*LS)
+
+    if protocol['Presentation']=='Randomized-Sequence':
+        # shuffling-index props
+        QtWidgets.QLabel("    Seed for shuffling: ", window).move(0, LS*(11+len(params_keys)))
+        window.SeedBox = QtWidgets.QSpinBox(window)
+        window.SeedBox.setValue(protocol['shuffling-seed'])
+        window.SeedBox.move(240, LS*(11+len(params_keys))-.15*LS)
     
     
 def extract_params_from_window(parent):
@@ -207,6 +220,9 @@ def extract_params_from_window(parent):
         protocol['presentation-interstim-period'] = parent.params_window.interstimBox.value()
         protocol['presentation-interstim-screen'] = NAME_TO_COLOR[parent.params_window.interstimType.currentText()]
         protocol['N-repeat'] = parent.params_window.NrepeatBox.value()
+        protocol['starting-index'] = parent.params_window.i0Box.value()
+        if protocol['Presentation']=='Randomized-Sequence':
+            protocol['shuffling-seed'] = parent.params_window.SeedBox.value()
 
         for i, key in enumerate(params_keys):
             new_key = key.split(' (')[0]
