@@ -1,4 +1,4 @@
-import sys, time
+import sys, time, tempfile
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
@@ -7,7 +7,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 from psychopy_code.stimuli import build_stim
 from params_window import *
-from default_params import STIMULI, PRESENTATIONS
+from default_params import STIMULI, PRESENTATIONS, SETUP
 import json
 
 
@@ -20,6 +20,8 @@ class Window(QtWidgets.QMainWindow):
         self.protocol = None # by default, can be loaded by the interface
         self.stim, self.init = None, False
         self.params_window = None
+        self.data_folder = tempfile.gettempdir()
+        self.protocol_folder = './'
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -27,10 +29,10 @@ class Window(QtWidgets.QMainWindow):
         button_length = 100
         
         self.setWindowTitle('Visual Stimulation Program')
-        self.setGeometry(50, 50, 1.01*button_length*len(LABELS), 250)
+        self.setGeometry(50, 50, 1.01*button_length*len(LABELS), 310)
 
         # protocol change
-        label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
+        label1 = QtWidgets.QLabel("  /|===> Presentation <===|\\", self)
         label1.setMinimumWidth(320)
         label1.move(100, 50)
         self.cbp = QtWidgets.QComboBox(self)
@@ -40,7 +42,7 @@ class Window(QtWidgets.QMainWindow):
         self.cbp.move(70, 80)
 
         # stimulus pick
-        label2 = QtWidgets.QLabel("  /|===> Stimulus <===|\\", self)
+        label2 = QtWidgets.QLabel("    /|===> Stimulus <===|\\", self)
         label2.setMinimumWidth(330)
         label2.move(100, 110)
         self.cbs = QtWidgets.QComboBox(self)
@@ -48,6 +50,16 @@ class Window(QtWidgets.QMainWindow):
         self.cbs.currentIndexChanged.connect(self.change_stimulus)
         self.cbs.setMinimumWidth(250)
         self.cbs.move(70, 140)
+
+        # setup pick
+        label3 = QtWidgets.QLabel("/|===>  Setup & Saving  <===|\\", self)
+        label3.setMinimumWidth(320)
+        label3.move(100, 170)
+        self.cbst = QtWidgets.QComboBox(self)
+        self.cbst.addItems(SETUP)
+        self.cbst.currentIndexChanged.connect(self.change_setup)
+        self.cbst.setMinimumWidth(250)
+        self.cbst.move(70, 200)
 
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('&File')
@@ -74,7 +86,7 @@ class Window(QtWidgets.QMainWindow):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(size)
-            btn.move(shift, 190)
+            btn.move(shift, 250)
             action = QtWidgets.QAction(label, self)
             if len(label.split(')'))>0:
                 action.setShortcut(label.split(')')[0])
@@ -118,6 +130,8 @@ class Window(QtWidgets.QMainWindow):
     def save_protocol(self):
         if self.params_window is not None:
             self.protocol = extract_params_from_window(self)
+            self.protocol['data-folder'] = self.data_folder
+            self.protocol['protocol-folder'] = self.protocol_folder
             with open('protocol.json', 'w') as fp:
                 json.dump(self.protocol, fp)
                 self.statusBar.showMessage('protocol saved as "protocol.json"')
@@ -142,8 +156,13 @@ class Window(QtWidgets.QMainWindow):
             self.statusBar.showMessage('protocol file "%s" not found !' % filename)
 
     def set_folder(self):
-        pass
+        self.protocol_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                                              "Select Protocol Folder"))
 
+    def change_setup(self):
+        self.data_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                                          "Select Data Folder"))
+        
     def change_protocol(self):
         self.params_window = draw_window(self, None)
         self.params_window.show()

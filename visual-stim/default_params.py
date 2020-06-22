@@ -4,6 +4,7 @@ PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
 
 BLANK_SCREENS = ['Black Screen' ,'Grey Screen', 'White Screen']
 NAME_TO_COLOR = {'Black Screen':-1, 'Grey Screen':0, 'White Screen':1}
+SETUP = ['demo-mode', 'Bacci-2P-setup']
 
 PRESENTATION = {
     # duration
