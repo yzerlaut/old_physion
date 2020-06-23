@@ -27,6 +27,7 @@ def draw_window(parent, protocol):
             protocol = {**STIMULI[parent.cbs.currentText()], **PRESENTATION}
             protocol['Presentation'] = parent.cbp.currentText()
             protocol['Stimulus'] = parent.cbs.currentText()
+            protocol['Setup'] = parent.cbst.currentText()
             
         print(protocol)
         
@@ -200,7 +201,8 @@ def set_multiple_stim_params_window(parent, window, protocol):
 def extract_params_from_window(parent):
 
     protocol = {'Presentation': parent.cbp.currentText(),
-                'Stimulus': parent.cbs.currentText()}
+                'Stimulus': parent.cbs.currentText(),
+                'Setup': parent.cbst.currentText()}
     
     params_keys = get_params_keys(STIMULI[parent.cbs.currentText()])
     

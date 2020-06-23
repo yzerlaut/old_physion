@@ -5,7 +5,7 @@ import itertools
 SCREEN = [800,600]
 MONITOR = "testMonitor"
 UNITS = "deg"
-MONITORING_SQUARE = {'size':2, 'x':11, 'y':-8, 'color-on':1, 'color-off':-1,
+MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
 def build_stim(protocol):
@@ -80,7 +80,12 @@ class visual_stim:
         """
         """
         self.protocol = protocol
-        self.win = visual.Window(SCREEN, monitor=MONITOR, units=UNITS) #create a window
+        if self.protocol['Setup']=='demo-mode':
+            self.win = visual.Window(SCREEN, monitor=MONITOR, units=UNITS, color=-1) #create a window
+        else:
+            self.win = visual.Window(size=[1280, 720], monitor='Lilliput', screen=1, fullscr=True,
+                                     units=UNITS, color=-1)
+            
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
                                 color=self.protocol['presentation-prestim-screen'])
@@ -354,7 +359,8 @@ class full_field_drifting_grating_stim(visual_stim):
             
     def run(self, parent):
         self.start_screen(parent)
-        self.single_dynamic_gratings_presentation([self.grating],
+        self.single_dynamic_gratings_presentation(parent,
+                                                  [self.grating],
                                                   self.protocol['presentation-duration'])
         self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
@@ -436,7 +442,8 @@ class center_drifting_grating_stim(visual_stim):
             
     def run(self, parent):
         self.start_screen(parent)
-        self.single_dynamic_gratings_presentation([self.bg, self.grating],
+        self.single_dynamic_gratings_presentation(parent,
+                                                  [self.bg, self.grating],
                                                   self.protocol['presentation-duration'])
         self.end_screen(parent)
 
@@ -457,7 +464,7 @@ class off_center_drifting_grating_stim(visual_stim):
 
     def run(self, parent):
         self.start_screen(parent)
-        self.single_dynamic_gratings_presentation([self.grating, self.center],
+        self.single_dynamic_gratings_presentation(parent, [self.grating, self.center],
                                                   self.protocol['presentation-duration'])
         self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
@@ -483,7 +490,8 @@ class surround_drifting_grating_stim(visual_stim):
 
     def run(self, parent):
         self.start_screen(parent)
-        self.single_dynamic_gratings_presentation([self.bg, self.grating, self.mask],
+        self.single_dynamic_gratings_presentation(parent,
+                                                  [self.bg, self.grating, self.mask],
                                                   self.protocol['presentation-duration'])
         self.end_screen(parent)
         parent.statusBar.showMessage('stimulation over !')
