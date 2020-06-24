@@ -19,7 +19,7 @@ def generate_filename_path(root_folder,
     if not extension.startswith('.'):
         extension='.'+extension
         
-    return os.path.join(day_folder, datetime.datetime.now().strftime("%H:%M:%S")+extension)
+    return os.path.join(day_folder, datetime.datetime.now().strftime("%H-%M-%S")+extension)
     
 
 if __name__=='__main__':

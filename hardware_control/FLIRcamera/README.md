@@ -4,7 +4,12 @@
 
 ## Installation
 
-https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3
+Install FLIR, Spinnaker SDK and the python API.
+- https://www.flir.fr/products/spinnaker-sdk/
+
+Install the simple API on top of the API:
+- https://pypi.org/project/simple-pyspin/
+
 
 ## Reference
 

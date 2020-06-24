@@ -36,9 +36,9 @@ STIMULI = {
         'spatial-freq (cycle/deg)':0.5,
         'contrast (norm.)':1.,
         # range
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'angle-1':0., 'angle-2':180, 'N-angle':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3},
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'angle-1':0., 'angle-2':180, 'N-angle':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
     
     # center grating
     'center-grating':{
@@ -47,12 +47,12 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':0, 'radius-2':20., 'N-radius':6,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
     # off-center grating
@@ -62,12 +62,12 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':0, 'radius-2':20., 'N-radius':6,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
     # surround grating
@@ -78,13 +78,13 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-start-1':0., 'radius-start-2':20., 'N-radius-start':6,
-        'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':6,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
+        'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
     # full-field drifting grating
@@ -94,10 +94,10 @@ STIMULI = {
         'speed (cycle/s)':1.,
         'contrast (norm.)':1.,
         # range
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'angle-1':0., 'angle-2':180, 'N-angle':6,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'angle-1':0., 'angle-2':180, 'N-angle':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3},
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
     
     # center drifting grating
     'drifting-center-grating':{
@@ -107,13 +107,13 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'radius-1':0, 'radius-2':20., 'N-radius':6,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
     # off-center grating
@@ -124,13 +124,13 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':0, 'radius-2':20., 'N-radius':6,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'radius-1':2, 'radius-2':8., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
     # surround drifting grating
@@ -142,14 +142,14 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':180., 'N-angle':6,
-        'spatial-freq-1':0.1, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-start-1':0., 'radius-start-2':20., 'N-radius-start':6,
-        'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':6,
+        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
+        'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-20., 'x-center-2':20., 'N-x-center':6,
-        'y-center-1':-20., 'y-center-2':20., 'N-y-center':6,
-        'contrast-1':0., 'contrast-2':1., 'N-contrast':3,
+        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
+        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
     'center-surround-grating':{},

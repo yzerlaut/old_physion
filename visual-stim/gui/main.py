@@ -138,16 +138,21 @@ class Window(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         full_exp = dict(**self.protocol, **self.experiment)
-        np.savez(os.path.join(self.data_folder,'test.npz'), **full_exp)
+        create_day_folder(self.data_folder)
+        filename = generate_filename_path(self.data_folder, extension='.npz')
+        np.savez(filename, full_exp)
+        print('Stimulation data saved as: %s ' % filename)
+        self.statusBar.showMessage('Stimulation data saved as: %s ' % filename)
         
         
     def save_protocol(self):
         if self.params_window is not None:
             self.protocol = extract_params_from_window(self)
             self.protocol['data-folder'] = self.data_folder
+            self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
             with open('protocol.json', 'w') as fp:
-                json.dump(self.protocol, fp)
+                json.dump(self.protocol, fp, indent=2)
                 self.statusBar.showMessage('protocol saved as "protocol.json"')
         else:
             self.statusBar.showMessage('No protocol data available')
@@ -157,6 +162,9 @@ class Window(QtWidgets.QMainWindow):
         try:
             with open(filename, 'r') as fp:
                 self.protocol = json.load(fp)
+            self.data_folder = self.protocol['data-folder']
+            self.protocol_folder = self.protocol['protocol-folder']
+            self.setup = self.protocol['Setup']
             # update main window
             s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Setup']
             self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
