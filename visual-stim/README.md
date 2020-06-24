@@ -2,9 +2,15 @@
 
 ## Configuration/Installation
 
-The stimulus presentation relies on (PsychoPy)[https://www.psychopy.org], follow the installation instructions from the website.
+First install a python distribution from: https://www.anaconda.com/products/individual
 
-The custom code for the GUI and the set of stimulus lies in the present repository: ("psychopy_code" folder)[./psychopy_code/] and ("gui" folder)[./gui/] 
+The stimulus presentation relies on the [PsychoPy module](https://www.psychopy.org), you can install it through `pip`. Open a the Anaconda prompt and run:
+
+```
+pip install psychopy
+```
+
+The custom code for the GUI and the set of stimulus lies in the present repository: ["psychopy_code" folder](./psychopy_code/) and ["gui" folder](./gui/)
 
 ### Screen settings
 

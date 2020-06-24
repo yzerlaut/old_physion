@@ -8,8 +8,7 @@ from nidaqmx.stream_readers import (
 from nidaqmx.stream_writers import (
     AnalogSingleChannelWriter, AnalogMultiChannelWriter)
 
-acq_freq = 1e3 # 1kHz
-T = 5. # seconds
+acq_freq = 1000. # seconds
 
 def get_analog_loopback_channels(device):
     loopback_channel_pairs = []
@@ -40,8 +39,11 @@ def find_x_series_device():
                 len(device.ci_physical_chans) >= 4):
             return device
 
-number_of_samples = random.randint(20, 100)
-sample_rate = random.uniform(1000, 5000)
+number_of_samples = int(T*acq_freq) #
+sample_rate = acq_freq # random.uniform(1000, 5000)
+
+t= np.arange(number_of_samples)/acq_freq
+waveform  = 0.01*np.sin(2*np.pi*t)
 
 x_series_device = find_x_series_device()
 
@@ -52,10 +54,8 @@ number_of_channels = random.randint(2, len(loopback_channel_pairs))
 channels_to_test = random.sample(
     loopback_channel_pairs, number_of_channels)
 
-
         
-with nidaqmx.Task() as write_task, nidaqmx.Task() as read_task, \
-        nidaqmx.Task() as sample_clk_task:
+with nidaqmx.Task() as write_task, nidaqmx.Task() as read_task,  nidaqmx.Task() as sample_clk_task:
     
     # Use a counter output pulse train task as the sample clock source
     # for both the AI and AO tasks.
@@ -87,8 +87,7 @@ with nidaqmx.Task() as write_task, nidaqmx.Task() as read_task, \
     reader = AnalogMultiChannelReader(read_task.in_stream)
 
     values_to_test = np.array(
-        [[random.uniform(-10, 10) for _ in range(number_of_samples)]
-         for _ in range(number_of_channels)], dtype=np.float64)
+        [waveform for _ in range(number_of_channels)], dtype=np.float64)
     writer.write_many_sample(values_to_test)
 
     # Start the read and write tasks before starting the sample clock
@@ -99,11 +98,19 @@ with nidaqmx.Task() as write_task, nidaqmx.Task() as read_task, \
 
     values_read = np.zeros(
         (number_of_channels, number_of_samples), dtype=np.float64)
+    
     reader.read_many_sample(
         values_read, number_of_samples_per_channel=number_of_samples,
-        timeout=2)
-    print(values_to_test)
-    print(values_read)
+        timeout=5)
+
+
+    import matplotlib.pylab as plt
+    plt.plot(t, waveform)
+    plt.plot(t, values_read[0,:])
+    plt.show()
+
+    # print(values_to_test)
+    # print(values_read)
     # np.testing.assert_allclose(
     #     values_read, values_to_test, rtol=0.05, atol=0.005)
             
