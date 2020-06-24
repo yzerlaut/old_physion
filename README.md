@@ -8,6 +8,7 @@
 - [Calcium imaging](Ca-imaging/README.md)
 - [Visual stimulation](visual-stim/README.md)
 - [Behavioral monitoring](behavioral-montoring/README.md)
+- [Hardware control](hardware_control/README.md)
 - [Assembling pipeline](assembling/README.md)
 
 ## How do I get set up ?
