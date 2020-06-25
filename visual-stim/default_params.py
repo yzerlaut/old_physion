@@ -163,8 +163,22 @@ STIMULI = {
         'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5,
         'VEM-seed-1':1,'VEM-seed-2':5,'N-VEM-seed':2},
     
+    'sparse-noise':{
+        'square-size (deg)':5., # in degrees
+        'sparseness (%)':5,
+        # 'mean-refresh-time (s)':0.3,
+        # 'jitter-refresh-time (s)':0.3
+        'square-size-1':1,'square-size-2':9,'N-square-size':3,
+        'sparseness-1':1,'sparseness-2':50,'N-sparseness':0,
+    },
     
-    'sparse-noise':{},
-    'dense-noise':{},
-    'full-field-grating+VEM':{},
+    'dense-noise':{
+        'square-size (deg)':5., # in degrees
+        'mean-refresh-time (s)':0.3,
+        'jitter-refresh-time (s)':0.3,
+        'square-size-1':1,'square-size-2':9,'N-square-size':3,
+        'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
+        'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
+    },
+    # 'full-field-grating+VEM':{},
 }

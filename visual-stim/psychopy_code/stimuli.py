@@ -33,6 +33,8 @@ def build_stim(protocol):
         return natural_image(protocol)
     elif (protocol['Stimulus']=='Natural-Image+VEM'):
         return natural_image_vem(protocol)
+    elif (protocol['Stimulus']=='dense-noise'):
+        return dense_noise(protocol)
     else:
         print('Protocol not recognized !')
         return None
@@ -233,42 +235,40 @@ class visual_stim:
             parent.statusBar.showMessage('stimulation over !')
 
     #####################################################
-    # adding a virtual ey movement
-    def single_image_presentation(self, parent, index):
+    # adding a virtual eye movement to an image presentation
+    def array_run(self, parent):
+        # start screen
+        self.start_screen(parent)
+        # stimulation
         start, prev_t = clock.getTime(), clock.getTime()
         while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-            cond = self.VEMs[index]['t']<=(clock.getTime()-start)
-            new_x, new_y = self.VEMs[index]['x'][cond][-1], self.VEMs[index]['y'][cond][-1]
+            if stop_signal(parent):
+                break
             new_t = clock.getTime()
-            for pattern in self.PATTERNS[index]:
-                pattern.pos = (new_x, new_y)
-                pattern.draw()
+            it = max([self.STIM['n']-1, int((new_t-start)/self.STIM['dt'])]) # fetch index of that time
+            new_x, new_y = self.STIM['x-vem'][it], self.STIM['y-vem'][it]
+            self.PATTERNS[it].pos = (new_x, new_y)
+            self.PATTERNS[it].draw()
             self.add_monitoring_signal(new_t, start)
             prev_t = new_t
             try:
                 self.win.flip()
             except AttributeError:
                 pass
-
-    def vem_run(self, parent):
-        # virtual eye movement
-        self.start_screen(parent)
-        for i in range(len(self.experiment['index'])):
-            if stop_signal(parent):
-                break
-            self.single_image_presentation(parent, i)
-            if self.protocol['Presentation']!='Single-Stimulus':
-                self.inter_screen(parent)
+        
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
 
-    ## RUN FUNCTION
+            
+    ## FINAL RUN FUNCTION
     def run(self, parent):
         if len(self.protocol['Stimulus'].split('drifting'))>1:
             return self.drifting_run(parent)
-        if len(self.protocol['Stimulus'].split('VEM'))>1:
+        elif len(self.protocol['Stimulus'].split('VEM'))>1:
             return self.vem_run(parent)
+        elif len(self.protocol['Stimulus'].split('noise'))>1:
+            return self.array_run(parent)
         else:
             return self.static_run(parent)
         
@@ -539,7 +539,34 @@ class natural_image_vem(visual_stim):
             self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
                                                    units='pix', size=self.win.size)])
     
+
+#####################################################
+##  ----    PRESENTING BINARY NOISE         --- #####
+#####################################################
+
+
+class dense_noise(visual_stim):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+        super().init_experiment(protocol, [])
+
+        dt = protocol['mean-refresh-time (s)']
+        t = np.arange(int(protocol['presentation-duration']/dt))*dt
+        print(self.win.size)
+        for i in range(len(t)):
+
+            self.PATTERNS.append(visual.ImageStim(self.win,
+                                                  image=np.random.randn(*self.win.size),
+                                                  units='pix', size=self.win.size))
             
+        self.STIM = {'dt':dt, 'n':len(t),
+                     'x-vem':np.zeros(len(t)),
+                     'y-vem':np.zeros(len(t))}
+    
+
+
 if __name__=='__main__':
 
     import json

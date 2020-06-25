@@ -156,14 +156,17 @@ if sys.argv[-1]=='dense-noise':
     df = 2 # drifting grating frequency: cycle/s
     
     #create some stimuli
-    grating = visual.GratingStim(win=mywin, mask='circle', size=5, pos=[-3,0], sf=1, ori=60)
-    fixation = visual.GratingStim(win=mywin, size=0.2, pos=[0,0], sf=0, color=-1)
+    grating = visual.NoiseStim(win=mywin,
+                               noiseType='binary',
+                               noiseElementSize=150, sf=1,
+                               size=mywin.size, units='deg')
 
     #draw the stimuli and update the window
     start = clock.getTime()
     prev = start
-    while (clock.getTime()-start)<5:
-        grating.setPhase(df*(clock.getTime()-prev), '+') # advance phase
+    while (clock.getTime()-start)<2:
+
+        # grating.setPhase(np.random., '+') # advance phase
         prev = clock.getTime()
         grating.draw()
         mywin.flip()
