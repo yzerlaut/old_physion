@@ -8,6 +8,8 @@ UNITS = "deg"
 MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
+from psychopy_code.noise import sparse_noise, dense_noise
+
 def build_stim(protocol):
     """
     """
@@ -35,6 +37,8 @@ def build_stim(protocol):
         return natural_image_vem(protocol)
     elif (protocol['Stimulus']=='dense-noise'):
         return dense_noise(protocol)
+    elif (protocol['Stimulus']=='sparse-noise'):
+        return sparse_noise(protocol)
     else:
         print('Protocol not recognized !')
         return None
@@ -235,7 +239,7 @@ class visual_stim:
             parent.statusBar.showMessage('stimulation over !')
 
     #####################################################
-    # adding a virtual eye movement to an image presentation
+    # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_run(self, parent):
         # start screen
         self.start_screen(parent)
@@ -245,17 +249,18 @@ class visual_stim:
             if stop_signal(parent):
                 break
             new_t = clock.getTime()
-            it = max([self.STIM['n']-1, int((new_t-start)/self.STIM['dt'])]) # fetch index of that time
-            new_x, new_y = self.STIM['x-vem'][it], self.STIM['y-vem'][it]
-            self.PATTERNS[it].pos = (new_x, new_y)
-            self.PATTERNS[it].draw()
+            try:
+                it = np.argwhere((self.STIM['t'][:-1]>=(new_t-start)) & (self.STIM['t'][1:]<=(new_t-start)))[0][0]
+                self.PATTERNS[it].draw()
+            except BaseException:
+                print('time not matching')
+                print(np.argwhere((self.STIM['t'][:-1]>=(new_t-start)) & (self.STIM['t'][1:]<=(new_t-start))))
             self.add_monitoring_signal(new_t, start)
             prev_t = new_t
             try:
                 self.win.flip()
             except AttributeError:
                 pass
-        
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
@@ -544,6 +549,33 @@ class natural_image_vem(visual_stim):
 ##  ----    PRESENTING BINARY NOISE         --- #####
 #####################################################
 
+class sparse_noise(visual_stim):
+    
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+        super().init_experiment(protocol, [])
+
+        self.STIM = sparse_noise(protocol['presentation-duration'])
+        
+        # self.STIM = sparse_noise(protocol['presentation-duration'],
+        #                          SCREEN = [800, int(800*9/16)],
+        #                          screen_angular_width=20,
+        #                          screen_angular_height=20*9./16.,
+        #                          square_size=4.,
+        #                          noise_mean_refresh_time=0.3,
+        #                          noise_rdm_jitter_refresh_time=0.15,
+        #                          seed=protocol['noise-seed'])
+        
+        dt = protocol['mean-refresh-time (s)']
+        t = np.arange(int(protocol['presentation-duration']/dt))*dt
+
+        for i in range(len(self.STIM['t'])-1):
+
+            self.PATTERNS.append(visual.ImageStim(self.win,
+                                                  image=self.STIM['array'][i,:,:],
+                                                  units='pix', size=self.win.size))
+            
 
 class dense_noise(visual_stim):
 
@@ -552,18 +584,18 @@ class dense_noise(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, [])
 
+        self.STIM = dense_noise(protocol['presentation-duration'],
+                                mean_)
+        
         dt = protocol['mean-refresh-time (s)']
         t = np.arange(int(protocol['presentation-duration']/dt))*dt
-        print(self.win.size)
-        for i in range(len(t)):
+
+        for i in range(len(self.STIM['t'])-1):
 
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=np.random.randn(*self.win.size),
+                                                  image=self.STIM['array'][i,:,:],
                                                   units='pix', size=self.win.size))
             
-        self.STIM = {'dt':dt, 'n':len(t),
-                     'x-vem':np.zeros(len(t)),
-                     'y-vem':np.zeros(len(t))}
     
 
 
