@@ -244,7 +244,6 @@ def get_params_keys(protocol, stimulus=None):
     for key in stim_dict:
         if not ((key[-2:]=='-1') or (key[-2:]=='-2') or (key[:2]=='N-')):
             keys.append(key)
-            
     return keys
 
 def get_presentation_keys(protocol):

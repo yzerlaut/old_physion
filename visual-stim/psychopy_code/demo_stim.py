@@ -1,8 +1,9 @@
 from psychopy import visual, core, clock #import some libraries from PsychoPy
 import numpy as np
-import sys
+import sys, pathlib
+from preprocess_NI import *
 
-SCREEN = [800,600]
+SCREEN = [int(16/9.*600),600]
 
 if sys.argv[-1]=='light-level':
 
@@ -168,6 +169,61 @@ if sys.argv[-1]=='dense-noise':
         mywin.flip()
 
     #cleanup
+    mywin.close()
+    core.quit()
+
+if sys.argv[-1]=='natural-image':
+
+    image_number = 4
+    
+    NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
+    filename = os.listdir(NI_directory)[image_number]
+    img = load(os.path.join(NI_directory, filename))
+
+    mywin = visual.Window(SCREEN, monitor="testMonitor", units="deg") #create a window
+
+    img = 2*img_after_hist_normalization(img)-1
+    rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+
+    image = visual.ImageStim(mywin, image=img.T,
+                             units='pix', size=mywin.size)
+
+    #draw the stimuli and update the window
+    start = clock.getTime()
+    while (clock.getTime()-start)<4:
+        image.draw()
+        mywin.flip()
+
+    # #cleanup
+    mywin.close()
+    core.quit()
+    
+if sys.argv[-1]=='natural-image+VEM':
+
+    image_number = 4
+    
+    NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
+    filename = os.listdir(NI_directory)[image_number]
+    img = load(os.path.join(NI_directory, filename))
+
+    mywin = visual.Window(SCREEN, monitor="testMonitor", units="deg") #create a window
+
+    img = 2*img_after_hist_normalization(img)-1
+    rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+
+    image = visual.ImageStim(mywin, image=img.T,
+                             units='pix', size=mywin.size)
+
+    #draw the stimuli and update the window
+    start, prev = clock.getTime(), clock.getTime()
+    while (clock.getTime()-start)<4:
+        image.draw()
+        if (clock.getTime()-prev)>1:
+            image.pos += 100*np.random.randn(2)
+            prev = clock.getTime()
+        mywin.flip()
+
+    # #cleanup
     mywin.close()
     core.quit()
     

@@ -1,8 +1,8 @@
 from psychopy import visual, core, event, clock #import some libraries from PsychoPy
 import numpy as np
-import itertools
+import itertools, os, sys, pathlib
 
-SCREEN = [800,600]
+SCREEN = [800, int(800*9/16)]
 MONITOR = "testMonitor"
 UNITS = "deg"
 MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
@@ -29,6 +29,10 @@ def build_stim(protocol):
         return drifting_off_center_grating_stim(protocol)
     elif (protocol['Stimulus']=='drifting-surround-grating'):
         return drifting_surround_grating_stim(protocol)
+    elif (protocol['Stimulus']=='Natural-Image'):
+        return natural_image(protocol)
+    elif (protocol['Stimulus']=='Natural-Image+VEM'):
+        return natural_image_vem(protocol)
     else:
         print('Protocol not recognized !')
         return None
@@ -104,7 +108,7 @@ class visual_stim:
                     
             self.experiment['index'], self.experiment['repeat'] = [], []
             self.experiment['time_start'], self.experiment['time_stop'] = [], []
-            
+
             index_no_repeat = np.arange(len(FULL_VECS[key]))
 
             # SHUFFLING IF NECESSARY
@@ -125,6 +129,8 @@ class visual_stim:
                 self.experiment['time_start'].append(protocol['presentation-prestim-period']+n*full_duration)
                 self.experiment['time_stop'].append(protocol['presentation-duration']+protocol['presentation-prestim-period']+n*full_duration)
 
+
+            
     # the close function
     def close(self):
         self.win.close()
@@ -226,10 +232,43 @@ class visual_stim:
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
 
+    #####################################################
+    # adding a virtual ey movement
+    def single_image_presentation(self, parent, index):
+        start, prev_t = clock.getTime(), clock.getTime()
+        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+            cond = self.VEMs[index]['t']<=(clock.getTime()-start)
+            new_x, new_y = self.VEMs[index]['x'][cond][-1], self.VEMs[index]['y'][cond][-1]
+            new_t = clock.getTime()
+            for pattern in self.PATTERNS[index]:
+                pattern.pos = (new_x, new_y)
+                pattern.draw()
+            self.add_monitoring_signal(new_t, start)
+            prev_t = new_t
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
+
+    def vem_run(self, parent):
+        # virtual eye movement
+        self.start_screen(parent)
+        for i in range(len(self.experiment['index'])):
+            if stop_signal(parent):
+                break
+            self.single_image_presentation(parent, i)
+            if self.protocol['Presentation']!='Single-Stimulus':
+                self.inter_screen(parent)
+        self.end_screen(parent)
+        if not parent.stop_flag:
+            parent.statusBar.showMessage('stimulation over !')
+
     ## RUN FUNCTION
     def run(self, parent):
         if len(self.protocol['Stimulus'].split('drifting'))>1:
             return self.drifting_run(parent)
+        if len(self.protocol['Stimulus'].split('VEM'))>1:
+            return self.vem_run(parent)
         else:
             return self.static_run(parent)
         
@@ -427,6 +466,80 @@ class drifting_surround_grating_stim(visual_stim):
                                                      color=self.experiment['bg-color'][i])])
         
 
+#####################################################
+##  ----    PRESENTING NATURAL IMAGES       --- #####
+#####################################################
+
+NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
+        
+class natural_image(visual_stim):
+
+    def __init__(self, protocol):
+
+        # from visual_stim.psychopy_code.preprocess_NI import load, img_after_hist_normalization
+        from .preprocess_NI import load, img_after_hist_normalization
+        
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID'])
+
+        
+        for i in range(len(self.experiment['index'])):
+            filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
+            img = load(os.path.join(NI_directory, filename))
+            img = 2*img_after_hist_normalization(img)-1 # normalization + 
+            # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+
+            self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
+                                                   units='pix', size=self.win.size)])
+
+
+def generate_VEM(duration=5,
+                 saccade_period=0.5, saccade_amplitude=50.,
+                 microsaccade_period=0.05, microsaccade_amplitude=10.,
+                 seed=0):
+
+    np.random.seed(seed)
+    
+    t, x, y = [], [], []
+
+    print('generating Virtual-Eye-Movement [...]')
+    
+    for tt in np.cumsum(np.random.exponential(saccade_period, size=int(duration/saccade_period))):
+        
+        t.append(tt)
+        x.append(saccade_amplitude*np.random.randn())
+        y.append(saccade_amplitude*np.random.randn())
+
+    return {'t':np.array([0]+t),
+            'x':np.array([0]+x),
+            'y':np.array([0]+y)}
+            
+
+            
+class natural_image_vem(visual_stim):
+
+    def __init__(self, protocol):
+
+        # from visual_stim.psychopy_code.preprocess_NI import load, img_after_hist_normalization
+        from .preprocess_NI import load, img_after_hist_normalization
+        
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID', 'VEM-seed'])
+
+        self.VEMs = []
+        for i in range(len(self.experiment['index'])):
+
+            self.VEMs.append(generate_VEM(seed=int(self.experiment['VEM-seed'][i])))
+            
+            filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
+            img = load(os.path.join(NI_directory, filename))
+            img = 2*img_after_hist_normalization(img)-1 # normalization + 
+            # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+
+            self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
+                                                   units='pix', size=self.win.size)])
+    
+            
 if __name__=='__main__':
 
     import json

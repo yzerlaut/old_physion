@@ -153,8 +153,17 @@ STIMULI = {
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
     'center-surround-grating':{},
-    'Natural-Image':{},
-    'Natural-Image+VEM':{},
+    
+    'Natural-Image':{
+        'Image-ID (#)':1,
+        'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5},
+
+    'Natural-Image+VEM':{
+        'Image-ID (#)':1, 'VEM-seed (#)':1,
+        'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5,
+        'VEM-seed-1':1,'VEM-seed-2':5,'N-VEM-seed':2},
+    
+    
     'sparse-noise':{},
     'dense-noise':{},
     'full-field-grating+VEM':{},
