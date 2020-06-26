@@ -1,14 +1,11 @@
-from psychopy import visual, core, event, clock #import some libraries from PsychoPy
+from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
 import numpy as np
 import itertools, os, sys, pathlib
-
-SCREEN = [800, int(800*9/16)]
-MONITOR = "testMonitor"
-UNITS = "deg"
+ 
 MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
-from psychopy_code.noise import sparse_noise, dense_noise
+from psychopy_code.noise import build_sparse_noise, build_dense_noise
 
 def build_stim(protocol):
     """
@@ -35,10 +32,16 @@ def build_stim(protocol):
         return natural_image(protocol)
     elif (protocol['Stimulus']=='Natural-Image+VEM'):
         return natural_image_vem(protocol)
-    elif (protocol['Stimulus']=='dense-noise'):
-        return dense_noise(protocol)
     elif (protocol['Stimulus']=='sparse-noise'):
-        return sparse_noise(protocol)
+        if protocol['Presentation']=='Single-Stimulus':
+            return sparse_noise(protocol)
+        else:
+            print('Noise stim have to be done as "Single-Stimulus" !')
+    elif (protocol['Stimulus']=='dense-noise'):
+        if protocol['Presentation']=='Single-Stimulus':
+            return dense_noise(protocol)
+        else:
+            print('Noise stim have to be done as "Single-Stimulus" !')
     else:
         print('Protocol not recognized !')
         return None
@@ -59,11 +62,15 @@ class visual_stim:
         """
         """
         self.protocol = protocol
+        
         if self.protocol['Setup']=='demo-mode':
-            self.win = visual.Window(SCREEN, monitor=MONITOR, units=UNITS, color=-1) #create a window
+            self.monitor = monitors.Monitor('testMonitor')
+            self.win = visual.Window([800, int(800*9/16)], monitor=self.monitor,
+                                     units='deg', color=-1) #create a window
         else:
-            self.win = visual.Window(size=[1280, 720], monitor='Lilliput', screen=1, fullscr=True,
-                                     units=UNITS, color=-1)
+            self.monitor = monitors.Monitor('Lilliput')
+            self.win = visual.Window(size=[1280, 720], monitor=self.monitor,
+                                     screen=1, fullscr=True, units='deg', color=-1)
             
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
@@ -250,11 +257,11 @@ class visual_stim:
                 break
             new_t = clock.getTime()
             try:
-                it = np.argwhere((self.STIM['t'][:-1]>=(new_t-start)) & (self.STIM['t'][1:]<=(new_t-start)))[0][0]
+                it = np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))).flatten()[0]
                 self.PATTERNS[it].draw()
-            except BaseException:
+            except BaseException as e:
                 print('time not matching')
-                print(np.argwhere((self.STIM['t'][:-1]>=(new_t-start)) & (self.STIM['t'][1:]<=(new_t-start))))
+                print(np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))))
             self.add_monitoring_signal(new_t, start)
             prev_t = new_t
             try:
@@ -554,27 +561,22 @@ class sparse_noise(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol, [])
-
-        self.STIM = sparse_noise(protocol['presentation-duration'])
+        super().init_experiment(protocol,
+                ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'])
         
-        # self.STIM = sparse_noise(protocol['presentation-duration'],
-        #                          SCREEN = [800, int(800*9/16)],
-        #                          screen_angular_width=20,
-        #                          screen_angular_height=20*9./16.,
-        #                          square_size=4.,
-        #                          noise_mean_refresh_time=0.3,
-        #                          noise_rdm_jitter_refresh_time=0.15,
-        #                          seed=protocol['noise-seed'])
+        self.STIM = build_sparse_noise(protocol['presentation-duration'],
+                                       self.monitor,
+                                       square_size=protocol['square-size (deg)'],
+                                       noise_mean_refresh_time=protocol['mean-refresh-time (s)'],
+                                    noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
+                                       seed=protocol['noise-seed (#)'])
         
-        dt = protocol['mean-refresh-time (s)']
-        t = np.arange(int(protocol['presentation-duration']/dt))*dt
-
         for i in range(len(self.STIM['t'])-1):
-
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=self.STIM['array'][i,:,:],
+                                                  image=self.STIM['array'][i,:,:].T,
                                                   units='pix', size=self.win.size))
+
+        self.experiment = {'refresh-times':self.STIM['t']}
             
 
 class dense_noise(visual_stim):
@@ -582,21 +584,23 @@ class dense_noise(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol, [])
+        super().init_experiment(protocol,
+                ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'])
 
-        self.STIM = dense_noise(protocol['presentation-duration'],
-                                mean_)
-        
-        dt = protocol['mean-refresh-time (s)']
-        t = np.arange(int(protocol['presentation-duration']/dt))*dt
+        self.STIM = build_dense_noise(protocol['presentation-duration'],
+                                       self.monitor,
+                                       square_size=protocol['square-size (deg)'],
+                                       noise_mean_refresh_time=protocol['mean-refresh-time (s)'],
+                                    noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
+                                       seed=protocol['noise-seed (#)'])
 
         for i in range(len(self.STIM['t'])-1):
-
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=self.STIM['array'][i,:,:],
+                                                  image=self.STIM['array'][i,:,:].T,
                                                   units='pix', size=self.win.size))
             
-    
+        self.experiment = {'refresh-times':self.STIM['t']}
+            
 
 
 if __name__=='__main__':

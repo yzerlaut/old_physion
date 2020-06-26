@@ -1,4 +1,4 @@
-from psychopy import visual, core, clock #import some libraries from PsychoPy
+from psychopy import visual, core, clock, monitors #import some libraries from PsychoPy
 import numpy as np
 import sys, pathlib
 from preprocess_NI import *
@@ -151,29 +151,34 @@ if sys.argv[-1]=='drifting-grating':
     core.quit()
 
 if sys.argv[-1]=='dense-noise':
-    
-    mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg") #create a window
-    df = 2 # drifting grating frequency: cycle/s
-    
-    #create some stimuli
-    grating = visual.NoiseStim(win=mywin,
-                               noiseType='binary',
-                               noiseElementSize=150, sf=1,
-                               size=mywin.size, units='deg')
 
-    #draw the stimuli and update the window
-    start = clock.getTime()
-    prev = start
-    while (clock.getTime()-start)<2:
+    from noise import build_dense_noise
 
-        # grating.setPhase(np.random., '+') # advance phase
-        prev = clock.getTime()
-        grating.draw()
-        mywin.flip()
+    monitor = monitors.Monitor('testMonitor')
+    STIM = build_dense_noise(4, monitor)
 
-    #cleanup
-    mywin.close()
-    core.quit()
+    from datavyz import ge
+    ge.image(STIM['array'][0,:,:])
+    ge.show()
+    # #create some stimuli
+    # grating = visual.NoiseStim(win=mywin,
+    #                            noiseType='binary',
+    #                            noiseElementSize=150, sf=1,
+    #                            size=mywin.size, units='deg')
+
+    # #draw the stimuli and update the window
+    # start = clock.getTime()
+    # prev = start
+    # while (clock.getTime()-start)<2:
+
+    #     # grating.setPhase(np.random., '+') # advance phase
+    #     prev = clock.getTime()
+    #     grating.draw()
+    #     mywin.flip()
+
+    # #cleanup
+    # mywin.close()
+    # core.quit()
 
 if sys.argv[-1]=='natural-image':
 

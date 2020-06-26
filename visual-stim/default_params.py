@@ -166,19 +166,25 @@ STIMULI = {
     'sparse-noise':{
         'square-size (deg)':5., # in degrees
         'sparseness (%)':5,
-        # 'mean-refresh-time (s)':0.3,
-        # 'jitter-refresh-time (s)':0.3
+        'mean-refresh-time (s)':0.3,
+        'jitter-refresh-time (s)':0.3,
+        'noise-seed (#)':1,
         'square-size-1':1,'square-size-2':9,'N-square-size':3,
         'sparseness-1':1,'sparseness-2':50,'N-sparseness':0,
+        'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
+        'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
+        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
     },
     
     'dense-noise':{
         'square-size (deg)':5., # in degrees
         'mean-refresh-time (s)':0.3,
         'jitter-refresh-time (s)':0.3,
+        'noise-seed (#)':1,
         'square-size-1':1,'square-size-2':9,'N-square-size':3,
         'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
+        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
     },
     # 'full-field-grating+VEM':{},
 }

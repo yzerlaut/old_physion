@@ -29,8 +29,6 @@ def draw_window(parent, protocol):
             protocol['Stimulus'] = parent.cbs.currentText()
             protocol['Setup'] = parent.cbst.currentText()
             
-        print(protocol)
-        
         if protocol['Presentation']=='Single-Stimulus':
             set_single_stim_params_window(parent, window, protocol)
         elif protocol['Presentation']=='Stimuli-Sequence':

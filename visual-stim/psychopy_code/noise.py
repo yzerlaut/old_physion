@@ -8,19 +8,21 @@ def from_time_to_array_index(self, t):
     else:
         return int(np.round(t*self.SCREEN['refresh_rate'],0))
 
-def sparse_noise(duration,
-                 SCREEN = [800, int(800*9/16)],
-                 screen_angular_width=20,
-                 screen_angular_height=20*9./16.,
-                 square_size=4.,
-                 sparseness=0.1,
-                 noise_mean_refresh_time=0.3,
-                 noise_rdm_jitter_refresh_time=0.15,
-                 seed=0):
+def build_sparse_noise(duration,
+                       monitor,
+                       square_size=4.,
+                       sparseness=0.1,
+                       noise_mean_refresh_time=0.3,
+                       noise_rdm_jitter_refresh_time=0.15,
+                       seed=0):
 
                                    
-    Nx = np.floor(screen_angular_width/square_size)+1
-    Ny = np.floor(screen_angular_height/square_size)+1
+    pix = monitor.getSizePix()
+    width_deg = 2*np.arctan(monitor.getWidth()/2./monitor.getDistance())*180./np.pi
+    height_deg = 2*np.arctan(monitor.getWidth()*pix[1]/pix[0]/2./monitor.getDistance())*180./np.pi
+
+    Nx = np.floor(width_deg/square_size)+1
+    Ny = np.floor(height_deg/square_size)+1
 
     Ntot_square = Nx*Ny
 
@@ -30,40 +32,39 @@ def sparse_noise(duration,
                               np.random.randn(nshift)*noise_rdm_jitter_refresh_time))
     events = np.concatenate([[0], events[events<duration], [duration]]) # restrict to stim
     
-    x, y = np.meshgrid(np.arange(SCREEN[0]), np.arange(SCREEN[1]), indexing='ij')
-    x, y = x.flatten(), y.flatten()
-    
-    array = np.zeros((len(events)-1, *SCREEN))
+    x, y = np.meshgrid(np.linspace(0, width_deg, int(pix[0])),
+                       np.linspace(0, height_deg, int(pix[1])), indexing='ij')
+
+    array = np.zeros((len(events)-1, int(pix[0]), int(pix[1])))
     
     for i in range(len(events)-1):
 
         Loc = np.random.choice(np.arange(Ntot_square), int(sparseness*Ntot_square), replace=False)
         Val = np.random.choice([-1, 1], int(sparseness*Ntot_square)) # either white or black
 
-        Z = 0*x
         for r, v in zip(Loc, Val):
             x0, y0 = (r % Nx)*square_size, int(r / Nx)*square_size
             cond = (x>=x0) & (x<x0+square_size) & (y>=y0) & (y<y0+square_size)
-            Z[cond] = v
-            
-        array[i,:,:] = Z.reshape(*SCREEN)
+            array[i,:,:][cond] = v
 
     STIM = {'t':events,
             'array':array}
     return STIM
 
-def dense_noise(duration,
-                 SCREEN = [800, int(800*9/16)],
-                 screen_angular_width=20,
-                 screen_angular_height=20*9./16.,
-                 square_size=4.,
-                 noise_mean_refresh_time=0.3,
-                 noise_rdm_jitter_refresh_time=0.15,
-                 seed=0):
+def build_dense_noise(duration,
+                      monitor,
+                      square_size=4.,
+                      noise_mean_refresh_time=0.3,
+                      noise_rdm_jitter_refresh_time=0.15,
+                      seed=0):
 
-                                   
-    Nx = np.floor(screen_angular_width/square_size)+1
-    Ny = np.floor(screen_angular_height/square_size)+1
+
+    pix = monitor.getSizePix()
+    width_deg = 2*np.arctan(monitor.getWidth()/2./monitor.getDistance())*180./np.pi
+    height_deg = width_deg*pix[1]/pix[0]
+
+    Nx = np.floor(width_deg/square_size)+1
+    Ny = np.floor(height_deg/square_size)+1
 
     Ntot_square = Nx*Ny
 
@@ -73,33 +74,32 @@ def dense_noise(duration,
                               np.random.randn(nshift)*noise_rdm_jitter_refresh_time))
     events = np.concatenate([[0], events[events<duration], [duration]]) # restrict to stim
     
-    x, y = np.meshgrid(np.arange(SCREEN[0]), np.arange(SCREEN[1]), indexing='ij')
-    x, y = x.flatten(), y.flatten()
+    x, y = np.meshgrid(np.linspace(0, width_deg, int(pix[0])),
+                       np.linspace(0, height_deg, int(pix[1])), indexing='ij')
 
-    array = np.zeros((len(events)-1, *SCREEN))
+    array = np.zeros((len(events)-1, int(pix[0]), int(pix[1])))
     
     for i in range(len(events)-1):
 
         Loc = np.arange(int(Ntot_square))
         Val = np.random.choice([-1, 1], int(Ntot_square)) # either black or white
 
-        Z = 0.*x
-
         for r, v in zip(Loc, Val):
             x0, y0 = (r % Nx)*square_size, int(r / Nx)*square_size
             cond = (x>=x0) & (x<x0+square_size) & (y>=y0) & (y<y0+square_size)
-            Z[cond] = v
+            array[i,:,:][cond] = v
 
-        array[i,:,:] = Z.reshape(*SCREEN)
-
-        
     STIM = {'t':events,
             'array':array}
+    
     return STIM
 
 if __name__=='__main__':
 
     
-    stim = sparse_noise(5)
+    stim = build_dense_noise(5)
 
+    from datavyz import ge
+    ge.image(stim['array'][0,:,:])
+    ge.show()
     
