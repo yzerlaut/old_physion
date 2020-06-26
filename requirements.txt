@@ -1,0 +1,7 @@
+numpy
+scipy
+psychopy
+pyqt5
+imageio
+simple_pyspin
+git+https://github.com/yzerlaut/datavyz

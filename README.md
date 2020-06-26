@@ -32,13 +32,12 @@ Three options:
 
 - For others, download the [zip archive](https://github.com/yzerlaut/cortical-physio-icm/archive/master.zip)
 
-#### 3) Install dependencies (optional)
+#### 3) Install dependencies
 
 Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the dependencies:
+
 ```
-pip install psychopy # for visual stimulation (but see https://www.psychopy.org/download.html)
-pip install neo # to load electrophysiological data
-pip install git+https://github.com/yzerlaut/datavyz # for custom data visualization
+pip install -r requirements.txt
 ```
 
 #### 4) Open the notebooks and run the code
