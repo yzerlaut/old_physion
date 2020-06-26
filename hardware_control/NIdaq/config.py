@@ -25,8 +25,26 @@ def find_x_series_devices():
             DEVICES.append(device)
     return DEVICES
 
+def find_m_series_devices():
+    system = nidaqmx.system.System.local()
+
+    DEVICES = []
+    for device in system.devices:
+        if (not device.dev_is_simulated and
+                device.product_category == ProductCategory.M_SERIES_DAQ and
+                len(device.ao_physical_chans) >= 2 and
+                len(device.ai_physical_chans) >= 4):
+            DEVICES.append(device)
+    return DEVICES
+
 if __name__=='__main__':
-    DEVICES = find_x_series_devices()
-    device = DEVICES[0]
-    print(dir(device))
-    print(get_analog_input_channels(device))
+    DEVICES = find_m_series_devices()
+    print(DEVICES)
+    # device = DEVICES[0]
+    # print(dir(device))
+    # print(get_analog_input_channels(device))
+    system = nidaqmx.system.System.local()
+
+    DEVICES = []
+    for device in system.devices:
+        print(device, device.product_category)

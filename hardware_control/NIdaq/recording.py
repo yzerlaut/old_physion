@@ -10,7 +10,7 @@ from nidaqmx.stream_writers import (
 
 import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from hardware_control.NIdaq.config import find_x_series_devices, get_analog_input_channels, get_analog_output_channels
+from hardware_control.NIdaq.config import find_x_series_devices, find_m_series_devices, get_analog_input_channels, get_analog_output_channels
 
 def rec_only(device, t_array, inputs):
 
@@ -99,7 +99,8 @@ def stim_and_rec(device, t_array, inputs, outputs):
         
 if __name__=='__main__':
 
-    device = find_x_series_devices()[0]
+    device = find_m_series_devices()[0]
+    print(device)
     print(get_analog_output_channels(device))
 
     T, dt = 10, 1e-4
