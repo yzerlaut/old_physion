@@ -7,39 +7,45 @@ import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import create_day_folder, generate_filename_path
 from visual_stim.psychopy_code.stimuli import build_stim
+from visual_stim.default_params import SETUP
 
 class MasterWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app, parent=None):
+    def __init__(self, app,
+                 parent=None,
+                 button_length = 100):
         
         super(MasterWindow, self).__init__(parent)
         
-        self.protocol = None # by default, can be loaded by the interface
+        self.protocol, self.protocol_folder = None, os.path.join('visual_stim', 'protocols')
         self.experiment = {} # storing the specifics of an experiment
+        
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
         self.data_folder = tempfile.gettempdir()
         self.protocol_folder = './'
         
+        self.setWindowTitle('Master Program -- Physiology of Visual Circuits')
+        self.setGeometry(50, 50, 500, 300)
+
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
-        button_length = 100
         
-        self.setWindowTitle('Master Program -- Physiology of Visual Circuits')
-        self.setGeometry(50, 50, 1.01*button_length*len(LABELS), 310)
+        # protocol choice
+        QtWidgets.QLabel(" /|=>  Protocol <=|\\", self).move(30, 80)
+        self.cbp = QtWidgets.QComboBox(self)
+        self.cbp.addItems(self.protocol_list)
+        self.cbp.currentIndexChanged.connect(self.change_protocol)
+        self.cbp.setMinimumWidth(200)
+        self.cbp.move(150, 80)
+        self.pbtn = QtWidgets.QPushButton('Set folder', self)
+        self.pbtn.clicked.connect(self.set_protocol_folder)
+        self.pbtn.move(370, 80)
 
-        # # protocol change
-        # label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
-        # label1.setMinimumWidth(320)
-        # label1.move(100, 50)
-        # self.cbp = QtWidgets.QComboBox(self)
-        # self.cbp.addItems(['']+PRESENTATIONS)
-        # self.cbp.currentIndexChanged.connect(self.change_protocol)
-        # self.cbp.setMinimumWidth(250)
-        # self.cbp.move(70, 80)
 
         # # stimulus pick
+        QtWidgets.QLabel("  /|=>  Setup <=|\\", self).move(30, 120)
         # label2 = QtWidgets.QLabel("   /|===> Stimulus <===|\\", self)
         # label2.setMinimumWidth(330)
         # label2.move(100, 110)
@@ -59,41 +65,41 @@ class MasterWindow(QtWidgets.QMainWindow):
         # self.cbst.setMinimumWidth(250)
         # self.cbst.move(70, 200)
 
-        # mainMenu = self.menuBar()
-        # self.fileMenu = mainMenu.addMenu('&File')
+        mainMenu = self.menuBar()
+        self.fileMenu = mainMenu.addMenu('')
 
-        # self.statusBar = QtWidgets.QStatusBar()
-        # self.setStatusBar(self.statusBar)
-        # self.statusBar.showMessage('...')
+        self.statusBar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.showMessage('choose and initialize an experiment to start...')
         
-        # for func, label, shift in zip(FUNCTIONS, LABELS,\
-        #                               button_length*np.arange(len(LABELS))):
-        #     btn = QtWidgets.QPushButton(label, self)
-        #     btn.clicked.connect(func)
-        #     btn.setMinimumWidth(button_length)
-        #     btn.move(shift, 20)
-        #     action = QtWidgets.QAction(label, self)
-        #     action.setShortcut(label.split(')')[0])
-        #     action.triggered.connect(func)
-        #     self.fileMenu.addAction(action)
+        for func, label, shift in zip(FUNCTIONS, LABELS,\
+                                      button_length*np.arange(len(LABELS))):
+            btn = QtWidgets.QPushButton(label, self)
+            btn.clicked.connect(func)
+            btn.setMinimumWidth(button_length)
+            btn.move(shift, 20)
+            action = QtWidgets.QAction(label, self)
+            action.setShortcut(label.split(')')[0])
+            action.triggered.connect(func)
+            self.fileMenu.addAction(action)
             
-        # LABELS = ["o) Load Protocol", " Save Protocol", "Set folders"]
-        # FUNCTIONS = [self.load_protocol, self.save_protocol, self.set_folders]
-        # for func, label, shift, size in zip(FUNCTIONS, LABELS,\
-        #                                     150*np.arange(len(LABELS)), [150, 150, 100]):
-        #     btn = QtWidgets.QPushButton(label, self)
-        #     btn.clicked.connect(func)
-        #     btn.setMinimumWidth(size)
-        #     btn.move(shift, 250)
-        #     action = QtWidgets.QAction(label, self)
-        #     if len(label.split(')'))>0:
-        #         action.setShortcut(label.split(')')[0])
-        #         action.triggered.connect(func)
-        #         self.fileMenu.addAction(action)
+        LABELS = ["o) Load Protocol", " Save Protocol", "Set folders"]
+        FUNCTIONS = [self.load_protocol, self.save_protocol, self.set_folders]
+        for func, label, shift, size in zip(FUNCTIONS, LABELS,\
+                                            150*np.arange(len(LABELS)), [150, 150, 100]):
+            btn = QtWidgets.QPushButton(label, self)
+            btn.clicked.connect(func)
+            btn.setMinimumWidth(size)
+            btn.move(shift, 250)
+            action = QtWidgets.QAction(label, self)
+            if len(label.split(')'))>0:
+                action.setShortcut(label.split(')')[0])
+                action.triggered.connect(func)
+                self.fileMenu.addAction(action)
 
-        # self.show()
+        self.show()
 
-        
+    
     def initialize(self):
         if (self.protocol is None) and (\
            (self.cbp.currentText()=='') or (self.cbs.currentText()=='')):
@@ -129,6 +135,9 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.stim.quit()
         sys.exit()
 
+    def view_data(self):
+        pass
+    
     def save_experiment(self):
         full_exp = dict(**self.protocol, **self.experiment)
         create_day_folder(self.data_folder)
@@ -136,7 +145,14 @@ class MasterWindow(QtWidgets.QMainWindow):
         np.savez(filename, full_exp, allow_pickle=True)
         print('Stimulation data saved as: %s ' % filename)
         self.statusBar.showMessage('Stimulation data saved as: %s ' % filename)
+
+    def get_protocol_list(self):
+        os.listdir(self.protocol_folder):
+
+        self.protocol_list = get_protocol_list(self)
         
+    def set_protocol_folder(self):
+        pass
         
     def save_protocol(self):
         if self.params_window is not None:

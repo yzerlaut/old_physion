@@ -5,6 +5,7 @@ import itertools, os, sys, pathlib
 MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.noise import build_sparse_noise, build_dense_noise
 
 def build_stim(protocol):
