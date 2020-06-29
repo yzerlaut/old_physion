@@ -99,23 +99,37 @@ def stim_and_rec(device, t_array, inputs, outputs):
         
 if __name__=='__main__':
 
-    device = find_m_series_devices()[0]
-    print(device)
-    print(get_analog_output_channels(device))
+    import argparse
+    # First a nice documentation 
+    parser=argparse.ArgumentParser(description="Record data and send signals through a NI daq card",
+                                   formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-os', "--output_signal", help="npy file for an array of output signal", default='')
+    parser.add_argument('-Ni', "--Nchannel_rec", help="Number of input channels to be recorded ", type=int, default=2)
+    parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/acquisition_frequency ", type=float, default=1e-3)
+    parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=3)
+    parser.add_argument('-f', "--filename", help="filename",type=str, default='data.npy')
+    parser.add_argument('-d', "--device", help="device name", type=str, default='')
+    args = parser.parse_args()
 
-    T, dt = 10, 1e-4
-    t_array = np.arange(int(T/dt))*dt
-    inputs = np.zeros((2,int(T/dt)))
-    outputs = np.array([5e-2*np.sin(2*np.pi*t_array),
-                                    2e-2*np.sin(2*np.pi*t_array)])
-    print('running rec & stim [...]')
-    stim_and_rec(device, t_array, inputs, outputs)
-    tstart = 1e3*time.time()
-    np.save('data.npy', inputs)
-    print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
-    print('Running 5 rec only')
-    for i in range(5):
-        rec_only(device, t_array, inputs)
-        tstart = 1e3*time.time()
-        np.save('data.npy', inputs)
-        print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
+    if args.device=='':
+        args.device = find_m_series_devices()[0]
+
+    # print('Output channels: ', get_analog_output_channels(args.device))
+
+    # T, dt = 10, 1e-4
+    t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
+    inputs = np.zeros((args.Nchannel_rec,len(t_array)))
+
+    # outputs = np.array([5e-2*np.sin(2*np.pi*t_array),
+    #                                 2e-2*np.sin(2*np.pi*t_array)])
+    # print('running rec & stim [...]')
+    # stim_and_rec(device, t_array, inputs, outputs)
+    # tstart = 1e3*time.time()
+    # print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
+    # print('Running 5 rec only')
+    # for i in range(5):
+    #     tstart = 1e3*time.time()
+    #     np.save('data.npy', inputs)
+    #     print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
+    rec_only(args.device, t_array, inputs)
+    np.save(args.filename, inputs)
