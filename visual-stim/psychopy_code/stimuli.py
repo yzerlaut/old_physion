@@ -156,7 +156,10 @@ class visual_stim:
         if not parent.stop_flag:
             self.blank_start.draw()
             self.off.draw()
-            self.win.flip()
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
             clock.wait(self.protocol['presentation-prestim-period'])
 
     # screen at end
@@ -164,7 +167,10 @@ class visual_stim:
         if not parent.stop_flag:
             self.blank_end.draw()
             self.off.draw()
-            self.win.flip()
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
             clock.wait(self.protocol['presentation-poststim-period'])
 
     # screen for interstim
@@ -172,10 +178,13 @@ class visual_stim:
         if not parent.stop_flag:
             self.blank_inter.draw()
             self.off.draw()
-            self.win.flip()
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
             clock.wait(self.protocol['presentation-interstim-period'])
 
-    # blinking in bottom-left corner
+            # blinking in bottom-left corner
     def add_monitoring_signal(self, new_t, start):
         if (int(1e3*new_t-1e3*start)<self.Tfull) and\
            (int(1e3*new_t-1e3*start)%self.Tfull_first<self.Ton):
