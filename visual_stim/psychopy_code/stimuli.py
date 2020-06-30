@@ -63,7 +63,6 @@ class visual_stim:
         """
         """
         self.protocol = protocol
-        self.with_NIdaq, self.with_Camera = False, False
         
         if self.protocol['Setup']=='demo-mode':
             self.monitor = monitors.Monitor('testMonitor')
@@ -135,20 +134,16 @@ class visual_stim:
             index = np.concatenate([index_no_repeat for r in range(Nrepeats)])
             repeat = np.concatenate([r+0*index_no_repeat for r in range(Nrepeats)])
 
-            full_duration = protocol['presentation-prestim-period']+protocol['presentation-duration']+protocol['presentation-prestim-period']
             for n, i in enumerate(index[protocol['starting-index']:]):
                 for key in keys:
                     self.experiment[key].append(FULL_VECS[key][i])
                 self.experiment['index'].append(i)
                 self.experiment['repeat'].append(repeat[n+protocol['starting-index']])
-                self.experiment['time_start'].append(protocol['presentation-prestim-period']+n*full_duration)
-                self.experiment['time_stop'].append(protocol['presentation-duration']+protocol['presentation-prestim-period']+n*full_duration)
+                self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
+                                                     n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
+                                                     n*protocol['presentation-duration']+(n+1)*protocol['presentation-interstim-period'])
 
-    def NIdaq_rec(self, duration, filename, dt=1e-3):
-        clock.wait(0.1) # a hard-coded pause to let the NI daq start and stop processes at each episode
-        print(filename)
-        subprocess.Popen("python hardware_control\\NIdaq\\recording.py -T %.2f -dt %.5f -f %s" % (duration, dt, filename))
-            
     # the close function
     def close(self):
         self.win.close()
@@ -158,8 +153,6 @@ class visual_stim:
 
     # screen at start
     def start_screen(self, parent):
-        if self.with_NIdaq:
-            self.NIdaq_rec(self.protocol['presentation-prestim-period'], parent.filename.replace('visual-stim.npz', 'NIdaq.start.npy'))
         if not parent.stop_flag:
             self.blank_start.draw()
             self.off.draw()
@@ -171,8 +164,6 @@ class visual_stim:
 
     # screen at end
     def end_screen(self, parent):
-        if self.with_NIdaq:
-            self.NIdaq_rec(self.protocol['presentation-poststim-period'], parent.filename.replace('visual-stim.npz', 'NIdaq.end.npy'))
         if not parent.stop_flag:
             self.blank_end.draw()
             self.off.draw()
@@ -225,9 +216,6 @@ class visual_stim:
     def static_run(self, parent):
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
-            if self.with_NIdaq:
-                self.NIdaq_rec(self.protocol['presentation-interstim-period']+self.protocol['presentation-duration'],
-                               parent.filename.replace('visual-stim.npz', 'NIdaq.%i.npy' % i))
             if stop_signal(parent):
                 break
             self.single_static_patterns_presentation(parent, i)
@@ -252,13 +240,11 @@ class visual_stim:
                 self.win.flip()
             except AttributeError:
                 pass
+        self.win.getMovieFrame() # we store the last frame
 
     def drifting_run(self, parent):
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
-            if self.with_NIdaq:
-                self.NIdaq_rec(self.protocol['presentation-interstim-period']+self.protocol['presentation-duration'],
-                               parent.filename.replace('visual-stim.npz', 'NIdaq.%i.npy' % i))
             if stop_signal(parent):
                 break
             self.speed = self.experiment['speed'][i]
@@ -268,6 +254,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
+        self.win.saveMovieFrames(parent.filename.replace('visual-stim.npz', 'frame.tiff'))
 
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
@@ -298,9 +285,7 @@ class visual_stim:
 
             
     ## FINAL RUN FUNCTION
-    def run(self, parent, with_NIdaq=False):
-        if with_NIdaq:
-            self.with_NIdaq = True
+    def run(self, parent):
         if len(self.protocol['Stimulus'].split('drifting'))>1:
             return self.drifting_run(parent)
         elif len(self.protocol['Stimulus'].split('VEM'))>1:

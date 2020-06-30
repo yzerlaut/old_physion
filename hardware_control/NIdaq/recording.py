@@ -48,6 +48,7 @@ def rec_only(device, t_array, inputs):
             inputs, number_of_samples_per_channel=len(t_array),
             timeout=t_array[-1]+2*dt)
 
+        
 def stim_and_rec(device, t_array, inputs, outputs):
 
     dt = t_array[1]-t_array[0]
@@ -97,6 +98,7 @@ def stim_and_rec(device, t_array, inputs, outputs):
             inputs, number_of_samples_per_channel=len(t_array),
             timeout=t_array[-1]+2*dt)
         
+        
 if __name__=='__main__':
 
     import argparse
@@ -116,7 +118,6 @@ if __name__=='__main__':
 
     # print('Output channels: ', get_analog_output_channels(args.device))
 
-    # T, dt = 10, 1e-4
     t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
     inputs = np.zeros((args.Nchannel_rec,len(t_array)))
 
@@ -133,3 +134,4 @@ if __name__=='__main__':
     #     print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
     rec_only(args.device, t_array, inputs)
     np.save(args.filename, inputs)
+

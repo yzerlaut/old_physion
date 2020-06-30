@@ -22,11 +22,11 @@ def generate_filename_path(root_folder,
     Second_folder = second_folder(Day_folder)
     
     if not os.path.exists(Day_folder):
-        print('creating the folder "%s"', Day_folder)
+        print('creating the folder "%s"' % Day_folder)
         Path(Day_folder).mkdir(parents=True, exist_ok=True)
     
     if not os.path.exists(Second_folder):
-        print('creating the folder "%s"', Second_folder)
+        print('creating the folder "%s"' % Second_folder)
         Path(Second_folder).mkdir(parents=True, exist_ok=True)
         
     if not extension.startswith('.'):
