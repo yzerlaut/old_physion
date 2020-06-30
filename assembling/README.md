@@ -22,7 +22,7 @@ The NI-daq receives:
 
 ## Code
 
-The script doing the assembly is []
+The scripts doing the assembling is in the file [fetching.py](./fetching.py)
 
 
 
