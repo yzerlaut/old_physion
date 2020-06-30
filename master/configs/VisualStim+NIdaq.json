@@ -1,5 +1,5 @@
 {
-    "NIdaq-acquisition-frequency": 1000., # Hz
+    "NIdaq-acquisition-frequency": 1000.0,
     "NIdaq-input-channels": 2,
-    "data-folder": "C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp",
+    "data-folder": "C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp"
 }

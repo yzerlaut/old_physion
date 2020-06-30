@@ -66,10 +66,10 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         # config choice
         QtWidgets.QLabel("   /|=>  Config <=|\\", self).move(30, 120)
-        self.cbd = QtWidgets.QComboBox(self)
-        self.cbd.addItems([f.replace('.json', '') for f in self.config_list])
-        self.cbd.setMinimumWidth(200)
-        self.cbd.move(150, 120)
+        self.cbc = QtWidgets.QComboBox(self)
+        self.cbc.addItems([f.replace('.json', '') for f in self.config_list])
+        self.cbc.setMinimumWidth(200)
+        self.cbc.move(150, 120)
         self.dbtn = QtWidgets.QPushButton('Set folder', self)
         self.dbtn.clicked.connect(self.set_config_folder)
         self.dbtn.move(370, 120)
@@ -77,11 +77,11 @@ class MasterWindow(QtWidgets.QMainWindow):
         LABELS = ["v) View Data", " a) Analyze Data"]
         FUNCTIONS = [self.view_data, self.analyze_data]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
-                                            150*np.arange(len(LABELS)), [150, 150]):
+                                            160*np.arange(len(LABELS)), [130, 130]):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(size)
-            btn.move(shift, 250)
+            btn.move(shift, 180)
             action = QtWidgets.QAction(label, self)
             if len(label.split(')'))>0:
                 action.setShortcut(label.split(')')[0])
@@ -107,7 +107,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('[...] preparing stimulation')
             self.stim = build_stim(self.protocol)
             self.statusBar.showMessage('stimulation ready !')
-            self.filename = generate_filename_path(self.config['data_folder'],
+            self.filename = generate_filename_path(self.config['data-folder'],
                                                    filename='visual-stim', extension='.npz')
             self.acq = Acquisition(dt=1./self.config['NIdaq-acquisition-frequency'],
                                    Nchannel_in=self.config['NIdaq-input-channels'],

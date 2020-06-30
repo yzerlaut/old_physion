@@ -1,6 +1,6 @@
 # Assembling pipeline
 
-*procedures to pre-process and assemble multi-modal recordings to produce a coherent physiological dataset*
+*procedures to pre-process and assemble physiological recordings to produce multi-modal datasets*
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The aim is to assemble the following elements:
 
 ## Strategy
 
-All elements send signals to the NI-daq ! We launch a continuous recording (clocked !) on the NI-daq and we realign from those signals.
+All elements send signals to the NI-daq ! We launch a (clocked !) continuous recording on the NI-daq and we realign from those signals.
 
 The NI-daq receives:
 
@@ -22,7 +22,7 @@ The NI-daq receives:
 
 ## Code
 
-The scripts doing the assembling is in the file [fetching.py](./fetching.py)
+The scripts doing the assembling is in the file [fetching.py](./fetching.py).
 
 
 
