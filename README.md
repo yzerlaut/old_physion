@@ -6,7 +6,7 @@
 
 - [Electrophysiology](electrophy/README.md)
 - [Calcium imaging](Ca-imaging/README.md)
-- [Visual stimulation](visual-stim/README.md)
+- [Visual stimulation](visual_stim/README.md)
 - [Behavioral monitoring](behavioral-montoring/README.md)
 - [Hardware control](hardware_control/README.md)
 - [Assembling pipeline](assembling/README.md)
@@ -40,7 +40,10 @@ Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the depend
 pip install -r requirements.txt
 ```
 
-#### 4) Open the notebooks and run the code
+## Running experiments
+
+
+#### 4) Run experiments or analysis
 
 Open the Anaconda prompt (or the UNIX shell) and run):
 ```
