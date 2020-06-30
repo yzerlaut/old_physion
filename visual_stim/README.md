@@ -24,27 +24,18 @@ There is a `"demo"` mode to adjust and build the protocols.
 
 [...] to be done
 
-
-The physical (visual space) and biological (neuronal space) settings are depicted on Figure {geometry}. 
-
-[[Figure {geometry} around here]]
-
-The visual space considered by the model corresponds to the monocular field of a given eye (e.g. left eye on Figure {geometry}) in the visual system of the mouse. 
-
-The visual space covered by the screen is therefore described by the following parameters:
-
+The visual space covered by the screen is described by the following parameters:
 - Angular height of the visual field
 - Angular width of the visual field
 - Field center from antero-posterior axis
 
-
-
 ## Set of stimuli
 
-The parameters
+The set of stimuli implemented can be visualized in the GUI (with the parameters of each stimulus type).
 
+They are documented in the [file of default parameter](./default_params.py).
 
 ## Realign physiological recordings
 
-[...]
+see the [Assembling module](../assembling/README.md)
 

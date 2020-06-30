@@ -1,41 +1,30 @@
 # Assembling pipeline
 
-## I) Conversion from Igor ".pxp" files to HDF5 datafiles
+*procedures to pre-process and assemble multi-modal recordings to produce a coherent physiological dataset*
 
-1) Load and compile the  [Export-to-hdf5.ipf](Export-to-hdf5.ipf) script into the Igor software
+## Purpose
 
-2) In the Igor command interface run:
+The aim is to assemble the following elements:
 
-```
-convert()
-```
+- Electrophysiological data, see [Electrophysiology](electrophy/README.md)
+- two-photon imaging data, see [Calcium imaging](Ca-imaging/README.md)
+- FLIR-Camera data,  see [Behavioral monitoring](behavioral-montoring/README.md)
 
-This will pop up a menu to select a folder. Select the folder of interest, the script will run into all subfolders of the arborescence and convert all Igor experminent files (".pxp" files) into HDF5 files ("/.h5" files).
+## Strategy
 
-Check the output in the command prompt,
+All elements send signals to the NI-daq ! We launch a continuous recording (clocked !) on the NI-daq and we realign from those signals.
 
-```
-  i=  0  ) generating  F:Data_Nunzio:2020:May:nm14May2020c2:nm14May2020c2_000.h5 
-  i=  1  ) generating  F:Data_Nunzio:2020:May:nm14May2020c2:nm14May2020c2_001.h5 
-  i=  2  ) generating  F:Data_Nunzio:2020:May:nm14May2020c2:nm14May2020c2_log0.h5
-  i=  3  ) generating  F:Data_Nunzio:2020:May:nm14May2020c1:nm14May2020c1_000.h5 
-  i=  4  ) generating  F:Data_Nunzio:2020:May:nm14May2020c1:nm14May2020c1_001.h5 
-  i=  5  ) generating  F:Data_Nunzio:2020:May:nm14May2020c1:nm14May2020c1_log0.h5
-  i=  6  ) generating  F:Data_Nunzio:2020:May:nm14May2020c0:nm14May2020c0_000.h5 
-  i=  7  ) generating  F:Data_Nunzio:2020:May:nm14May2020c0:nm14May2020c0_001.h5 
-  i=  8  ) generating  F:Data_Nunzio:2020:May:nm14May2020c0:nm14May2020c0_log0.h5
-  i=  9  ) generating  F:Data_Nunzio:2020:May:nm13May2020c4:nm13May2020c4_000.h5 
-  i=  10  ) generating  F:Data_Nunzio:2020:May:nm13May2020c4:nm13May2020c4_001.h5
-  i=  11  ) generating  F:Data_Nunzio:2020:May:nm13May2020c4:nm13May2020c4_002.h5
-  i=  12  ) generating  F:Data_Nunzio:2020:May:nm13May2020c4:nm13May2020c4_log0.h5
-  i=  13  ) generating  F:Data_Nunzio:2020:May:nm13May2020c3:nm13May2020c3_000.h5 
-  i=  14  ) generating  F:Data_Nunzio:2020:May:nm13May2020c3:nm13May2020c3_001.h5 
-  [...]
-```
-If a given file is corrupted and stops the script, you can restart from the point where it failed with:
+The NI-daq receives:
 
-```
-convert(i=15)
-```
+1. The photodiode signal (taken from from the right-bottom corner of the screen)
+2. The aperture time of the FLIR-camera
+3. The aperture time of the two-photon microscope
 
-[...]
+## Code
+
+The script doing the assembly is []
+
+
+
+
+
