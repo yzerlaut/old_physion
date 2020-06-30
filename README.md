@@ -15,9 +15,7 @@
 
 #### 1) Get a scientific python distribution
 
-Install a python distribution for scientific analysis.
-
-We recommend the Anaconda distribution, get it here: https://www.anaconda.com/products/individual
+Install a python distribution for scientific analysis, get the latest Anaconda distribution at: https://www.anaconda.com/products/individual
 
 #### 2) Download this repository
 
@@ -42,10 +40,24 @@ pip install -r requirements.txt
 
 ## Running experiments
 
+The master program is launched with:
+```
+python master\gui.py
+```
 
-#### 4) Run experiments or analysis
+It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.
 
-Open the Anaconda prompt (or the UNIX shell) and run):
+## Preparing protocols
+
+Go to the individual modules for the details about the settings of protocols:
+- [Visual stimulation](visual_stim/README.md)
+- [Electrophysiology](electrophy/README.md)
+- [Calcium imaging](Ca-imaging/README.md)
+- [Behavioral monitoring](behavioral-montoring/README.md)
+
+## Running analysis
+
+We showcase here a few analysis in [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
 ```
 jupyter notebook Ca-imaging/preprocessing_demo.ipynb
 ```

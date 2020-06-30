@@ -2,17 +2,28 @@
 
 ## Configuration/Installation
 
+Go through the steps of the [README](../README.md) of the repository.
+
 First install a python distribution from: https://www.anaconda.com/products/individual
 
-The stimulus presentation relies on the [PsychoPy module](https://www.psychopy.org), you can install it through `pip`. Open a the Anaconda prompt and run:
+The stimulus presentation relies on the [PsychoPy module](https://www.psychopy.org).  The custom code for the GUI and the set of stimulus lies in the present repository: ["psychopy_code" folder](./psychopy_code/) and ["gui" folder](./gui/).
+
+A few examples, that were used to design and calibrate the stimuli, can be found in the [psychopy_code/demo_stim.py](./psychopy_code/demo_stim.py)
+
+## Running the visual stimulation program
+
+Open the Anaconda prompt and run:
 
 ```
-pip install psychopy
+python visual_stim\gui\main.py
 ```
 
-The custom code for the GUI and the set of stimulus lies in the present repository: ["psychopy_code" folder](./psychopy_code/) and ["gui" folder](./gui/)
+There is a `"demo"` mode to adjust and build the protocols.
 
-### Screen settings
+## Screen settings and calibration
+
+[...] to be done
+
 
 The physical (visual space) and biological (neuronal space) settings are depicted on Figure {geometry}. 
 
@@ -30,7 +41,7 @@ The visual space covered by the screen is therefore described by the following p
 
 ## Set of stimuli
 
-We describe  the set of visual stimuli available in the module with their *parameters* in the (Stimulus Documentation)[stimuli.pdf].
+The parameters
 
 
 ## Realign physiological recordings
