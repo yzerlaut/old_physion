@@ -1,5 +1,6 @@
 {
     "NIdaq-acquisition-frequency": 1000.0,
     "NIdaq-input-channels": 2,
-    "data-folder": "C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp"
+    "data-folder": "C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp",
+    "NIdaq-output-step-1": {"channel":0, "onset": 0.5, "duration": 1.0, "value":5.0}
 }

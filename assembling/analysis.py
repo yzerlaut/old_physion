@@ -33,22 +33,21 @@ def analyze_data(filename, dt=1e-3, subsampling=20):
 
     data = get_multimodal_dataset(filename)
 
-    # print(data['images'][0])
-    ge.image(data['images'][0])
-    # fig, ax = ge.figure(axes_extents=(4,1))
-    
-    # if 'NIdaq' in data:
-    #     x = data['NIdaq'][0,:]
-    #     t = np.arange(len(x))*dt
-    #     ax.plot(t[::subsampling], x[::subsampling])
-    #     cond = data['time_start']<np.max(t)
-    #     ax.plot(data['time_start'][cond], np.ones(np.sum(cond))*x.max(), 'r*')
-    #     ax.plot(data['time_stop'][cond], np.ones(np.sum(cond))*x.max(), 'b*')
+    fig, AX = ge.figure(axes_extents=[[[1,1], [4,1]] for i in range(len(data['images']))])
+
+    t = np.arange(data['NIdaq'].shape[1])*dt
+    norm_NIdaq = (data['NIdaq'].T-data['NIdaq'].min(axis=1).T)/(data['NIdaq'].max(axis=1).T-data['NIdaq'].min(axis=1).T)
+    print(norm_NIdaq.shape)
+    for i in range(len(data['images'])):
+       ge.image(data['images'][i], ax=AX[i][0])
+       cond = (t>=data['time_start'][i]) & (t<data['time_start'][i]+5)#data['time_stop'][i])
+       for j in range(data['NIdaq'].shape[0]):
+           AX[i][1].plot(t[cond]-t[cond][0], norm_NIdaq[cond, j], color=ge.colors[j])
     ge.show()
     
 
 
 if __name__=='__main__':
 
-    quick_data_view(last_datafile(tempfile.gettempdir()))
-    # analyze_data(last_datafile(tempfile.gettempdir()))
+    # quick_data_view(last_datafile(tempfile.gettempdir()))
+    analyze_data(last_datafile(tempfile.gettempdir()))

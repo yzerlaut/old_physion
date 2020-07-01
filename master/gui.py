@@ -109,9 +109,15 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('stimulation ready !')
             self.filename = generate_filename_path(self.config['data-folder'],
                                                    filename='visual-stim', extension='.npz')
+            output_steps, istep = [], 1
+            while 'NIdaq-output-step-%i'%istep in self.config:
+                print(self.config['NIdaq-output-step-%i'%istep])
+                output_steps.append(self.config['NIdaq-output-step-%i'%istep])
+                istep+=1
             self.acq = Acquisition(dt=1./self.config['NIdaq-acquisition-frequency'],
                                    Nchannel_in=self.config['NIdaq-input-channels'],
                                    max_time=self.stim.experiment['time_stop'][-1]+20,
+                                   output_steps=output_steps,
                                    filename= self.filename.replace('visual-stim.npz', 'NIdaq.npy'))
             self.init = True
         except FileNotFoundError:

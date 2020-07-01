@@ -2,7 +2,7 @@ from psychopy import visual, core, event, clock, monitors # some libraries from 
 import numpy as np
 import itertools, os, sys, pathlib, subprocess
  
-MONITORING_SQUARE = {'size':2.8, 'x':13, 'y':-7, 'color-on':1, 'color-off':-1,
+MONITORING_SQUARE = {'size':3.4, 'x':12.6, 'y':-6.5, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))

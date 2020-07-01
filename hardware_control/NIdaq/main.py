@@ -22,7 +22,7 @@ class Acquisition:
                  filename='data.npy',
                  device=None,
                  outputs=None,
-                 output_steps=None, # should be a set of dictionaries, output_steps=[{'channel':0, 'onset': 2.3, 'duration': 1., 'value':5}]
+                 output_steps=[], # should be a set of dictionaries, output_steps=[{'channel':0, 'onset': 2.3, 'duration': 1., 'value':5}]
                  verbose=False):
         
         self.running = True
@@ -39,9 +39,9 @@ class Acquisition:
         self.data = np.zeros((Nchannel_in, 1), dtype=np.float64)
         
         # preparing output channels
-        if outputs is not None:
+        if outputs is not None: # used as a flag for output or not
             self.output_channels = get_analog_output_channels(self.device)[:outputs.shape[0]]
-        elif output_steps is not None:
+        elif len(output_steps)>0:
             # have to be elements 
             t = np.arange(int(self.max_time/self.dt))*self.dt
             outputs = np.zeros((1,len(t)))
@@ -94,8 +94,6 @@ class Acquisition:
         if self.outputs is not None:
             self.writer = AnalogMultiChannelWriter(self.write_task.out_stream)
             self.writer.write_many_sample(self.outputs)
-            # self.write_task.register_every_n_samples_transferred_from_buffer_event(self.buffer_size, self.writing_task_callback)
-            # self.last_index =0
 
         self.read_task.start() # Start the read task before starting the sample clock source task.
         if self.outputs is not None:
@@ -103,10 +101,18 @@ class Acquisition:
         self.sample_clk_task.start()
 
     def close(self):
-        self.read_task.close()
-        if self.outputs is not None:
+        try:
+            self.read_task.close()
+        except AttributeError:
+            pass
+        try:
             self.write_task.close()
-        self.sample_clk_task.close()
+        except AttributeError:
+            pass
+        try:
+            self.sample_clk_task.close()
+        except AttributeError:
+            pass
         np.save(self.filename, self.data[:,1:])
         print('NIdaq data saved as: %s ' % self.filename)
 
@@ -119,14 +125,6 @@ class Acquisition:
             self.close()
         return 0  # Absolutely needed for this callback to be well defined (see nidaqmx doc).
 
-    # def writing_task_callback(self, task_idx, event_type, num_samples, callback_data=None):
-    #     print(callback_data)
-    #     # if self.running:
-    #     #     self.writer.write_many_sample(self.outputs[:, self.last_index:self.last_index+num_samples], timeout=WAIT_INFINITELY)
-    #     #     self.last_index +=num_samples
-    #     # else:
-    #     #     self.writer.write_many_sample(np.zeros((self.outputs.shape[0], 1)), timeout=WAIT_INFINITELY)
-    #     return 0
 
 
     def select_device(self):
@@ -151,6 +149,6 @@ if __name__=='__main__':
     print(acq.data)
     print(acq.data.shape)
     np.save('data.npy', acq.data)
-    from datavyz import ge
-    ge.plot(acq.data[1,:][::10])
-    ge.show()
+    # from datavyz import ge
+    # ge.plot(acq.data[1,:][::10])
+    # ge.show()
