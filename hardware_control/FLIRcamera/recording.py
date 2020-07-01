@@ -37,6 +37,7 @@ class CameraAcquisition:
             self.stop()
             
     def save_times(self, verbose=True):
+        print('Camera data saved as: ', os.path.join(self.folder, 'camera-times.npy'))
         np.save(os.path.join(self.folder, 'camera-times.npy'), np.array(self.times))
         if verbose:
             print('Effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))

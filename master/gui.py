@@ -1,4 +1,5 @@
 import sys, time, tempfile, os, pathlib, json, subprocess
+import threading # for the camera stream
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
@@ -92,11 +93,16 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.show()
 
     def analyze_data(self):
-        analyze_data(last_datafile(self.data_folder))
+        self.statusBar.showMessage('Analyzing last recording [...]')
+        data, fig1 = quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
+        _, fig2 = analyze_data(data=data)
+        fig1.show()
+        fig2.show()
     
     def view_data(self):
-        quick_data_view(last_datafile(self.data_folder))
-    
+        _, fig = quick_data_view(last_datafile(self.data_folder))
+        fig.show()
+        
     def initialize(self):
         try:
             filename = os.path.join(self.protocol_folder, self.cbp.currentText()+'.json')
@@ -132,18 +138,20 @@ class MasterWindow(QtWidgets.QMainWindow):
         else:
             self.save_experiment()
             self.acq.launch()
-            self.camera.rec(3)
+            threading.Thread(target=self.camera.rec, args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
             self.statusBar.showMessage('stimulation & recording running [...]')
             self.stim.run(self)
             self.stim.close()
+            self.camera.running = False # switch off camera
+            self.camera.stop() # should be done thanks to the running flag
             self.acq.close()
-            self.camera.close()
             self.init = False
     
     def stop(self):
         self.stop_flag=True
         self.acq.close()
-        self.camera.close()
+        self.camera.running = False # switch off camera
+        self.camera.stop() # should be done thanks to the running flag
         self.statusBar.showMessage('stimulation stopped !')
         if self.stim is not None:
             self.stim.close()
@@ -153,13 +161,16 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.acq.close()
             self.stim.quit()
+            self.camera.stop() # should be done thanks to the running flag
         sys.exit()
 
     def save_experiment(self):
+        for key in self.config:
+            self.protocol[key] = self.config[key] # "config" overrides "protocol"
         full_exp = dict(**self.protocol, **self.stim.experiment)
         save_dict(self.filename, full_exp)
-        print('Stimulation data saved as: %s ' % self.filename)
-        self.statusBar.showMessage('Stimulation data saved as: %s ' % self.filename)
+        print('Stimulation & acquisition data saved as: %s ' % self.filename)
+        self.statusBar.showMessage('Stimulation & acquisition data saved as: %s ' % self.filename)
 
     def get_protocol_list(self):
         files = os.listdir(self.protocol_folder)

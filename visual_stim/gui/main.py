@@ -26,7 +26,8 @@ class Window(QtWidgets.QMainWindow):
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
         self.data_folder = tempfile.gettempdir()
-        self.protocol_folder = './'
+        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'protocols')
+        self.filename = os.path.join(self.data_folder, 'visual-stim.npz')
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -151,16 +152,19 @@ class Window(QtWidgets.QMainWindow):
             self.protocol['data-folder'] = self.data_folder
             self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
-            with open('protocol.json', 'w') as fp:
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file', self.protocol_folder, "Protocol files (*.json)")
+            print(filename)
+            with open(filename[0], 'w') as fp:
                 json.dump(self.protocol, fp, indent=2)
-                self.statusBar.showMessage('protocol saved as "protocol.json"')
+                self.statusBar.showMessage('protocol saved as "%s"' % filename[0])
         else:
-            self.statusBar.showMessage('No protocol data available')
+            self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
             
     def load_protocol(self):
-        filename = 'protocol.json'
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', self.protocol_folder,"Protocol files (*.json)")
+        print(filename)
         try:
-            with open(filename, 'r') as fp:
+            with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
             self.data_folder = self.protocol['data-folder']
             self.protocol_folder = self.protocol['protocol-folder']
@@ -170,13 +174,13 @@ class Window(QtWidgets.QMainWindow):
             self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
             self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
             self.cbst.setCurrentIndex(np.argwhere(s3==np.array(SETUP))[0][0])
-            self.statusBar.showMessage('successfully loaded "%s"' % filename)
+            self.statusBar.showMessage('successfully loaded "%s"' % filename[0])
             # draw params window
             self.params_window = draw_window(self, self.protocol)
             # self.params_window = draw_window(self, self.protocol)
             self.params_window.show()
         except FileNotFoundError:
-            self.statusBar.showMessage('protocol file "%s" not found !' % filename)
+            self.statusBar.showMessage('protocol file "%s" not found !' % filename[0])
 
     def set_folders(self):
         self.protocol_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
