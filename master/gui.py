@@ -10,6 +10,7 @@ from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
 from hardware_control.NIdaq.main import Acquisition
+from hardware_control.FLIRcamera.recording import CameraAcquisition
 
 class MasterWindow(QtWidgets.QMainWindow):
     
@@ -119,6 +120,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                                    max_time=self.stim.experiment['time_stop'][-1]+20,
                                    output_steps=output_steps,
                                    filename= self.filename.replace('visual-stim.npz', 'NIdaq.npy'))
+            self.camera = CameraAcquisition(folder=self.filename.replace('visual-stim.npz', ''))
             self.init = True
         except FileNotFoundError:
             self.statusBar.showMessage('protocol file "%s" not found !' % filename)
@@ -130,15 +132,18 @@ class MasterWindow(QtWidgets.QMainWindow):
         else:
             self.save_experiment()
             self.acq.launch()
+            self.camera.rec(3)
             self.statusBar.showMessage('stimulation & recording running [...]')
             self.stim.run(self)
             self.stim.close()
             self.acq.close()
+            self.camera.close()
             self.init = False
     
     def stop(self):
         self.stop_flag=True
         self.acq.close()
+        self.camera.close()
         self.statusBar.showMessage('stimulation stopped !')
         if self.stim is not None:
             self.stim.close()
