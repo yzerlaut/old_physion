@@ -31,7 +31,8 @@ There is a `"demo"` mode to adjust and build the protocols.
 
 We present a uniform full-screen at different levels of luminance, we use  a photometer to measure the true light intensity.
 
-We fit the formula `f(x) = a + k * x^g ` (see above fits) and we insert the `a`, 'k' and 'g' parameters in the "Monitor center" of `psychopy`.
+We fit the formula `f(x) = a + k * x^g ` (constrained minimization, see [gamma-correction.py](./gamma-correction.py) and fits below).
+We then insert the `a`, 'k' and 'g' parameters in the "Monitor center" of `psychopy`.
 
 <p align="center">
   <img src="../doc/gamma-correction.png"/>
