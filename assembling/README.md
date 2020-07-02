@@ -6,9 +6,9 @@
 
 The aim is to assemble the following elements:
 
-- Electrophysiological data, see [Electrophysiology](electrophy/README.md)
-- two-photon imaging data, see [Calcium imaging](Ca-imaging/README.md)
-- FLIR-Camera data,  see [Behavioral monitoring](behavioral-montoring/README.md)
+- Electrophysiological data, see [Electrophysiology](../electrophy/README.md)
+- two-photon imaging data, see [Calcium imaging](../Ca-imaging/README.md)
+- FLIR-Camera data,  see [Behavioral monitoring](../behavioral_monitoring/README.md)
 
 ## Strategy
 

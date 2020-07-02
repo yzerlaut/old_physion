@@ -57,7 +57,7 @@ Go to the individual modules for the details about the settings of protocols:
 - [Visual stimulation](visual_stim/README.md)
 - [Electrophysiology](electrophy/README.md)
 - [Calcium imaging](Ca-imaging/README.md)
-- [Behavioral monitoring](behavioral-montoring/README.md)
+- [Behavioral monitoring](behavioral_monitoring/README.md)
 
 ## Running analysis
 
