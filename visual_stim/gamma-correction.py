@@ -35,4 +35,5 @@ for location in ['center']:
         ge.annotate(AX[i],'$\lambda$=%s' % LAMBDA[color], (0.5,.1), color=getattr(ge, color))
         ge.set_plot(AX[i], xlabel='(computer) luminosity', xticks=[0,0.5, 1], yticks=[0,0.5, 1], ylabel='measured I (norm.)')
 
+ge.show()
 fig.savefig('../doc/gamma-correction.png')
