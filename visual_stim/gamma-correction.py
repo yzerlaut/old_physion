@@ -20,12 +20,12 @@ for location in ['center']:
     for i, color in enumerate(['blue', 'green', 'red']):
         
         array = calib[location][color]
-
+        array/=np.max(array)
         def to_minimize(coefs):
             return np.sum(np.abs(array-func(lum, coefs))**2)
 
         residual = minimize(to_minimize, [1, 80, 1],
-                            bounds=[(0,3), (50, 150), (0.1, 3.)])
+                            bounds=[(0,3), (0.5, 2), (0.1, 3.)])
 
         print('For %s and %s, gamma=' % (location, color), residual.x[2])
         
@@ -33,6 +33,6 @@ for location in ['center']:
         ge.scatter(lum, array, ax=AX[i], color=getattr(ge, color), label='data', ms=3)
         ge.plot(lum, func(lum, residual.x), ax=AX[i], lw=3, alpha=.5, color=getattr(ge, color), label='fit')
         ge.annotate(AX[i],'$\lambda$=%s' % LAMBDA[color], (0.5,.1), color=getattr(ge, color))
-        ge.set_plot(AX[i], xlabel='(computer) luminosity', xticks=[0,0.5, 1], ylabel='measured I ($\mu$W)')
+        ge.set_plot(AX[i], xlabel='(computer) luminosity', xticks=[0,0.5, 1], yticks=[0,0.5, 1], ylabel='measured I (norm.)')
 
 fig.savefig('../doc/gamma-correction.png')

@@ -29,7 +29,7 @@ There is a `"demo"` mode to adjust and build the protocols.
 
 ### Gamma correction
 
-We present a uniform full-screen at different levels of luminance, we use  a photometer to measure the true light intensity.
+We present a uniform full-screen at different levels of luminance, we use a photometer to measure the true light intensity in the center of the screen.
 
 We fit the formula `f(x) = a + k * x^g ` (constrained minimization, see [gamma-correction.py](./gamma-correction.py) and fits below).
 We then insert the `a`, 'k' and 'g' parameters in the "Monitor center" of `psychopy`.

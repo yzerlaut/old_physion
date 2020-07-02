@@ -71,7 +71,7 @@ class visual_stim:
         else:
             self.monitor = monitors.Monitor('Lilliput')
             self.win = visual.Window(size=[1280, 720], monitor=self.monitor,
-                                     screen=1, fullscr=True, units='deg', color=-1)
+                                     screen=0, fullscr=True, units='deg', color=-1)
             
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
