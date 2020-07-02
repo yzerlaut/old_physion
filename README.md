@@ -45,6 +45,10 @@ The master program is launched with:
 python master\gui.py
 ```
 
+<p align="center">
+  <img src="docs/gui-master.png"/>
+</p>
+
 It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.
 
 ## Preparing protocols
