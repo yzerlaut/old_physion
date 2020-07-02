@@ -25,14 +25,19 @@ There is a `"demo"` mode to adjust and build the protocols.
 </p>
 
 
-## Screen settings and calibration
+## Screen calibration
 
-[...] to be done
+### Gamma correction
 
-The visual space covered by the screen is described by the following parameters:
-- Angular height of the visual field
-- Angular width of the visual field
-- Field center from antero-posterior axis
+We present a uniform full-screen at different levels of luminance, we use  a photometer to measure the true light intensity.
+
+We fit the formula `f(x) = a + k * x^g ` (see above fits) and we insert the `a`, 'k' and 'g' parameters in the "Monitor center" of `psychopy`.
+
+<p align="center">
+  <img src="../doc/gamma-correction.png"/>
+</p>
+
+The measurements and fitting procedure are described in the script: [gamma-correction.py](./gamma-correction.py).
 
 ## Set of stimuli
 

@@ -13,19 +13,25 @@ lum = np.linspace(0, 1, 20)
 def func(lum, coefs):
     return coefs[0]+coefs[1]*lum**coefs[2]
 
-for location in ['center', 'top-left']:
-    for color in ['blue', 'green', 'red']:
+fig, AX = ge.figure(axes=(3,1))
+
+# for location in ['center', 'top-left']:
+for location in ['center']:
+    for i, color in enumerate(['blue', 'green', 'red']):
         
         array = calib[location][color]
 
         def to_minimize(coefs):
             return np.sum(np.abs(array-func(lum, coefs))**2)
 
-        residual = minimize(to_minimize, [0, 80, 1])
+        residual = minimize(to_minimize, [1, 80, 1],
+                            bounds=[(0,3), (50, 150), (0.1, 3.)])
 
         print('For %s and %s, gamma=' % (location, color), residual.x[2])
         
-# fig, ax = ge.figure()
-# ge.plot(lum, array, ax=ax)
-# ge.plot(lum, func(lum, residual.x), ax=ax, lw=3, color='b', alpha=.5)
-# ge.show()
+        ge.title(AX[i], "a=%.2f, k=%.2f, $\gamma$=%.2f" % (residual.x[0], residual.x[1], residual.x[2]), color=getattr(ge, color), size='small')
+        ge.scatter(lum, array, ax=AX[i], color=getattr(ge, color), label='data', ms=3)
+        ge.plot(lum, func(lum, residual.x), ax=AX[i], lw=3, alpha=.5, color=getattr(ge, color), label='fit')
+        ge.set_plot(AX[i], xlabel='(computer) luminosity', xticks=[0,0.5, 1], ylabel='measured I ($\mu$W)')
+    
+fig.savefig('../doc/gamma-correction.png')
