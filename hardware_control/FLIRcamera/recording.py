@@ -50,15 +50,16 @@ class CameraAcquisition:
 
 if __name__=='__main__':
 
-    import threading
+    # import threading
     # def launch_rec(duration):
     #     camera.rec(duration)
     camera = CameraAcquisition()
-    camera_thread = threading.Thread(target=camera.rec, args=(3,))
-    camera_thread.start()
-    time.sleep(1)
+    camera.rec(2)
+    # camera_thread = threading.Thread(target=camera.rec, args=(3,))
+    # camera_thread.start()
+    # time.sleep(1)
     camera.running = False
-    # camera.stop()
+    camera.stop()
 
 
     

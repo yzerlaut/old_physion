@@ -81,7 +81,7 @@ Function convert([,i])
 		CleanUpWorkSpace()
 		LoadData /O /L=7 /R fname
 		Print "i=", i, ") generating", fname2
-		//convert_to_hdf5(fname2)		
+		convert_to_hdf5(fname2)		
 		//MoveFile /I=0 /O FILE_LOCATION as fname2
 		i += 1          //move to next file
     while(i<itemsinlist(filelist)	)
