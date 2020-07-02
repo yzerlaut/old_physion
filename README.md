@@ -5,9 +5,9 @@
 ## Modules
 
 - [Electrophysiology](electrophy/README.md)
-- [Calcium imaging](Ca-imaging/README.md)
+- [Calcium imaging](Ca_imaging/README.md)
 - [Visual stimulation](visual_stim/README.md)
-- [Behavioral monitoring](behavioral-montoring/README.md)
+- [Behavioral monitoring](behavioral_monitoring/README.md)
 - [Hardware control](hardware_control/README.md)
 - [Assembling pipeline](assembling/README.md)
 
@@ -46,7 +46,7 @@ python master\gui.py
 ```
 
 <p align="center">
-  <img src="docs/gui-master.png"/>
+  <img src="doc/gui-master.png"/>
 </p>
 
 It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.

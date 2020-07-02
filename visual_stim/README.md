@@ -20,6 +20,11 @@ python visual_stim\gui\main.py
 
 There is a `"demo"` mode to adjust and build the protocols.
 
+<p align="center">
+  <img src="../doc/gui-visual-stim.png"/>
+</p>
+
+
 ## Screen settings and calibration
 
 [...] to be done
