@@ -48,6 +48,7 @@ Function/S findFiles(path, ext[, recurse])
     return fileList
 End
 
+
 static function /s sanitizeFilePath(path)
     // Avoid annoyances with escape characters when using Microsoft Windows directories.
     
@@ -65,7 +66,6 @@ Function CleanUpWorkSpace()
 	KillStrings/A
 	KillDataFolder GetDataFolder(1)
 end
-
 
 Function convert([,i])
    variable i
