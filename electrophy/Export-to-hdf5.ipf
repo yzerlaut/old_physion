@@ -1,11 +1,11 @@
 ﻿#pragma TextEncoding = "UTF-8"
-// #pragma rtGlobals=3		// Use modern global access method and strict wave access.
+#pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 Function convert_to_hdf5(filename)
 
     String filename   
     Variable root_id, h5_id
-    HDF5CreateFile h5_id as filename
+    HDF5CreateFile /O h5_id as filename
     HDF5CreateGroup h5_id, "/", root_id
     HDF5SaveGroup  /VAR=1 /L=7 /O /R :, root_id, "/"
     HDF5CloseGroup root_id
@@ -73,17 +73,20 @@ Function convert([,i])
    GetFileFolderInfo /D
 
    string fileList, fname, fname2
-
+	string FILE_LOCATION="C:\\temp\\file.h5"
+	
 	filelist = findFiles(S_path,".pxp")
 	do
 		fname = stringfromlist(i,filelist)
 		fname2 = ReplaceString(".pxp", fname, ".h5")
 		CleanUpWorkSpace()
-		LoadData /O /L=7 /R fname
+		LoadData/O/L=7/R fname
 		Print "i=", i, ") generating", fname2
-		convert_to_hdf5(fname2)		
+		print fname2
+		convert_to_hdf5(fname2)	
+		//convert_to_hdf5(FILE_LOCATION)	
 		//MoveFile /I=0 /O FILE_LOCATION as fname2
 		i += 1          //move to next file
-    while(i<itemsinlist(filelist)	)
-    Print "[ok] successful conversion of", S_path 
+    while(i<itemsinlist(filelist))
+    Print "[ok] successful conversion of", S_path
 End
