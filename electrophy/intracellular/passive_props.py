@@ -72,7 +72,7 @@ def ICfunc_to_fit(t, coeffs, t0=50, t1=150):
 
 
 def perform_ICcharact(t, data, t0=50e-3, t1=300e-3, Istep=200e-12,
-                      with_plot=False, ge=None, title=''):
+                      with_plot=False, ge=None, title='', ax=None, fig_args={}):
     
     TforBaseline = [t0-(t1-t0)/3., t0] 
     TforBaselineShift = [t1-(t1-t0)/3., t1] 
@@ -95,7 +95,10 @@ def perform_ICcharact(t, data, t0=50e-3, t1=300e-3, Istep=200e-12,
     if with_plot:
         if ge is None:
             from datavyz import gen as ge
-        fig, ax = ge.plot(t, data, fig_args={'figsize':(1.5,1.5)}, label='IC-data')
+        if ax is None:
+            fig, ax = ge.plot(t, data, fig_args=fig_args, label='IC-data')
+        else:
+            fig=None
         ax.plot([t[0], t[-1]], Vbsl*np.ones(2), ':', lw=1, label='$V_{bsl}$')
         ax.plot([t[0], t[-1]], Vresp*np.ones(2), ':', lw=1, label='$V_{resp}$')
         ax.plot(t0*np.ones(2), ax.get_ylim(), ':', lw=1, label='$t_0$')
