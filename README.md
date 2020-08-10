@@ -10,6 +10,7 @@
 - [Behavioral monitoring](behavioral_monitoring/README.md)
 - [Hardware control](hardware_control/README.md)
 - [Assembling pipeline](assembling/README.md)
+- [Analysis](analysis/README.md)
 
 ## How do I get set up ?
 
