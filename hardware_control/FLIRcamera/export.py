@@ -6,10 +6,15 @@ def export_to_mp4(folder, name, verbose=True):
     tstart = time.time()
 
     imgs = []
-    times = np.load(os.path.join(folder, 'camera-times.npy'))
+    # times = np.load(os.path.join(folder, 'camera-times.npy'))
 
-    for i in range(1, len(times)+1):
+    i=1
+    while os.path.isfile(os.path.join(folder, 'camera-imgs', '%i.npy' % i)):
         imgs.append(np.load(os.path.join(folder, 'camera-imgs', '%i.npy' % i)))
+        i+=1
+        
+    # for i in range(1, len(times)+1):
+    #     imgs.append(np.load(os.path.join(folder, 'camera-imgs', '%i.npy' % i)))
     
     imageio.mimwrite(name, np.array(imgs))
     if verbose:
