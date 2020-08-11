@@ -38,13 +38,24 @@ def find_m_series_devices():
     return DEVICES
 
 if __name__=='__main__':
+
+    print('----------------------')
+    print('looking for M-series devices [...]')
     DEVICES = find_m_series_devices()
+    print(DEVICES)
+    print('----------------------')
+    print('looking for X-series devices [...]')
+    DEVICES = find_x_series_devices()
     print(DEVICES)
     # device = DEVICES[0]
     # print(dir(device))
-    # print(get_analog_input_channels(device))
     system = nidaqmx.system.System.local()
 
     DEVICES = []
     for device in system.devices:
+        print('------------------------------------')
         print(device, device.product_category)
+        print('Input channels:')
+        print(get_analog_input_channels(device))
+        print('Output channels:')
+        print(get_analog_output_channels(device))
