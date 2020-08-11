@@ -121,10 +121,10 @@ if __name__=='__main__':
     t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
     inputs = np.zeros((args.Nchannel_rec,len(t_array)))
 
-    # outputs = np.array([5e-2*np.sin(2*np.pi*t_array),
-    #                                 2e-2*np.sin(2*np.pi*t_array)])
-    # print('running rec & stim [...]')
-    # stim_and_rec(device, t_array, inputs, outputs)
+    outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
+                        2e-2*np.sin(2*np.pi*t_array)])
+    print('running rec & stim [...]')
+    stim_and_rec(args.device, t_array, inputs, outputs)
     # tstart = 1e3*time.time()
     # print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
     # print('Running 5 rec only')
@@ -132,6 +132,10 @@ if __name__=='__main__':
     #     tstart = 1e3*time.time()
     #     np.save('data.npy', inputs)
     #     print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
-    rec_only(args.device, t_array, inputs)
+    # rec_only(args.device, t_array, inputs)
     np.save(args.filename, inputs)
 
+    import matplotlib.pylab as plt
+    for i in range(args.Nchannel_rec):
+        plt.plot(t_array[::10], inputs[i][::10])
+    plt.show()

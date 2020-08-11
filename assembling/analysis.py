@@ -60,12 +60,18 @@ def analyze_data(filename='', data=None, dt=1e-3, subsampling=10):
 
     for a, angle in enumerate(np.unique(data['angle'])):
         Is =np.argwhere(data['angle']==angle).flatten()
-        ge.image(data['images'][Is[0]], ax=AX[a][0])
+        try:
+            ge.image(data['images'][Is[0]], ax=AX[a][0])
+        except IndexError:
+            pass
         for k, i in enumerate(Is):
             for c in range(data['NIdaq'].shape[0]):
-                norm_signal = (data['NIdaq_realigned'][i][c,:]-np.min(data['NIdaq_realigned'][i][c,:]))/\
-                    (np.max(data['NIdaq_realigned'][i][c,:])-np.min(data['NIdaq_realigned'][i][c,:]))
-                AX[a][1].plot(data['t_realigned'][::subsampling], (c+norm_signal[::subsampling])/data['NIdaq'].shape[0], color=ge.colors[c])
+                try:
+                    norm_signal = (data['NIdaq_realigned'][i][c,:]-np.min(data['NIdaq_realigned'][i][c,:]))/\
+                        (np.max(data['NIdaq_realigned'][i][c,:])-np.min(data['NIdaq_realigned'][i][c,:]))
+                    AX[a][1].plot(data['t_realigned'][::subsampling], (c+norm_signal[::subsampling])/data['NIdaq'].shape[0], color=ge.colors[c])
+                except IndexError:
+                    pass
         ge.set_plot(AX[a][1], ['bottom'], xlim=[data['t_realigned'][0], data['t_realigned'][-1]])
 
     # t = np.arange(data['NIdaq'].shape[1])*dt
@@ -85,5 +91,5 @@ if __name__=='__main__':
 
     import tempfile
     # quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
-    data, fig = analyze_data("C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp\\2020_07_01\\19-22-26\\visual-stim.npz")
+    data, fig = analyze_data(last_datafile(tempfile.gettempdir()))
     ge.show()

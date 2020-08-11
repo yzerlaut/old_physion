@@ -128,14 +128,21 @@ class Acquisition:
 
 
     def select_device(self):
+        success = False
         try:
             self.device = find_x_series_devices()[0]
+            print('X-series card found:', self.device)
+            success = True
         except BaseException:
-            print('No X-series DAQ card found')
+            pass
         try:
             self.device = find_m_series_devices()[0]
+            print('M-series card found:', self.device)
+            success = True
         except BaseException:
-            print('No M-series DAQ card found')
+            pass
+        if not success:
+            print('Neither M-series nor X-series NI DAQ card found')
 
         
 if __name__=='__main__':

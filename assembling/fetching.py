@@ -55,6 +55,7 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
     
     return data
 
+# import 
 
 ##################################
 ## functions to fit for the realignement
@@ -80,11 +81,14 @@ def waveform(t, T, n=4):
 def find_onset_time(t, photodiode_signal, npulses):
     def to_minimize(x):
         return np.abs(photodiode_signal-x[2]-x[3]*waveform(t-x[0], x[1], n=npulses)).sum()
-    res = minimize(to_minimize,
-                   [0.001, 0.02, 0.1, 0.3],
-                   method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
-                   bounds=[(-.1,0.5), (0.002, 0.1), (0.001, 0.2), (0.1, 0.4)])
-    return res.x
+    try:
+        res = minimize(to_minimize,
+                       [0.001, 0.02, 0.1, 0.3],
+                       method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
+                       bounds=[(-.1,0.5), (0.002, 0.1), (0.001, 0.2), (0.1, 0.4)])
+        return res.x
+    except ValueError:
+        return None
 
 
 def transform_into_realigned_episodes(data, debug=False):
@@ -115,9 +119,10 @@ def transform_into_realigned_episodes(data, debug=False):
         if debug and (i>5) and (i<15):
             ge.plot(data['t'][cond], Y=[data['NIdaq'][0,cond], x[2]+x[3]*waveform(data['t'][cond]-t0-x[0], x[1], npulses)])
             ge.show()
-        t0+=x[0]
-        data['time_start_realigned'].append(t0)
-        t0+=length
+        if x is not None:
+            t0+=x[0]
+            data['time_start_realigned'].append(t0)
+            t0+=length
     data['time_start_realigned'] = np.array(data['time_start_realigned'])
     
     print('[ok] Data realigned ')
@@ -132,10 +137,10 @@ def transform_into_realigned_episodes(data, debug=False):
         
 if __name__=='__main__':
 
-    
     import tempfile
     data = get_multimodal_dataset(last_datafile(tempfile.gettempdir()))
     # transform_into_realigned_episodes(data, debug=True)
     transform_into_realigned_episodes(data)
+    print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
 
     

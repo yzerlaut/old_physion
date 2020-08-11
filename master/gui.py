@@ -13,6 +13,10 @@ from visual_stim.default_params import SETUP
 from hardware_control.NIdaq.main import Acquisition
 from hardware_control.FLIRcamera.recording import CameraAcquisition
 
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+## NASTY workaround to the error:
+# ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
+
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
