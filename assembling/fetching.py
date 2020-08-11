@@ -140,7 +140,8 @@ if __name__=='__main__':
     import tempfile
     data = get_multimodal_dataset(last_datafile(tempfile.gettempdir()))
     # transform_into_realigned_episodes(data, debug=True)
-    transform_into_realigned_episodes(data)
-    print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
+    # transform_into_realigned_episodes(data)
+    # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
 
     
+    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['camera-times']))))
