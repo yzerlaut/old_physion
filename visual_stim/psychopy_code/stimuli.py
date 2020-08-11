@@ -2,7 +2,7 @@ from psychopy import visual, core, event, clock, monitors # some libraries from 
 import numpy as np
 import itertools, os, sys, pathlib, subprocess
  
-MONITORING_SQUARE = {'size':3.4, 'x':12.6, 'y':-6.5, 'color-on':1, 'color-off':-1,
+MONITORING_SQUARE = {'size':5.5, 'x':14, 'y':-10, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -70,8 +70,8 @@ class visual_stim:
                                      units='deg', color=-1) #create a window
         else:
             self.monitor = monitors.Monitor('Lilliput')
-            self.win = visual.Window(size=[1280, 720], monitor=self.monitor,
-                                     screen=0, fullscr=True, units='deg', color=-1)
+            self.win = visual.Window(size=[1280, 960], monitor=self.monitor,
+                                     screen=1, fullscr=True, units='deg', color=-1)
             
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
