@@ -1,7 +1,11 @@
 import numpy, nidaqmx, time
+from recording import get_analog_output_channels
 
+system = nidaqmx.system.System.local()
+device  = system.devices[0]
+channel = get_analog_output_channels(device)[0]
 with nidaqmx.Task() as task:
-    task.ao_channels.add_ao_voltage_chan('Dev1/ao0')
+    task.ao_channels.add_ao_voltage_chan(channel)
     task.write(5.0)
     time.sleep(0.2)
     task.write(0.0)
