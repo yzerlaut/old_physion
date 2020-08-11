@@ -3,6 +3,6 @@ scipy
 psychopy
 pyqt5
 imageio
-simple_pyspin
+git+https://github.com/yzerlaut/simple_pyspin # from https://github.com/klecknerlab/simple_pyspin
 git+https://github.com/yzerlaut/datavyz
 git+https://github.com/yzerlaut/analyz
