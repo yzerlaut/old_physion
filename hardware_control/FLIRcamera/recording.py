@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from assembling.saving import last_datafolder_in_dayfolder
+from assembling.saving import last_datafolder_in_dayfolder, day_folder
 
 
 class stop_func: # dummy version of the multiprocessing.Event class
@@ -86,10 +86,11 @@ class CameraAcquisition:
 
     def reinit_rec(self):
         self.running = True
-        self.folder = last_datafolder_in_dayfolder(self.root_folder)
+        self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
         self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
+        Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
         self.times = []
-        print(self.running, self.folder)
+
         
     def rec_and_check(self, run_flag, quit_flag):
         

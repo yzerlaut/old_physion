@@ -99,6 +99,7 @@ class Acquisition:
         if self.outputs is not None:
             self.write_task.start()
         self.sample_clk_task.start()
+        np.save(self.filename.replace('.npy', '.start.npy'), np.ones(1)*time.time()) # saving the time stamp of the start !
 
     def close(self):
         try:

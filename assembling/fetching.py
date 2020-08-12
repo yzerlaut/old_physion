@@ -40,14 +40,16 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
     # -- NI DAQ ACQUISTION -- #
     if os.path.isfile(filename.replace('visual-stim.npz', 'NIdaq.npy')):
         data['NIdaq'] = np.load(filename.replace('visual-stim.npz', 'NIdaq.npy'))
+        data['NIdaq-Tstart'] = np.load(filename.replace('visual-stim.npz', 'NIdaq.start.npy'))[0]
         data['t'] = np.arange(data['NIdaq'].shape[1])/data['NIdaq-acquisition-frequency']
         
     # -- PTGREY CAMERA -- #
     if (image_sampling_number is not None) and os.path.isfile(filename.replace('visual-stim.npz', 'FaceCamera-times.npy')):
         data['FaceCamera-times'] = np.load(filename.replace('visual-stim.npz', 'FaceCamera-times.npy'))
+        if 'NIdaq-Tstart' in data:
+            data['FaceCamera-times'] -= data['NIdaq-Tstart']
         data['FaceCamera-imgs'] = []
-        images_ID = np.linspace(1, len(data['FaceCamera-times']), image_sampling_number, dtype=int)
-        print(len(images_ID))    
+        images_ID = np.linspace(0, len(data['FaceCamera-times'])-1, image_sampling_number, dtype=int)
         for i in images_ID:
             data['FaceCamera-imgs'].append(np.rot90(np.load(filename.replace('visual-stim.npz', 'FaceCamera-imgs'+os.path.sep+'%i.npy' % i)),k=3))
 
@@ -55,41 +57,37 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
     
     return data
 
-# import 
-
 ##################################
 ## functions to fit for the realignement
 def heaviside(x):
     return (np.sign(x+1e-12)+1.)/2. # 1e-12 to avoid the 1/2 value
 def step(x, x1, x2):
     return heaviside(x-x1)*heaviside(x2-x)
-def resp_function(t, t1, t2, T):
-    return heaviside(t-t1)*(1-np.exp(-(t-t1)/T))+heaviside(t-t2)*(np.exp(-(t-t2)/T)-1)
-def waveform(t, T, n=4):
-    output, k = 0*t, 0
+def resp_function(t, t1, t2):
+    T=0.03 # MIGHT NEED TO BE SET UP DIFFERENTLY IF THE KINETICS OF THE PHOTODIODE CHANGES 
+    return heaviside(t-t1)*(1-np.exp(-t/T+t1/T))+heaviside(t-t2)*(np.exp(-t/T+t2/T)-1)
+    # return heaviside(t-t1)*(1-np.exp(-(t-t1)/(np.abs(T+1e-3))))+heaviside(t-t2)*(np.exp(-(t-t2)/(np.abs(T+1e-3)))-1)
+def waveform(t, n=4):
+    output, k = 0*t, 0.
     for i in np.arange(2):
         if k<=n:
-            output += resp_function(t, 0.5*i, 0.5*i+0.2, T)
+            output += resp_function(t, 0.5*i, 0.5*i+0.2)
             k+=1
     for i in np.arange(1, int(t.max())):
         if k<=n:
-            output += resp_function(t, i, i+0.2, T)
+            output += resp_function(t, i, i+0.2)
             k+=1
     return output
 
 
 def find_onset_time(t, photodiode_signal, npulses):
     def to_minimize(x):
-        return np.abs(photodiode_signal-x[2]-x[3]*waveform(t-x[0], x[1], n=npulses)).sum()
-    try:
-        res = minimize(to_minimize,
-                       [0.001, 0.02, 0.1, 0.3],
-                       method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
-                       bounds=[(-.1,0.5), (0.002, 0.1), (0.001, 0.2), (0.1, 0.4)])
-        return res.x
-    except ValueError:
-        return None
-
+        return np.abs(photodiode_signal-x[1]-x[2]*waveform(t-x[0], n=npulses)).sum()
+    res = minimize(to_minimize,
+                   [0.001, 0.1, 0.2],
+                   method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
+                   bounds=[(-.1,0.5), (0.001, 0.2), (0.1, 0.4)])
+    return res.x
 
 def transform_into_realigned_episodes(data, debug=False):
 
@@ -103,9 +101,9 @@ def transform_into_realigned_episodes(data, debug=False):
     tlim = [0, data['time_stop'][-1]]
     
     if 'FaceCamera-times' in data:
-        tlim = [0, data['FaceCamera-times'][-1]]
+        tlim = [0, data['FaceCamera-times'][-1]-data['FaceCamera-times'][0]]
     if 'NIdaq' in data:
-        tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the obove
+        tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the above
     data['tlim'] = tlim
     
     t0 = data['time_start'][0]
@@ -116,8 +114,8 @@ def transform_into_realigned_episodes(data, debug=False):
     for i in range(Nepisodes):
         cond = (data['t']>=t0-.3) & (data['t']<=t0+length)
         x = find_onset_time(data['t'][cond]-t0, data['NIdaq'][0,cond], npulses)
-        if debug and (i>5) and (i<15):
-            ge.plot(data['t'][cond], Y=[data['NIdaq'][0,cond], x[2]+x[3]*waveform(data['t'][cond]-t0-x[0], x[1], npulses)])
+        if debug and i<5:
+            ge.plot(data['t'][cond], Y=[data['NIdaq'][0,cond], x[1]+x[2]*waveform(data['t'][cond]-t0-x[0], npulses)])
             ge.show()
         if x is not None:
             t0+=x[0]

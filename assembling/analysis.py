@@ -41,7 +41,7 @@ def quick_data_view(filename, dt=1e-3, subsampling=20 ,Nimage=10, realign=False)
             t = np.arange(len(x))*dt
             AX[i0].plot(t[::subsampling], x[::subsampling])
             ge.set_plot(AX[i0], ylabel='chan. #%i (V)' % i, xlim=[t[0], t[-1]])
-            cond = data['time_stop']<np.max(t)
+            cond = data['time_start']<np.max(t)
             AX[i0].plot(data['time_start'][cond], np.ones(np.sum(cond))*.9*AX[i0].get_ylim()[1], 'r*', ms=3)
             if realign:
                 AX[i0].plot(data['time_start_realigned'], np.ones(len(data['time_start_realigned']))*.9*AX[i0].get_ylim()[1], 'r|', ms=10)
@@ -90,6 +90,6 @@ def analyze_data(filename='', data=None, dt=1e-3, subsampling=10):
 if __name__=='__main__':
 
     import tempfile
-    # quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
-    data, fig = analyze_data(last_datafile(tempfile.gettempdir()))
+    quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
+    # data, fig = analyze_data(last_datafile(tempfile.gettempdir()))
     ge.show()

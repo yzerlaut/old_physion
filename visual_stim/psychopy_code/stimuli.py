@@ -1,6 +1,6 @@
 from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
 import numpy as np
-import itertools, os, sys, pathlib, subprocess
+import itertools, os, sys, pathlib, subprocess, time
  
 MONITORING_SQUARE = {'size':5.5, 'x':14, 'y':-10, 'color-on':1, 'color-off':-1,
                      'time-on':0.2, 'time-off':0.8}

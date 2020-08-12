@@ -10,7 +10,7 @@ class stop_func: # dummy version of the multiprocessing.Event class
 
 class RigView:
 
-    def __init__(self):
+    def __init__(self, folder='./'):
         
         self.vc = cv2.VideoCapture(0)
 
@@ -19,9 +19,9 @@ class RigView:
         else:
             rval = False
 
-    def run(self, stop_flag):
+    def run(self, run_flag, stop_flag):
         while not stop_flag.is_set():
-            cv2.imshow("Live view of experimental rig        -- (ESC to close)", self.frame)
+            cv2.imshow("Live view of experimental rig                                                  --   (ESC to close)", self.frame)
             rval, self.frame = self.vc.read()
             key = cv2.waitKey(20)
             if key == 27: # exit on ESC
@@ -29,9 +29,9 @@ class RigView:
         cv2.destroyWindow("preview")
 
 
-def launch_RigView(stop_flag):
-    camera = RigView()
-    camera.run(stop_flag)
+def launch_RigView(run_flag, quit_flag, folder):
+    camera = RigView(folder=folder)
+    camera.run(run_flag, quit_flag)
         
         
 if __name__=='__main__':

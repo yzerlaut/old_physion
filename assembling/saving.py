@@ -1,4 +1,4 @@
-import datetime, os
+import datetime, os, string
 from pathlib import Path
 import numpy as np
 
@@ -35,8 +35,10 @@ def generate_filename_path(root_folder,
     return os.path.join(Second_folder, filename+extension)
 
 def last_datafolder_in_dayfolder(day_folder):
-    folders = [os.path.join(day_folder, d) for d in os.listdir(day_folder) if os.path.isdir(os.path.join(day_folder, d))]
-    if folders[-1].startswith('20'):
+    
+    folders = [os.path.join(day_folder, d) for d in os.listdir(day_folder) if ((d[0] in string.digits) and os.path.isdir(os.path.join(day_folder, d)))]
+
+    if folders[-1][-1] in string.digits:
         return folders[-1]
     else:
         print('No datafolder found, returning "./" ')
@@ -73,11 +75,11 @@ def load_dict(filename):
 
 if __name__=='__main__':
 
-
-    
+    import tempfile
+    data_folder = tempfile.gettempdir()
+    print(last_datafolder_in_dayfolder(day_folder(data_folder)))
     # print(filename_with_datetime('', folder='./', extension='.npy'))
     # print(filename_with_datetime('', folder='./', extension='npy'))
     
-    create_day_folder('/home/yann/DATA/')
-    fn = generate_filename_path('/home/yann/DATA/', 'visual-stim.npz')
-    print(fn)
+    # fn = generate_filename_path('/home/yann/DATA/', 'visual-stim.npz')
+    # print(fn)

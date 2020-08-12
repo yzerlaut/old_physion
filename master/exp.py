@@ -11,7 +11,7 @@ from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
 from hardware_control.NIdaq.main import Acquisition
-from hardware_control.FLIRcamera.recording import camera_init_and_rec
+from hardware_control.FLIRcamera.recording import launch_FaceCamera
 from hardware_control.LogitechWebcam.preview import launch_RigView
 
 # os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -32,8 +32,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.get_config_list()
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
-        self.stopstim_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
-        self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
 
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
@@ -100,13 +100,15 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         self.statusBar.showMessage('Launching Rig view [...]')
         self.show()
-        
-        self.RigView_process = multiprocessing.Process(target=launch_RigView, args=(self.quit_event,))
+
+        ## Camera initialisation ...
+        self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+                                                          args=(self.run_event , self.quit_event,self.data_folder))
+        self.FaceCamera_process.start()
+        self.RigView_process = multiprocessing.Process(target=launch_RigView,
+                                                          args=(self.run_event , self.quit_event,self.data_folder))
         self.RigView_process.start()
-        time.sleep(3)
-        self.statusBar.showMessage('Setup initialisation successful ...')
-        time.sleep(1)
-        self.statusBar.showMessage('Ready to launch protocols')
+        self.statusBar.showMessage('Initializing Camera streams [...]')
 
     def analyze_data(self):
         self.statusBar.showMessage('Analyzing last recording [...]')
@@ -142,24 +144,14 @@ class MasterWindow(QtWidgets.QMainWindow):
                                    max_time=self.stim.experiment['time_stop'][-1]+20,
                                    output_steps=output_steps,
                                    filename= self.filename.replace('visual-stim.npz', 'NIdaq.npy'))
-            # Camera
-            self.stopstim_event.clear() # re-init the stop flag to False
-            self.camera_process = multiprocessing.Process(target=camera_init_and_rec,
-                                                          args=(self.stim.experiment['time_stop'][-1]+20,
-                                                                self.stopstim_event,
-                                                                self.camready_event,
-                                                                os.path.dirname(self.filename)))
-            self.camera_process.start() # starting camera thread !
-            i=0
-            while not self.camready_event.is_set():
-                print('waiting for camera init[...]')
-                i+=1
             self.init = True
         except FileNotFoundError:
             self.statusBar.showMessage('protocol file "%s" not found !' % filename)
 
     def run(self):
         self.stop_flag=False
+        self.run_event.set() # start the run flag for the facecamera
+        
         if (self.stim is None) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
         else:
@@ -170,15 +162,13 @@ class MasterWindow(QtWidgets.QMainWindow):
             # run
             self.stim.run(self)
             # stop and clean up things
-            self.stopstim_event.set() # this will close the camera process
-            self.camera_process.terminate() # to be sure
+            self.run_event.clear() # this will close the camera process
             self.stim.close()
             self.acq.close()
             self.init = False
     
     def stop(self):
-        self.stopstim_event.set() # this will close the camera process
-        self.camera_process.terminate() # to be sure
+        self.run_event.clear() # this will close the camera process
         self.stop_flag=True
         self.acq.close()
         self.statusBar.showMessage('stimulation stopped !')
