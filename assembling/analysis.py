@@ -18,19 +18,19 @@ def quick_data_view(filename, dt=1e-3, subsampling=20 ,Nimage=10, realign=False)
     Npanel = 0
 
     t = [0, data['time_stop'][-1]]
-    if 'camera-times' in data:
+    if 'FaceCamera-times' in data:
         Npanel +=1
-        t = np.array([0, data['camera-times'][-1]])
+        t = np.array([0, data['FaceCamera-times'][-1]])
     if 'NIdaq' in data:
         Npanel += data['NIdaq'].shape[0]
         t = np.arange(data['NIdaq'].shape[1])*dt # overrides the obove
         
     fig, AX = ge.figure(axes = (1,Npanel), figsize=(3.,.9), left=.3, bottom=0.1, right=0.1)
     i0=0
-    if 'camera-times' in data:
+    if 'FaceCamera-times' in data:
         Npanel +=1
-        AX[i0].plot(data['camera-times'], np.zeros(len(data['camera-times'])), '|')
-        for i, im in enumerate(data['camera-imgs']):
+        AX[i0].plot(data['FaceCamera-times'], np.zeros(len(data['FaceCamera-times'])), '|')
+        for i, im in enumerate(data['FaceCamera-imgs']):
             ax = ge.inset(AX[i0], [i/Nimage, 0.2, 1./Nimage, 0.6])
             ge.image(im, ax=ax)
         ge.set_plot(AX[i0], ['bottom'], ylabel='camera', ylim=[0,1], xlim=[t[0], t[-1]], xlabel='time (s)')

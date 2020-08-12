@@ -4,6 +4,10 @@ The camera needs to be configured in the SpinView software
 import simple_pyspin, time, os
 import numpy as np
 from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from assembling.saving import last_datafolder_in_dayfolder
+
 
 class stop_func: # dummy version of the multiprocessing.Event class
     def __init__(self):
@@ -17,16 +21,16 @@ class CameraAcquisition:
 
     def __init__(self,
                  folder='./',
-                 stop_flag=stop_func,
+                 root_folder='./',
                  frame_rate=20):
         
         self.times, self.frame_index = [], 0
-        self.folder = folder
-        self.imgs_folder = os.path.join(self.folder, 'camera-imgs')
+        self.folder, self.root_folder = folder, root_folder
+        self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
         Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
         self.init_camera(frame_rate=frame_rate)
         self.batch_index = 0
-        self.stop_flag=stop_flag
+        self.running=False
 
     def init_camera(self,
                     frame_rate=20):
@@ -52,69 +56,130 @@ class CameraAcquisition:
         self.cam.GainAuto = 'Off'
         # Set the gain to 20 dB or the maximum of the camera.
         gain = min(20, self.cam.get_info('Gain')['max'])
-        print("Setting gain to %.1f dB" % gain)
+        print("Setting FaceCamera gain to %.1f dB" % gain)
         self.cam.Gain = gain
         self.cam.ExposureAuto = 'Off'
         self.cam.ExposureTime =0.2*1e6/frame_rate # microseconds, 20% of interframe interval
 
         
-    def rec(self, duration, stop_flag, t0=None):
+    def rec(self, duration, stop_flag, camready_flag, t0=None):
         if t0 is None:
-            self.t0 = time.time()
-        else:
-            self.t0 = t0
+            t0=time.time()
+        self.running=True
         self.cam.start()
-        self.t = time.time()-self.t0
-        while (not stop_flag.is_set()) and (self.t<duration):
+        self.t = time.time()
+        camready_flag.set()
+        
+        while (not stop_flag.is_set()) and ((self.t-t0)<duration):
             self.frame_index +=1
             np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), np.array(self.cam.get_array()))
-            self.t=time.time()-self.t0
+            self.t=time.time()
             self.times.append(self.t)
             
-        if self.t>=duration:
+        if (self.t-t0)>=duration:
             print('camera acquisition finished !')
             self.stop()
         elif stop_flag.is_set():
             print('camera acquisition stopped !   (at t=%.2fs)' % self.t)
             self.stop()
+
+
+    def reinit_rec(self):
+        self.running = True
+        self.folder = last_datafolder_in_dayfolder(self.root_folder)
+        self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
+        self.times = []
+        print(self.running, self.folder)
+        
+    def rec_and_check(self, run_flag, quit_flag):
+        
+        self.cam.start()
+        self.t = time.time()
+        print('FaceCamera ready ! ')
+
+        while not quit_flag.is_set():
             
+            image = self.cam.get_array()
+            
+            if not self.running and run_flag.is_set() : # not running and need to start  !
+                self.reinit_rec()
+            elif self.running and not run_flag.is_set(): # running and we need to stop
+                self.running=False
+                self.save_times()
+
+            # after the update
+            if self.running:
+                np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), image)
+                self.frame_index +=1
+                self.t=time.time()
+                self.times.append(self.t)
+
+        self.save_times()
+
+        
     def save_times(self, verbose=True):
-        print('Camera data saved as: ', os.path.join(self.folder, 'camera-times.npy'))
-        np.save(os.path.join(self.folder, 'camera-times.npy'), np.array(self.times))
+        print('Camera data saved as: ', os.path.join(self.folder, 'FaceCamera-times.npy'))
+        np.save(os.path.join(self.folder, 'FaceCamera-times.npy'), np.array(self.times))
         if verbose:
-            print('Effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
+            print('FaceCamera -- effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
 
     def stop(self):
+        self.running=False
         self.cam.stop()
         self.save_times()
 
         
-def camera_init_and_rec(duration, stop_flag):
-    camera = CameraAcquisition()
-    camera.rec(duration, stop_flag)
+def camera_init_and_rec(duration, stop_flag, camready_flag, folder):
+    camera = CameraAcquisition(folder=folder)
+    camera.rec(duration, stop_flag, camready_flag)
+
+def launch_FaceCamera(run_flag, quit_flag, root_folder):
+    camera = CameraAcquisition(root_folder=root_folder)
+    camera.rec_and_check(run_flag, quit_flag)
     
 if __name__=='__main__':
 
-    T = 5 # seconds
+    T = 2 # seconds
 
     import multiprocessing
-    def launch_rec(duration):
-        camera.rec(duration)
         
     # camera = CameraAcquisition()
     # stop = stop_func()
     # camera.rec(T, stop)
     # stop.set()
     
-    stop_event = multiprocessing.Event()
-    camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event))
-    camera_process.start()
-    print(stop_event.is_set())
-    time.sleep(T/2)
-    stop_event.set()
-    print(stop_event.is_set())
-    # camera.stop()
+    # stop_event = multiprocessing.Event()
+    # camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event, './'))
+    # camera_process.start()
 
+    run = multiprocessing.Event()
+    quit_event = multiprocessing.Event()
+    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, './'))
+    run.clear()
+    camera_process.start()
+    time.sleep(3)
+    run.set()
+    time.sleep(10)
+    run.clear()
+    time.sleep(3)
+    quit_event.set()
+    
+    # print(stop_event.is_set())
+    # time.sleep(T/2)
+    # stop_event.set()
+    # print(stop_event.is_set())
+    # time.sleep(T/4)
+    # stop_event.clear()
+    # print(stop_event.is_set())
+    # time.sleep(T/4)
+    # stop_event.set()
+    # print(stop_event.is_set())
+    # camera.stop()
+    times = np.load('FaceCamera-times.npy')
+    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(times))))
+    import matplotlib.pylab as plt
+    plt.plot(times, 0*times, '|')
+    plt.show()
 
     
     

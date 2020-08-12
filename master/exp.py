@@ -11,10 +11,10 @@ from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
 from hardware_control.NIdaq.main import Acquisition
-from hardware_control.FLIRcamera.recording import CameraAcquisition
+from hardware_control.FLIRcamera.recording import camera_init_and_rec
 from hardware_control.LogitechWebcam.preview import launch_RigView
 
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+# os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
@@ -31,8 +31,10 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.get_protocol_list()
         self.get_config_list()
         self.experiment = {} # storing the specifics of an experiment
-        self.quit_event = multiprocessing.Event()
-        
+        self.quit_event = multiprocessing.Event() # to control the RigView !
+        self.stopstim_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
         self.data_folder = tempfile.gettempdir()
@@ -96,12 +98,15 @@ class MasterWindow(QtWidgets.QMainWindow):
                 action.triggered.connect(func)
                 self.fileMenu.addAction(action)
 
+        self.statusBar.showMessage('Launching Rig view [...]')
         self.show()
         
-        self.statusBar.showMessage('Launching Rig view [...]')
-        self.RigView_process = multiprocessing.Process(target=launch_RigView, args=(stop_event,))
+        self.RigView_process = multiprocessing.Process(target=launch_RigView, args=(self.quit_event,))
         self.RigView_process.start()
-        self.statusBar.showMessage('Initialization successful !')
+        time.sleep(3)
+        self.statusBar.showMessage('Setup initialisation successful ...')
+        time.sleep(1)
+        self.statusBar.showMessage('Ready to launch protocols')
 
     def analyze_data(self):
         self.statusBar.showMessage('Analyzing last recording [...]')
@@ -137,7 +142,18 @@ class MasterWindow(QtWidgets.QMainWindow):
                                    max_time=self.stim.experiment['time_stop'][-1]+20,
                                    output_steps=output_steps,
                                    filename= self.filename.replace('visual-stim.npz', 'NIdaq.npy'))
-            self.camera = CameraAcquisition(folder=self.filename.replace('visual-stim.npz', ''))
+            # Camera
+            self.stopstim_event.clear() # re-init the stop flag to False
+            self.camera_process = multiprocessing.Process(target=camera_init_and_rec,
+                                                          args=(self.stim.experiment['time_stop'][-1]+20,
+                                                                self.stopstim_event,
+                                                                self.camready_event,
+                                                                os.path.dirname(self.filename)))
+            self.camera_process.start() # starting camera thread !
+            i=0
+            while not self.camready_event.is_set():
+                print('waiting for camera init[...]')
+                i+=1
             self.init = True
         except FileNotFoundError:
             self.statusBar.showMessage('protocol file "%s" not found !' % filename)
@@ -148,22 +164,23 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Need to initialize the stimulation !')
         else:
             self.save_experiment()
+            # Ni-Daq
             self.acq.launch()
-            # threading.Thread(target=self.camera.rec,
-            #                  args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
             self.statusBar.showMessage('stimulation & recording running [...]')
+            # run
             self.stim.run(self)
+            # stop and clean up things
+            self.stopstim_event.set() # this will close the camera process
+            self.camera_process.terminate() # to be sure
             self.stim.close()
-            self.camera.running = False # switch off camera
-            self.camera.stop() # should be done thanks to the running flag
             self.acq.close()
             self.init = False
     
     def stop(self):
+        self.stopstim_event.set() # this will close the camera process
+        self.camera_process.terminate() # to be sure
         self.stop_flag=True
         self.acq.close()
-        self.camera.running = False # switch off camera
-        self.camera.stop() # should be done thanks to the running flag
         self.statusBar.showMessage('stimulation stopped !')
         if self.stim is not None:
             self.stim.close()
@@ -174,7 +191,6 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.acq.close()
             self.stim.quit()
-            self.camera.stop() # should be done thanks to the running flag
         sys.exit()
 
     def save_experiment(self):

@@ -43,13 +43,13 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
         data['t'] = np.arange(data['NIdaq'].shape[1])/data['NIdaq-acquisition-frequency']
         
     # -- PTGREY CAMERA -- #
-    if (image_sampling_number is not None) and os.path.isfile(filename.replace('visual-stim.npz', 'camera-times.npy')):
-        data['camera-times'] = np.load(filename.replace('visual-stim.npz', 'camera-times.npy'))
-        data['camera-imgs'] = []
-        images_ID = np.linspace(1, len(data['camera-times']), image_sampling_number, dtype=int)
+    if (image_sampling_number is not None) and os.path.isfile(filename.replace('visual-stim.npz', 'FaceCamera-times.npy')):
+        data['FaceCamera-times'] = np.load(filename.replace('visual-stim.npz', 'FaceCamera-times.npy'))
+        data['FaceCamera-imgs'] = []
+        images_ID = np.linspace(1, len(data['FaceCamera-times']), image_sampling_number, dtype=int)
         print(len(images_ID))    
         for i in images_ID:
-            data['camera-imgs'].append(np.rot90(np.load(filename.replace('visual-stim.npz', 'camera-imgs'+os.path.sep+'%i.npy' % i)),k=3))
+            data['FaceCamera-imgs'].append(np.rot90(np.load(filename.replace('visual-stim.npz', 'FaceCamera-imgs'+os.path.sep+'%i.npy' % i)),k=3))
 
     # --  CALCIUM IMAGING -- #
     
@@ -102,8 +102,8 @@ def transform_into_realigned_episodes(data, debug=False):
     dt = 1./data['NIdaq-acquisition-frequency']
     tlim = [0, data['time_stop'][-1]]
     
-    if 'camera-times' in data:
-        tlim = [0, data['camera-times'][-1]]
+    if 'FaceCamera-times' in data:
+        tlim = [0, data['FaceCamera-times'][-1]]
     if 'NIdaq' in data:
         tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the obove
     data['tlim'] = tlim
@@ -144,4 +144,4 @@ if __name__=='__main__':
     # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
 
     
-    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['camera-times']))))
+    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))

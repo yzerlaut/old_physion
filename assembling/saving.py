@@ -34,6 +34,14 @@ def generate_filename_path(root_folder,
     
     return os.path.join(Second_folder, filename+extension)
 
+def last_datafolder_in_dayfolder(day_folder):
+    folders = [os.path.join(day_folder, d) for d in os.listdir(day_folder) if os.path.isdir(os.path.join(day_folder, d))]
+    if folders[-1].startswith('20'):
+        return folders[-1]
+    else:
+        print('No datafolder found, returning "./" ')
+        return './'
+
 #########################################################
 #### NPZ files
 #########################################################

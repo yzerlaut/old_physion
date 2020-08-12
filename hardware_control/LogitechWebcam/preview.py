@@ -21,9 +21,11 @@ class RigView:
 
     def run(self, stop_flag):
         while not stop_flag.is_set():
-            cv2.imshow("Live view of experimental rig", self.frame)
+            cv2.imshow("Live view of experimental rig        -- (ESC to close)", self.frame)
             rval, self.frame = self.vc.read()
             key = cv2.waitKey(20)
+            if key == 27: # exit on ESC
+                break
         cv2.destroyWindow("preview")
 
 
