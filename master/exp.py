@@ -1,5 +1,5 @@
 import sys, time, tempfile, os, pathlib, json, subprocess
-import threading # for the camera stream
+import multiprocessing # for the camera streams !!
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
@@ -12,6 +12,7 @@ from visual_stim.default_params import SETUP
 
 from hardware_control.NIdaq.main import Acquisition
 from hardware_control.FLIRcamera.recording import CameraAcquisition
+from hardware_control.LogitechWebcam.preview import launch_RigView
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 ## NASTY workaround to the error:
@@ -30,6 +31,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.get_protocol_list()
         self.get_config_list()
         self.experiment = {} # storing the specifics of an experiment
+        self.quit_event = multiprocessing.Event()
         
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
@@ -95,6 +97,11 @@ class MasterWindow(QtWidgets.QMainWindow):
                 self.fileMenu.addAction(action)
 
         self.show()
+        
+        self.statusBar.showMessage('Launching Rig view [...]')
+        self.RigView_process = multiprocessing.Process(target=launch_RigView, args=(stop_event,))
+        self.RigView_process.start()
+        self.statusBar.showMessage('Initialization successful !')
 
     def analyze_data(self):
         self.statusBar.showMessage('Analyzing last recording [...]')
@@ -142,8 +149,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         else:
             self.save_experiment()
             self.acq.launch()
-            threading.Thread(target=self.camera.rec,
-                             args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
+            # threading.Thread(target=self.camera.rec,
+            #                  args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
             self.statusBar.showMessage('stimulation & recording running [...]')
             self.stim.run(self)
             self.stim.close()
@@ -163,6 +170,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.init = False
     
     def quit(self):
+        self.quit_event.set()
         if self.stim is not None:
             self.acq.close()
             self.stim.quit()
