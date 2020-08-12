@@ -41,9 +41,9 @@ pip install -r requirements.txt
 
 ## Running experiments
 
-The master program is launched with:
+The master program for experiments is launched with:
 ```
-python master\gui.py
+python master\exp.py
 ```
 
 <p align="center">
@@ -52,7 +52,7 @@ python master\gui.py
 
 It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.
 
-## Preparing protocols
+## Preparing protocols and configuring experiments
 
 Go to the individual modules for the details about the settings of protocols:
 - [Visual stimulation](visual_stim/README.md)
@@ -60,7 +60,14 @@ Go to the individual modules for the details about the settings of protocols:
 - [Calcium imaging](Ca-imaging/README.md)
 - [Behavioral monitoring](behavioral_monitoring/README.md)
 
-## Running analysis
+## Analyzing experiments
+
+The master program to configure experiments is launched with:
+```
+python master\analysis.py
+```
+
+## Running specific analysis
 
 We showcase here a few analysis in [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
 ```
