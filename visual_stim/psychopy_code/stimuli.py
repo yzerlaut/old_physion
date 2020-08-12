@@ -218,6 +218,7 @@ class visual_stim:
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
+            print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_static_patterns_presentation(parent, i)
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
@@ -247,6 +248,7 @@ class visual_stim:
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
+            print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.speed = self.experiment['speed'][i]
             self.single_dynamic_gratings_presentation(parent, i)
             if self.protocol['Presentation']!='Single-Stimulus':

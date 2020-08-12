@@ -142,7 +142,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         else:
             self.save_experiment()
             self.acq.launch()
-            threading.Thread(target=self.camera.rec, args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
+            threading.Thread(target=self.camera.rec,
+                             args=(self.stim.experiment['time_stop'][-1]+20,)).start() # starting camera thread !
             self.statusBar.showMessage('stimulation & recording running [...]')
             self.stim.run(self)
             self.stim.close()
