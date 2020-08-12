@@ -5,10 +5,19 @@ import simple_pyspin, time, os
 import numpy as np
 from pathlib import Path
 
+class stop_func: # dummy version of the multiprocessing.Event class
+    def __init__(self):
+        self.stop = False
+    def set(self):
+        self.stop = True
+    def is_set(self):
+        return self.stop
+    
 class CameraAcquisition:
 
     def __init__(self,
                  folder='./',
+                 stop_flag=stop_func,
                  frame_rate=20):
         
         self.times, self.frame_index = [], 0
@@ -17,7 +26,7 @@ class CameraAcquisition:
         Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
         self.init_camera(frame_rate=frame_rate)
         self.batch_index = 0
-        self.running=True
+        self.stop_flag=stop_flag
 
     def init_camera(self,
                     frame_rate=20):
@@ -49,23 +58,24 @@ class CameraAcquisition:
         self.cam.ExposureTime =0.2*1e6/frame_rate # microseconds, 20% of interframe interval
 
         
-    def rec(self, duration, t0=None):
+    def rec(self, duration, stop_flag, t0=None):
         if t0 is None:
             self.t0 = time.time()
         else:
             self.t0 = t0
         self.cam.start()
         self.t = time.time()-self.t0
-        while self.running and (self.t<duration):
+        while (not stop_flag.is_set()) and (self.t<duration):
             self.frame_index +=1
             np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), np.array(self.cam.get_array()))
             self.t=time.time()-self.t0
             self.times.append(self.t)
             
         if self.t>=duration:
+            print('camera acquisition finished !')
             self.stop()
-        elif not self.running:
-            print('acquisition stopped !')
+        elif stop_flag.is_set():
+            print('camera acquisition stopped !   (at t=%.2fs)' % self.t)
             self.stop()
             
     def save_times(self, verbose=True):
@@ -79,19 +89,31 @@ class CameraAcquisition:
         self.save_times()
 
         
-
+def camera_init_and_rec(duration, stop_flag):
+    camera = CameraAcquisition()
+    camera.rec(duration, stop_flag)
+    
 if __name__=='__main__':
 
-    # import threading
-    # def launch_rec(duration):
-    #     camera.rec(duration)
-    camera = CameraAcquisition()
-    camera.rec(2)
-    # camera_thread = threading.Thread(target=camera.rec, args=(3,))
-    # camera_thread.start()
-    # time.sleep(1)
-    camera.running = False
-    camera.stop()
+    T = 5 # seconds
+
+    import multiprocessing
+    def launch_rec(duration):
+        camera.rec(duration)
+        
+    # camera = CameraAcquisition()
+    # stop = stop_func()
+    # camera.rec(T, stop)
+    # stop.set()
+    
+    stop_event = multiprocessing.Event()
+    camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event))
+    camera_process.start()
+    print(stop_event.is_set())
+    time.sleep(T/2)
+    stop_event.set()
+    print(stop_event.is_set())
+    # camera.stop()
 
 
     
