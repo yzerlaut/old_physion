@@ -1,5 +1,5 @@
 """
-The camera needs to be configured in the SpinView software
+
 """
 import simple_pyspin, time, os
 import numpy as np
@@ -22,45 +22,47 @@ class CameraAcquisition:
     def __init__(self,
                  folder='./',
                  root_folder='./',
-                 frame_rate=20):
+                 settings={'frame_rate':20., 'gain':10., 'exposure_time':10000}):
         
         self.times, self.frame_index = [], 0
         self.folder, self.root_folder = folder, root_folder
         self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
         Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
-        self.init_camera(frame_rate=frame_rate)
+        self.init_camera(settings)
         self.batch_index = 0
         self.running=False
-
-    def init_camera(self,
-                    frame_rate=20):
+        
+    def init_camera(self, settings):
         
         self.cam = simple_pyspin.Camera()
         self.cam.init()
-        # Set the area of interest (AOI) to the middle half
-        self.cam.Width = self.cam.SensorWidth // 2
-        self.cam.Height = self.cam.SensorHeight // 2
-        self.cam.OffsetX = self.cam.SensorWidth // 4
-        self.cam.OffsetY = self.cam.SensorHeight // 4
 
-        # # If this is a color camera, get the image in RGB format.
-        # if 'Bayer' in self.cam.PixelFormat:
-        #     self.cam.PixelFormat = "RGB8"
+        ###
+        ## -- SETTINGS through the FlyCap software, easier....
+        
+        # # Set the area of interest (AOI) to the middle half
+        # self.cam.Width = self.cam.SensorWidth // 2
+        # self.cam.Height = self.cam.SensorHeight // 2
+        # self.cam.OffsetX = self.cam.SensorWidth // 4
+        # self.cam.OffsetY = self.cam.SensorHeight // 4
 
-        # To change the frame rate, we need to enable manual control
+        # # To change the frame rate, we need to enable manual control
         self.cam.AcquisitionFrameRateAuto = 'Off'
-        # self.cam.AcquisitionFrameRateEnabled = True # seemingly not available here
-        self.cam.AcquisitionFrameRate = frame_rate
+        # # self.cam.AcquisitionFrameRateEnabled = True # seemingly not available here
+        self.cam.AcquisitionFrameRate = settings['frame_rate']
 
-        # To control the exposure settings, we need to turn off auto
-        self.cam.GainAuto = 'Off'
-        # Set the gain to 20 dB or the maximum of the camera.
-        gain = min(20, self.cam.get_info('Gain')['max'])
-        print("Setting FaceCamera gain to %.1f dB" % gain)
-        self.cam.Gain = gain
-        self.cam.ExposureAuto = 'Off'
-        self.cam.ExposureTime =0.2*1e6/frame_rate # microseconds, 20% of interframe interval
+        # # To control the exposure settings, we need to turn off auto
+        # self.cam.GainAuto = 'Off'
+        # # Set the gain to 20 dB or the maximum of the camera.
+        # max_gain = self.cam.get_info('Gain')['max']
+        # if (settings['gain']==0) or (settings['gain']>max_gain):
+        #     self.cam.Gain = max_gain
+        #     print("Setting FaceCamera gain to %.1f dB" % max_gain)
+        # else:
+        #     self.cam.Gain = settings['gain']
 
+        # self.cam.ExposureAuto = 'Off'
+        # self.cam.ExposureTime =settings['exposure_time'] # microseconds, ~20% of interframe interval
         
     def rec(self, duration, stop_flag, camready_flag, t0=None):
         if t0 is None:
