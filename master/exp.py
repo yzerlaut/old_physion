@@ -37,6 +37,10 @@ class MasterWindow(QtWidgets.QMainWindow):
                 json.dump({"folder":str(tempfile.gettempdir())}, fp)
         with open(DFFN, 'r') as fp:
             self.data_folder = json.load(fp)['folder']
+            if not os.path.isdir(self.data_folder): # then temp folder
+                with open(DFFN, 'w') as fp:
+                    json.dump({"folder":str(tempfile.gettempdir())}, fp)
+                self.data_folder = tempfile.gettempdir()
             
         self.get_protocol_list()
         self.get_config_list()
@@ -117,7 +121,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                 self.fileMenu.addAction(action)
 
         self.show()
-        # self.facecamera_init()
+        self.facecamera_init()
         
     def facecamera_init(self):
         if self.FaceCamera_process is not None:
@@ -173,7 +177,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('[...] preparing stimulation')
             self.stim = build_stim(self.protocol)
             self.statusBar.showMessage('stimulation ready !')
-            self.filename = generate_filename_path(self.config['data-folder'],
+            self.filename = generate_filename_path(self.data_folder,
                                                    filename='visual-stim', extension='.npz')
             output_steps, istep = [], 1
             while 'NIdaq-output-step-%i'%istep in self.config:
