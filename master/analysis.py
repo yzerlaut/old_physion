@@ -4,8 +4,9 @@ import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict
+from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict, set_data_folder
 from assembling.analysis import quick_data_view, analyze_data, last_datafile
+
 
 class MasterWindow(QtWidgets.QMainWindow):
     
@@ -15,7 +16,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         
         super(MasterWindow, self).__init__(parent)
         
-        self.data_folder = tempfile.gettempdir()
+        self.data_folder = set_data_folder()
         
         self.setWindowTitle('Master Analysis Program -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 500, 100)

@@ -31,16 +31,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.protocol, self.protocol_folder = None, os.path.join('master', 'protocols')
         self.config, self.config_folder = None, os.path.join('master', 'configs')
 
-        # data folder
-        if not os.path.isfile(DFFN):
-            with open(DFFN, 'w') as fp:
-                json.dump({"folder":str(tempfile.gettempdir())}, fp)
-        with open(DFFN, 'r') as fp:
-            self.data_folder = json.load(fp)['folder']
-            if not os.path.isdir(self.data_folder): # then temp folder
-                with open(DFFN, 'w') as fp:
-                    json.dump({"folder":str(tempfile.gettempdir())}, fp)
-                self.data_folder = tempfile.gettempdir()
+        self.data_folder = set_data_folder()
             
         self.get_protocol_list()
         self.get_config_list()

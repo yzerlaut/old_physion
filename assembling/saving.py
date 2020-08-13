@@ -44,6 +44,20 @@ def last_datafolder_in_dayfolder(day_folder):
         print('No datafolder found, returning "./" ')
         return './'
 
+
+DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
+    
+def set_data_folder():    
+    if not os.path.isfile(DFFN):
+        with open(DFFN, 'w') as fp:
+            json.dump({"folder":str(tempfile.gettempdir())}, fp)
+    with open(DFFN, 'r') as fp:
+        data_folder = json.load(fp)['folder']
+        if not os.path.isdir(data_folder): # then temp folder
+            with open(DFFN, 'w') as fp:
+                json.dump({"folder":str(tempfile.gettempdir())}, fp)
+            data_folder = tempfile.gettempdir()
+    return data_folder
 #########################################################
 #### NPZ files
 #########################################################
