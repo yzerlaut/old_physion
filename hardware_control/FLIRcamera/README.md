@@ -17,7 +17,7 @@ Install the simple API on top of the API:
 Use the FlyCap software provided by *PT-Grey Camera* to set the acquisition frequency, gain, brightness, etc... that best suits the experiment.
 
 <p align="center">
-  <img src="doc/FlyCap-software.png"/>
+  <img src="../../doc/FlyCap-software.png"/>
 </p>
 
 
