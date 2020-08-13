@@ -4,7 +4,7 @@ import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict
+from assembling.saving import *
 from assembling.analysis import quick_data_view, analyze_data, last_datafile
 
 from visual_stim.psychopy_code.stimuli import build_stim
@@ -18,8 +18,6 @@ from hardware_control.LogitechWebcam.preview import launch_RigView
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
-DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
-
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -31,7 +29,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.protocol, self.protocol_folder = None, os.path.join('master', 'protocols')
         self.config, self.config_folder = None, os.path.join('master', 'configs')
 
-        self.data_folder = set_data_folder()
+        self.data_folder = get_data_folder()
             
         self.get_protocol_list()
         self.get_config_list()
@@ -129,8 +127,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                                                             "Select Root Data Folder", self.data_folder))
         if os.path.isdir(fd):
             self.data_folder = fd
-            with open(DFFN, 'w') as fp:
-                json.dump({"folder":self.data_folder}, fp)
+            set_data_folder(fd)
             self.dfl.setText('Data-Folder (root): "%s"' % str(self.data_folder))
         else:
             self.statusBar.showMessage('Invalid folder -> folder unchanged')
