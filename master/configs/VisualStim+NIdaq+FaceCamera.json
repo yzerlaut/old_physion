@@ -1,7 +1,8 @@
 {
-    "data-folder": "C:\\Users\\YANN~1.ZER\\DATA\\",
     "NIdaq-acquisition-frequency": 1000.0,
     "NIdaq-input-channels": 3,
     "NIdaq-output-step-1": {"channel":0, "onset": 0.5, "duration": 1.0, "value":5.0},
-    "FaceCamera": {"frame_rate":30}
+    "with-FaceCamera": "True",
+    "FaceCamera": {"frame_rate":30},
+    "with-RigView": "False"
 }

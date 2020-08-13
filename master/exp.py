@@ -18,6 +18,8 @@ from hardware_control.LogitechWebcam.preview import launch_RigView
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
+DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
+
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -28,6 +30,14 @@ class MasterWindow(QtWidgets.QMainWindow):
         
         self.protocol, self.protocol_folder = None, os.path.join('master', 'protocols')
         self.config, self.config_folder = None, os.path.join('master', 'configs')
+
+        # data folder
+        if not os.path.isfile(DFFN):
+            with open(DFFN, 'w') as fp:
+                json.dump({"folder":str(tempfile.gettempdir())}, fp)
+        with open(DFFN, 'r') as fp:
+            self.data_folder = json.load(fp)['folder']
+            
         self.get_protocol_list()
         self.get_config_list()
         self.experiment = {} # storing the specifics of an experiment
@@ -36,11 +46,12 @@ class MasterWindow(QtWidgets.QMainWindow):
         # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
 
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
+        self.FaceCamera_process = None
+        self.RigView_process = None
         self.params_window = None
-        self.data_folder = tempfile.gettempdir()
         
         self.setWindowTitle('Master Program -- Physiology of Visual Circuits')
-        self.setGeometry(50, 50, 500, 300)
+        self.setGeometry(50, 50, 500, 260)
 
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -84,35 +95,55 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.dbtn.clicked.connect(self.set_config_folder)
         self.dbtn.move(370, 120)
 
-        LABELS = ["v) View Data", " a) Analyze Data"]
-        FUNCTIONS = [self.view_data, self.analyze_data]
+        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.data_folder), self)
+        self.dfl.setMinimumWidth(300)
+        self.dfl.move(30, 160)
+        dfb = QtWidgets.QPushButton('Set folder', self)
+        dfb.clicked.connect(self.choose_data_folder)
+        dfb.move(350, 160)
+        
+        LABELS = ["Launch RigView", "v) View Data"]
+        FUNCTIONS = [self.rigview, self.view_data]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
                                             160*np.arange(len(LABELS)), [130, 130]):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(size)
-            btn.move(shift, 180)
+            btn.move(shift+30, 200)
             action = QtWidgets.QAction(label, self)
             if len(label.split(')'))>0:
                 action.setShortcut(label.split(')')[0])
                 action.triggered.connect(func)
                 self.fileMenu.addAction(action)
 
-        self.statusBar.showMessage('Launching Rig view [...]')
         self.show()
-
-        ## Camera initialisation ...
+        # self.facecamera_init()
+        
+    def facecamera_init(self):
+        if self.FaceCamera_process is not None:
+            self.FaceCamera_process.terminate()
         self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-                                                          args=(self.run_event , self.quit_event,self.data_folder))
+                                                          args=(self.run_event , self.quit_event, self.data_folder))
         self.FaceCamera_process.start()
-        self.RigView_process = multiprocessing.Process(target=launch_RigView,
-                                                          args=(self.run_event , self.quit_event,self.data_folder))
-        self.RigView_process.start()
         self.statusBar.showMessage('Initializing Camera streams [...]')
+        time.sleep(6)
+        self.statusBar.showMessage('Setup ready !')
+            
+    def choose_data_folder(self):
+        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                            "Select Root Data Folder", self.data_folder))
+        if os.path.isdir(fd):
+            self.data_folder = fd
+            with open(DFFN, 'w') as fp:
+                json.dump({"folder":self.data_folder}, fp)
+            self.dfl.setText('Data-Folder (root): "%s"' % str(self.data_folder))
+        else:
+            self.statusBar.showMessage('Invalid folder -> folder unchanged')
 
+            
     def analyze_data(self):
         self.statusBar.showMessage('Analyzing last recording [...]')
-        data, fig1 = quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
+        data, fig1 = quick_data_view(last_datafile(self.data_folder), realign=True)
         _, fig2 = analyze_data(data=data)
         fig1.show()
         fig2.show()
@@ -120,6 +151,16 @@ class MasterWindow(QtWidgets.QMainWindow):
     def view_data(self):
         _, fig = quick_data_view(last_datafile(self.data_folder))
         fig.show()
+
+    def rigview(self):
+        if self.RigView_process is not None:
+            self.RigView_process.terminate()
+        self.statusBar.showMessage('Initializing RigView stream [...]')
+        self.RigView_process = multiprocessing.Process(target=launch_RigView,
+                                                       args=(self.run_event , self.quit_event, self.data_folder))
+        self.RigView_process.start()
+        time.sleep(5)
+        self.statusBar.showMessage('Setup ready')
         
     def initialize(self):
         try:
