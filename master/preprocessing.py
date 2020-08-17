@@ -93,7 +93,7 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         # self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Highlight))
         self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Button))
-        self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.Mid))
+        # self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.Mid))
 
         date = init_date
         while date!=(datetime.date.today()+datetime.timedelta(30)):
