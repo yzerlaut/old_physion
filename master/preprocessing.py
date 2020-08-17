@@ -11,8 +11,9 @@ def propose_preprocessing(folder):
     preprocessing_list = []
     lDir = os.listdir(folder)
     if 'FaceCamera-imgs' in lDir:
-        preprocessing_list.append('Pupil-ROI determination')
-        preprocessing_list.append('Pupil-Size Fluctuations')
+        preprocessing_list.append('FaceCamera -- Binary to Video files')
+        preprocessing_list.append('FaceCamera -- Pupil-ROI determination')
+        preprocessing_list.append('FaceCamera -- Pupil-Size Fluctuations')
     return preprocessing_list
         
 
