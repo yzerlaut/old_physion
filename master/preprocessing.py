@@ -1,4 +1,4 @@
-import sys, time, tempfile, os, pathlib, json, subprocess, string
+import sys, time, tempfile, os, pathlib, json, subprocess, string, datetime
 import threading # for the camera stream
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
@@ -11,11 +11,13 @@ def propose_preprocessing(folder):
     preprocessing_list = []
     lDir = os.listdir(folder)
     if 'FaceCamera-imgs' in lDir:
-        preprocessing_list.append('FaceCamera -- Binary to Video files')
-        preprocessing_list.append('FaceCamera -- Pupil-ROI determination')
-        preprocessing_list.append('FaceCamera -- Pupil-Size Fluctuations')
+        preprocessing_list.append('FaceCamera -- Binary to Video files     [ ]')
+        preprocessing_list.append('FaceCamera -- Pupil-ROI determination  [ ]')
+        preprocessing_list.append('FaceCamera -- Pupil-Size Fluctuations  [ ]')
     return preprocessing_list
         
+init_date = QtCore.QDate(2020, 8, 1) # experiments started after 1st of August 2020
+init_date = datetime.date(2020, 8, 1) # experiments started after 1st of August 2020
 
 class MasterWindow(QtWidgets.QMainWindow):
     
@@ -25,6 +27,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         super(MasterWindow, self).__init__(parent)
         
         self.data_folder = get_data_folder()
+        self.init_date = init_date
         
         self.setWindowTitle('Preprocessing Program - Physiology of Visual Circuits')
         self.setGeometry(150, 150, 480, 500)
@@ -47,6 +50,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
 
+            
         self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.data_folder), self)
         self.dfl.setMinimumWidth(300)
         self.dfl.move(30, 70)
@@ -58,25 +62,46 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.cal.move(70, 120)
         self.cal.setMinimumWidth(350)
         self.cal.setMinimumHeight(220)
+        self.cal.setMinimumDate(QtCore.QDate(init_date))
+        self.cal.setMaximumDate(QtCore.QDate.currentDate())
         self.cal.clicked.connect(self.pick_date)
         
         QtWidgets.QLabel('Protocol:', self).move(30, 380)
         self.pbox = QtWidgets.QComboBox(self)
         self.pbox.move(100, 380)
-        self.pbox.setMinimumWidth(350)
+        self.pbox.setMinimumWidth(300)
         self.pbox.activated.connect(self.update_preprocessing)
         
         QtWidgets.QLabel('Preprocessing:', self).move(30, 420)
         self.ppbox = QtWidgets.QComboBox(self)
         self.ppbox.move(150, 420)
-        self.ppbox.setMinimumWidth(250)
+        self.ppbox.setMinimumWidth(300)
         
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('ready for preprocessing')
+
+        self.check_data_folder()
         
+        self.statusBar.showMessage('ready for preprocessing')
         self.show()
 
+    def check_data_folder(self):
+        
+        self.statusBar.showMessage('inspecting data folder [...]')
+
+        self.highlight_format = QtGui.QTextCharFormat()
+
+        # self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Highlight))
+        self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Button))
+        self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.Mid))
+
+        date = init_date
+        while date!=(datetime.date.today()+datetime.timedelta(30)):
+            if not os.path.isdir(os.path.join(self.data_folder, date.strftime("%Y_%m_%d"))):
+                self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
+            date = date+datetime.timedelta(1)
+        
+        
     def pick_date(self):
         date = self.cal.selectedDate()
         self.day = '%s_%s_%s' % (date.year(), date.month(), date.day())
@@ -92,8 +117,9 @@ class MasterWindow(QtWidgets.QMainWindow):
             
     def update_protocol_names(self):
         self.pbox.clear()
+        self.ppbox.clear()
         if len(self.list_protocol_per_day)>0:
-            names = ['                           vvvvvvvvvvvvvvvvvv']+\
+            names = [' ... ']+\
                 [fn.split(os.path.sep)[-1] for fn in self.list_protocol_per_day]
             for i, n in enumerate(names):
                 self.pbox.addItem(n)
@@ -102,7 +128,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.pbox.currentIndex()>0:
             ppL = propose_preprocessing(self.list_protocol_per_day[self.pbox.currentIndex()-1])
             self.ppbox.clear()
-            names = ['              vvvvvvvvvvvvvv']+ppL
+            names = [' ...']+ppL
             for i, n in enumerate(names):
                 self.ppbox.addItem(n)
 
@@ -115,11 +141,14 @@ class MasterWindow(QtWidgets.QMainWindow):
         fig2.show()
 
     def choose_data_folder(self):
+        self.pbox.clear()
+        self.ppbox.clear()
         fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
                                                             "Select Root Data Folder", self.data_folder))
         if os.path.isdir(fd):
             self.data_folder = fd
             set_data_folder(fd)
+            self.check_data_folder()
             self.dfl.setText('Data-Folder (root): "%s"' % str(self.data_folder))
         else:
             self.statusBar.showMessage('Invalid folder -> folder unchanged')
