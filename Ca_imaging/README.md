@@ -1,5 +1,11 @@
 # Calcium imaging
 
+
+## Experimental procedure
+
+- [imaging window targeting V1](../doc/drawing-window.png).
+- ...
+
 ## Registration and Cell detection
 
 Use [Suite2P](https://github.com/MouseLand/suite2p). 
