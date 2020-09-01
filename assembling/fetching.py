@@ -2,10 +2,16 @@ import numpy as np
 import os, sys, pathlib
 from PIL import Image
 from scipy.optimize import minimize
-from analyz.signal_library.classical_functions import exp_thresh
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path, load_dict
+
+def exp_thresh(x, thresh=50):
+    """
+    useful for fitting (where the argument is varied)
+    """
+    x2 = np.less(x,thresh).astype(int)
+    return x2*np.exp(x*x2)+(1-x2)*np.exp(thresh)
 
 def get_list_of_datafiles(data_folder):
 
