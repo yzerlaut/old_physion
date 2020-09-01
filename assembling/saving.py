@@ -1,5 +1,4 @@
-import datetime, os, string
-from pathlib import Path
+import datetime, os, string, pathlib, json, tempfile
 import numpy as np
 
 def day_folder(root_folder):
@@ -9,10 +8,10 @@ def second_folder(day_folder):
     return os.path.join(day_folder, datetime.datetime.now().strftime("%H-%M-%S"))
 
 def create_day_folder(root_folder):
-    Path(day_folder(root_folder)).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(day_folder(root_folder)).mkdir(parents=True, exist_ok=True)
 
 def create_second_folder(day_folder):
-    Path(second_folder(day_folder)).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(second_folder(day_folder)).mkdir(parents=True, exist_ok=True)
     
 def generate_filename_path(root_folder,
                            filename = '', extension='txt',
@@ -23,26 +22,56 @@ def generate_filename_path(root_folder,
     
     if not os.path.exists(Day_folder):
         print('creating the folder "%s"' % Day_folder)
-        Path(Day_folder).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(Day_folder).mkdir(parents=True, exist_ok=True)
     
     if not os.path.exists(Second_folder):
         print('creating the folder "%s"' % Second_folder)
-        Path(Second_folder).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(Second_folder).mkdir(parents=True, exist_ok=True)
         
     if not extension.startswith('.'):
         extension='.'+extension
     
     return os.path.join(Second_folder, filename+extension)
 
+def list_dayfolder(day_folder):
+    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and os.path.isdir(os.path.join(day_folder, d)))]
+    return folders
+    
 def last_datafolder_in_dayfolder(day_folder):
     
-    folders = [os.path.join(day_folder, d) for d in os.listdir(day_folder) if ((d[0] in string.digits) and os.path.isdir(os.path.join(day_folder, d)))]
+    folders = list_dayfolder(day_folder)
 
     if folders[-1][-1] in string.digits:
         return folders[-1]
     else:
         print('No datafolder found, returning "./" ')
         return './'
+
+
+#########################################################
+#### Dealing with root data folder
+#########################################################
+
+DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
+    
+def get_data_folder():
+    # if not existing we create the data-folder with tempdir
+    if not os.path.isfile(DFFN):
+        with open(DFFN, 'w') as fp:
+            json.dump({"folder":'"%s"' % tempfile.gettempdir()}, fp)
+    # now we can load
+    with open(DFFN, 'r') as fp:
+        data_folder = json.load(fp)['folder']
+    # if not existing we re-write to temp folder
+    if not os.path.isdir(data_folder): 
+        with open(DFFN, 'w') as fp:
+            json.dump({"folder":'"%s"' % tempfile.gettempdir()}, fp)
+        data_folder = tempfile.gettempdir()
+    return data_folder
+
+def set_data_folder(df):
+    with open(DFFN, 'w') as fp:
+        json.dump({"folder":df}, fp)
 
 #########################################################
 #### NPZ files

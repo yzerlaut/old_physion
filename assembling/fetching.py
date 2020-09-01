@@ -2,6 +2,7 @@ import numpy as np
 import os, sys, pathlib
 from PIL import Image
 from scipy.optimize import minimize
+from analyz.signal_library.classical_functions import exp_thresh
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path, load_dict
@@ -65,8 +66,8 @@ def step(x, x1, x2):
     return heaviside(x-x1)*heaviside(x2-x)
 def resp_function(t, t1, t2):
     T=0.03 # MIGHT NEED TO BE SET UP DIFFERENTLY IF THE KINETICS OF THE PHOTODIODE CHANGES 
-    return heaviside(t-t1)*(1-np.exp(-t/T+t1/T))+heaviside(t-t2)*(np.exp(-t/T+t2/T)-1)
-    # return heaviside(t-t1)*(1-np.exp(-(t-t1)/(np.abs(T+1e-3))))+heaviside(t-t2)*(np.exp(-(t-t2)/(np.abs(T+1e-3)))-1)
+    return heaviside(t-t1)*(1-exp_thresh(-t/T+t1/T))+heaviside(t-t2)*(exp_thresh(-t/T+t2/T)-1)
+
 def waveform(t, n=4):
     output, k = 0*t, 0.
     for i in np.arange(2):

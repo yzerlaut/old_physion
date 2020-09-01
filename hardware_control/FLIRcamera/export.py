@@ -1,21 +1,19 @@
 import imageio, os, sys, time
 import numpy as np
 
-def export_to_mp4(folder, name, verbose=True):
+def export_to_mp4(folder, name, n_frame=20000, verbose=True):
     
     tstart = time.time()
 
     imgs = []
     # times = np.load(os.path.join(folder, 'camera-times.npy'))
 
-    i=1
-    while os.path.isfile(os.path.join(folder, 'camera-imgs', '%i.npy' % i)):
-        imgs.append(np.load(os.path.join(folder, 'camera-imgs', '%i.npy' % i)))
+    i, n= 1, 0
+    while os.path.isfile(os.path.join(folder, 'FaceCamera-imgs', '%i.npy' % i)) and n<n_frame:
+        imgs.append(np.load(os.path.join(folder, 'FaceCamera-imgs', '%i.npy' % i)))
         i+=1
+        n+=1
         
-    # for i in range(1, len(times)+1):
-    #     imgs.append(np.load(os.path.join(folder, 'camera-imgs', '%i.npy' % i)))
-    
     imageio.mimwrite(name, np.array(imgs))
     if verbose:
         print('Saving time: %.1f ms ' % (1e3*(time.time()-tstart)))

@@ -1,6 +1,7 @@
 import os, sys
 import numpy as np
 from scipy.optimize import minimize
+from analyz.signal_library.classical_functions import exp_thresh
 
 def step(t, t0, t1):
     return (np.sign(t-t0)-np.sign(t-t1))/2.
@@ -11,8 +12,8 @@ def heaviside(t, t1):
 def VCfunc_to_fit(t, coeffs, t0=50, t1=150):
     Ibsl, IbslShift, IexpComp, Tau = coeffs
     return Ibsl+\
-        step(t, t0, t1)*(-IbslShift-IexpComp*np.exp(-(t-t0)/Tau))+\
-        heaviside(t, t1)*IexpComp*np.exp(-(t-t1)/Tau)
+        step(t, t0, t1)*(-IbslShift-IexpComp*exp_thresh(-(t-t0)/Tau))+\
+        heaviside(t, t1)*IexpComp*exp_thresh(-(t-t1)/Tau)
 
 
 def extract_VCcharact(t, data, t0=50, t1=300,
@@ -67,8 +68,8 @@ def from_VCcharact_to_membrane_parameters(IbslShift, IexpPeak, Tau,
 
 def ICfunc_to_fit(t, coeffs, t0=50, t1=150):
     Vbsl, VbslShift, Tau = coeffs
-    return Vbsl+step(t, t0, t1)*VbslShift*(1-np.exp(-(t-t0)/Tau))+\
-        heaviside(t, t1)*VbslShift*np.exp(-(t-t1)/Tau)
+    return Vbsl+step(t, t0, t1)*VbslShift*(1-exp_thresh(-(t-t0)/Tau))+\
+        heaviside(t, t1)*VbslShift*exp_thresh(-(t-t1)/Tau)
 
 
 def perform_ICcharact(t, data, t0=50e-3, t1=300e-3, Istep=200e-12,
