@@ -56,16 +56,19 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.camera = None
 
     def choose_config(self):
-        # filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', "./" ,"Config files (*.json)")
-        filename = 'C://Users/yann.zerlaut/work/cortical-physio-icm/master/configs/VisualStim+NIdaq+FaceCamera.json'
-        with open(filename, 'r') as fp:
-            self.config = json.load(fp)
-        if 'FaceCamera' not in self.config:
-            self.statusBar.showMessage(' This config file has no "FaceCamera" key, see doc')
+        path = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'master', 'configs') #, 'VisualStim+NIdaq+FaceCamera.json')
+        filename, success = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', path ,"Config files (*.json)")
+        if success:
+            with open(filename, 'r') as fp:
+                self.config = json.load(fp)
+            if 'FaceCamera' not in self.config:
+                self.statusBar.showMessage(' This config file has no "FaceCamera" key, see doc')
+            else:
+                self.statusBar.showMessage('"%s" successfully loaded' % os.path.basename(filename))
+            self.camera = CameraAcquisition(folder=self.data_folder, settings=self.config['FaceCamera'])
+            self.camera.cam.start()
         else:
-            self.statusBar.showMessage('"%s" successfully loaded' % os.path.basename(filename))
-        self.camera = CameraAcquisition(folder=self.data_folder, settings=self.config['FaceCamera'])
-        self.camera.cam.start()
+            self.statusBar.showMessage(' config file not loaded')
         
 
     def reload_config(self):
