@@ -256,8 +256,9 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(parent.filename.replace('visual-stim.npz', 'frame.tiff'))
-
+        self.win.saveMovieFrames(os.path.join(os.path.dirname(parent.filename),
+                                              'screen-frames', 'frame.tiff'))
+        
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_run(self, parent):

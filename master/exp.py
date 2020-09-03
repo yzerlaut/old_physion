@@ -166,7 +166,8 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.stim = build_stim(self.protocol)
             self.statusBar.showMessage('stimulation ready !')
             self.filename = generate_filename_path(self.data_folder,
-                                                   filename='visual-stim', extension='.npz')
+                                                   filename='visual-stim', extension='.npz',
+                                                   with_screen_frames_folder=True)
             output_steps, istep = [], 1
             while 'NIdaq-output-step-%i'%istep in self.config:
                 print(self.config['NIdaq-output-step-%i'%istep])

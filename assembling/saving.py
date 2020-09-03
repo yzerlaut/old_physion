@@ -15,6 +15,7 @@ def create_second_folder(day_folder):
     
 def generate_filename_path(root_folder,
                            filename = '', extension='txt',
+                           with_screen_frames_folder=False,
                            with_microseconds=False):
 
     Day_folder = day_folder(root_folder)
@@ -27,6 +28,9 @@ def generate_filename_path(root_folder,
     if not os.path.exists(Second_folder):
         print('creating the folder "%s"' % Second_folder)
         pathlib.Path(Second_folder).mkdir(parents=True, exist_ok=True)
+
+    if with_screen_frames_folder:
+        pathlib.Path(os.path.join(Second_folder, 'screen-frames')).mkdir(parents=True, exist_ok=True)
         
     if not extension.startswith('.'):
         extension='.'+extension
