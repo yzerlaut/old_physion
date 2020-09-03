@@ -140,7 +140,8 @@ class Window(QtWidgets.QMainWindow):
     def save_experiment(self):
         full_exp = dict(**self.protocol, **self.experiment)
         create_day_folder(self.data_folder)
-        filename = generate_filename_path(self.data_folder, extension='.npz')
+        filename = generate_filename_path(self.data_folder, extension='.npz',
+                                          with_screen_frames_folder=True)
         np.savez(filename, full_exp, allow_pickle=True)
         print('Stimulation data saved as: %s ' % filename)
         self.statusBar.showMessage('Stimulation data saved as: %s ' % filename)
