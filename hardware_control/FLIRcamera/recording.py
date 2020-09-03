@@ -68,6 +68,7 @@ class CameraAcquisition:
         if t0 is None:
             t0=time.time()
         self.running=True
+        self.frame_index = 0 # need to reset the index here
         self.cam.start()
         self.t = time.time()
         camready_flag.set()
