@@ -104,7 +104,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         
     def pick_date(self):
         date = self.cal.selectedDate()
-        self.day = '%s_%s_%s' % (date.year(), date.month(), date.day())
+        self.day = '%s_%02d_%02d' % (date.year(), date.month(), date.day())
         for i in string.digits:
             self.day = self.day.replace('_%s_' % i, '_0%s_' % i)
         self.day_folder = os.path.join(self.data_folder,self.day)
