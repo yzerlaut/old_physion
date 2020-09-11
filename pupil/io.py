@@ -227,6 +227,7 @@ def load_movies(parent, filelist=None):
     try:
         parent.times = np.load(os.path.join(parent.datafolder, 'FaceCamera-times.npy'))
         parent.nframes = len(parent.times)
+        parent.filenames = os.path.listdir(os.path.join(parent.datafolder, 'FaceCamera-imgs'))
         parent.fullimg = np.load(os.path.join(parent.datafolder, 'FaceCamera-imgs', '0.npy'))
         good = True
     except Exception:
@@ -239,6 +240,7 @@ def load_movies(parent, filelist=None):
         parent.Lx, parent.Ly = parent.fullimg.shape
         parent.sx, parent.sy = 10, 10
         parent.p1.clear()
+        
         # parent.p2.clear()
     #     parent.video = v
     #     parent.filenames = parent.filelist
@@ -271,7 +273,6 @@ def load_movies(parent, filelist=None):
     #         parent.LX = LX
 
     #     parent.fullimg = np.zeros((parent.LY, parent.LX, 3))
-    #     parent.imgs = []
     #     parent.img = []
     #     for i in range(len(parent.Ly)):
     #         parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))

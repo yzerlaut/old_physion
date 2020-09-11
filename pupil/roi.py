@@ -223,6 +223,26 @@ class sROI():
         parent.img = img
         parent.win.show()
         parent.show()
+
+    def plot_simple(self, parent):
+
+        # get saturation level
+        self.saturation = 255-parent.saturation
+
+        # applying the ellipse mask
+        img = parent.fullimg.copy()
+        img[~self.ellipse] = 255-self.saturation
+        
+        img = img[np.min(self.x[self.ellipse]):np.max(self.x[self.ellipse]):,\
+                  np.min(self.y[self.ellipse]):np.max(self.y[self.ellipse])]
+        
+        # smooth
+        img = gaussian_filter(img, 2)
+        # then threshold
+        img[img>self.saturation] = 255-self.saturation
+        parent.pROIimg.setImage(img)
+        parent.pROIimg.setLevels([0, self.saturation])
+        parent.img = img
         
     def extract_props(self):
         return extract_ellipse_props(self.ROI)

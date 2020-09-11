@@ -15,7 +15,10 @@ from pupil import guiparts, process, io, roi
 # from . import process, roi, utils, io, menus, guiparts
 
 class MainW(QtGui.QMainWindow):
-    def __init__(self, moviefile=None, savedir=None):
+    def __init__(self, moviefile=None, savedir=None, sampling=0.5):
+        """
+        sampling in Hz
+        """
         super(MainW, self).__init__()
         icon_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
@@ -170,13 +173,64 @@ class MainW(QtGui.QMainWindow):
             self.save_path = savedir
             self.savelabel.setText(savedir)
 
+    def load_data_batch(self):
+
+        file_dialog = QtGui.QFileDialog()
+        file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+        file_dialog.setOption(QtGui.QFileDialog.DontUseNativeDialog, True)
+        file_view = file_dialog.findChild(QtGui.QListView, 'listView')
+
+        # to make it possible to select multiple directories:
+        if file_view:
+            file_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+        f_tree_view = file_dialog.findChild(QtGui.QTreeView)
+        if f_tree_view:
+            f_tree_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+
+        if file_dialog.exec():
+            paths = file_dialog.selectedFiles()
+        print(paths)
+        
+    def load_data(self):
+        
         self.datafolder = '/home/yann/DATA/2020_09_01/16-41-30/'
-        io.load_movies(self)
-        if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
-            self.load_ROI()
+        # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
+        #                                                          "Choose data folder",
+        #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
 
-        #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
+        if os.path.isdir(self.datafolder):
+            try:
+                self.times = np.load(os.path.join(self.datafolder, 'FaceCamera-times.npy'))
+                self.nframes = len(self.times)+1
+                self.filenames = os.listdir(os.path.join(self.datafolder, 'FaceCamera-imgs'))
+                self.cframe = 0
+                self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
+                                                    self.filenames[self.cframe]))
+                #
+                self.reset()
+                self.Lx, self.Ly = self.fullimg.shape
+                self.sx, self.sy = 10, 10
+                self.p1.clear()
+                self.movieLabel.setText(os.path.dirname(self.datafolder))
+                self.frameDelta = int(np.maximum(5,self.nframes/200))
+                self.frameSlider.setSingleStep(self.frameDelta)
+                if self.nframes > 0:
+                    self.updateFrameSlider()
+                    self.updateButtons()
+                self.loaded = True
+                self.processed = False
+                self.show_fullframe()
 
+                if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
+                    self.load_ROI()
+
+            except b as Exception:
+                print(b)
+                print("ERROR: no frames found for this datafolder !!")
+        else:
+            print("ERROR: provide a valid data folder !")
+
+            
     def make_buttons(self):
         
         # create frame slider
@@ -194,20 +248,30 @@ class MainW(QtGui.QMainWindow):
         iplay = istretch+15
         iconSize = QtCore.QSize(20, 20)
 
-        self.process = QtGui.QPushButton('process datafile')
+        self.process = QtGui.QPushButton('process data')
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
         self.process.setEnabled(False)
 
-        self.savefolder = QtGui.QPushButton("save folder \u2b07")
-        self.savefolder.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.savefolder.clicked.connect(self.save_folder)
-        self.savefolder.setEnabled(False)
-        if len(self.save_path) > 0:
-            self.savelabel = QtGui.QLabel(self.save_path)
-        else:
-            self.savelabel = QtGui.QLabel('same as video')
-        self.savelabel.setStyleSheet("color: white;")
+        self.load = QtGui.QPushButton('load data-folder')
+        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load.clicked.connect(self.load_data)
+        self.load.setEnabled(True)
+
+        self.load_batch = QtGui.QPushButton('load batch of folder')
+        self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load_batch.clicked.connect(self.load_data_batch)
+        self.load_batch.setEnabled(True)
+        
+        # self.savefolder = QtGui.QPushButton("save folder \u2b07")
+        # self.savefolder.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        # self.savefolder.clicked.connect(self.save_folder)
+        # self.savefolder.setEnabled(False)
+        # if len(self.save_path) > 0:
+        #     self.savelabel = QtGui.QLabel(self.save_path)
+        # else:
+        #     self.savelabel = QtGui.QLabel('same as video')
+        # self.savelabel.setStyleSheet("color: white;")
 
         self.saverois = QtGui.QPushButton('save ROIs')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -251,10 +315,12 @@ class MainW(QtGui.QMainWindow):
         self.addROI.clicked.connect(self.add_ROI)
         self.addROI.setEnabled(False)
 
-        self.l0.addWidget(self.addROI,2,0,1,3)
-        self.l0.addWidget(self.saverois, 15, 0, 1, 3)
-        self.l0.addWidget(self.process,  16, 0, 1, 3)
-        self.l0.addWidget(self.processbatch,  17, 0, 1, 3)
+        self.l0.addWidget(self.load,2,0,1,3)
+        self.l0.addWidget(self.load_batch,3,0,1,3)
+        self.l0.addWidget(self.addROI,7,0,1,3)
+        self.l0.addWidget(self.saverois, 10, 0, 1, 3)
+        self.l0.addWidget(self.process, 13, 0, 1, 3)
+        self.l0.addWidget(self.processbatch, 14, 0, 1, 3)
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
 
@@ -280,8 +346,9 @@ class MainW(QtGui.QMainWindow):
             r.remove(self)
         if self.ROI is not None:
             self.ROI.remove(self)
-        self.ROI = None
-        self.rROI= []
+        if self.pupil is not None:
+            self.pupil.remove(self)
+        self.ROI, self.rROI = None, []
         self.reflectors=[]
         self.saturation = 255
         self.iROI=0
@@ -326,15 +393,7 @@ class MainW(QtGui.QMainWindow):
         self.pupil_draw.setEnabled(True)
         self.fit_pupil.setEnabled(True)
 
-    def save_folder(self):
-        folderName = QtGui.QFileDialog.getExistingDirectory(self,
-                            "Choose save folder")
-        # load ops in same folder
-        if folderName:
-            self.save_path = folderName
-            self.savelabel.setText(folderName)
-
-    
+        
     def keyPressEvent(self, event):
         bid = -1
         if self.playButton.isEnabled():
@@ -409,21 +468,21 @@ class MainW(QtGui.QMainWindow):
         self.addROI.setEnabled(True)
         self.pauseButton.setChecked(True)
         self.process.setEnabled(True)
-        self.savefolder.setEnabled(True)
+        # self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():
-            self.cframe = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
-            self.cframe = int(self.cframe)
-            self.cframe -= 1
-            self.img = self.get_frame(self.cframe)
-            for i in range(len(self.img)):
-                self.imgs[i][:,:,:,1] = self.img[i].copy()
-            img = self.get_frame(self.cframe+1)
-            for i in range(len(self.img)):
-                self.imgs[i][:,:,:,2] = img[i]
-            self.next_frame()
+            self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
+                                                self.filenames[self.cframe]))
+            self.pimg.setImage(self.fullimg)
+            # self.pimg.setLevels([0,self.sat[0]])
+            self.frameNumber.setText(str(self.cframe))
+            if self.ROI is not None:
+                self.ROI.plot_simple(self)
+            self.win.show()
+            self.show()
+            
 
     def get_frame(self, cframe):
         cframe = np.maximum(0, np.minimum(self.nframes-1, cframe))
@@ -501,16 +560,8 @@ class MainW(QtGui.QMainWindow):
             self.online_traces = None
         #print('paused')
 
-    def save_ops(self):
-        ops = {'sbin': self.sbin, 'pupil_sigma': float(self.sigmaBox.text()),
-                'save_path': self.save_path, 'fullSVD': self.checkBox.isChecked(),
-                'save_mat': self.save_mat.isChecked()}
-        opsfile = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ops_user.npy')
-        np.save(opsfile, ops)
-        return ops
-
     def save_ROIs(self):
-
+        """ """
         if self.datafolder!='':
             data = {}
             if len(self.rROI)>0:
@@ -527,26 +578,18 @@ class MainW(QtGui.QMainWindow):
     
     def process_batch(self):
         pass
-        # files = self.batchlist
-        # for f in files:
-        #     proc = np.load(f, allow_pickle=True).item()
-        #     savename = process.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
-        # if len(files)==1:
-        #     io.open_proc(self, file_name=savename)
 
     def process_ROIs(self):
-        pass
-        # self.sbin = int(self.binSpinBox.value())
-        # # save running parameters as defaults
-        # ops = self.save_ops()
 
-        # if len(self.save_path) > 0:
-        #     savepath = self.save_path
-        # else:
-        #     savepath = None
-        # print(savepath)
-        # savename = process.run(self.filenames, self, savepath=savepath)
-        # io.open_proc(self, file_name=savename)
+        for self.cframe in range(self.nframes)[::100]:
+
+            # self.reset()
+            self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
+                                                self.filenames[self.cframe]))
+            self.show_fullframe()
+            self.updateFrameSlider()
+            self.fit_pupil_size(None)
+            
 
     def plot_processed(self):
         pass
@@ -681,7 +724,7 @@ class MainW(QtGui.QMainWindow):
         
         if self.pupil is not None:
             self.pupil.remove(self)
-            
+
         if self.pupil_shape.currentText()=='Ellipse fit':
             coords, shape = process.fit_pupil_size(self, shape='ellipse')
         else:
