@@ -19,7 +19,13 @@ def extract_ellipse_props(ROI):
     ycenter = ROI.pos()[0]+ROI.size()[0]/2.
     sy, sx = ROI.size()
     return xcenter, ycenter, sx, sy
-    
+
+def ellipse_props_to_ROI(coords):
+    """ re-translate to ROI props"""
+    x0 = coords[0]-coords[2]/2
+    y0 = coords[1]-coords[3]/2
+    return x0, y0, coords[2], coords[3]
+
 class reflectROI():
     def __init__(self, wROI, moveable=True,
                  parent=None, pos=None,
@@ -128,7 +134,7 @@ class pupilROI():
     
 
 class sROI():
-    def __init__(self, moveable=True,
+    def __init__(self, moveable=False,
                  parent=None, saturation=None, color=None, pos=None,
                  yrange=None, xrange=None,
                  ivid=None, pupil_sigma=None):
@@ -207,38 +213,13 @@ class sROI():
         # then threshold
         img[img>self.saturation] = 255-self.saturation
         
-        #parent.pROI.addItem(pg.ScatterPlotItem([self.center[0]], [self.center[1]], pen='r', symbol='+'))
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)
-        
-        # fr[fr<selfsat] = sat
-        # fr[~self.ellipse] = 255.0
-        # fr = 255.0 - fr
-        # fr = np.maximum(0, fr - (255.0-sat))
-        # missing=parent.reflectors[0]
-
-
-        #                                                     do_xy=True, missing=missing)
-        #     area = np.pi * (sig[0] * sig[1]) ** 0.5
-        #     if len(missing)>0:
-        #         fr[missing[0], missing[1]] = immiss
-        #     xy = xy[xy[:,0]>=0, :]
-        #     xy = xy[xy[:,0]<self.yrange.size, :]
-        #     xy = xy[xy[:,1]>=0, :]
-        #     xy = xy[xy[:,1]<self.xrange.size, :]
-        #     parent.pROI.removeItem(parent.scatter)
-        #     xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
-        #     xy += 0.5
-        #     pen = pg.mkPen(self.color, width=2)
-        #     parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=pen, symbol='+')
-        #     parent.pROI.addItem(parent.scatter)
         
         parent.pROIimg.setImage(img)
         parent.pROIimg.setLevels([0, self.saturation])
         parent.ximg, parent.yimg = np.arange(img.shape[0]), np.arange(img.shape[1])
-        parent.pROI.setRange(xRange=(0,img.shape[0]),
-                             yRange=(0, img.shape[1]),
-                             padding=0.0)
+        # parent.pROI.setRange(xRange=(0,img.shape[0]), yRange=(0, img.shape[1]), padding=0.0)
         parent.img = img
         parent.win.show()
         parent.show()

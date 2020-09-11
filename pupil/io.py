@@ -239,7 +239,7 @@ def load_movies(parent, filelist=None):
         parent.Lx, parent.Ly = parent.fullimg.shape
         parent.sx, parent.sy = 10, 10
         parent.p1.clear()
-        parent.p2.clear()
+        # parent.p2.clear()
     #     parent.video = v
     #     parent.filenames = parent.filelist
     #     parent.nframes = nframes

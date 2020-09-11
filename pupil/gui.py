@@ -8,12 +8,11 @@ from scipy.stats import zscore, skew
 from matplotlib import cm
 from natsort import natsorted
 import pathlib
+from analyz.IO.npz import load_dict
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, io, roi
 # from . import process, roi, utils, io, menus, guiparts
-
-istr = ['pupil', 'motSVD', 'blink', 'running']
 
 class MainW(QtGui.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):
@@ -21,7 +20,7 @@ class MainW(QtGui.QMainWindow):
         icon_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
 
-        # adding a 
+        # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
         
@@ -64,26 +63,23 @@ class MainW(QtGui.QMainWindow):
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
         self.l0 = QtGui.QGridLayout()
-        #layout = QtGui.QFormLayout()
         self.cwidget.setLayout(self.l0)
-        # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
-        self.win = pg.GraphicsLayoutWidget()
-        # --- cells image
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
-        self.win.resize(1000,500)
+        self.win.resize(600,400)
         self.l0.addWidget(self.win,1,3,37,15)
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True)
+        self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[100,100,100])
+        # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pROI = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True)
+        self.pROI = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[100,100,100])
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pROI.setMenuEnabled(False)
         self.pROIimg = pg.ImageItem(None)
@@ -107,41 +103,46 @@ class MainW(QtGui.QMainWindow):
             qlabel.setStyleSheet('color: white;')
             self.l0.addWidget(qlabel,0,6+5*j,1,1)
 
-        self.reflector = QtGui.QPushButton('add corneal reflection')
-        self.l0.addWidget(self.reflector, 1, 8+5*j, 1, 2)
+        # adding blanks ("corneal reflections, ...")
+        self.reflector = QtGui.QPushButton('add blank')
+        self.l0.addWidget(self.reflector, 1, 8+5*j, 1, 1.5)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
-        self.prepare_fit = QtGui.QPushButton('Prepare fit')
-        self.l0.addWidget(self.prepare_fit, 1, 10+5*j, 1, 2)
-        self.prepare_fit.setEnabled(False)
-        self.prepare_fit.clicked.connect(self.prepare_pupil_fit)
-        self.pupil_fit = QtGui.QPushButton('draw Pupil')
-        self.l0.addWidget(self.pupil_fit, 1, 12+5*j, 1, 2)
-        self.pupil_fit.setEnabled(False)
-        # self.pupil_fit.clicked.connect(self.fit_pupil_size)
-        self.pupil_fit.clicked.connect(self.draw_pupil)
+        # fit pupil
+        self.fit_pupil = QtGui.QPushButton('fit Pupil')
+        self.l0.addWidget(self.fit_pupil, 1, 9+5*j, 1, 1.5)
+        self.fit_pupil.setEnabled(False)
+        self.fit_pupil.clicked.connect(self.fit_pupil_size)
+        # draw pupil
+        self.pupil_draw = QtGui.QPushButton('draw Pupil')
+        self.l0.addWidget(self.pupil_draw, 1, 10+5*j, 1, 1.5)
+        self.pupil_draw.setEnabled(False)
+        self.pupil_draw.clicked.connect(self.draw_pupil)
+        # choose pupil shape
+        self.pupil_shape = QtGui.QComboBox(self)
+        self.pupil_shape.addItem("Circle fit")
+        self.pupil_shape.addItem("Ellipse fit")
+        self.l0.addWidget(self.pupil_shape, 1, 11+5*j, 1, 1.5)
+        # draw pupil
+        self.reset_btn = QtGui.QPushButton('reset')
+        self.l0.addWidget(self.reset_btn, 1, 12+5*j, 1, 1.5)
+        self.reset_btn.clicked.connect(self.reset)
+        self.reset_btn.setEnabled(True)
         
         self.rROI= []
         self.reflectors=[]
         self.scatter=None # the pupil size contour
 
-        self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2, title='p1')
+        self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4, title='Pupil size')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
         self.p1.hideAxis('left')
         self.scatter1 = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter1)
-        #self.p1.setLabel('bottom', 'plot1')
-        #self.p1.autoRange(padding=0.01)
-        self.p2 = self.win.addPlot(name='plot2',row=2,col=0,colspan=2, title='p2')
-        self.p2.setMouseEnabled(x=True,y=False)
-        self.p2.setMenuEnabled(False)
-        self.p2.hideAxis('left')
-        self.scatter2 = pg.ScatterPlotItem()
-        self.p2.addItem(self.scatter1)
-        #self.p2.setLabel('bottom', 'plot2')
-        self.p2.setXLink("plot1")
-        #self.p2.autoRange(padding=0.01)
+        self.p1.setLabel('bottom', 'time (frame #)')
+        # self.p1.setLabel('left', 'pixel')
+        # self.p1.autoRange(padding=0.01)
+        
         self.win.ci.layout.setRowStretchFactor(0,5)
         self.movieLabel = QtGui.QLabel("No movie chosen")
         self.movieLabel.setStyleSheet("color: white;")
@@ -170,18 +171,22 @@ class MainW(QtGui.QMainWindow):
             self.savelabel.setText(savedir)
 
         self.datafolder = '/home/yann/DATA/2020_09_01/16-41-30/'
-        #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
         io.load_movies(self)
+        if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
+            self.load_ROI()
+
+        #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
 
     def make_buttons(self):
+        
         # create frame slider
         self.frameLabel = QtGui.QLabel("Current frame:")
         self.frameLabel.setStyleSheet("color: white;")
         self.frameNumber = QtGui.QLabel("0")
         self.frameNumber.setStyleSheet("color: white;")
         self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        #self.frameSlider.setTickPosition(QtGui.QSlider.TicksBelow)
-        self.frameSlider.setTickInterval(5)
+        # self.frameSlider.setTickPosition(QtGui.QSlider.TicksBelow)
+        # self.frameSlider.setTickInterval(5)
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
@@ -246,15 +251,13 @@ class MainW(QtGui.QMainWindow):
         self.addROI.clicked.connect(self.add_ROI)
         self.addROI.setEnabled(False)
 
-
-        # self.l0.addWidget(self.comboBox, 1, 0, 1, 3)
         self.l0.addWidget(self.addROI,2,0,1,3)
-        # self.l0.addWidget(self.saverois, 15, 0, 1, 3)
+        self.l0.addWidget(self.saverois, 15, 0, 1, 3)
         self.l0.addWidget(self.process,  16, 0, 1, 3)
         self.l0.addWidget(self.processbatch,  17, 0, 1, 3)
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
-        #self.l0.addWidget(quitButton,0,1,1,1)
+
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
@@ -265,37 +268,8 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.frameNumber, istretch+14,0,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
-        # plotting boxes
-        pl = QtGui.QLabel("after processing")
-        pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+1, 0, 1, 3)
-        pl = QtGui.QLabel("p1")
-        pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+2, 0, 1, 1)
-        pl = QtGui.QLabel("p2")
-        pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+2, 1, 1, 1)
-        pl = QtGui.QLabel("roi")
-        pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+2, 2, 1, 1)
-        self.cbs1 = []
-        self.cbs2 = []
-        self.lbls = []
-        for k in range(8):
-            self.cbs1.append(QtGui.QCheckBox(''))
-            self.l0.addWidget(self.cbs1[-1], istretch+3+k, 0, 1, 1)
-            self.cbs2.append(QtGui.QCheckBox(''))
-            self.l0.addWidget(self.cbs2[-1], istretch+3+k, 1, 1, 1)
-            self.cbs1[-1].toggled.connect(self.plot_processed)
-            self.cbs2[-1].toggled.connect(self.plot_processed)
-            self.cbs1[-1].setEnabled(False)
-            self.cbs2[-1].setEnabled(False)
-            self.lbls.append(QtGui.QLabel(''))
-            self.lbls[-1].setStyleSheet("color: white;")
-            self.l0.addWidget(self.lbls[-1], istretch+3+k, 2, 1, 1)
-
-        #self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
-        #self.l0.setRowStretch(16,2)
+        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
+        self.l0.setRowStretch(16,2)
         ll = QtGui.QLabel('play/pause [SPACE]')
         ll.setStyleSheet("color: gray;")
         self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
@@ -309,16 +283,9 @@ class MainW(QtGui.QMainWindow):
         self.ROI = None
         self.rROI= []
         self.reflectors=[]
-        self.saturation = []
+        self.saturation = 255
         self.iROI=0
         self.nROIs=0
-        # clear checkboxes
-        for k in range(len(self.lbls)):
-            self.lbls[k].setText('')
-            self.cbs1[k].setEnabled(False)
-            self.cbs2[k].setEnabled(False)
-            self.cbs1[k].setChecked(False)
-            self.cbs2[k].setChecked(False)
 
     def add_reflectROI(self):
         self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
@@ -337,38 +304,27 @@ class MainW(QtGui.QMainWindow):
         self.rROI = []
         self.reflectors = []
         # self.pupil_fit.setEnabled(False)
-        self.pupil_fit.setEnabled(True)
-        self.prepare_fit.setEnabled(True)
+        self.pupil_draw.setEnabled(True)
+        self.fit_pupil.setEnabled(True)
         
         return
-        """
-        rind=roitype-1, rtype=roistr,
-        
-        if roitype > 0:
-            if self.online_mode and roitype>1:
-                msg = QtGui.QMessageBox(self)
-                msg.setIcon(QtGui.QMessageBox.Warning)
-                msg.setText("only pupil ROI allowed during online mode")
-                msg.setStandardButtons(QtGui.QMessageBox.Ok)
-                msg.exec_()
-                return
-            if len(self.ROIs)>0:
-                if self.ROIs[self.iROI].rind==0:
-                    for i in range(len(self.rROI[self.iROI])):
-                        self.pROI.removeItem(self.rROI[self.iROI][i].ROI)
-            self.iROI = self.nROIs
-            self.ROIs.append(roi.sROI(rind=roitype-1, rtype=roistr, iROI=self.nROIs, moveable=True, parent=self))
-            self.rROI.append([])
-            self.nROIs += 1
-            self.ROIs[-1].position(self)
-        else:
-            msg = QtGui.QMessageBox(self)
-            msg.setIcon(QtGui.QMessageBox.Warning)
-            msg.setText("You have to choose an ROI type before creating ROI")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
-            msg.exec_()
-            return
-        """
+
+    def load_ROI(self):
+
+        data = np.load(os.path.join(self.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
+        self.saturation = 255-data['ROIsaturation']
+        self.ROI = roi.sROI(parent=self,
+                            pos = roi.ellipse_props_to_ROI(data['ROIellipse']))
+        self.rROI = []
+        self.reflectors = []
+        if 'reflectors' in data:
+            for r in data['reflectors']:
+                self.rROI.append(roi.reflectROI(len(self.rROI),
+                                                pos = roi.ellipse_props_to_ROI(r),
+                                                moveable=True, parent=self))
+            
+        self.pupil_draw.setEnabled(True)
+        self.fit_pupil.setEnabled(True)
 
     def save_folder(self):
         folderName = QtGui.QFileDialog.getExistingDirectory(self,
@@ -414,11 +370,6 @@ class MainW(QtGui.QMainWindow):
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 1
-                elif x==self.p2:
-                    vb = self.p1.vb
-                    pos = vb.mapSceneToView(event.scenePos())
-                    posx = pos.x()
-                    iplot = 2
                 elif x==self.p0:
                     if event.button()==1:
                         if event.double():
@@ -490,6 +441,7 @@ class MainW(QtGui.QMainWindow):
 
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0,self.sat[0]])
+        # self.p0.setRange(xRange=(0,self.Lx), yRange=(0, self.Ly), padding=0.0)
         self.frameNumber.setText(str(self.cframe))
         self.win.show()
         self.show()
@@ -558,30 +510,20 @@ class MainW(QtGui.QMainWindow):
         return ops
 
     def save_ROIs(self):
-        # self.sbin = int(self.binSpinBox.value())
-        # # save running parameters as defaults
-        # ops = self.save_ops()
 
-        # if len(self.save_path) > 0:
-        #     savepath = self.save_path
-        # else:
-        #     savepath = None
-        # print(savepath)
-        # if len(self.ROIs)>0:
-        #     rois = utils.roi_to_dict(self.ROIs, self.rROI)
-        # else:
-        #     rois = None
-        # proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
-        #         'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
-        #         'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-        #         'filenames': self.filenames, 'iframes': self.iframes}
-        # savename = process.save(proc, savepath=savepath)
-        # self.batchlist.append(savename)
-        # basename,filename = os.path.split(savename)
-        # filename, ext = os.path.splitext(filename)
-        # self.batchname[len(self.batchlist)-1].setText(filename)
-        # self.processbatch.setEnabled(True)
-        pass
+        if self.datafolder!='':
+            data = {}
+            if len(self.rROI)>0:
+                data['reflectors'] = [r.extract_props() for r in self.rROI]
+            if self.ROI is not None:
+                data['ROIellipse'] = self.ROI.extract_props()
+            if self.pupil is not None:
+                data['ROIpupil'] = self.pupil.extract_props()
+            data['ROIsaturation'] = self.ROI.saturation
+            np.save(os.path.join(self.datafolder, 'pupil-ROIs.npy'), data)
+        else:
+            print('Choose a datafile and draw a pupil ROI')
+        
     
     def process_batch(self):
         pass
@@ -736,7 +678,20 @@ class MainW(QtGui.QMainWindow):
             self.pupil_fit.setEnabled(True)
         
     def fit_pupil_size(self, value):
-        process.fit_pupil_size(self)
+        
+        if self.pupil is not None:
+            self.pupil.remove(self)
+            
+        if self.pupil_shape.currentText()=='Ellipse fit':
+            coords, shape = process.fit_pupil_size(self, shape='ellipse')
+        else:
+            coords, shape = process.fit_pupil_size(self, shape='circle')
+            coords = list(coords)+[coords[-1]] # form circle to ellipse
+            
+        self.pupil = roi.pupilROI(moveable=True,
+                                  pos = roi.ellipse_props_to_ROI(coords),
+                                  parent=self)
+            
         
     def quit(self):
         sys.exit()
