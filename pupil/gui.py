@@ -86,14 +86,15 @@ class MainW(QtGui.QMainWindow):
         self.saturation = []
         self.ROI = None
         self.pupil = None
-        self.iframes, self.times, self.PD = [], [], []
+        self.iframes, self.times, self.Pr1, self.Pr2, self.PD = [], [], [], [], []
 
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
-        self.l0.addWidget(self.sl,1,11,1,2)
+        self.sl.setSingleStep(1)
+        self.l0.addWidget(self.sl,1,6,1,7)
         qlabel = QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
-        self.l0.addWidget(qlabel,0,11,1,1)
+        self.l0.addWidget(qlabel,0,6,1,3)
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
@@ -105,21 +106,25 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.fit_pupil, 1, 9+5, 1, 1.5)
         self.fit_pupil.setEnabled(False)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
-        # draw pupil
-        self.pupil_draw = QtGui.QPushButton('draw Pupil')
-        self.l0.addWidget(self.pupil_draw, 1, 10+5, 1, 1.5)
-        self.pupil_draw.setEnabled(False)
-        self.pupil_draw.clicked.connect(self.draw_pupil)
         # choose pupil shape
         self.pupil_shape = QtGui.QComboBox(self)
         self.pupil_shape.addItem("Circle fit")
         self.pupil_shape.addItem("Ellipse fit")
-        self.l0.addWidget(self.pupil_shape, 1, 11+5, 1, 1.5)
-        # draw pupil
+        self.l0.addWidget(self.pupil_shape, 1, 10+5, 1, 1.5)
+        # reset
         self.reset_btn = QtGui.QPushButton('reset')
-        self.l0.addWidget(self.reset_btn, 1, 12+5, 1, 1.5)
+        self.l0.addWidget(self.reset_btn, 1, 11+5, 1, 1.5)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
+        # draw pupil
+        self.pupil_draw = QtGui.QPushButton('draw Pupil')
+        self.l0.addWidget(self.pupil_draw, 2, 10+5, 1, 1.5)
+        self.pupil_draw.setEnabled(False)
+        self.pupil_draw.clicked.connect(self.draw_pupil)
+        self.pupil_draw_save = QtGui.QPushButton('save drawing')
+        self.l0.addWidget(self.pupil_draw_save, 2, 11+5, 1, 1.5)
+        self.pupil_draw_save.setEnabled(False)
+        self.pupil_draw_save.clicked.connect(self.draw_pupil_save)
         
         self.rROI= []
         self.reflectors=[]
@@ -183,21 +188,6 @@ class MainW(QtGui.QMainWindow):
             paths = file_dialog.selectedFiles()
         print(paths)
 
-    def build_subsampling(self):
-        self.sampling = float(self.rateBox.text())
-        times = np.load(os.path.join(self.datafolder, 'FaceCamera-times.npy'))
-        t0, t, self.iframes, self.times = times[0], times[0], [], []
-        while t<times[-1]:
-            it = np.argmin((times-t)**2)
-            self.iframes.append(it)
-            self.times.append(t-t0)
-            t+=1./self.sampling
-        self.times, self.PD = np.array(self.times), np.zeros(len(self.times))
-        self.nframes = len(self.iframes)
-        self.filenames = np.array(os.listdir(os.path.join(self.datafolder,
-                                                          'FaceCamera-imgs')))[self.iframes]
-
-        
     def load_data(self):
 
         self.batch = False
@@ -209,14 +199,17 @@ class MainW(QtGui.QMainWindow):
 
         if os.path.isdir(self.datafolder):
 
-            self.build_subsampling()
+            # insure data ordering and build sampling
+            process.check_sanity(self)
+            process.build_temporal_subsampling(self)
+            # initialize to first available image
             self.cframe = 0
             self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
                                                 self.filenames[self.cframe]))
             #
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
-            self.sx, self.sy = 10, 10
+
             self.p1.clear()
             self.p1.plot(self.times, self.PD, pen=(0,255,0))
             self.movieLabel.setText(os.path.dirname(self.datafolder))
@@ -231,7 +224,14 @@ class MainW(QtGui.QMainWindow):
 
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
                 self.load_ROI()
+            if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
+                data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
+                               allow_pickle=True).item()
+                self.times, self.PD =  data['times'], data['Pupil-Diameter']
+                self.sampling_rate = data['sampling_rate']
+                self.rateBox.setText(str(self.sampling_rate))
 
+            self.plot_pupil_trace()
         else:
             print("ERROR: provide a valid data folder !")
 
@@ -257,8 +257,12 @@ class MainW(QtGui.QMainWindow):
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
         self.process.setEnabled(False)
+        self.savedata = QtGui.QPushButton('save data')
+        self.savedata.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.savedata.clicked.connect(self.save_pupil_data)
+        self.savedata.setEnabled(False)
 
-        self.load = QtGui.QPushButton('load data-folder')
+        self.load = QtGui.QPushButton('load data \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
         self.load.setEnabled(True)
@@ -318,6 +322,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.addROI,12,0,1,3)
         self.l0.addWidget(self.saverois, 16, 0, 1, 3)
         self.l0.addWidget(self.process, 20, 0, 1, 3)
+        self.l0.addWidget(self.savedata, 21, 0, 1, 3)
         # self.l0.addWidget(self.processbatch, 21, 0, 1, 3)
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
@@ -357,6 +362,8 @@ class MainW(QtGui.QMainWindow):
 
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
+    def draw_pupil_save(self):
+        print('Not implemented yet !')
         
     def add_ROI(self):
 
@@ -503,19 +510,38 @@ class MainW(QtGui.QMainWindow):
 
     def save_ROIs(self):
         """ """
-        if self.datafolder!='':
-            data = {}
-            if len(self.rROI)>0:
-                data['reflectors'] = [r.extract_props() for r in self.rROI]
-            if self.ROI is not None:
-                data['ROIellipse'] = self.ROI.extract_props()
-            if self.pupil is not None:
-                data['ROIpupil'] = self.pupil.extract_props()
-            data['ROIsaturation'] = self.ROI.saturation
-            np.save(os.path.join(self.datafolder, 'pupil-ROIs.npy'), data)
-        else:
-            print('Choose a datafile and draw a pupil ROI')
         
+        # format data
+        data = {}
+        if len(self.rROI)>0:
+            data['reflectors'] = [r.extract_props() for r in self.rROI]
+        if self.ROI is not None:
+            data['ROIellipse'] = self.ROI.extract_props()
+        if self.pupil is not None:
+            data['ROIpupil'] = self.pupil.extract_props()
+        data['ROIsaturation'] = self.ROI.saturation
+        
+        # save in data-folder
+        if not self.batch:
+            np.save(os.path.join(self.datafolder, 'pupil-ROIs.npy'), data)
+            print('successfully save the ROIs as:', os.path.join(self.datafolder, 'pupil-ROIs.npy'))
+        else:
+            # loop over datafiles !
+            pass
+
+    def save_pupil_data(self):
+        """ """
+        if not self.batch:
+            np.save(os.path.join(self.datafolder, 'pupil-data.npy'), {'times':self.times,
+                                                                    'sampling_rate':self.sampling_rate,
+                                                                      'Pupil-Radius1':self.Pr1,
+                                                                      'Pupil-Radius2':self.Pr2,
+                                                                      'Pupil-Diameter':self.PD})
+        else:
+            # loop over datafiles !
+            pass
+
+            
     def process_ROIs(self):
 
         for x in [self.playButton, self.pauseButton, self.addROI, self.process,
@@ -524,24 +550,26 @@ class MainW(QtGui.QMainWindow):
             x.setEnabled(False)
         self.win.show()
         self.show()
-        
+
+        print('processing pupil size over the whole recording [...]')
+        process.build_subsampling(self) # we re-build the sampling
         for self.cframe in range(self.nframes):
-            # self.reset()
-            self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
-                                                self.filenames[self.cframe]))
-            self.show_fullframe()
-            self.updateFrameSlider()
+            # preprocess image
+            process.preprocess_img(self)
+            # 
             coords = self.fit_pupil_size(None, coords_only=True)
             self.PD[self.cframe] = np.pi*coords[2]*coords[3]
-            
-        self.p1.clear()
-        self.p1.plot(self.times, self.PD, pen=(0,255,0))
-        self.p1.show()
+            self.Pr1[self.cframe], self.Pr2[self.cframe] = coords[2], coords[3]
+        print('Pupil size calculation over !')
+
+        self.savedata.setEnabled(True)
+        self.plot_pupil_trace()
             
         for x in [self.playButton, self.pauseButton, self.addROI, self.process,
                   self.reflector, self.load_batch, self.load,
                   self.saverois, self.reset_btn, self.pupil_shape, self.pupil_draw, self.fit_pupil]:
             x.setEnabled(True)
+            
         self.win.show()
         self.show()
 
@@ -662,6 +690,13 @@ class MainW(QtGui.QMainWindow):
         #     tr = running.T
         # return tr
 
+        
+    def plot_pupil_trace(self):
+            self.p1.clear()
+            self.p1.plot(self.times, self.PD, pen=(0,255,0))
+            self.p1.setRange(xRange=(self.times[0],self.times[-1]), padding=0.0)
+            self.p1.show()
+                
     def button_status(self, status):
         self.playButton.setEnabled(status)
         self.pauseButton.setEnabled(status)
@@ -698,12 +733,12 @@ def run(moviefile=None,savedir=None):
         os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
 
     app_icon = QtGui.QIcon()
-    app_icon.addFile(icon_path, QtCore.QSize(16, 16))
-    app_icon.addFile(icon_path, QtCore.QSize(24, 24))
-    app_icon.addFile(icon_path, QtCore.QSize(32, 32))
+    # app_icon.addFile(icon_path, QtCore.QSize(16, 16))
+    # app_icon.addFile(icon_path, QtCore.QSize(24, 24))
+    # app_icon.addFile(icon_path, QtCore.QSize(32, 32))
     app_icon.addFile(icon_path, QtCore.QSize(48, 48))
-    app_icon.addFile(icon_path, QtCore.QSize(96, 96))
-    app_icon.addFile(icon_path, QtCore.QSize(256, 256))
+    # app_icon.addFile(icon_path, QtCore.QSize(96, 96))
+    # app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
     GUI = MainW(moviefile,savedir)
     #p = GUI.palette()

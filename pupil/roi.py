@@ -8,7 +8,6 @@ import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 import pims
 from scipy.stats import zscore, skew
-from scipy.ndimage import gaussian_filter
 from matplotlib import cm
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
@@ -196,31 +195,20 @@ class sROI():
         parent.win.show()
         parent.show()
 
+
     def plot(self, parent):
 
         # get saturation level
         self.saturation = 255-parent.saturation
-
-        # applying the ellipse mask
-        img = parent.fullimg.copy()
-        img[~self.ellipse] = 255-self.saturation
         
-        img = img[np.min(self.x[self.ellipse]):np.max(self.x[self.ellipse]):,\
-                  np.min(self.y[self.ellipse]):np.max(self.y[self.ellipse])]
-        
-        # smooth
-        img = gaussian_filter(img, 2)
-        # then threshold
-        img[img>self.saturation] = 255-self.saturation
+        self.preprocess(parent)
         
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)
         
-        parent.pROIimg.setImage(img)
+        parent.pROIimg.setImage(parent.img)
         parent.pROIimg.setLevels([0, self.saturation])
-        parent.ximg, parent.yimg = np.arange(img.shape[0]), np.arange(img.shape[1])
         # parent.pROI.setRange(xRange=(0,img.shape[0]), yRange=(0, img.shape[1]), padding=0.0)
-        parent.img = img
         parent.win.show()
         parent.show()
 

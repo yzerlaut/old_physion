@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import pyqtgraph as pg
 from scipy.optimize import minimize
+from scipy.ndimage import gaussian_filter
 
 def ellipse_coords(xc, yc, sx, sy, n=50):
     t = np.linspace(0, 2*np.pi, n)
@@ -91,6 +92,56 @@ def fit_pupil_size(parent, shape='circle'):
     return perform_fit(img, x, y, reflectors, shape=shape)
     
     
+def preprocess(parent, gaussian_smoothing=2):
+
+    # applying the ellipse mask
+    img = np.load(os.path.join(parent.datafolder, 'FaceCamera-imgs',
+                               parent.filenames[parent.cframe])).copy()
+    img[~self.ellipse] = 255-self.saturation
+
+    img = img[np.min(self.x[self.ellipse]):np.max(self.x[self.ellipse]):,\
+              np.min(self.y[self.ellipse]):np.max(self.y[self.ellipse])]
+
+    # smooth
+    img = gaussian_filter(img, gaussian_smoothing)
+    # then threshold
+    img[img>self.saturation] = 255-self.saturation
+
+    parent.img = img
+    parent.ximg, parent.yimg = np.arange(parent.img.shape[0]), np.arange(parent.img.shape[1])
+
+    return img
+
+def build_temporal_subsampling(cls):
+    """
+    """
+    cls.sampling_rate = float(cls.rateBox.text())
+    times = np.load(os.path.join(cls.datafolder, 'FaceCamera-times.npy'))
+    t0, t, cls.iframes, cls.times = times[0], times[0], [], []
+    while t<times[-1]:
+        it = np.argmin((times-t)**2)
+        cls.iframes.append(it)
+        cls.times.append(t-t0)
+        t+=1./cls.sampling_rate
+    cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
+    cls.Pr1, cls.Pr2 = np.array(cls.times), np.zeros(len(cls.times))
+    cls.nframes = len(cls.iframes)
+    cls.filenames = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
+                                                            'FaceCamera-imgs'))))[cls.iframes]
+
+
+def check_sanity(cls):
+
+    filenames = os.listdir(os.path.join(cls.datafolder,'FaceCamera-imgs'))
+    max_string = -1
+    nmax = max([len(fn) for fn in filenames])
+    for fn in filenames:
+        n0 = len(fn)
+        if n0<nmax:
+            os.rename(os.path.join(cls.datafolder,'FaceCamera-imgs',fn),
+                      os.path.join(cls.datafolder,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+
+
 
 if __name__=='__main__':
     
