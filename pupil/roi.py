@@ -12,6 +12,8 @@ from matplotlib import cm
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
+import process
+
 def extract_ellipse_props(ROI):
     """ extract ellipse props from ROI (NEED TO RECENTER !)"""
     xcenter = ROI.pos()[1]+ROI.size()[1]/2.
@@ -201,7 +203,7 @@ class sROI():
         # get saturation level
         self.saturation = 255-parent.saturation
         
-        self.preprocess(parent)
+        process.preprocess(parent)
         
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)

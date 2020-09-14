@@ -262,7 +262,7 @@ class MainW(QtGui.QMainWindow):
         self.savedata.clicked.connect(self.save_pupil_data)
         self.savedata.setEnabled(False)
 
-        self.load = QtGui.QPushButton('load data \u2b07')
+        self.load = QtGui.QPushButton('  load data  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
         self.load.setEnabled(True)
@@ -552,7 +552,7 @@ class MainW(QtGui.QMainWindow):
         self.show()
 
         print('processing pupil size over the whole recording [...]')
-        process.build_subsampling(self) # we re-build the sampling
+        process.build_temporal_subsampling(self) # we re-build the sampling
         for self.cframe in range(self.nframes):
             # preprocess image
             process.preprocess_img(self)

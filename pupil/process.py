@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import numpy as np
 import pyqtgraph as pg
 from scipy.optimize import minimize
@@ -92,23 +92,24 @@ def fit_pupil_size(parent, shape='circle'):
     return perform_fit(img, x, y, reflectors, shape=shape)
     
     
-def preprocess(parent, gaussian_smoothing=2):
+def preprocess(cls, gaussian_smoothing=2):
 
     # applying the ellipse mask
-    img = np.load(os.path.join(parent.datafolder, 'FaceCamera-imgs',
-                               parent.filenames[parent.cframe])).copy()
-    img[~self.ellipse] = 255-self.saturation
+    img = np.load(os.path.join(cls.datafolder, 'FaceCamera-imgs',
+                               cls.filenames[cls.cframe])).copy()
 
-    img = img[np.min(self.x[self.ellipse]):np.max(self.x[self.ellipse]):,\
-              np.min(self.y[self.ellipse]):np.max(self.y[self.ellipse])]
+    img[~cls.ROI.ellipse] = 255-cls.ROI.saturation
+
+    img = img[np.min(cls.ROI.x[cls.ROI.ellipse]):np.max(cls.ROI.x[cls.ROI.ellipse]):,\
+              np.min(cls.ROI.y[cls.ROI.ellipse]):np.max(cls.ROI.y[cls.ROI.ellipse])]
 
     # smooth
     img = gaussian_filter(img, gaussian_smoothing)
     # then threshold
-    img[img>self.saturation] = 255-self.saturation
+    img[img>cls.ROI.saturation] = 255-cls.ROI.saturation
 
-    parent.img = img
-    parent.ximg, parent.yimg = np.arange(parent.img.shape[0]), np.arange(parent.img.shape[1])
+    cls.img = img
+    cls.ximg, cls.yimg = np.arange(cls.img.shape[0]), np.arange(cls.img.shape[1])
 
     return img
 
@@ -133,7 +134,6 @@ def build_temporal_subsampling(cls):
 def check_sanity(cls):
 
     filenames = os.listdir(os.path.join(cls.datafolder,'FaceCamera-imgs'))
-    max_string = -1
     nmax = max([len(fn) for fn in filenames])
     for fn in filenames:
         n0 = len(fn)
@@ -144,20 +144,23 @@ def check_sanity(cls):
 
 
 if __name__=='__main__':
-    
-    from datavyz import ges as ge
-    from analyz.IO.npz import load_dict
 
-    # prepare data
-    data = np.load('pupil.npz')
-    img = (data['img'].max()-data['img'])/(data['img'].max()-data['img'].min())
-    x, y = np.meshgrid(data['ximg'], data['yimg'], indexing='ij')
-
-    fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-    ge.image(img, ax=ax)
-    ax.plot(*ellipse_coords(*data['ROIpupil']))
-    ax.plot(*perform_fit(img, x, y, data['reflectors'], shape='circle')[1])
-    ge.show()
-
+    import argparse
 
     
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--shape", default='circle')
+    parser.add_argument("--sampling_rate", type=float, default=10.)
+    parser.add_argument("--data_folder", default='./')
+    parser.add_argument("--saving_filename", default='pupil-data.hq.npy')
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+    args = parser.parse_args()
+    
+    if os.path.isdir(args.datafolder):
+        
+        # insure data ordering and build sampling
+        process.check_sanity(args)
+        process.build_temporal_subsampling(args)
+
+    else:
+        print("ERROR: provide a valid data folder !")
