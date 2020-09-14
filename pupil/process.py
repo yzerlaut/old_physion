@@ -29,39 +29,6 @@ def circle_binary_func(X, Y, xc, yc, s):
     Z[inside_circle_cond(X, Y, xc, yc, s)] = 1
     return Z
 
-# def build_grid(x, y, reflector_cond,
-#                bound_fraction_for_center=0.2,
-#                center_discretization=21, # better odd, to have the center position
-#                min_radius=5,
-#                radius_discretization=15):
-
-#     Dx, Dy = x.max()-x.min(), y.max()-y.min()
-#     xmin, xmax = x.min()+bound_fraction_for_center*Dx, x.max()-bound_fraction_for_center*Dx
-#     ymin, ymax = y.min()+bound_fraction_for_center*Dy, y.max()-bound_fraction_for_center*Dy
-
-#     Xc, Yc, S, Value = [], [], [], []
-#     COORDS = []  
-#     for xc in np.linspace(xmin, xmax, center_discretization):
-#         for yc in np.linspace(ymin, ymax, center_discretization):
-#             for s in np.linspace(min_radius,
-#                                  max([min_radius, np.min([yc-y.min(), y.max()-yc,
-#                                                           x.max()-xc, xc-x.min()])]),
-#                                  radius_discretization):
-#                 COORDS.append([xc, yc, s, s])
-#     return np.array(COORDS), Value
-
-# def find_best_ellipse_on_GRID(img, x, y, reflector_cond):
-
-#     Xc, Yc, S, V = build_grid(x, y, reflector_cond)
-#     Residuals = []
-#     for xc, yc, s in zip(Xc, Yc, S):
-#         Residuals.append(np.sum(np.abs(ellipse_binary_func(x, y, xc, yc, s, s)[~reflector_cond]-\
-#                                        img[~reflector_cond])))
-
-#     imgr = img[~reflector_cond]
-#     ibest = np.argmin([np.sum((v-imgr)**2) for v in V])
-#     return Xc[ibest], Yc[ibest], S[ibest], S[ibest]
-
 def ellipse_residual(coords, x, y, img_no_reflect, reflector_cond):
     """
     Residual function: 1/CorrelationCoefficient ! (after blanking)

@@ -2,6 +2,7 @@ numpy
 scipy
 psychopy
 pyqt5
+pyqtgraph
 imageio
 nidaqmx
 opencv-python
