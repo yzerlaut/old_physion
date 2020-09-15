@@ -191,22 +191,24 @@ class MainW(QtGui.QMainWindow):
             f_tree_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
         if file_dialog.exec():
-            self.folders = file_dialog.selectedFiles()
+            paths = file_dialog.selectedFiles()
 
+
+        self.folders = []
+        for path in paths:
+            check = check_datafolder(path)
+            if check['FaceCamera']:
+                self.folders.append(path)
+            else:
+                print('\n Problem with "%s"' % path)
+                print(' ----> The datafolder did not pass the sanity check ! ')
+                
         s = ''
         for path in self.folders:
             date, time = from_folder_to_datetime(path)
             s += time+', '
         self.movieLabel.setText("%s => [%s]" % (date, s[:-2]))
-
-        good = True
-        for path in self.folders:
-            check = check_datafolder(path)
-            if not check['FaceCamera']:
-                good=False
-                print('\n Problem with "%s"' % path)
-                print(' ----> The datafolder did not pass the sanity check ! ')
-
+        
         if good:
             # concatenate datafiles
             process.build_temporal_subsampling(self, folders=self.folders)
