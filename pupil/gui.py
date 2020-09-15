@@ -9,12 +9,17 @@ from matplotlib import cm
 from natsort import natsorted
 import pathlib
 from analyz.IO.npz import load_dict
+from analyz.workflow.shell import printProgressBar
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, roi
+from assembling.saving import from_folder_to_datetime, check_datafolder
 
 class MainW(QtGui.QMainWindow):
-    def __init__(self, moviefile=None, savedir=None, sampling_rate=0.5):
+    def __init__(self, moviefile=None, savedir=None,
+                 sampling_rate=0.5,
+                 gaussian_smoothing=2,
+                 slider_nframes=200):
         """
         sampling in Hz
         """
@@ -50,7 +55,9 @@ class MainW(QtGui.QMainWindow):
                               "color:gray;}")
 
         self.sampling_rate = sampling_rate
-
+        self.gaussian_smoothing = gaussian_smoothing
+        self.slider_nframes = slider_nframes
+        
         # menus.mainmenu(self)
         self.online_mode=False
         #menus.onlinemenu(self)
@@ -83,18 +90,17 @@ class MainW(QtGui.QMainWindow):
         # roi initializations
         self.iROI = 0
         self.nROIs = 0
-        self.saturation = []
+        self.saturation = 255
         self.ROI = None
         self.pupil = None
         self.iframes, self.times, self.Pr1, self.Pr2, self.PD = [], [], [], [], []
 
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
-        self.sl.setSingleStep(1)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel = QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
-        self.l0.addWidget(qlabel,0,6,1,3)
+        self.l0.addWidget(qlabel,0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
@@ -121,31 +127,31 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.pupil_draw, 2, 10+5, 1, 1.5)
         self.pupil_draw.setEnabled(False)
         self.pupil_draw.clicked.connect(self.draw_pupil)
-        self.pupil_draw_save = QtGui.QPushButton('save drawing')
+        self.pupil_draw_save = QtGui.QPushButton('- Debug -')
         self.l0.addWidget(self.pupil_draw_save, 2, 11+5, 1, 1.5)
-        self.pupil_draw_save.setEnabled(False)
-        self.pupil_draw_save.clicked.connect(self.draw_pupil_save)
-        
+        # self.pupil_draw_save.setEnabled(False)
+        self.pupil_draw_save.setEnabled(True)
+        self.pupil_draw_save.clicked.connect(self.debug)
+
+        self.data = None
         self.rROI= []
         self.reflectors=[]
-        self.scatter=None # the pupil size contour
+        self.scatter, self.fit= None, None # the pupil size contour
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
                                    title='Pupil diameter')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
         self.p1.hideAxis('left')
-        self.scatter1 = pg.ScatterPlotItem()
-        self.p1.addItem(self.scatter1)
+        self.scatter = pg.ScatterPlotItem()
+        self.p1.addItem(self.scatter)
         self.p1.setLabel('bottom', 'time (s)')
-        # self.p1.setLabel('left', 'pixel')
         # self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
         self.movieLabel = QtGui.QLabel("No movie chosen")
         self.movieLabel.setStyleSheet("color: white;")
-        self.movieLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.l0.addWidget(self.movieLabel,0,0,1,5)
+        self.l0.addWidget(self.movieLabel,0,1,1,5)
         self.nframes = 0
         self.cframe = 0
         
@@ -186,22 +192,46 @@ class MainW(QtGui.QMainWindow):
 
         if file_dialog.exec():
             paths = file_dialog.selectedFiles()
-        print(paths)
 
+        s = ''
+        for path in paths:
+            date, time = from_folder_to_datetime(path)
+            s += time+', '
+        self.movieLabel.setText("%s => [%s]" % (date, s[:-2]))
+
+        good = True
+        for path in paths:
+            check = check_datafolder(path)
+            if not check['FaceCamera']:
+                good=False
+
+        print(good)
+
+            
     def load_data(self):
 
         self.batch = False
         
-        self.datafolder = '/home/yann/DATA/2020_09_01/16-41-30/'
+        self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
         # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
         #                                                          "Choose data folder",
         #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
 
         if os.path.isdir(self.datafolder):
 
+            # try to load existing pupil data
+            if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
+                self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
+                                    allow_pickle=True).item()
+                self.times, self.PD =  self.data['times'], self.data['Pupil-Diameter']
+                self.sampling_rate = self.data['sampling_rate']
+                self.rateBox.setText(str(self.sampling_rate))
+                
             # insure data ordering and build sampling
-            process.check_sanity(self)
+            process.check_datafolder(self.datafolder)
             process.build_temporal_subsampling(self)
+            # update time limits
+            self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
             self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
@@ -212,25 +242,21 @@ class MainW(QtGui.QMainWindow):
 
             self.p1.clear()
             self.p1.plot(self.times, self.PD, pen=(0,255,0))
-            self.movieLabel.setText(os.path.dirname(self.datafolder))
-            self.frameDelta = int(np.maximum(5,self.nframes/200))
-            self.frameSlider.setSingleStep(self.frameDelta)
+            # self.movieLabel.setText(os.path.dirname(self.datafolder))
+            self.movieLabel.setText("%s => %s" %\
+                        from_folder_to_datetime(os.path.dirname(self.datafolder)))
             if self.nframes > 0:
+                self.timeLabel.setEnabled(True)
+                self.frameSlider.setEnabled(True)
                 self.updateFrameSlider()
                 self.updateButtons()
             self.loaded = True
             self.processed = False
-            self.show_fullframe()
 
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
                 self.load_ROI()
-            if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
-                data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
-                               allow_pickle=True).item()
-                self.times, self.PD =  data['times'], data['Pupil-Diameter']
-                self.sampling_rate = data['sampling_rate']
-                self.rateBox.setText(str(self.sampling_rate))
 
+            self.show_fullframe()
             self.plot_pupil_trace()
         else:
             print("ERROR: provide a valid data folder !")
@@ -239,16 +265,21 @@ class MainW(QtGui.QMainWindow):
     def make_buttons(self):
         
         # create frame slider
-        self.frameLabel = QtGui.QLabel("Current frame:")
-        self.frameLabel.setStyleSheet("color: white;")
-        self.frameNumber = QtGui.QLabel("0")
-        self.frameNumber.setStyleSheet("color: white;")
+        self.timeLabel = QtGui.QLabel("Current time (seconds):")
+        self.timeLabel.setStyleSheet("color: white;")
+        self.currentTime = QtGui.QLineEdit()
+        self.currentTime.setText('0.00')
+        self.currentTime.setValidator(QtGui.QDoubleValidator(0, 100000, 2))
+        self.currentTime.setFixedWidth(50)
+        self.currentTime.returnPressed.connect(self.set_precise_time)
+        
         self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        # self.frameSlider.setTickPosition(QtGui.QSlider.TicksBelow)
-        # self.frameSlider.setTickInterval(5)
+        self.frameSlider.setMinimum(0)
+        self.frameSlider.setMaximum(self.slider_nframes)
+        self.frameSlider.setTickInterval(1)
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
-        self.frameDelta = 10
+
         istretch = 23
         iplay = istretch+15
         iconSize = QtCore.QSize(20, 20)
@@ -278,6 +309,12 @@ class MainW(QtGui.QMainWindow):
         self.rateBox.setText(str(self.sampling_rate))
         self.rateBox.setFixedWidth(35)
 
+        smoothLabel = QtGui.QLabel("Smoothing              (px)")
+        smoothLabel.setStyleSheet("color: gray;")
+        self.smoothBox = QtGui.QLineEdit()
+        self.smoothBox.setText(str(self.gaussian_smoothing))
+        self.smoothBox.setFixedWidth(25)
+        
         self.saverois = QtGui.QPushButton('save ROIs')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
@@ -319,10 +356,12 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.load_batch,3,0,1,3)
         self.l0.addWidget(sampLabel, 8, 0, 1, 3)
         self.l0.addWidget(self.rateBox, 8, 2, 1, 3)
-        self.l0.addWidget(self.addROI,12,0,1,3)
+        self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
+        self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
+        self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.saverois, 16, 0, 1, 3)
-        self.l0.addWidget(self.process, 20, 0, 1, 3)
-        self.l0.addWidget(self.savedata, 21, 0, 1, 3)
+        self.l0.addWidget(self.process, 22, 0, 1, 3)
+        self.l0.addWidget(self.savedata, 23, 0, 1, 3)
         # self.l0.addWidget(self.processbatch, 21, 0, 1, 3)
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
@@ -333,8 +372,8 @@ class MainW(QtGui.QMainWindow):
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.frameLabel, istretch+13,0,1,3)
-        self.l0.addWidget(self.frameNumber, istretch+14,0,1,3)
+        self.l0.addWidget(self.timeLabel, istretch+13,0,1,3)
+        self.l0.addWidget(self.currentTime, istretch+14,0,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
         self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
@@ -351,7 +390,10 @@ class MainW(QtGui.QMainWindow):
             self.ROI.remove(self)
         if self.pupil is not None:
             self.pupil.remove(self)
+        if self.fit is not None:
+            self.fit.remove(self)
         self.ROI, self.rROI = None, []
+        self.fit = None
         self.reflectors=[]
         self.saturation = 255
         self.iROI=0
@@ -362,12 +404,18 @@ class MainW(QtGui.QMainWindow):
 
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
-    def draw_pupil_save(self):
-        print('Not implemented yet !')
+        
+    def debug(self):
+        np.savez('pupil.npz',
+                 **{'img':self.img,
+                    'ximg':self.ximg,
+                    'yimg':self.yimg,
+                    'reflectors':[r.extract_props() for r in self.rROI],
+                    'ROIpupil':self.pupil.extract_props(),
+                    'ROIellipse':self.ROI.extract_props()})
         
     def add_ROI(self):
 
-        self.saturation = 100
         if self.ROI is not None:
             self.ROI.remove(self)
         for r in self.rROI:
@@ -384,9 +432,11 @@ class MainW(QtGui.QMainWindow):
     def load_ROI(self):
 
         data = np.load(os.path.join(self.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
-        self.saturation = 255-data['ROIsaturation']
+        self.saturation = data['ROIsaturation']
+        self.sl.setValue(self.saturation)
         self.ROI = roi.sROI(parent=self,
                             pos = roi.ellipse_props_to_ROI(data['ROIellipse']))
+        self.ROI.plot(self)
         self.rROI = []
         self.reflectors = []
         if 'reflectors' in data:
@@ -400,24 +450,25 @@ class MainW(QtGui.QMainWindow):
 
         
     def keyPressEvent(self, event):
-        bid = -1
-        if self.playButton.isEnabled():
-            if event.modifiers() !=  QtCore.Qt.ShiftModifier:
-                if event.key() == QtCore.Qt.Key_Left:
-                    self.cframe -= self.frameDelta
-                    self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
-                    self.frameSlider.setValue(self.cframe)
-                elif event.key() == QtCore.Qt.Key_Right:
-                    self.cframe += self.frameDelta
-                    self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
-                    self.frameSlider.setValue(self.cframe)
-        if event.modifiers() != QtCore.Qt.ShiftModifier:
-            if event.key() == QtCore.Qt.Key_Space:
-                if self.playButton.isEnabled():
-                    # then play
-                    self.start()
-                else:
-                    self.pause()
+        pass
+        # bid = -1
+        # if self.playButton.isEnabled():
+        #     if event.modifiers() !=  QtCore.Qt.ShiftModifier:
+        #         if event.key() == QtCore.Qt.Key_Left:
+        #             self.cframe -= self.frameDelta
+        #             self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
+        #             self.frameSlider.setValue(self.cframe)
+        #         elif event.key() == QtCore.Qt.Key_Right:
+        #             self.cframe += self.frameDelta
+        #             self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
+        #             self.frameSlider.setValue(self.cframe)
+        # if event.modifiers() != QtCore.Qt.ShiftModifier:
+        #     if event.key() == QtCore.Qt.Key_Space:
+        #         if self.playButton.isEnabled():
+        #             # then play
+        #             self.start()
+        #         else:
+        #             self.pause()
 
     def plot_clicked(self, event):
         items = self.win.scene().items(event.scenePos())
@@ -451,20 +502,27 @@ class MainW(QtGui.QMainWindow):
         if choose:
             if self.playButton.isEnabled() and not self.online_mode:
                 self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
-                self.frameSlider.setValue(self.cframe)
+                # self.frameSlider.setValue(self.cframe)
                 #self.jump_to_frame()
 
+    def set_precise_time(self):
+        self.cframe = min([self.nframes-1,np.argmin((self.times-self.times[0]-\
+                                                     float(self.currentTime.text()))**2)+1])
+        self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
+        self.frameSlider.setValue(self.cframe/self.nframes*self.slider_nframes)
+
+        self.jump_to_frame()
+        
     def go_to_frame(self):
-        self.cframe = int(self.frameSlider.value())
+        self.cframe = min([int(self.nframes*self.frameSlider.value()/self.slider_nframes),
+                           self.nframes-1])
         self.jump_to_frame()
 
     def fitToWindow(self):
         self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
 
     def updateFrameSlider(self):
-        self.frameSlider.setMaximum(self.nframes-1)
-        self.frameSlider.setMinimum(0)
-        self.frameLabel.setEnabled(True)
+        self.timeLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
 
     def updateButtons(self):
@@ -480,9 +538,25 @@ class MainW(QtGui.QMainWindow):
             self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
                                                 self.filenames[self.cframe]))
             self.pimg.setImage(self.fullimg)
-            self.frameNumber.setText(str(self.cframe))
+            self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
             if self.ROI is not None:
-                self.ROI.plot_simple(self)
+                self.ROI.plot(self)
+            if self.scatter is not None:
+                self.p1.removeItem(self.scatter)
+            if self.data is not None:
+                self.scatter.setData(self.times[self.cframe]*np.ones(1),
+                                     self.PD[self.cframe]*np.ones(1),
+                                     size=10, brush=pg.mkBrush(255,255,255))
+                self.p1.addItem(self.scatter)
+                if self.fit is not None:
+                    self.fit.remove(parent)
+                coords = []
+                for key in ['cx', 'cy', 'sx', 'sy']:
+                    coords.append(self.data[key][self.cframe])
+                self.fit = roi.pupilROI(moveable=False,
+                                        parent=self,
+                                        color=(0, 200, 0),
+                                        pos = roi.ellipse_props_to_ROI(coords))
             self.win.show()
             self.show()
             
@@ -502,9 +576,8 @@ class MainW(QtGui.QMainWindow):
     def show_fullframe(self):
 
         self.pimg.setImage(self.fullimg)
-        self.pimg.setLevels([0,self.saturation])
-        # self.p0.setRange(xRange=(0,self.Lx), yRange=(0, self.Ly), padding=0.0)
-        self.frameNumber.setText(str(self.cframe))
+        self.pimg.setLevels([0,255])
+        self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
         self.win.show()
         self.show()
 
@@ -519,7 +592,7 @@ class MainW(QtGui.QMainWindow):
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:
             data['ROIpupil'] = self.pupil.extract_props()
-        data['ROIsaturation'] = self.ROI.saturation
+        data['ROIsaturation'] = self.saturation
         
         # save in data-folder
         if not self.batch:
@@ -553,13 +626,15 @@ class MainW(QtGui.QMainWindow):
 
         print('processing pupil size over the whole recording [...]')
         process.build_temporal_subsampling(self) # we re-build the sampling
+        printProgressBar(0, self.nframes)
         for self.cframe in range(self.nframes):
             # preprocess image
-            process.preprocess_img(self)
-            # 
+            process.preprocess(self)
             coords = self.fit_pupil_size(None, coords_only=True)
             self.PD[self.cframe] = np.pi*coords[2]*coords[3]
             self.Pr1[self.cframe], self.Pr2[self.cframe] = coords[2], coords[3]
+            printProgressBar(self.cframe, self.nframes)
+        printProgressBar(self.nframes, self.nframes)
         print('Pupil size calculation over !')
 
         self.savedata.setEnabled(True)
@@ -609,24 +684,6 @@ class MainW(QtGui.QMainWindow):
         # self.p2.show()
         # self.plot_scatter()
         # self.jump_to_frame()
-
-    def plot_scatter(self):
-        pass
-        # if self.traces1.shape[0] > 0:
-        #     ntr = self.traces1.shape[0]
-        #     self.p1.removeItem(self.scatter1)
-        #     self.scatter1.setData(self.cframe*np.ones((ntr,)),
-        #                           self.traces1[:, self.cframe],
-        #                           size=10, brush=pg.mkBrush(255,255,255))
-        #     self.p1.addItem(self.scatter1)
-
-        # if self.traces2.shape[0] > 0:
-        #     ntr = self.traces2.shape[0]
-        #     self.p2.removeItem(self.scatter2)
-        #     self.scatter2.setData(self.cframe*np.ones((ntr,)),
-        #                           self.traces2[:, self.cframe],
-        #                           size=10, brush=pg.mkBrush(255,255,255))
-        #     self.p2.addItem(self.scatter2)
 
     def plot_trace(self, wplot, proctype, wroi, color):
         pass
@@ -706,13 +763,13 @@ class MainW(QtGui.QMainWindow):
 
     def fit_pupil_size(self, value, coords_only=False):
         
-        if self.pupil is not None:
+        if not coords_only and (self.pupil is not None):
             self.pupil.remove(self)
 
         if self.pupil_shape.currentText()=='Ellipse fit':
-            coords, shape = process.fit_pupil_size(self, shape='ellipse')
+            coords, shape, res = process.fit_pupil_size(self, shape='ellipse')
         else:
-            coords, shape = process.fit_pupil_size(self, shape='circle')
+            coords, shape, res = process.fit_pupil_size(self, shape='circle')
             coords = list(coords)+[coords[-1]] # form circle to ellipse
 
         if not coords_only:

@@ -9,6 +9,7 @@ from pyqtgraph import GraphicsScene
 import pims
 from scipy.stats import zscore, skew
 from matplotlib import cm
+from scipy.ndimage import gaussian_filter
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
@@ -85,8 +86,10 @@ class reflectROI():
 class pupilROI():
     def __init__(self, moveable=True,
                  parent=None, pos=None,
-                 yrange=None, xrange=None, ellipse=None):
-        self.color = (255.0,0.0,0.0)
+                 yrange=None, xrange=None,
+                 color = (255.0,0.0,0.0),
+                 ellipse=None):
+        self.color = color
         self.moveable = moveable
         
         if pos is None:
@@ -136,13 +139,10 @@ class pupilROI():
 
 class sROI():
     def __init__(self, moveable=False,
-                 parent=None, saturation=None, color=None, pos=None,
+                 parent=None, color=None, pos=None,
                  yrange=None, xrange=None,
                  ivid=None, pupil_sigma=None):
-        if saturation is None:
-            self.saturation = 0
-        else:
-            self.saturation = saturation
+
         self.moveable = moveable
         if color is None:
             self.color = np.maximum(0, np.minimum(255, colors[0]+np.random.randn(3)*70))
@@ -187,8 +187,9 @@ class sROI():
         self.ellipse = ellipse
         parent.ROIellipse = self.extract_props()
         # parent.sl[1].setValue(parent.saturation * 100 / 255)
-        self.plot(parent)
-
+        if parent.ROI is not None:
+            self.plot(parent)
+        
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
         parent.pROIimg.clear()
@@ -200,40 +201,17 @@ class sROI():
 
     def plot(self, parent):
 
-        # get saturation level
-        self.saturation = 255-parent.saturation
-        
         process.preprocess(parent)
         
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)
         
         parent.pROIimg.setImage(parent.img)
-        parent.pROIimg.setLevels([0, self.saturation])
-        # parent.pROI.setRange(xRange=(0,img.shape[0]), yRange=(0, img.shape[1]), padding=0.0)
+        parent.pROIimg.setLevels([parent.img.min(), parent.img.max()])
+        
         parent.win.show()
         parent.show()
 
-    def plot_simple(self, parent):
-
-        # get saturation level
-        self.saturation = 255-parent.saturation
-
-        # applying the ellipse mask
-        img = parent.fullimg.copy()
-        img[~self.ellipse] = 255-self.saturation
-        
-        img = img[np.min(self.x[self.ellipse]):np.max(self.x[self.ellipse]):,\
-                  np.min(self.y[self.ellipse]):np.max(self.y[self.ellipse])]
-        
-        # smooth
-        img = gaussian_filter(img, 2)
-        # then threshold
-        img[img>self.saturation] = 255-self.saturation
-        parent.pROIimg.setImage(img)
-        parent.pROIimg.setLevels([0, self.saturation])
-        parent.img = img
-        
     def extract_props(self):
         return extract_ellipse_props(self.ROI)
     

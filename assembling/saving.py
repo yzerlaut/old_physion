@@ -51,7 +51,58 @@ def last_datafolder_in_dayfolder(day_folder):
         print('No datafolder found, returning "./" ')
         return './'
 
+def from_folder_to_datetime(folder):
 
+    s = folder.split(os.path.sep)[-2:]
+
+    date = s[0].split('_')
+    return date[2]+'/'+date[1]+'/'+date[0], s[1].replace('-', ':')
+
+def check_datafolder(df):
+    
+    check = {}
+
+    if os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
+       os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
+        check['FaceCamera'] = True
+    else:
+        check['FaceCamera'] = False
+
+    if os.path.isfile(os.path.join(df, 'NIdaq.npy')):
+        check['NIdaq'] = True
+    else:
+        check['NIdaq'] = False
+
+    if os.path.isfile(os.path.join(df, 'visual-stim.npz')) and \
+       os.path.isdir(os.path.join(df,'screen-frames')):
+        check['visual-stim'] = True
+    else:
+        check['visual-stim'] = False
+
+        
+    if check['FaceCamera']:
+        # insuring nice order of FaceCamera images
+        filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
+        nmax = max([len(fn) for fn in filenames])
+        for fn in filenames:
+            n0 = len(fn)
+            if n0<nmax:
+                os.rename(os.path.join(df,'FaceCamera-imgs',fn),
+                          os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+                
+
+    if check['visual-stim']:
+        # insuring nice order of screen frames
+        filenames = os.listdir(os.path.join(df,'screen-frames'))
+        nmax = max([len(fn) for fn in filenames])
+        for fn in filenames:
+            n0 = len(fn)
+            if n0<nmax:
+                os.rename(os.path.join(df,'screen-frames', fn),
+                          os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
+
+    return check
+            
 #########################################################
 #### Dealing with root data folder
 #########################################################

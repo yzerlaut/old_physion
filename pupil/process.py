@@ -1,8 +1,12 @@
-import sys, os
+import sys, os, pathlib
 import numpy as np
 import pyqtgraph as pg
 from scipy.optimize import minimize
 from scipy.ndimage import gaussian_filter
+from analyz.workflow.shell import printProgressBar
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from assembling.saving import check_datafolder
 
 def ellipse_coords(xc, yc, sx, sy, n=50):
     t = np.linspace(0, 2*np.pi, n)
@@ -79,44 +83,61 @@ def perform_fit(img, x, y, reflectors,
                    args=(x, y, img_no_reflect, reflector_cond),
                    method='Nelder-Mead',
                    tol=1e-8, options={'maxiter':1000})
+    return res.x, shape(*res.x), res.fun
 
-    return res.x, shape(*res.x)
-
-def fit_pupil_size(parent, shape='circle'):
+def fit_pupil_size(parent, shape='circle',
+                   reflectors=None,
+                   ellipse=None):
 
     img = (parent.img.max()-parent.img)/(parent.img.max()-parent.img.min())
     x, y = np.meshgrid(parent.ximg, parent.yimg, indexing='ij')
 
-    reflectors = [r.extract_props() for r in parent.rROI]
+    if reflectors is None: # means we can extract it from parent object
+        reflectors = [r.extract_props() for r in parent.rROI]
     
     return perform_fit(img, x, y, reflectors, shape=shape)
     
     
-def preprocess(cls, gaussian_smoothing=2):
+def preprocess(cls, ellipse=None):
 
     # applying the ellipse mask
     img = np.load(os.path.join(cls.datafolder, 'FaceCamera-imgs',
                                cls.filenames[cls.cframe])).copy()
 
-    img[~cls.ROI.ellipse] = 255-cls.ROI.saturation
+    if ellipse is not None:
+        cx, cy, sx, sy = ellipse
+        Lx, Ly = img.shape
+        x,y = np.meshgrid(np.arange(0,Lx), np.arange(0,Ly), indexing='ij')
+        ellipse = ((y - cy)**2 / (sy/2)**2 +
+                    (x - cx)**2 / (sx/2)**2) <= 1
+        img[~ellipse] = cls.saturation
+        
+        
+    elif cls.ROI is not None:
+        img[~cls.ROI.ellipse] = cls.saturation
 
-    img = img[np.min(cls.ROI.x[cls.ROI.ellipse]):np.max(cls.ROI.x[cls.ROI.ellipse]):,\
-              np.min(cls.ROI.y[cls.ROI.ellipse]):np.max(cls.ROI.y[cls.ROI.ellipse])]
+        img = img[np.min(cls.ROI.x[cls.ROI.ellipse]):np.max(cls.ROI.x[cls.ROI.ellipse]):,\
+                  np.min(cls.ROI.y[cls.ROI.ellipse]):np.max(cls.ROI.y[cls.ROI.ellipse])]
 
-    # smooth
-    img = gaussian_filter(img, gaussian_smoothing)
+    # first smooth
+    img = gaussian_filter(img, cls.gaussian_smoothing)
+    
     # then threshold
-    img[img>cls.ROI.saturation] = 255-cls.ROI.saturation
+    img[img>cls.saturation] = cls.saturation
 
     cls.img = img
     cls.ximg, cls.yimg = np.arange(cls.img.shape[0]), np.arange(cls.img.shape[1])
 
     return img
 
-def build_temporal_subsampling(cls):
+def build_temporal_subsampling(cls, sampling_rate=None):
     """
     """
-    cls.sampling_rate = float(cls.rateBox.text())
+    if sampling_rate is None:
+        cls.sampling_rate = float(cls.rateBox.text())
+    else:
+        cls.sampling_rate = sampling_rate
+        
     times = np.load(os.path.join(cls.datafolder, 'FaceCamera-times.npy'))
     t0, t, cls.iframes, cls.times = times[0], times[0], [], []
     while t<times[-1]:
@@ -130,19 +151,6 @@ def build_temporal_subsampling(cls):
     cls.filenames = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
                                                             'FaceCamera-imgs'))))[cls.iframes]
 
-
-def check_sanity(cls):
-
-    filenames = os.listdir(os.path.join(cls.datafolder,'FaceCamera-imgs'))
-    nmax = max([len(fn) for fn in filenames])
-    for fn in filenames:
-        n0 = len(fn)
-        if n0<nmax:
-            os.rename(os.path.join(cls.datafolder,'FaceCamera-imgs',fn),
-                      os.path.join(cls.datafolder,'FaceCamera-imgs','0'*(nmax-n0)+fn))
-
-
-
 if __name__=='__main__':
 
     import argparse
@@ -151,16 +159,72 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("--shape", default='circle')
     parser.add_argument("--sampling_rate", type=float, default=10.)
-    parser.add_argument("--data_folder", default='./')
-    parser.add_argument("--saving_filename", default='pupil-data.hq.npy')
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+    parser.add_argument("--gaussian_smoothing", type=float, default=2)
+    parser.add_argument('-df', "--datafolder", default='./')
+    parser.add_argument('-f', "--saving_filename", default='pupil-data.hq.npy')
+    parser.add_argument("-nv", "--non_verbose", help="decrease output verbosity", action="store_true")
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
-    
-    if os.path.isdir(args.datafolder):
-        
-        # insure data ordering and build sampling
-        process.check_sanity(args)
-        process.build_temporal_subsampling(args)
 
+    if not args.debug:
+        if os.path.isdir(args.datafolder) and\
+           os.path.isfile(os.path.join(args.datafolder, 'pupil-ROIs.npy')):
+            # load ROI
+            rois = np.load(os.path.join(args.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
+            args.saturation = rois['ROIsaturation']
+            # insure data ordering and build sampling
+            check_datafolder(args.datafolder)
+            build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
+            # initialize data
+            data = {'cx':np.zeros(args.nframes), 'cy':np.zeros(args.nframes),
+                    'sx':np.zeros(args.nframes), 'sy':np.zeros(args.nframes),
+                    'residual':np.zeros(args.nframes)}
+            # -- loop over frames
+            print('\n----------------------------------------------\n')
+            print('  Processing images to track pupil size and position in "%s"' % args.datafolder)
+            if not args.non_verbose:
+                printProgressBar(0, args.nframes)
+            for args.cframe in range(args.nframes):
+                # preprocess image
+                args.img = preprocess(args, ellipse=rois['ROIellipse'])
+                coords, _, res = fit_pupil_size(args,
+                                                reflectors=rois['reflectors'])
+                data['cx'][args.cframe] = coords[0]
+                data['cy'][args.cframe] = coords[1]
+                data['sx'][args.cframe] = coords[2]
+                if args.shape=='circle':
+                    data['sy'][args.cframe] = coords[2]
+                else:
+                    data['sy'][args.cframe] = coords[3]
+                data['residual'][args.cframe] = res
+                if not args.non_verbose:
+                    printProgressBar(args.cframe, args.nframes)
+            np.save(os.path.join(args.datafolder, args.saving_filename), data)
+            if not args.non_verbose:
+                printProgressBar(args.nframes, args.nframes)
+                print('Pupil size calculation over !')
+                print('Processed data saved as:', os.path.join(args.datafolder, args.saving_filename))
+            # save analysis output
+        elif not os.path.isfile(os.path.join(args.datafolder, 'pupil-ROIs.npy')):
+            print('Need to save ROIs for this datafolder !')
+        else:
+            print("ERROR: provide a valid data folder with a !")
     else:
-        print("ERROR: provide a valid data folder !")
+        """
+        snippet of code to design/debug the fitting algorithm
+        
+        ---> to be used with the "-Debug-" button of the GUI
+        """
+        from datavyz import ges as ge
+        from analyz.IO.npz import load_dict
+
+        # prepare data
+        data = np.load('pupil.npz')
+        x, y = np.meshgrid(data['ximg'], data['yimg'], indexing='ij')
+
+        fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        ge.image(data['img'], ax=ax)
+        # ax.plot(*ellipse_coords(*data['ROIpupil']))
+        ax.plot(*perform_fit(data['img'], x, y, data['reflectors'], shape='circle')[1])
+        ge.show()
+

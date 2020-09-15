@@ -36,18 +36,17 @@ class ListChooser(QtGui.QDialog):
 class Slider(QtGui.QSlider):
     def __init__(self, bid, parent=None):
         super(self.__class__, self).__init__()
-        initval = [99,99]
         self.bid = bid
         self.setOrientation(QtCore.Qt.Horizontal)
         self.setMinimum(0)
-        self.setMaximum(100)
-        self.setValue(initval[bid])
-        self.setTickInterval(10)
+        self.setMaximum(255)
+        self.setValue(255)
+        self.setTickInterval(1)
         self.valueChanged.connect(lambda: self.level_change(parent,bid))
         self.setTracking(False)
 
     def level_change(self, parent, bid):
-        parent.saturation = float(self.value())/100 * 255
+        parent.saturation = float(self.value())
         if parent.ROI is not None:
             parent.ROI.plot(parent)
         parent.win.show()
