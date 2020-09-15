@@ -164,7 +164,7 @@ class MainW(QtGui.QMainWindow):
         self.loaded = False
         self.Floaded = False
         self.wraw = False
-        self.win.scene().sigMouseClicked.connect(self.plot_clicked)
+        # self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         self.win.show()
         self.show()
         self.processed = False
@@ -191,16 +191,16 @@ class MainW(QtGui.QMainWindow):
             f_tree_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
         if file_dialog.exec():
-            paths = file_dialog.selectedFiles()
+            self.folders = file_dialog.selectedFiles()
 
         s = ''
-        for path in paths:
+        for path in self.folders:
             date, time = from_folder_to_datetime(path)
             s += time+', '
         self.movieLabel.setText("%s => [%s]" % (date, s[:-2]))
 
         good = True
-        for path in paths:
+        for path in self.folders:
             check = check_datafolder(path)
             if not check['FaceCamera']:
                 good=False
@@ -209,10 +209,28 @@ class MainW(QtGui.QMainWindow):
 
         if good:
             # concatenate datafiles
-            process.build_temporal_subsampling(self, folders=paths)
-            print(self.filenames)
+            process.build_temporal_subsampling(self, folders=self.folders)
             self.addROI.setEnabled(True)
 
+            self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
+            # initialize to first available image
+            self.cframe = 0
+            self.fullimg = np.load(self.filenames[self.cframe])
+            #
+            self.reset()
+            self.Lx, self.Ly = self.fullimg.shape
+
+            self.p1.clear()
+            self.p1.plot(self.times, self.PD, pen=(0,255,0))
+            if self.nframes > 0:
+                self.timeLabel.setEnabled(True)
+                self.frameSlider.setEnabled(True)
+                self.updateFrameSlider()
+                self.addROI.setEnabled(True)
+            if os.path.isfile(os.path.join(self.folders[0], 'pupil-ROIs.npy')):
+                self.load_ROI(datafolder=self.folders[0])
+            self.show_fullframe()
+            self.plot_pupil_trace()
 
             
     def load_data(self):
@@ -432,12 +450,15 @@ class MainW(QtGui.QMainWindow):
         # self.pupil_fit.setEnabled(False)
         self.pupil_draw.setEnabled(True)
         self.fit_pupil.setEnabled(True)
+        self.saverois.setEnabled(True)
         
         return
 
-    def load_ROI(self):
+    def load_ROI(self, datafolder=None):
 
-        data = np.load(os.path.join(self.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
+        if datafolder is None:
+            datafolder = self.datafolder
+        data = np.load(os.path.join(datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
         self.saturation = data['ROIsaturation']
         self.sl.setValue(self.saturation)
         self.ROI = roi.sROI(parent=self,
@@ -453,63 +474,43 @@ class MainW(QtGui.QMainWindow):
             
         self.pupil_draw.setEnabled(True)
         self.fit_pupil.setEnabled(True)
+        self.saverois.setEnabled(True)
 
         
-    def keyPressEvent(self, event):
-        pass
-        # bid = -1
-        # if self.playButton.isEnabled():
-        #     if event.modifiers() !=  QtCore.Qt.ShiftModifier:
-        #         if event.key() == QtCore.Qt.Key_Left:
-        #             self.cframe -= self.frameDelta
-        #             self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
-        #             self.frameSlider.setValue(self.cframe)
-        #         elif event.key() == QtCore.Qt.Key_Right:
-        #             self.cframe += self.frameDelta
-        #             self.cframe  = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
-        #             self.frameSlider.setValue(self.cframe)
-        # if event.modifiers() != QtCore.Qt.ShiftModifier:
-        #     if event.key() == QtCore.Qt.Key_Space:
-        #         if self.playButton.isEnabled():
-        #             # then play
-        #             self.start()
-        #         else:
-        #             self.pause()
-
-    def plot_clicked(self, event):
-        items = self.win.scene().items(event.scenePos())
-        posx  = 0
-        posy  = 0
-        iplot = 0
-        zoom = False
-        zoomImg = False
-        choose = False
-        if self.loaded:
-            for x in items:
-                if x==self.p1:
-                    vb = self.p1.vb
-                    pos = vb.mapSceneToView(event.scenePos())
-                    posx = pos.x()
-                    iplot = 1
-                elif x==self.p0:
-                    if event.button()==1:
-                        if event.double():
-                            zoomImg=True
-                if iplot==1 or iplot==2:
-                    if event.button()==1:
-                        if event.double():
-                            zoom=True
-                        else:
-                            choose=True
-        if zoomImg:
-            self.p0.setRange(xRange=(0,self.LX),yRange=(0,self.LY))
-        if zoom:
-            self.p1.setRange(xRange=(0,self.nframes))
-        if choose:
-            if self.playButton.isEnabled() and not self.online_mode:
-                self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
-                # self.frameSlider.setValue(self.cframe)
-                #self.jump_to_frame()
+    # def plot_clicked(self, event):
+    #     items = self.win.scene().items(event.scenePos())
+    #     posx  = 0
+    #     posy  = 0
+    #     iplot = 0
+    #     zoom = False
+    #     zoomImg = False
+    #     choose = False
+    #     if self.loaded:
+    #         for x in items:
+    #             if x==self.p1:
+    #                 vb = self.p1.vb
+    #                 pos = vb.mapSceneToView(event.scenePos())
+    #                 posx = pos.x()
+    #                 iplot = 1
+    #             elif x==self.p0:
+    #                 if event.button()==1:
+    #                     if event.double():
+    #                         zoomImg=True
+    #             if iplot==1 or iplot==2:
+    #                 if event.button()==1:
+    #                     if event.double():
+    #                         zoom=True
+    #                     else:
+    #                         choose=True
+    #     if zoomImg:
+    #         self.p0.setRange(xRange=(0,self.LX),yRange=(0,self.LY))
+    #     if zoom:
+    #         self.p1.setRange(xRange=(0,self.nframes))
+    #     if choose:
+    #         if self.playButton.isEnabled() and not self.online_mode:
+    #             self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
+    #             # self.frameSlider.setValue(self.cframe)
+    #             #self.jump_to_frame()
 
     def set_precise_time(self):
         self.cframe = min([self.nframes-1,np.argmin((self.times-self.times[0]-\
@@ -540,30 +541,30 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(True)
 
     def jump_to_frame(self):
-        if self.playButton.isEnabled():
-            self.fullimg = np.load(self.filenames[self.cframe])
-            self.pimg.setImage(self.fullimg)
-            self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
-            if self.ROI is not None:
-                self.ROI.plot(self)
-            if self.scatter is not None:
-                self.p1.removeItem(self.scatter)
-            if self.data is not None:
-                self.scatter.setData(self.times[self.cframe]*np.ones(1),
-                                     self.PD[self.cframe]*np.ones(1),
-                                     size=10, brush=pg.mkBrush(255,255,255))
-                self.p1.addItem(self.scatter)
-                if self.fit is not None:
-                    self.fit.remove(parent)
-                coords = []
-                for key in ['cx', 'cy', 'sx', 'sy']:
-                    coords.append(self.data[key][self.cframe])
-                self.fit = roi.pupilROI(moveable=False,
-                                        parent=self,
-                                        color=(0, 200, 0),
-                                        pos = roi.ellipse_props_to_ROI(coords))
-            self.win.show()
-            self.show()
+
+        self.fullimg = np.load(self.filenames[self.cframe])
+        self.pimg.setImage(self.fullimg)
+        self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
+        if self.ROI is not None:
+            self.ROI.plot(self)
+        if self.scatter is not None:
+            self.p1.removeItem(self.scatter)
+        if self.data is not None:
+            self.scatter.setData(self.times[self.cframe]*np.ones(1),
+                                 self.PD[self.cframe]*np.ones(1),
+                                 size=10, brush=pg.mkBrush(255,255,255))
+            self.p1.addItem(self.scatter)
+            if self.fit is not None:
+                self.fit.remove(parent)
+            coords = []
+            for key in ['cx', 'cy', 'sx', 'sy']:
+                coords.append(self.data[key][self.cframe])
+            self.fit = roi.pupilROI(moveable=False,
+                                    parent=self,
+                                    color=(0, 200, 0),
+                                    pos = roi.ellipse_props_to_ROI(coords))
+        self.win.show()
+        self.show()
             
 
     def get_frame(self, cframe):
@@ -605,7 +606,9 @@ class MainW(QtGui.QMainWindow):
             print('successfully save the ROIs as:', os.path.join(self.datafolder, 'pupil-ROIs.npy'))
         else:
             # loop over datafiles !
-            pass
+            for datafolder in self.folders:
+                np.save(os.path.join(datafolder, 'pupil-ROIs.npy'), data)
+                print('successfully save the ROIs as:', os.path.join(datafolder, 'pupil-ROIs.npy'))
 
     def save_pupil_data(self):
         """ """
