@@ -101,8 +101,7 @@ def fit_pupil_size(parent, shape='circle',
 def preprocess(cls, ellipse=None):
 
     # applying the ellipse mask
-    img = np.load(os.path.join(cls.datafolder, 'FaceCamera-imgs',
-                               cls.filenames[cls.cframe])).copy()
+    img = np.load(cls.filenames[cls.cframe]).copy()
 
     if ellipse is not None:
         cx, cy, sx, sy = ellipse
@@ -130,32 +129,59 @@ def preprocess(cls, ellipse=None):
 
     return img
 
-def build_temporal_subsampling(cls, sampling_rate=None):
+def build_temporal_subsampling(cls,
+                               folders = [],
+                               sampling_rate=None):
     """
     """
     if sampling_rate is None:
         cls.sampling_rate = float(cls.rateBox.text())
     else:
         cls.sampling_rate = sampling_rate
+
+    if len(folders)>0: # means batch processing
+
+        cls.iframes, cls.times = [], []
+        cls.nframes, cls.filenames = 0, []
+        last_time = 0
+        for i, df in enumerate(folders):
+            times = np.load(os.path.join(df, 'FaceCamera-times.npy'))
+            t0, t = times[0], times[0]
+            iframes = []
+            while t<=times[-1]:
+                it = np.argmin((times-t)**2)
+                iframes.append(it)
+                cls.times.append(last_time+t-t0)
+                t+=1./cls.sampling_rate
+
+            fns = np.array(sorted(os.listdir(os.path.join(df,
+                                                        'FaceCamera-imgs'))))[iframes]
+            cls.filenames = np.concatenate([cls.filenames,
+                                      [os.path.join(df, 'FaceCamera-imgs', f) for f in fns]])
+            last_time = cls.times[-1] # 
+            
+        cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
+        cls.nframes = len(cls.times)
         
-    times = np.load(os.path.join(cls.datafolder, 'FaceCamera-times.npy'))
-    t0, t, cls.iframes, cls.times = times[0], times[0], [], []
-    while t<times[-1]:
-        it = np.argmin((times-t)**2)
-        cls.iframes.append(it)
-        cls.times.append(t-t0)
-        t+=1./cls.sampling_rate
-    cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
-    cls.Pr1, cls.Pr2 = np.array(cls.times), np.zeros(len(cls.times))
-    cls.nframes = len(cls.iframes)
-    cls.filenames = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
-                                                            'FaceCamera-imgs'))))[cls.iframes]
+    else: # single datafolder processing
+        times = np.load(os.path.join(cls.datafolder, 'FaceCamera-times.npy'))
+        t0, t, cls.iframes, cls.times = times[0], times[0], [], []
+        while t<=times[-1]:
+            it = np.argmin((times-t)**2)
+            cls.iframes.append(it)
+            cls.times.append(t-t0)
+            t+=1./cls.sampling_rate
+        cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
+        cls.Pr1, cls.Pr2 = np.array(cls.times), np.zeros(len(cls.times))
+        cls.nframes = len(cls.iframes)
+        fns = np.array(sorted(os.listdir(os.path.join(df,
+                                                      'FaceCamera-imgs'))))[iframes]
+        cls.filenames = np.array([os.path.join(df, 'FaceCamera-imgs', f) for f in fns])
 
 if __name__=='__main__':
 
     import argparse
 
-    
     parser=argparse.ArgumentParser()
     parser.add_argument("--shape", default='circle')
     parser.add_argument("--sampling_rate", type=float, default=10.)
@@ -176,9 +202,10 @@ if __name__=='__main__':
             check_datafolder(args.datafolder)
             build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
             # initialize data
-            data = {'cx':np.zeros(args.nframes), 'cy':np.zeros(args.nframes),
-                    'sx':np.zeros(args.nframes), 'sy':np.zeros(args.nframes),
-                    'residual':np.zeros(args.nframes)}
+            data = dict(vars(args))
+            for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
+                data[key] = np.zeros(args.nframes)
+            data['times'] = args.times
             # -- loop over frames
             print('\n----------------------------------------------\n')
             print('  Processing images to track pupil size and position in "%s"' % args.datafolder)
@@ -227,4 +254,3 @@ if __name__=='__main__':
         # ax.plot(*ellipse_coords(*data['ROIpupil']))
         ax.plot(*perform_fit(data['img'], x, y, data['reflectors'], shape='circle')[1])
         ge.show()
-

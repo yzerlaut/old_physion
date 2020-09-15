@@ -204,8 +204,15 @@ class MainW(QtGui.QMainWindow):
             check = check_datafolder(path)
             if not check['FaceCamera']:
                 good=False
+                print('\n Problem with "%s"' % path)
+                print(' ----> The datafolder did not pass the sanity check ! ')
 
-        print(good)
+        if good:
+            # concatenate datafiles
+            process.build_temporal_subsampling(self, folders=paths)
+            print(self.filenames)
+            self.addROI.setEnabled(True)
+
 
             
     def load_data(self):
@@ -223,7 +230,7 @@ class MainW(QtGui.QMainWindow):
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
                 self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
                                     allow_pickle=True).item()
-                self.times, self.PD =  self.data['times'], self.data['Pupil-Diameter']
+                # self.times, self.PD =  self.data['times'], self.data['Pupil-Diameter']
                 self.sampling_rate = self.data['sampling_rate']
                 self.rateBox.setText(str(self.sampling_rate))
                 
@@ -234,8 +241,7 @@ class MainW(QtGui.QMainWindow):
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
-            self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
-                                                self.filenames[self.cframe]))
+            self.fullimg = np.load(self.filenames[self.cframe])
             #
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
@@ -315,6 +321,11 @@ class MainW(QtGui.QMainWindow):
         self.smoothBox.setText(str(self.gaussian_smoothing))
         self.smoothBox.setFixedWidth(25)
         
+        self.addROI = QtGui.QPushButton("add Pupil-ROI")
+        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI.clicked.connect(self.add_ROI)
+        self.addROI.setEnabled(False)
+
         self.saverois = QtGui.QPushButton('save ROIs')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
@@ -346,11 +357,6 @@ class MainW(QtGui.QMainWindow):
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
         btns.setExclusive(True)
-
-        self.addROI = QtGui.QPushButton("add Pupil-ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addROI.clicked.connect(self.add_ROI)
-        self.addROI.setEnabled(False)
 
         self.l0.addWidget(self.load,2,0,1,3)
         self.l0.addWidget(self.load_batch,3,0,1,3)
@@ -535,8 +541,7 @@ class MainW(QtGui.QMainWindow):
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():
-            self.fullimg = np.load(os.path.join(self.datafolder, 'FaceCamera-imgs',
-                                                self.filenames[self.cframe]))
+            self.fullimg = np.load(self.filenames[self.cframe])
             self.pimg.setImage(self.fullimg)
             self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
             if self.ROI is not None:
