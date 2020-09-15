@@ -209,7 +209,7 @@ class MainW(QtGui.QMainWindow):
             s += time+', '
         self.movieLabel.setText("%s => [%s]" % (date, s[:-2]))
         
-        if good:
+        if len(self.folders)>0:
             # concatenate datafiles
             process.build_temporal_subsampling(self, folders=self.folders)
             self.addROI.setEnabled(True)
