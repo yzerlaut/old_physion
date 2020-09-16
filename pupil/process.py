@@ -7,6 +7,7 @@ from analyz.workflow.shell import printProgressBar
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import check_datafolder
+from pupil.outliers import replace_outliers
 
 def ellipse_coords(xc, yc, sx, sy, n=50):
     t = np.linspace(0, 2*np.pi, n)
@@ -186,7 +187,7 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument("--shape", default='circle')
-    parser.add_argument("--sampling_rate", type=float, default=10.)
+    parser.add_argument("--sampling_rate", type=float, default=2.)
     parser.add_argument("--gaussian_smoothing", type=float, default=2)
     parser.add_argument('-df', "--datafolder", default='./')
     parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
@@ -209,8 +210,8 @@ if __name__=='__main__':
                 data[key] = np.zeros(args.nframes)
             data['times'] = args.times
             # -- loop over frames
-            print('\n----------------------------------------------\n')
-            print('  Processing images to track pupil size and position in "%s"' % args.datafolder)
+
+            print('\n Processing images to track pupil size and position in "%s"' % args.datafolder)
             if not args.non_verbose:
                 printProgressBar(0, args.nframes)
             for args.cframe in range(args.nframes):

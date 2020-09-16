@@ -111,7 +111,6 @@ class pupilROI():
         self.ROI.sigRemoveRequested.connect(lambda: self.remove(parent))
 
     def draw(self, parent, imy, imx, dy, dx):
-        print(imy, imx, dy, dx)
         roipen = pg.mkPen(self.color, width=3,
                           style=QtCore.Qt.SolidLine)
         self.ROI = pg.EllipseROI(

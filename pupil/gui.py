@@ -78,10 +78,12 @@ class MainW(QtGui.QMainWindow):
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
+        self.p0.setAspectLocked()
         self.p0.addItem(self.pimg)
 
         # image ROI
         self.pROI = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[100,100,100])
+        self.pROI.setAspectLocked()
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pROI.setMenuEnabled(False)
         self.pROIimg = pg.ImageItem(None)
@@ -177,6 +179,7 @@ class MainW(QtGui.QMainWindow):
     def load_data_batch(self):
 
         self.batch = True
+        self.reset()
         
         file_dialog = QtGui.QFileDialog()
         file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
@@ -213,13 +216,13 @@ class MainW(QtGui.QMainWindow):
             # concatenate datafiles
             process.build_temporal_subsampling(self, folders=self.folders)
             self.addROI.setEnabled(True)
+            self.genscript.setEnabled(True)
 
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
             self.fullimg = np.load(self.filenames[self.cframe])
             #
-            self.reset()
             self.Lx, self.Ly = self.fullimg.shape
 
             self.p1.clear()
@@ -246,16 +249,19 @@ class MainW(QtGui.QMainWindow):
 
         check = check_datafolder(self.datafolder)
         if os.path.isdir(self.datafolder) and check['FaceCamera']:
+            self.reset()
 
             # try to load existing pupil data
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
-                self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
-                                    allow_pickle=True).item()
-                print(self.data.keys())
-                self.times, self.PD =  self.data['times'],\
-                    np.sqrt(self.data['sx']*self.data['sy'])
-                self.sampling_rate = self.data['sampling_rate']
-                self.rateBox.setText(str(self.sampling_rate))
+                try:
+                    self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
+                                        allow_pickle=True).item()
+                    self.times, self.PD =  self.data['times'],\
+                        np.sqrt(self.data['sx']*self.data['sy'])
+                    self.sampling_rate = self.data['sampling_rate']
+                    self.rateBox.setText(str(self.sampling_rate))
+                except Exception:
+                    self.data = None
                 
             # insure data ordering and build sampling
             process.check_datafolder(self.datafolder)
@@ -288,6 +294,7 @@ class MainW(QtGui.QMainWindow):
 
             self.show_fullframe()
             self.plot_pupil_trace()
+            self.genscript.setEnabled(True)
         else:
             print("ERROR: provide a valid data folder !")
 
@@ -322,6 +329,10 @@ class MainW(QtGui.QMainWindow):
         self.savedata.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.savedata.clicked.connect(self.save_pupil_data)
         self.savedata.setEnabled(False)
+        self.genscript = QtGui.QPushButton('add to bash script')
+        self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.genscript.clicked.connect(self.gen_bash_script)
+        self.genscript.setEnabled(False)
 
         self.load = QtGui.QPushButton('  load data  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -392,6 +403,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.saverois, 16, 0, 1, 3)
         self.l0.addWidget(self.process, 22, 0, 1, 3)
         self.l0.addWidget(self.savedata, 23, 0, 1, 3)
+        self.l0.addWidget(self.genscript, 24, 0, 1, 3)
         # self.l0.addWidget(self.processbatch, 21, 0, 1, 3)
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
@@ -581,6 +593,21 @@ class MainW(QtGui.QMainWindow):
             for datafolder in self.folders:
                 np.save(os.path.join(datafolder, 'pupil-ROIs.npy'), data)
                 print('successfully save the ROIs as:', os.path.join(datafolder, 'pupil-ROIs.npy'))
+        self.genscript.setEnabled(True)
+
+    def gen_bash_script(self):
+        if self.batch:
+            fs = self.folders
+        else:
+            fs = [self.datafolder]
+            
+        with open('./script.sh', 'a') as f:
+            for fn in fs:
+                f.write('python pupil/process.py -df %s &\n' % fn)
+
+        print('Script successfully written in "%s"' % str(os.path.abspath('./script.sh')))
+        
+
 
     def save_pupil_data(self):
         """ """
@@ -731,7 +758,6 @@ class MainW(QtGui.QMainWindow):
     def plot_pupil_trace(self):
             self.p1.clear()
             self.p1.plot(self.times, self.PD, pen=(0,255,0))
-            print(self.PD.min(), self.PD.max())
             self.p1.setRange(xRange=(self.times[0],self.times[-1]),
                              yRange=(self.PD.min()-.1, self.PD.max()+.1),
                              padding=0.0)
