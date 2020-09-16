@@ -93,7 +93,7 @@ class MainW(QtGui.QMainWindow):
         self.saturation = 255
         self.ROI = None
         self.pupil = None
-        self.iframes, self.times, self.Pr1, self.Pr2, self.PD = [], [], [], [], []
+        self.iframes, self.times, self.Pr1, self.Pr2 = [], [], [], []
 
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
@@ -239,24 +239,28 @@ class MainW(QtGui.QMainWindow):
 
         self.batch = False
         
-        self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
-        # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
-        #                                                          "Choose data folder",
-        #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
+        # self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
+        self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
+                                                                 "Choose data folder",
+                                              os.path.join(os.path.expanduser('~'), 'DATA'))
 
-        if os.path.isdir(self.datafolder):
+        check = check_datafolder(self.datafolder)
+        if os.path.isdir(self.datafolder) and check['FaceCamera']:
 
             # try to load existing pupil data
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
                 self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
                                     allow_pickle=True).item()
-                # self.times, self.PD =  self.data['times'], self.data['Pupil-Diameter']
+                print(self.data.keys())
+                self.times, self.PD =  self.data['times'],\
+                    np.sqrt(self.data['sx']*self.data['sy'])
                 self.sampling_rate = self.data['sampling_rate']
                 self.rateBox.setText(str(self.sampling_rate))
                 
             # insure data ordering and build sampling
             process.check_datafolder(self.datafolder)
             process.build_temporal_subsampling(self)
+
             # update time limits
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
@@ -270,7 +274,7 @@ class MainW(QtGui.QMainWindow):
             self.p1.plot(self.times, self.PD, pen=(0,255,0))
             # self.movieLabel.setText(os.path.dirname(self.datafolder))
             self.movieLabel.setText("%s => %s" %\
-                        from_folder_to_datetime(os.path.dirname(self.datafolder)))
+                        from_folder_to_datetime(self.datafolder))
             if self.nframes > 0:
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
@@ -478,42 +482,6 @@ class MainW(QtGui.QMainWindow):
         self.fit_pupil.setEnabled(True)
         self.saverois.setEnabled(True)
 
-        
-    # def plot_clicked(self, event):
-    #     items = self.win.scene().items(event.scenePos())
-    #     posx  = 0
-    #     posy  = 0
-    #     iplot = 0
-    #     zoom = False
-    #     zoomImg = False
-    #     choose = False
-    #     if self.loaded:
-    #         for x in items:
-    #             if x==self.p1:
-    #                 vb = self.p1.vb
-    #                 pos = vb.mapSceneToView(event.scenePos())
-    #                 posx = pos.x()
-    #                 iplot = 1
-    #             elif x==self.p0:
-    #                 if event.button()==1:
-    #                     if event.double():
-    #                         zoomImg=True
-    #             if iplot==1 or iplot==2:
-    #                 if event.button()==1:
-    #                     if event.double():
-    #                         zoom=True
-    #                     else:
-    #                         choose=True
-    #     if zoomImg:
-    #         self.p0.setRange(xRange=(0,self.LX),yRange=(0,self.LY))
-    #     if zoom:
-    #         self.p1.setRange(xRange=(0,self.nframes))
-    #     if choose:
-    #         if self.playButton.isEnabled() and not self.online_mode:
-    #             self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
-    #             # self.frameSlider.setValue(self.cframe)
-    #             #self.jump_to_frame()
-
     def set_precise_time(self):
         self.cframe = min([self.nframes-1,np.argmin((self.times-self.times[0]-\
                                                      float(self.currentTime.text()))**2)+1])
@@ -557,11 +525,13 @@ class MainW(QtGui.QMainWindow):
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             if self.fit is not None:
-                self.fit.remove(parent)
+                self.fit.remove(self)
             coords = []
-            for key in ['cx', 'cy', 'sx', 'sy']:
+            for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
+                coords.append(self.data[key1][self.cframe]-self.data[key2])
+            for key in ['sx', 'sy']:
                 coords.append(self.data[key][self.cframe])
-            self.fit = roi.pupilROI(moveable=False,
+            self.fit = roi.pupilROI(moveable=True,
                                     parent=self,
                                     color=(0, 200, 0),
                                     pos = roi.ellipse_props_to_ROI(coords))
@@ -761,8 +731,12 @@ class MainW(QtGui.QMainWindow):
     def plot_pupil_trace(self):
             self.p1.clear()
             self.p1.plot(self.times, self.PD, pen=(0,255,0))
-            self.p1.setRange(xRange=(self.times[0],self.times[-1]), padding=0.0)
+            print(self.PD.min(), self.PD.max())
+            self.p1.setRange(xRange=(self.times[0],self.times[-1]),
+                             yRange=(self.PD.min()-.1, self.PD.max()+.1),
+                             padding=0.0)
             self.p1.show()
+
                 
     def button_status(self, status):
         self.playButton.setEnabled(status)

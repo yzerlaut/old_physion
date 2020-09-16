@@ -110,7 +110,8 @@ def preprocess(cls, ellipse=None):
         ellipse = ((y - cy)**2 / (sy/2)**2 +
                     (x - cx)**2 / (sx/2)**2) <= 1
         img[~ellipse] = cls.saturation
-        
+        cls.xmin, cls.xmax = np.min(x[ellipse]), np.max(x[ellipse])
+        cls.ymin, cls.ymax = np.min(y[ellipse]), np.max(y[ellipse])
         
     elif cls.ROI is not None:
         img[~cls.ROI.ellipse] = cls.saturation
@@ -171,12 +172,13 @@ def build_temporal_subsampling(cls,
             cls.iframes.append(it)
             cls.times.append(t-t0)
             t+=1./cls.sampling_rate
-        cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
-        cls.Pr1, cls.Pr2 = np.array(cls.times), np.zeros(len(cls.times))
+        cls.times = np.array(cls.times)
+        if not hasattr(cls, 'PD'):
+            cls.PD = np.zeros(len(cls.times))
         cls.nframes = len(cls.iframes)
-        fns = np.array(sorted(os.listdir(os.path.join(df,
-                                                      'FaceCamera-imgs'))))[iframes]
-        cls.filenames = np.array([os.path.join(df, 'FaceCamera-imgs', f) for f in fns])
+        fns = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
+                                                      'FaceCamera-imgs'))))[cls.iframes]
+        cls.filenames = np.array([os.path.join(cls.datafolder, 'FaceCamera-imgs', f) for f in fns])
 
 if __name__=='__main__':
 
@@ -187,7 +189,7 @@ if __name__=='__main__':
     parser.add_argument("--sampling_rate", type=float, default=10.)
     parser.add_argument("--gaussian_smoothing", type=float, default=2)
     parser.add_argument('-df', "--datafolder", default='./')
-    parser.add_argument('-f', "--saving_filename", default='pupil-data.hq.npy')
+    parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
     parser.add_argument("-nv", "--non_verbose", help="decrease output verbosity", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
@@ -214,6 +216,8 @@ if __name__=='__main__':
             for args.cframe in range(args.nframes):
                 # preprocess image
                 args.img = preprocess(args, ellipse=rois['ROIellipse'])
+                data['xmin'], data['xmax'] = args.xmin, args.xmax
+                data['ymin'], data['ymax'] = args.ymin, args.ymax
                 coords, _, res = fit_pupil_size(args,
                                                 reflectors=rois['reflectors'])
                 data['cx'][args.cframe] = coords[0]

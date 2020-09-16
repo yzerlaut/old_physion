@@ -111,6 +111,7 @@ class pupilROI():
         self.ROI.sigRemoveRequested.connect(lambda: self.remove(parent))
 
     def draw(self, parent, imy, imx, dy, dx):
+        print(imy, imx, dy, dx)
         roipen = pg.mkPen(self.color, width=3,
                           style=QtCore.Qt.SolidLine)
         self.ROI = pg.EllipseROI(
@@ -145,8 +146,7 @@ class sROI():
 
         self.moveable = moveable
         if color is None:
-            self.color = np.maximum(0, np.minimum(255, colors[0]+np.random.randn(3)*70))
-            self.color = tuple(self.color)
+            self.color = (0, 0, 255)
         else:
             self.color = color
             

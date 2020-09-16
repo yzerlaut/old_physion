@@ -55,8 +55,12 @@ def from_folder_to_datetime(folder):
 
     s = folder.split(os.path.sep)[-2:]
 
-    date = s[0].split('_')
-    return date[2]+'/'+date[1]+'/'+date[0], s[1].replace('-', ':')
+    try:
+        date = s[0].split('_')
+        return date[2]+'/'+date[1]+'/'+date[0], s[1].replace('-', ':')
+    except IndexError:
+        print(s)
+        return s
 
 def check_datafolder(df):
     
