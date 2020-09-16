@@ -99,10 +99,11 @@ def fit_pupil_size(parent, shape='circle',
     return perform_fit(img, x, y, reflectors, shape=shape)
     
     
-def preprocess(cls, ellipse=None):
+def preprocess(cls, ellipse=None, img=None):
 
     # applying the ellipse mask
-    img = np.load(cls.filenames[cls.cframe]).copy()
+    if img is None:
+        img = np.load(cls.filenames[cls.cframe]).copy()
 
     if ellipse is not None:
         cx, cy, sx, sy = ellipse
@@ -187,7 +188,9 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument("--shape", default='circle')
-    parser.add_argument("--sampling_rate", type=float, default=2.)
+    parser.add_argument("--sampling_rate", type=float, default=5.)
+    parser.add_argument("--saturation", type=float, default=75)
+    # parser.add_argument("--ellipse", type=float, default=[], nargs=)
     parser.add_argument("--gaussian_smoothing", type=float, default=2)
     parser.add_argument('-df', "--datafolder", default='./')
     parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
@@ -201,6 +204,8 @@ if __name__=='__main__':
             # load ROI
             rois = np.load(os.path.join(args.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
             args.saturation = rois['ROIsaturation']
+            args.reflectors = rois['reflectors']
+            args.ellipse = rois['ROIellipse']
             # insure data ordering and build sampling
             check_datafolder(args.datafolder)
             build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
@@ -210,17 +215,15 @@ if __name__=='__main__':
                 data[key] = np.zeros(args.nframes)
             data['times'] = args.times
             # -- loop over frames
-
             print('\n Processing images to track pupil size and position in "%s"' % args.datafolder)
             if not args.non_verbose:
                 printProgressBar(0, args.nframes)
             for args.cframe in range(args.nframes):
                 # preprocess image
-                args.img = preprocess(args, ellipse=rois['ROIellipse'])
+                args.img = preprocess(args, ellipse=args.ellipse)
                 data['xmin'], data['xmax'] = args.xmin, args.xmax
                 data['ymin'], data['ymax'] = args.ymin, args.ymax
-                coords, _, res = fit_pupil_size(args,
-                                                reflectors=rois['reflectors'])
+                coords, _, res = fit_pupil_size(args, reflectors=args.reflectors)
                 data['cx'][args.cframe] = coords[0]
                 data['cy'][args.cframe] = coords[1]
                 data['sx'][args.cframe] = coords[2]
@@ -231,6 +234,7 @@ if __name__=='__main__':
                 data['residual'][args.cframe] = res
                 if not args.non_verbose:
                     printProgressBar(args.cframe, args.nframes)
+            data = replace_outliers(data) # dealing with outliers
             np.save(os.path.join(args.datafolder, args.saving_filename), data)
             if not args.non_verbose:
                 printProgressBar(args.nframes, args.nframes)

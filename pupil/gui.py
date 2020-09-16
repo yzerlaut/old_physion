@@ -32,12 +32,8 @@ class MainW(QtGui.QMainWindow):
         self.quitSc.activated.connect(self.quit)
         
         app_icon = QtGui.QIcon()
-        app_icon.addFile(icon_path, QtCore.QSize(16, 16))
-        app_icon.addFile(icon_path, QtCore.QSize(24, 24))
-        app_icon.addFile(icon_path, QtCore.QSize(32, 32))
-        app_icon.addFile(icon_path, QtCore.QSize(48, 48))
-        app_icon.addFile(icon_path, QtCore.QSize(96, 96))
-        app_icon.addFile(icon_path, QtCore.QSize(256, 256))
+        for x in [16, 24, 32, 40, 96, 256]:
+            app_icon.addFile(icon_path, QtCore.QSize(x, x))
         self.setWindowIcon(app_icon)
 
         pg.setConfigOptions(imageAxisOrder='row-major')
@@ -612,11 +608,8 @@ class MainW(QtGui.QMainWindow):
     def save_pupil_data(self):
         """ """
         if not self.batch:
-            np.save(os.path.join(self.datafolder, 'pupil-data.npy'), {'times':self.times,
-                                                                    'sampling_rate':self.sampling_rate,
-                                                                      'Pupil-Radius1':self.Pr1,
-                                                                      'Pupil-Radius2':self.Pr2,
-                                                                      'Pupil-Diameter':self.PD})
+            self.data = replace_outliers(self.data)
+            np.save(os.path.join(self.datafolder, 'pupil-data.npy'), self.data)
         else:
             # loop over datafiles !
             pass
@@ -800,17 +793,11 @@ def run(moviefile=None,savedir=None):
         os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
 
     app_icon = QtGui.QIcon()
-    # app_icon.addFile(icon_path, QtCore.QSize(16, 16))
-    # app_icon.addFile(icon_path, QtCore.QSize(24, 24))
-    # app_icon.addFile(icon_path, QtCore.QSize(32, 32))
-    app_icon.addFile(icon_path, QtCore.QSize(48, 48))
-    # app_icon.addFile(icon_path, QtCore.QSize(96, 96))
-    # app_icon.addFile(icon_path, QtCore.QSize(256, 256))
+    for x in [16, 24, 32, 40, 96, 256]:
+        app_icon.addFile(icon_path, QtCore.QSize(x, x))
     app.setWindowIcon(app_icon)
     GUI = MainW(moviefile,savedir)
-    #p = GUI.palette()
     ret = app.exec_()
-    # GUI.save_gui_data()
     sys.exit(ret)
 
 
