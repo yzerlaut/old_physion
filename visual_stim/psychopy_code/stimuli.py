@@ -59,9 +59,9 @@ class visual_stim:
 
     def __init__(self, protocol,
                  screen_size = [1280, 768],
-                 monitoring_square = {'size':5.5,
-                                      'x':17,
-                                      'y':-10,
+                 monitoring_square = {'size':6,
+                                      'x':18.5,
+                                      'y':-10.5,
                                       'color-on':1,
                                       'color-off':-1,
                                       'time-on':0.2, 'time-off':0.8},
