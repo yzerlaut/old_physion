@@ -38,7 +38,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
         # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
 
-        self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
+        self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
         self.FaceCamera_process = None
         self.RigView_process = None
         self.params_window = None
@@ -162,16 +162,21 @@ class MasterWindow(QtWidgets.QMainWindow):
             with open(filename, 'r') as fp:
                 self.config = json.load(fp)
             self.statusBar.showMessage('[...] preparing stimulation')
-
+            print(self.protocol)
+            print(self.config)
             # init facecamera
-            if bool(self.config['with-FaceCamera']):
+            if self.config['with-FaceCamera']=='True':
+                print('Initializing Camera streams [...]')
                 self.statusBar.showMessage('Initializing Camera streams [...]')
                 self.facecamera_init()
                 self.statusBar.showMessage('Camera ready !')
                 
             # init visual stimulation
-            if bool(self.config['with-VisualStim']):
+            if self.config['with-VisualStim']=='True':
                 self.stim = build_stim(self.protocol)
+                max_time = self.stim.experiment['time_stop'][-1]+20
+            else:
+                max_time = 2*60*60 # 2 hours, should be stopped manually
                 
             self.statusBar.showMessage('stimulation ready !')
             self.filename = generate_filename_path(self.data_folder,
@@ -182,9 +187,10 @@ class MasterWindow(QtWidgets.QMainWindow):
                 print(self.config['NIdaq-output-step-%i'%istep])
                 output_steps.append(self.config['NIdaq-output-step-%i'%istep])
                 istep+=1
+                
             self.acq = Acquisition(dt=1./self.config['NIdaq-acquisition-frequency'],
                                    Nchannel_in=self.config['NIdaq-input-channels'],
-                                   max_time=self.stim.experiment['time_stop'][-1]+20,
+                                   max_time=max_time,
                                    output_steps=output_steps,
                                    filename= self.filename)
             self.init = True
@@ -216,7 +222,8 @@ class MasterWindow(QtWidgets.QMainWindow):
     def stop(self):
         self.run_event.clear() # this will close the camera process
         self.stop_flag=True
-        self.acq.close()
+        if self.acq is not None:
+            self.acq.close()
         self.statusBar.showMessage('stimulation stopped !')
         if self.stim is not None:
             self.stim.close()
@@ -224,10 +231,11 @@ class MasterWindow(QtWidgets.QMainWindow):
     
     def quit(self):
         self.quit_event.set()
-        self.acq.close()
+        if self.acq is not None:
+            self.acq.close()
         if self.stim is not None:
             self.stim.quit()
-        sys.exit()
+        QtWidgets.QApplication.quit()
 
     def save_experiment(self):
         for key in self.config:

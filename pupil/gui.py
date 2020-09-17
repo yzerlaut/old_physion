@@ -3,10 +3,8 @@ import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
-import pims
 from scipy.stats import zscore, skew
 from matplotlib import cm
-from natsort import natsorted
 import pathlib
 from analyz.IO.npz import load_dict
 from analyz.workflow.shell import printProgressBar
@@ -788,7 +786,8 @@ class MainW(QtGui.QMainWindow):
             
         
     def quit(self):
-        sys.exit()
+        QtWidgets.QApplication.quit()
+
 
 def run(moviefile=None,savedir=None):
     # Always start by initializing Qt (only once per application)
