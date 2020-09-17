@@ -27,7 +27,9 @@ There is a `"demo"` mode to adjust and build the protocols.
 
 ## Screen settings
 
-In Windows, we need to set the following settings:
+### Windows level
+
+We need to set the following settings:
 
 #### Display
 
@@ -46,6 +48,16 @@ In Windows, we need to set the following settings:
 <p align="center">
   <img src="../doc/background.png"/>
 </p>
+
+### Psychopy level
+
+In the "Monitor center", we need to have the following settings:
+
+<p align="center">
+  <img src="../doc/background.png"/>
+</p>
+
+N.B. we don't use the gamma correction of psychopy, it doesn't work, we deal with it below.
 
 ## Gamma correction
 
