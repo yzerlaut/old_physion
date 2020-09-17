@@ -104,6 +104,8 @@ def preprocess(cls, ellipse=None, img=None):
     # applying the ellipse mask
     if img is None:
         img = np.load(cls.filenames[cls.cframe]).copy()
+    else:
+        img = img.copy()
 
     if ellipse is not None:
         cx, cy, sx, sy = ellipse
