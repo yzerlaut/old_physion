@@ -117,9 +117,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
                                                           args=(self.run_event , self.quit_event, self.data_folder))
         self.FaceCamera_process.start()
-        self.statusBar.showMessage('Initializing Camera streams [...]')
         time.sleep(6)
-        self.statusBar.showMessage('Setup ready !')
+        return True
             
     def choose_data_folder(self):
         fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
@@ -166,7 +165,10 @@ class MasterWindow(QtWidgets.QMainWindow):
 
             # init facecamera
             if bool(self.config['with-FaceCamera']):
+                self.statusBar.showMessage('Initializing Camera streams [...]')
                 self.facecamera_init()
+                self.statusBar.showMessage('Camera ready !')
+                
             # init visual stimulation
             if bool(self.config['with-VisualStim']):
                 self.stim = build_stim(self.protocol)
