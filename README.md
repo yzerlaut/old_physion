@@ -4,9 +4,10 @@
 
 ## Modules
 
+- [Visual stimulation](visual_stim/README.md)
 - [Electrophysiology](electrophy/README.md)
 - [Calcium imaging](Ca_imaging/README.md)
-- [Visual stimulation](visual_stim/README.md)
+- [Pupil tracking](pupil/README.md)
 - [Behavioral monitoring](behavioral_monitoring/README.md)
 - [Hardware control](hardware_control/README.md)
 - [Assembling pipeline](assembling/README.md)
@@ -14,27 +15,23 @@
 
 ## How do I get set up ?
 
+The installation instructions for the experimental setup are described here:
+
+
+
 #### 1) Get a scientific python distribution
 
 Install a python distribution for scientific analysis, get the latest Anaconda distribution at: https://www.anaconda.com/products/individual
 
 #### 2) Download this repository
 
-Three options:
-
+Either:
 - For `git` users & contributors (requires a github account). Fork this repository and clone your own fork.
-  
-- For other `git` users, clone the repository with:
-  ```
-  git clone https://github.com/yzerlaut/cortical-physio-icm.git
-  ```
-
 - For others, download the [zip archive](https://github.com/yzerlaut/cortical-physio-icm/archive/master.zip)
 
 #### 3) Install dependencies
 
 Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the dependencies:
-
 ```
 pip install -r requirements.txt
 ```
@@ -60,6 +57,13 @@ Go to the individual modules for the details about the settings of protocols:
 - [Calcium imaging](Ca-imaging/README.md)
 - [Behavioral monitoring](behavioral_monitoring/README.md)
 
+## Pre-processing data (alignement, pre-processing, ... )
+
+The master program to pre-process datafiles is launched with:
+```
+python master\preprocessing.py
+```
+
 ## Analyzing experiments
 
 The master program to configure experiments is launched with:
@@ -67,9 +71,9 @@ The master program to configure experiments is launched with:
 python master\analysis.py
 ```
 
-## Running specific analysis
+All included analysis should be implemented annd described within the [Analysis module](analysis/README.md)
 
-We showcase here a few analysis in [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
+We also showcase a few analysis as [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
 ```
 jupyter notebook Ca-imaging/preprocessing_demo.ipynb
 ```
