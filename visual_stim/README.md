@@ -34,19 +34,19 @@ We need to set the following settings:
 #### Display
 
 <p align="center">
-  <img src="../doc/display.png"/>
+  <img src="../doc/display.png" width="200">
 </p>
 
 #### Behavior of the taskbar
 
 <p align="center">
-  <img src="../doc/taskbar.png"/>
+  <img src="../doc/taskbar.png" width="200" >
 </p>
 
 #### Background
 
 <p align="center">
-  <img src="../doc/background.png"/>
+  <img src="../doc/background.png" width="200">
 </p>
 
 ### Psychopy level
@@ -54,7 +54,7 @@ We need to set the following settings:
 In the "Monitor center", we need to have the following settings:
 
 <p align="center">
-  <img src="../doc/background.png"/>
+  <img src="../doc/monitor.png" width="300" >
 </p>
 
 N.B. we don't use the gamma correction of psychopy, it doesn't work, we deal with it below.
