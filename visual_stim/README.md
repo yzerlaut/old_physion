@@ -25,9 +25,29 @@ There is a `"demo"` mode to adjust and build the protocols.
 </p>
 
 
-## Screen calibration
+## Screen settings
 
-### Gamma correction
+In Windows, we need to set the following settings:
+
+#### Display
+
+<p align="center">
+  <img src="../doc/display.png"/>
+</p>
+
+#### Behavior of the taskbar
+
+<p align="center">
+  <img src="../doc/taskbar.png"/>
+</p>
+
+#### Background
+
+<p align="center">
+  <img src="../doc/background.png"/>
+</p>
+
+## Gamma correction
 
 We present a uniform full-screen at different levels of luminance, we use a photometer to measure the true light intensity in the center of the screen.
 
