@@ -65,7 +65,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         
         image = self.camera.cam.get_array()
         self.p0img.setImage(image)
-        self.pROIimg.setImage(image)
+        zoom = process.preprocess(args, img=image, ellipse=args.ellipse)
+        self.pROIimg.setImage(zoom)
 
         self.pROI.show()
         self.p0.show()
@@ -81,6 +82,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         while (time.time()-t0)<args.tstop:
             image = self.camera.cam.get_array()
             self.p0img.setImage(image)
+            zoom = process.preprocess(args, img=image, ellipse=args.ellipse)
+            self.pROIimg.setImage(zoom)
             pg.QtGui.QApplication.processEvents()
             
 
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--gain", type=float, default=10)
     parser.add_argument("--exposure_time", type=float, default=10000)
-    # parser.add_argument("--ellipse", type=float, default=[], nargs=)
+    parser.add_argument("--ellipse", type=float, default=(251, 316, 251, 254), nargs=4)
     parser.add_argument("--gaussian_smoothing", type=float, default=2)
     parser.add_argument('-df', "--datafolder", default='./')
     parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')

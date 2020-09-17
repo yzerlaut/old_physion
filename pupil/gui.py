@@ -247,19 +247,19 @@ class MainW(QtGui.QMainWindow):
 
             # try to load existing pupil data
             if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
-                try:
-                    self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
-                                        allow_pickle=True).item()
-                    if 'sx-corrected' in self.data:
-                        suffix = '-corrected'
-                    else:
-                        suffix = ''
-                    self.times, self.PD =  self.data['times'],\
-                        np.sqrt(self.data['sx'+suffix]*self.data['sy'+suffix])
-                    self.sampling_rate = self.data['sampling_rate']
-                    self.rateBox.setText(str(self.sampling_rate))
-                except Exception:
-                    self.data = None
+                self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
+                                    allow_pickle=True).item()
+                print(self.data)
+                if 'sx-corrected' in self.data:
+                    suffix = '-corrected'
+                else:
+                    suffix = ''
+                self.times, self.PD =  self.data['times'],\
+                    np.sqrt(self.data['sx'+suffix]*self.data['sy'+suffix])
+                self.sampling_rate = self.data['sampling_rate']
+                self.rateBox.setText(str(self.sampling_rate))
+            else:
+                self.data = None
                 
             # insure data ordering and build sampling
             process.check_datafolder(self.datafolder)
