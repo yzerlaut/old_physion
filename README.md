@@ -15,7 +15,7 @@
 
 ## How do I get set up ?
 
-The installation instructions for the setup are described here:
+The installation instructions for the experimental setup are described here:
 
 
 
@@ -25,21 +25,13 @@ Install a python distribution for scientific analysis, get the latest Anaconda d
 
 #### 2) Download this repository
 
-Three options:
-
+Either:
 - For `git` users & contributors (requires a github account). Fork this repository and clone your own fork.
-  
-- For other `git` users, clone the repository with:
-  ```
-  git clone https://github.com/yzerlaut/cortical-physio-icm.git
-  ```
-
 - For others, download the [zip archive](https://github.com/yzerlaut/cortical-physio-icm/archive/master.zip)
 
 #### 3) Install dependencies
 
 Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the dependencies:
-
 ```
 pip install -r requirements.txt
 ```
@@ -81,8 +73,7 @@ python master\analysis.py
 
 All included analysis should be implemented annd described within the [Analysis module](analysis/README.md)
 
-
-We also showcase a few analysis in [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
+We also showcase a few analysis as [Jupyter Notebooks](https://jupyter.org/) in the different modules. They can be launched by opening the Anaconda prompt (or the UNIX shell) and by running (taking the example of "Ca-imaging/preprocessing_demo.ipynb"):
 ```
 jupyter notebook Ca-imaging/preprocessing_demo.ipynb
 ```
