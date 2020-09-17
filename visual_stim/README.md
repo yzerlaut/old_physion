@@ -27,6 +27,8 @@ There is a `"demo"` mode to adjust and build the protocols.
 
 ## Screen settings
 
+Measurements of our screen (Lilliput LCD 869-GL 7'') yielded: `width=15.3cm` and `height=9.1cm` (so it isn't 16:9 as advertised). The only compatible resolution on Windows is `1280x768`.
+
 ### 1) Windows level
 
 We need to set the following settings:

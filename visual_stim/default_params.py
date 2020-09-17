@@ -49,7 +49,7 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'radius-1':2, 'radius-2':15., 'N-radius':0,
         'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
         'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
@@ -64,7 +64,7 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'radius-1':2, 'radius-2':15., 'N-radius':0,
         'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
         'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
@@ -110,7 +110,7 @@ STIMULI = {
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'radius-1':2, 'radius-2':15., 'N-radius':0,
         'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
         'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
@@ -126,7 +126,7 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.5, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':8., 'N-radius':0,
+        'radius-1':2, 'radius-2':15., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
         'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
         'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,

@@ -58,6 +58,7 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self, protocol,
+                 screen_size = [1280, 768],
                  monitoring_square = {'size':5.5,
                                       'x':17,
                                       'y':-10,
@@ -75,11 +76,11 @@ class visual_stim:
         
         if self.protocol['Setup']=='demo-mode':
             self.monitor = monitors.Monitor('testMonitor')
-            self.win = visual.Window([800, int(800*9/16)], monitor=self.monitor,
+            self.win = visual.Window(screen_size, monitor=self.monitor,
                                      units='deg', color=-1) #create a window
         else:
             self.monitor = monitors.Monitor('Lilliput')
-            self.win = visual.Window(size=[1280, 960], monitor=self.monitor,
+            self.win = visual.Window(screen_size, monitor=self.monitor,
                                      screen=1, fullscr=True, units='deg', color=-1)
             
         # blank screens
@@ -106,9 +107,9 @@ class visual_stim:
 
     # Gamma correction 
     def gamma_corrected_lum(self, level):
-        return 2*np.pow(((level+1.)/2./self.k), 1./self.gamma)-1.
+        return 2*np.power(((level+1.)/2./self.k), 1./self.gamma)-1.
     def gamma_corrected_contrast(self, contrast):
-        return np.pow(contrast/self.k, 1./self.gamma)
+        return np.power(contrast/self.k, 1./self.gamma)
     
     # initialize all quantities
     def init_experiment(self, protocol, keys):
