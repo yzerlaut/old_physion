@@ -51,14 +51,14 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
         data['t'] = np.arange(data['NIdaq'].shape[1])/data['NIdaq-acquisition-frequency']
         
     # -- PTGREY CAMERA -- #
-    if (image_sampling_number is not None) and os.path.isfile(filename.replace('visual-stim.npz', 'FaceCamera-times.npy')):
-        data['FaceCamera-times'] = np.load(filename.replace('visual-stim.npz', 'FaceCamera-times.npy'))
-        if 'NIdaq-Tstart' in data:
-            data['FaceCamera-times'] -= data['NIdaq-Tstart']
-        data['FaceCamera-imgs'] = []
-        images_ID = np.linspace(0, len(data['FaceCamera-times'])-1, image_sampling_number, dtype=int)
-        for i in images_ID:
-            data['FaceCamera-imgs'].append(np.rot90(np.load(filename.replace('visual-stim.npz', 'FaceCamera-imgs'+os.path.sep+'%i.npy' % i)),k=3))
+    # if (image_sampling_number is not None) and os.path.isfile(filename.replace('visual-stim.npz', 'FaceCamera-times.npy')):
+    #     data['FaceCamera-times'] = np.load(filename.replace('visual-stim.npz', 'FaceCamera-times.npy'))
+    #     if 'NIdaq-Tstart' in data:
+    #         data['FaceCamera-times'] -= data['NIdaq-Tstart']
+    #     data['FaceCamera-imgs'] = []
+    #     images_ID = np.linspace(0, len(data['FaceCamera-times'])-1, image_sampling_number, dtype=int)
+    #     for i in images_ID:
+    #         data['FaceCamera-imgs'].append(np.rot90(np.load(filename.replace('visual-stim.npz', 'FaceCamera-imgs'+os.path.sep+'%i.npy' % i)),k=3))
 
     # --  CALCIUM IMAGING -- #
     

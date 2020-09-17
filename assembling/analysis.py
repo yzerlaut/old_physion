@@ -89,7 +89,9 @@ def analyze_data(filename='', data=None, dt=1e-3, subsampling=10):
 
 if __name__=='__main__':
 
+    fn = '/home/yann/DATA/2020_09_01/15-35-03/visual-stim.npz'
+    fn = '/home/yann/DATA/13-40-10/visual-stim.npz'
     import tempfile
-    quick_data_view(last_datafile(tempfile.gettempdir()), realign=True)
+    quick_data_view(fn, realign=False)
     # data, fig = analyze_data(last_datafile(tempfile.gettempdir()))
     ge.show()
