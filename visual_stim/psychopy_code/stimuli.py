@@ -2,8 +2,6 @@ from psychopy import visual, core, event, clock, monitors # some libraries from 
 import numpy as np
 import itertools, os, sys, pathlib, subprocess, time
  
-MONITORING_SQUARE = {'size':5.5, 'x':14, 'y':-10, 'color-on':1, 'color-off':-1,
-                     'time-on':0.2, 'time-off':0.8}
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.noise import build_sparse_noise, build_dense_noise
@@ -59,10 +57,21 @@ def stop_signal(parent):
 
 class visual_stim:
 
-    def __init__(self, protocol):
+    def __init__(self, protocol,
+                 monitoring_square = {'size':5.5,
+                                      'x':17,
+                                      'y':-10,
+                                      'color-on':1,
+                                      'color-off':-1,
+                                      'time-on':0.2, 'time-off':0.8},
+                 gamma_correction= {'k':1.03,
+                                    'gamma':1.52}):
         """
         """
         self.protocol = protocol
+        self.monitoring_square = monitoring_square
+        # gamma_correction
+        self.k, self.gamma = gamma_correction['k'], gamma_correction['gamma']
         
         if self.protocol['Setup']=='demo-mode':
             self.monitor = monitors.Monitor('testMonitor')
@@ -83,18 +92,24 @@ class visual_stim:
                                 color=self.protocol['presentation-poststim-screen'])
 
         # monitoring signal
-        self.on = visual.GratingStim(win=self.win, size=MONITORING_SQUARE['size'],
-                                         pos=[MONITORING_SQUARE['x'], MONITORING_SQUARE['y']],
-                                         sf=0, color=MONITORING_SQUARE['color-on'])
-        self.off = visual.GratingStim(win=self.win, size=MONITORING_SQUARE['size'],
-                                          pos=[MONITORING_SQUARE['x'], MONITORING_SQUARE['y']],
-                                          sf=0, color=MONITORING_SQUARE['color-off'])
+        self.on = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
+                                         pos=[self.monitoring_square['x'], self.monitoring_square['y']],
+                                         sf=0, color=self.monitoring_square['color-on'])
+        self.off = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
+                                          pos=[self.monitoring_square['x'], self.monitoring_square['y']],
+                                          sf=0, color=self.monitoring_square['color-off'])
         
         # initialize the times for the monitoring signals
-        self.Ton = int(1e3*MONITORING_SQUARE['time-on'])
-        self.Toff = int(1e3*MONITORING_SQUARE['time-off'])
+        self.Ton = int(1e3*self.monitoring_square['time-on'])
+        self.Toff = int(1e3*self.monitoring_square['time-off'])
         self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
 
+    # Gamma correction 
+    def gamma_corrected_lum(self, level):
+        return 2*np.pow(((level+1.)/2./self.k), 1./self.gamma)-1.
+    def gamma_corrected_contrast(self, contrast):
+        return np.pow(contrast/self.k, 1./self.gamma)
+    
     # initialize all quantities
     def init_experiment(self, protocol, keys):
 
@@ -314,7 +329,7 @@ class light_level_single_stim(visual_stim):
             self.PATTERNS.append([\
             visual.GratingStim(win=self.win,
                                size=1000, pos=[0,0], sf=0,
-                               color=self.experiment['light-level'][i])])
+                               color=self.gamma_corrected_lum(self.experiment['light-level'][i]))])
             
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
@@ -333,7 +348,7 @@ class full_field_grating_stim(visual_stim):
                                                      size=1000, pos=[0,0],
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i])])
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
 
             
 class drifting_full_field_grating_stim(visual_stim):
@@ -349,7 +364,7 @@ class drifting_full_field_grating_stim(visual_stim):
                                                      size=1000, pos=[0,0],
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i])])
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
 
         
 #####################################################
@@ -370,7 +385,7 @@ class center_grating_stim(visual_stim):
                                                      size=self.experiment['radius'][i], mask='circle',
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i])])
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
 
 class drifting_center_grating_stim(visual_stim):
     
@@ -386,7 +401,7 @@ class drifting_center_grating_stim(visual_stim):
                                                      size=self.experiment['radius'][i], mask='circle',
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i])])
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
 
 
 #####################################################
@@ -406,12 +421,12 @@ class off_center_grating_stim(visual_stim):
                                                      size=1000, pos=[0,0],
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i]),
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius'][i],
                                                      mask='circle', sf=0,
-                                                     color=self.experiment['bg-color'][i])])
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
 
             
 class drifting_off_center_grating_stim(visual_stim):
@@ -428,13 +443,13 @@ class drifting_off_center_grating_stim(visual_stim):
                                                      size=1000, pos=[0,0],
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i]),
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
                                   # + center Mask
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius'][i],
                                                      mask='circle', sf=0, contrast=0,
-                                                     color=self.experiment['bg-color'][i])])
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
 
 
 #####################################################
@@ -452,19 +467,19 @@ class surround_grating_stim(visual_stim):
             self.PATTERNS.append([\
                                   visual.GratingStim(win=self.win,
                                                      size=1000, pos=[0,0], sf=0,
-                                                     color=self.experiment['bg-color'][i]),
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i])),
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius-end'][i],
                                                      mask='circle', 
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i]),
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius-start'][i],
                                                      mask='circle', sf=0,
-                                                     color=self.experiment['bg-color'][i])])
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
 
 class drifting_surround_grating_stim(visual_stim):
 
@@ -477,19 +492,19 @@ class drifting_surround_grating_stim(visual_stim):
             self.PATTERNS.append([\
                                   visual.GratingStim(win=self.win,
                                                      size=1000, pos=[0,0], sf=0,contrast=0,
-                                                     color=self.experiment['bg-color'][i]),
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i])),
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius-end'][i],
                                                      mask='circle', 
                                                      sf=self.experiment['spatial-freq'][i],
                                                      ori=self.experiment['angle'][i],
-                                                     contrast=self.experiment['contrast'][i]),
+                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
                                   visual.GratingStim(win=self.win,
                                                      pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
                                                      size=self.experiment['radius-start'][i],
                                                      mask='circle', sf=0,contrast=0,
-                                                     color=self.experiment['bg-color'][i])])
+                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
         
 
 #####################################################
@@ -512,7 +527,7 @@ class natural_image(visual_stim):
         for i in range(len(self.experiment['index'])):
             filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
             img = load(os.path.join(NI_directory, filename))
-            img = 2*img_after_hist_normalization(img)-1 # normalization + 
+            img = 2*self.gamma_corrected_contrast(img_after_hist_normalization(img))-1 # normalization + gamma_correction
             # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
 
             self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
@@ -559,7 +574,7 @@ class natural_image_vem(visual_stim):
             
             filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
             img = load(os.path.join(NI_directory, filename))
-            img = 2*img_after_hist_normalization(img)-1 # normalization + 
+            img = 2*self.gamma_corrected_contrast(img_after_hist_normalization(img))-1 # normalization + gamma-correction
             # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
 
             self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
@@ -582,12 +597,12 @@ class sparse_noise(visual_stim):
                                        self.monitor,
                                        square_size=protocol['square-size (deg)'],
                                        noise_mean_refresh_time=protocol['mean-refresh-time (s)'],
-                                    noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
+                                       noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                        seed=protocol['noise-seed (#)'])
         
         for i in range(len(self.STIM['t'])-1):
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=self.STIM['array'][i,:,:].T,
+                                                  image=self.gamma_corrected_lum(bself.STIM['array'][i,:,:].T),
                                                   units='pix', size=self.win.size))
 
         self.experiment = {'refresh-times':self.STIM['t']}
@@ -610,7 +625,7 @@ class dense_noise(visual_stim):
 
         for i in range(len(self.STIM['t'])-1):
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=self.STIM['array'][i,:,:].T,
+                                                  image=self.gamma_corrected_lum(self.STIM['array'][i,:,:].T),
                                                   units='pix', size=self.win.size))
             
         self.experiment = {'refresh-times':self.STIM['t']}
