@@ -110,7 +110,6 @@ class MasterWindow(QtWidgets.QMainWindow):
                 self.fileMenu.addAction(action)
 
         self.show()
-        self.facecamera_init()
         
     def facecamera_init(self):
         if self.FaceCamera_process is not None:
@@ -156,6 +155,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         
     def initialize(self):
         try:
+            # loading config
             filename = os.path.join(self.protocol_folder, self.cbp.currentText()+'.json')
             with open(filename, 'r') as fp:
                 self.protocol = json.load(fp)
@@ -163,10 +163,17 @@ class MasterWindow(QtWidgets.QMainWindow):
             with open(filename, 'r') as fp:
                 self.config = json.load(fp)
             self.statusBar.showMessage('[...] preparing stimulation')
-            self.stim = build_stim(self.protocol)
+
+            # init facecamera
+            if bool(self.config['with-FaceCamera']):
+                self.facecamera_init()
+            # init visual stimulation
+            if bool(self.config['with-VisualStim']):
+                self.stim = build_stim(self.protocol)
+                
             self.statusBar.showMessage('stimulation ready !')
             self.filename = generate_filename_path(self.data_folder,
-                                                   filename='visual-stim', extension='.npz',
+                                                   filename='NIdaq', extension='.npy',
                                                    with_screen_frames_folder=True)
             output_steps, istep = [], 1
             while 'NIdaq-output-step-%i'%istep in self.config:
@@ -177,7 +184,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                                    Nchannel_in=self.config['NIdaq-input-channels'],
                                    max_time=self.stim.experiment['time_stop'][-1]+20,
                                    output_steps=output_steps,
-                                   filename= self.filename.replace('visual-stim.npz', 'NIdaq.npy'))
+                                   filename= self.filename)
             self.init = True
         except FileNotFoundError:
             self.statusBar.showMessage('protocol file "%s" not found !' % filename)
@@ -193,11 +200,14 @@ class MasterWindow(QtWidgets.QMainWindow):
             # Ni-Daq
             self.acq.launch()
             self.statusBar.showMessage('stimulation & recording running [...]')
-            # run
-            self.stim.run(self)
+            # run visual stim
+            if bool(self.config['with-VisualStim']):
+                self.stim.run(self)
             # stop and clean up things
-            self.run_event.clear() # this will close the camera process
-            self.stim.close()
+            if bool(self.config['with-FaceCamera']):
+                self.run_event.clear() # this will close the camera process
+            if bool(self.config['with-VisualStim']):
+                self.stim.close() # close the visual stim
             self.acq.close()
             self.init = False
     
@@ -212,8 +222,8 @@ class MasterWindow(QtWidgets.QMainWindow):
     
     def quit(self):
         self.quit_event.set()
+        self.acq.close()
         if self.stim is not None:
-            self.acq.close()
             self.stim.quit()
         sys.exit()
 
