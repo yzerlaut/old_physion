@@ -21,7 +21,7 @@ The installation instructions for the experimental setup are described here:
 
 #### 1) Get a scientific python distribution
 
-Install a python distribution for scientific analysis, get the latest Anaconda distribution at: https://www.anaconda.com/products/individual
+Install a python distribution for scientific analysis, get [the latest Anaconda distribution](https://www.anaconda.com/products/individual)
 
 #### 2) Download this repository
 
