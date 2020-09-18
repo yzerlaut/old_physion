@@ -65,11 +65,18 @@ N.B. we don't use the gamma correction of psychopy, it doesn't work, we deal wit
 
 We present a uniform full-screen at different levels of luminance, we use a photometer to measure the true light intensity in the center of the screen.
 
-We fit the formula `f(x) = a + k * x^g ` (constrained minimization, see [gamma-correction.py](./gamma-correction.py) and fits below).
-We then insert the `a`, 'k' and 'g' parameters in the "Monitor center" of `psychopy`.
+We fit the formula `f(x) = y = k * x^g ` (constrained minimization, see [gamma-correction.py](./gamma-correction.py) and fits below).
+We inverse the above formula (`fi(y) = x = (y/k)^(1/g)`), and we scale the luminosity in `Psychopy` accordingly (inserting the measured `k' and 'g' parameters, here we took: `k=1.03` and `gamma=1.77`)
 
+We show below the measurements before and after the correction
+
+### Before correction
 <p align="center">
-  <img src="../doc/gamma-correction.png"/>
+  <img src="../doc/gamma-correction-before.png"/>
+</p>
+### After correction
+<p align="center">
+  <img src="../doc/gamma-correction-after.png"/>
 </p>
 
 The measurements and fitting procedure are described in the script: [gamma-correction.py](./gamma-correction.py).

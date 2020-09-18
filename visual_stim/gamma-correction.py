@@ -5,21 +5,17 @@ from scipy.optimize import minimize
 LAMBDA = {'blue':'470nm', 'green':'635nm', 'red':'830nm'}
 
 # values in microwatts (microwatt precision)
-calib =  {'center': {'green':[0, 1, 2, 4, 7, 11, 15, 20, 25, 29, 32, 38, 44, 51, 58, 65, 71, 76, 81, 87], 'red':[0, 1, 2, 3, 6, 9, 12, 16, 19, 23, 25, 30, 35, 40, 46, 51, 56, 60, 64, 69], 'blue':[0, 2, 3, 5, 8, 13, 18, 24, 29, 34, 39, 45, 53, 61, 70, 77, 84, 91, 97, 104]},
-              'top-left': {'green':[0, 1, 2, 4, 6, 10, 14, 18, 22, 26, 29, 34, 40, 46, 52, 57, 63, 67, 72, 78], 'red':[0, 1, 2, 3, 5, 8, 11, 15, 18, 21, 23, 27, 31, 36, 41, 45, 49, 53, 57, 61], 'blue':[0, 1, 3, 5, 8, 12, 17, 22, 27, 31, 35, 41, 47, 54, 62, 68, 75, 80, 86, 92]}}
+# before correction
+bb = [3, 3, 3, 4, 5, 7, 10, 13, 18, 23, 28, 34, 39, 43, 47, 52, 59, 67, 74, 82, 89, 96, 103, 109, 115]
+gb = [2, 2, 2, 2, 3, 5, 7, 9, 12, 16, 19, 23, 26, 30, 32, 36, 41, 46, 51, 56, 61, 66, 71, 75, 79] 
+rb = [1.3, 1.3, 1.3, 1.6, 2.1, 2.8, 3.9, 5.2, 7.1, 9.1, 11.1, 13.2, 15.1, 16.9, 18.5, 20.5, 23.2, 26.2, 29.0, 32.1, 34.9, 37.7, 40.3, 42.6, 45.0]
+# after correction
+ba = [3, 5, 9, 15, 21, 27, 33, 38, 42, 46, 49, 54, 59, 64, 70, 75, 80, 85, 90, 94, 98, 102, 106, 109, 113]
+ga = [2, 3, 6, 10, 14, 18, 22, 25, 28, 31, 33, 36, 39, 43, 47, 50, 54, 57, 60, 63, 66, 68, 71, 73, 76]
+ra = [1.3, 2.0, 3.7, 5.8, 8.3, 10.6, 12.9, 14.8, 16.5, 17.9, 19.3, 21.0, 23.0, 25.1, 27.3, 29.3, 31.3, 33.3, 35.2, 37.0, 38.5, 39.9, 41.5, 42.8, 44.1]
 
-
-# green before
-gb = [3, 5, 8, 13, 20, 27, 33, 39, 44, 48, 54, 62, 69, 76, 83, 89, 95, 101, 106, 111]
-rb = gb
-bb = gb
-# green after
-gb = [3, 3, 4, 5, 7, 11, 16, 22, 29, 35, 41, 47, 53, 62, 72, 81, 91, 100, 107, 115]
-
-ba = [3, 5, 10, 16, 24, 31, 37, 42, 47, 52, 59, 66, 73, 79, 86, 92, 98, 103, 107, 112]
-
-
-calib =  {'center': {'green':gb, 'red':rb, 'blue':bb}}
+calib =  {'before': {'green':gb, 'red':rb, 'blue':bb},
+          'after': {'green':ga, 'red':ra, 'blue':ba}}
 
 lum = np.linspace(0, 1, len(gb))
 
@@ -27,14 +23,13 @@ def func(lum, coefs):
     # return coefs[0]+coefs[1]*lum**coefs[2]
     return coefs[0]*lum**coefs[1]
 
-fig, AX = ge.figure(axes=(3,1))
 
-# for location in ['center', 'top-left']:
-for location in ['center']:
+for correc in ['before', 'after']:
+    fig, AX = ge.figure(axes=(3,1))
     for i, color in enumerate(['blue', 'green', 'red']):
         
-        array = calib[location][color]
-        array/=np.max(array)
+        array = calib[correc][color]
+        array=(array-np.min(array))/(np.max(array)-np.min(array))
         
         def to_minimize(coefs):
             return np.sum(np.abs(array-func(lum, coefs))**2)
@@ -42,7 +37,7 @@ for location in ['center']:
         residual = minimize(to_minimize, [1, 1],
                             bounds=[(0.5, 2), (0.1, 3.)])
 
-        print('For %s and %s, gamma=' % (location, color), residual.x[1])
+        print('For %s and %s, gamma=' % (correc, color), residual.x[1])
         
         # ge.title(AX[i], "a=%.2f, k=%.2f, $\gamma$=%.2f" % (residual.x[0], residual.x[1], residual.x[2]), color=getattr(ge, color), size='small')
         ge.title(AX[i], "k=%.2f, $\gamma$=%.2f" % (residual.x[0], residual.x[1]), color=getattr(ge, color), size='small')
@@ -51,5 +46,5 @@ for location in ['center']:
         ge.annotate(AX[i],'$\lambda$=%s' % LAMBDA[color], (0.5,.1), color=getattr(ge, color))
         ge.set_plot(AX[i], xlabel='(computer) luminosity', xticks=[0,0.5, 1], yticks=[0,0.5, 1], ylabel='measured I (norm.)')
 
-# fig.savefig('../doc/gamma-correction.png')
+        fig.savefig('doc/gamma-correction-%s.png' % correc)
 ge.show()

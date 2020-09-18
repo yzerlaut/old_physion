@@ -65,8 +65,10 @@ class visual_stim:
                                       'color-on':1,
                                       'color-off':-1,
                                       'time-on':0.2, 'time-off':0.8},
+                 # gamma_correction= {'k':1.03,
+                 #                    'gamma':1.52}):
                  gamma_correction= {'k':1.03,
-                                    'gamma':1.52}):
+                                    'gamma':1.77}):
         """
         """
         self.protocol = protocol
