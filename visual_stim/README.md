@@ -74,6 +74,7 @@ We show below the measurements before and after the correction
 <p align="center">
   <img src="../doc/gamma-correction-before.png"/>
 </p>
+
 ### After correction
 <p align="center">
   <img src="../doc/gamma-correction-after.png"/>
