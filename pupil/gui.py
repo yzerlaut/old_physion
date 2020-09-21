@@ -378,7 +378,6 @@ class MainW(QtGui.QMainWindow):
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
         # self.playButton.clicked.connect(self.start)
-
         self.pauseButton = QtGui.QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
