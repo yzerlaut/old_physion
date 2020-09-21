@@ -25,12 +25,29 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
         self.maxSc.activated.connect(self.showwindow)
 
+        ####################################################
+        # BASIC style config
         self.setWindowTitle('Analysis Program -- Physiology of Visual Circuits')
         pg.setConfigOptions(imageAxisOrder='row-major')
 
         self.setGeometry(200,200,1000,600)
 
-        # config in guiparts.py
+
+        self.Nrow, self.Ncol = 24, 24 # number of rows, colunms
+        self.Rsplit, self.Csplit = 20, 10 # splitting
+        self.CalendarSize = (4,4)
+        self.Layout = {'calendar':(0,0,self.CalendarSize[0], self.CalendarSize[1]),
+                       'play':(self.Rsplit-1,0,1,1),
+                       'pause':(self.Rsplit-1,1,1,1),
+                       'refresh':(self.Rsplit-1,2,1,1),
+                       'quit':(self.Rsplit-1,3,1,1),
+                       'datafolder':(0,self.CalendarSize[1],1,self.Csplit-self.CalendarSize[1]),
+                       'quantities':(self.CalendarSize[0],0,1,self.CalendarSize[1]),
+                       'frameSlider':(self.Nrow-1,0,1,self.Ncol)}
+                  
+        ####################################################
+        # Widget elements
+
         guiparts.load_config1(self)
 
         self.minView = False
