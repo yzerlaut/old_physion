@@ -1,4 +1,4 @@
-import sys, time, tempfile, os, pathlib, json, subprocess
+import sys, time, tempfile, os, pathlib, json, subprocess, datetime
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
@@ -6,9 +6,6 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict
 from master import guiparts
-
-## NASTY workaround to the error:
-# ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
 class MasterWindow(QtWidgets.QMainWindow):
     
@@ -20,91 +17,77 @@ class MasterWindow(QtWidgets.QMainWindow):
         
         super(MasterWindow, self).__init__()
 
-
-
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+        self.refreshSc.activated.connect(self.refresh)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
+        self.maxSc.activated.connect(self.showwindow)
 
         ####################################################
         # BASIC style config
         self.setWindowTitle('Analysis Program -- Physiology of Visual Circuits')
-        # pg.setConfigOptions(imageAxisOrder='row-major')
-        # self.setStyleSheet("QMainWindow {background: 'black';}")
-        # self.styleUnpressed = ("QPushButton {Text-align: left; "
-        #                        "background-color: rgb(50,50,50); "
-        #                        "color:white;}")
-        # self.stylePressed = ("QPushButton {Text-align: left; "
-        #                      "background-color: rgb(100,50,100); "
-        #                      "color:white;}")
-        # self.styleInactive = ("QPushButton {Text-align: left; "
-        #                       "background-color: rgb(50,50,50); "
-        #                       "color:gray;}")
-        if fullscreen:
-            self.showFullScreen()
-        else:
-            self.setGeometry(200,200,1300,700)
+        pg.setConfigOptions(imageAxisOrder='row-major')
 
-        Nw, Nh = 10, 10
-        Layout = {'image':(0,1,Nw-1,int(Nh/3)),
-                  'calendar':(0,0,1,1),
-                  'play':(Nh-1,0,1,1),
-                  'frameSlider':(Nw-1,1,1,Nh-1)}
-        iconSize = QtCore.QSize(100, 100)
+        self.setGeometry(200,200,1000,600)
+
+
+        self.Nrow, self.Ncol = 24, 24 # number of rows, colunms
+        self.Rsplit, self.Csplit = 20, 10 # splitting
+        self.CalendarSize = (4,4)
+        self.Layout = {'calendar':(0,0,self.CalendarSize[0], self.CalendarSize[1]),
+                       'play':(self.Rsplit-1,0,1,1),
+                       'pause':(self.Rsplit-1,1,1,1),
+                       'refresh':(self.Rsplit-1,2,1,1),
+                       'quit':(self.Rsplit-1,3,1,1),
+                       'datafolder':(0,self.CalendarSize[1],1,self.Csplit-self.CalendarSize[1]),
+                       'quantities':(self.CalendarSize[0],0,1,self.CalendarSize[1]),
+                       'frameSlider':(self.Nrow-1,0,1,self.Ncol)}
                   
         ####################################################
         # Widget elements
-        self.cwidget = QtGui.QWidget(self)
-        self.setCentralWidget(self.cwidget)
-        self.grid = QtGui.QGridLayout()
 
-        # a big window with the different images
-        self.win = pg.GraphicsLayoutWidget()
-        self.grid.addWidget(self.win,*Layout['image'])
+        guiparts.load_config1(self)
 
-        self.cal = QtWidgets.QCalendarWidget(self)
-        self.cal.move(70, 120)
-        self.cal.setMinimumWidth(350)
-        self.cal.setMinimumHeight(220)
-        # self.cal.setMinimumDate(QtCore.QDate(init_date))
-        self.cal.setMaximumDate(QtCore.QDate.currentDate())
-        # self.cal.clicked.connect(self.pick_date)
-        self.grid.addWidget(self.cal,*Layout['calendar'])
-        
-        self.pFace = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[50,50,50])
-        self.pFaceimg = pg.ImageItem(None)
-        self.pPupil=self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[50,50,50])
-        self.pPupilimg = pg.ImageItem(None)
-        self.pCa=self.win.addViewBox(lockAspect=True,row=0,col=2,invertY=True, border=[50,50,50])
-        self.pCaimg = pg.ImageItem(None)
-        for x, y in zip([self.pFace,self.pPupil,self.pCa],
-                        [self.pFaceimg, self.pPupilimg, self.pCaimg]):
-            x.setAspectLocked()
-            x.addItem(y)
-            x.show()
+        self.minView = False
+        self.showwindow()
+
+    def showwindow(self):
+        if self.minView:
+            self.minView = self.maxview()
+        else:
+            self.minView = self.minview()
             
+    def maxview(self):
+        self.showFullScreen()
+        return False
 
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        self.frameSlider.setMinimum(0)
-        # self.frameSlider.setMaximum(self.slider_nframes)
-        self.frameSlider.setTickInterval(1)
-        self.frameSlider.setTracking(False)
-        self.frameSlider.valueChanged.connect(self.quit)
-        self.grid.addWidget(self.frameSlider, *Layout['frameSlider'])
-        
+    def minview(self):
+        self.showNormal()
+        return True
 
-        self.playButton = QtGui.QToolButton()
-        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
-        # self.playButton.setIconSize(iconSize)
-        self.playButton.setToolTip("Play")
-        self.playButton.setCheckable(True)
-        self.grid.addWidget(self.playButton,*Layout['play'])
-        
-        self.cwidget.setLayout(self.grid)
-        self.win.show()
-        self.show()
+    def pick_date(self):
+        pass
 
+    def pick_datafolder(self):
+        pass
 
+    def display_quantities(self):
+        pass
+    
+    def play(self):
+        pass
+
+    def pause(self):
+        pass
+
+    def refresh(self):
+        guiparts.load_config2(self)
+    
+    def update_frame(self):
+        pass
+    
     def quit(self):
         try:
             self.camera.cam.stop()
