@@ -2,10 +2,22 @@ import sys, time, tempfile, os, pathlib, json, subprocess, datetime, string
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict, list_dayfolder
-from master import guiparts
+from analysis import guiparts, plots
+
+settings = {
+    'window_size':(1000,600),
+    # raw data plot settings
+    'increase-factor':2., # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
+    'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
+    'colors':{'Screen':np.ones(3)*255,
+              'Locomotion':np.ones(3)*100,
+              'Pupil':(255, 70, 70),
+              'Electrophy':(70, 70, 255),
+              'Calcium':(70, 255, 70)},
+    # general settings
+    'Npoints':600}
 
 class MasterWindow(QtWidgets.QMainWindow):
     
@@ -13,6 +25,8 @@ class MasterWindow(QtWidgets.QMainWindow):
                  saturation=100,
                  fullscreen=False):
 
+        self.settings = settings
+        
         guiparts.build_dark_palette(app)
         
         super(MasterWindow, self).__init__()
@@ -31,20 +45,17 @@ class MasterWindow(QtWidgets.QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
 
         # default (small) geometry
-        self.setGeometry(200,200,1000,600)
-
-        ####################################################
-        # Widget elements
-
+        self.setGeometry(200,200,*self.settings['window_size'])
 
         self.statusBar = QtWidgets.QStatusBar()
-        self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('Pick a date, a data-folder and a visualization/analysis')
+        # self.setStatusBar(self.statusBar)
+        # self.statusBar.showMessage('Pick a date, a data-folder and a visualization/analysis')
         
         guiparts.load_config1(self)
 
         self.data_folder = os.path.join(os.path.expanduser('~'), 'DATA')
-        
+        self.Screen, self.Locomotion, self.Pupil, self.Calcium,\
+            self.Electrophy, self.tzoom  = None, None, None, None, None, [0,1e3]
         self.check_data_folder()
         
         self.minView = False
@@ -80,7 +91,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.dbox.clear()
         self.pbox.clear()
         if len(self.list_protocol_per_day)>0:
-            self.dbox.addItem(' ...     (select a data-folder) ')
+            self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
             for fn in self.list_protocol_per_day:
                 self.dbox.addItem(self.preload_datafolder(fn))
 
@@ -96,45 +107,43 @@ class MasterWindow(QtWidgets.QMainWindow):
 
     def load_data(self):
 
-        print('Loading data [...]')
-        self.NIdaq = np.load(os.path.join(self.datafolder,'NIdaq.npy'))
-        self.pupil_data = np.load(os.path.join(self.datafolder,'pupil-data.npy'),
-                                               allow_pickle=True).item()
+        # NI daq: Screen+Locomotion+Electrophy
+        data = np.load(os.path.join(self.datafolder,'NIdaq.npy'))
+        self.Screen = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
+                       'photodiode':data[0,:]}
+        self.Locomotion = {'times':self.Screen['times'],
+                           'trace':data[1,:]}
+        self.Electrophy = {'times':self.Screen['times'],
+                           'trace':data[2,:]}
+
+        ## PUPIL
+        try:
+            data = np.load(os.path.join(self.datafolder,'pupil-data.npy'),
+                           allow_pickle=True).item()
+            print(data)
+            self.Pupil = {'times':data['times'],
+                          'imgs':data['filenames'],
+                          'diameter':np.sqrt(data['sx-corrected']*data['sy-corrected'])}
+        except Exception:
+            self.Pupil = None
+
+        # Calcium
+        ## TO BE DONE !
+
+        self.tzoom = [self.Screen['times'][0],self.Screen['times'][-1]]
+        self.time = self.Screen['times'][0]
+
         
-
-    def raw_data_plot(self):
-
-        print(self.metadata)
-        # NI-daq data
-        t = np.arange(self.NIdaq.shape[1])
-
-        self.plot.plot(t, self.NIdaq[0,:])
-        # self.plot.plot(t, self.NIdaq[0,:])
-        self.plot.show()
-        
-    def showwindow(self):
-        if self.minView:
-            self.minView = self.maxview()
-        else:
-            self.minView = self.minview()
-            
-    def maxview(self):
-        self.showFullScreen()
-        return False
-
-    def minview(self):
-        self.showNormal()
-        return True
-
     def pick_datafolder(self):
         self.pbox.clear()
+        self.plot.clear()
         i = self.dbox.currentIndex()
         if i>1:
             self.datafolder = self.list_protocol_per_day[i-1]
             self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
                                     allow_pickle=True).item()
             self.add_datafolder_annotation()
-            self.pbox.addItem('...    (select a visualization/analysis)')
+            self.pbox.addItem('...       (select a visualization/analysis)')
             self.pbox.addItem('-> Show Raw Data')
             self.load_data()
         else:
@@ -153,8 +162,15 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.notes.setText(info)
 
     def display_quantities(self):
-        pass
-    
+        if self.pbox.currentIndex()==1:
+            plots.raw_data_plot(self, self.tzoom)
+            plots.update_images(self, self.time)
+        self.statusBar.showMessage('')
+
+    def back_to_initial_view(self):
+        self.tzoom = [self.Screen['times'][0], self.Screen['times'][-1]]
+        self.display_quantities()
+        
     def play(self):
         pass
 
@@ -162,12 +178,29 @@ class MasterWindow(QtWidgets.QMainWindow):
         pass
 
     def refresh(self):
-        guiparts.load_config2(self)
+        self.plot.clear()
+        self.tzoom = self.plot.getAxis('bottom').range
+        self.display_quantities()
+        
     
     def update_frame(self):
         pass
 
-    def settings(self):
+    def showwindow(self):
+        if self.minView:
+            self.minView = self.maxview()
+        else:
+            self.minView = self.minview()
+            
+    def maxview(self):
+        self.showFullScreen()
+        return False
+
+    def minview(self):
+        self.showNormal()
+        return True
+
+    def change_settings(self):
         pass
     
     def quit(self):

@@ -104,24 +104,32 @@ def add_buttons(self, Layout):
     self.quitButton.setToolTip("Quit")
     self.quitButton.clicked.connect(self.quit)
     
+    self.backButton = QtGui.QToolButton()
+    # self.backButton.setCheckable(True)
+    self.backButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogBack))
+    self.backButton.setIconSize(iconSize)
+    self.backButton.setToolTip("Back to initial view")
+    self.backButton.clicked.connect(self.back_to_initial_view)
+
     self.settingsButton = QtGui.QToolButton()
     # self.settingsButton.setCheckable(True)
     self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
     self.settingsButton.setIconSize(iconSize)
     self.settingsButton.setToolTip("Settings")
-    self.settingsButton.clicked.connect(self.settings)
+    self.settingsButton.clicked.connect(self.change_settings)
     
     Layout.addWidget(self.quitButton)
     Layout.addWidget(self.playButton)
     Layout.addWidget(self.pauseButton)
     Layout.addWidget(self.refreshButton)
+    Layout.addWidget(self.backButton)
     Layout.addWidget(self.settingsButton)
     
 
 def build_slider(self, Layout):
     self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
     self.frameSlider.setMinimum(0)
-    self.frameSlider.setMaximum(200)
+    self.frameSlider.setMaximum(self.settings['Npoints'])
     self.frameSlider.setTickInterval(1)
     self.frameSlider.setTracking(False)
     self.frameSlider.valueChanged.connect(self.update_frame)
@@ -185,25 +193,39 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.cwidget.setLayout(mainLayout)
     self.show()
     
-    self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
+    self.pScreen = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
+    self.pScreenimg = pg.ImageItem(None)
+    self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True,border=[20,20,20])
     self.pFaceimg = pg.ImageItem(None)
-    self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[20, 20, 20])
+    self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=2,invertY=True, border=[20, 20, 20])
     self.pPupilimg = pg.ImageItem(None)
     self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
     self.pCaimg = pg.ImageItem(None)
-    for x, y in zip([self.pFace,self.pPupil,self.pCa],
-                    [self.pFaceimg, self.pPupilimg, self.pCaimg]):
+    for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
+                    [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pCaimg]):
         x.setAspectLocked()
         x.addItem(y)
         x.show()
-        # y.setImage(numpy.random.randn(10,13))
 
     self.plot = self.winTrace.addPlot()
     self.plot.hideAxis('left')
-    # self.plot.setMouseEnabled(x=True,y=False)
+    self.plot.setMouseEnabled(x=True,y=False)
     # self.plot.setMenuEnabled(False)
     self.plot.setLabel('bottom', 'time (s)')
+    self.scatter = pg.ScatterPlotItem()
+    self.plot.addItem(self.scatter)
 
+    label = pg.LabelItem()
+    txt = """
+    <span style='font-size: 12pt'>
+    <span style='color: white'> <b>Screen</b> </span> <br/>
+    <span style='color: grey'> <b>Locomotion</b> </span> <br/>
+    <span style='color: red'> <b>Pupil</b> </span> <br/>
+    <span style='color: lightblue'> <b>Electrophy</b> </span> <br/>
+    <span style='color: lightgreen'> <b> Calcium </b> </span>"""
+    label.setText(txt)
+    self.win2.addItem(label)
+    
 def load_config2(self, win1_Wmax=800, win1_Hmax=300):
 
     self.cwidget = QtGui.QWidget(self)
@@ -213,74 +235,3 @@ def load_config2(self, win1_Wmax=800, win1_Hmax=300):
 
     Layout1 = QtWidgets.QVBoxLayout()
     mainLayout.addLayout(Layout1)
-
-    # Layout11 = QtWidgets.QVBoxLayout()
-    # Layout1.addLayout(Layout11)
-    # create_calendar(self, Layout11)
-    # self.notes = QtWidgets.QLabel('...', self)
-    # self.notes.setMinimumHeight(40)
-    # self.notes.setMaximumHeight(60)
-    # Layout11.addWidget(self.notes)
-
-    # self.pbox = QtWidgets.QComboBox(self)
-    # self.pbox.activated.connect(self.display_quantities)
-    # self.pbox.setMaximumHeight(selector_height)
-    # Layout11.addWidget(self.pbox)
-
-    # Layout113 = QtWidgets.QHBoxLayout()
-    # Layout11.addLayout(Layout113)
-
-    # add_buttons(self, Layout113)
-
-    # Layout12 = QtWidgets.QVBoxLayout()
-    # Layout1.addLayout(Layout12)
-
-    # self.dbox = QtWidgets.QComboBox(self)
-    # self.dbox.setMinimumWidth(df_width)
-    # self.dbox.setMaximumWidth(win1_Wmax)
-    # self.dbox.setMinimumHeight(selector_height)
-    # self.dbox.setMaximumHeight(selector_height)
-    # self.dbox.activated.connect(self.pick_datafolder)
-    # Layout12.addWidget(self.dbox)
-
-    # self.win1 = pg.GraphicsLayoutWidget()
-    # self.win1.setMaximumWidth(win1_Wmax)
-    # self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
-    # Layout12.addWidget(self.win1)
-
-
-    # self.win2 = pg.GraphicsLayoutWidget()
-    # self.win2.setMaximumHeight(win1_Hmax)
-    # Layout1.addWidget(self.win2)
-
-    # self.winTrace = pg.GraphicsLayoutWidget()
-    # mainLayout.addWidget(self.winTrace)
-
-    # build_slider(self, mainLayout)
-
-    # self.cwidget.setLayout(mainLayout)
-    # self.show()
-    
-    # self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
-    # self.pFaceimg = pg.ImageItem(None)
-    # self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[20, 20, 20])
-    # self.pPupilimg = pg.ImageItem(None)
-    # self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
-    # self.pCaimg = pg.ImageItem(None)
-    # for x, y in zip([self.pFace,self.pPupil,self.pCa],
-    #                 [self.pFaceimg, self.pPupilimg, self.pCaimg]):
-    #     x.setAspectLocked()
-    #     x.addItem(y)
-    #     x.show()
-    #     y.setImage(numpy.random.randn(10,13))
-
-    # self.p1 = self.winTrace.addPlot(row=0, col=0, rowspan=2, title='Calcium traces')
-    # self.p2 = self.winTrace.addPlot(row=2, col=0, rowspan=1, title='Pupil diameter')
-    # self.p3 = self.winTrace.addPlot(row=3, col=0, rowspan=1, title='Locomotion')
-    # self.p4 = self.winTrace.addPlot(row=4, col=0, rowspan=1, title='Electrophysiology')
-    # for p in [self.p1, self.p2, self.p3, self.p4]:
-    #     p.hideAxis('left')
-    #     p.setMouseEnabled(x=True,y=False)
-    #     p.setMenuEnabled(False)
-    #     p.plot(numpy.arange(200), numpy.random.randn(200))
-    #     p.setRange(xRange=(0,200), padding=0.0)
