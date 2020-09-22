@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
 
-df_width = 500
+df_width = 450
 selector_height = 40
 
 
@@ -28,7 +28,8 @@ def build_dark_palette(app):
     palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
     palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
     # palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-    palette.setColor(QtGui.QPalette.Link, QtCore.Qt.white)
+    # palette.setColor(QtGui.QPalette.Link, QtCore.Qt.white)
+    palette.setColor(QtGui.QPalette.Link, QtGui.QColor(200, 200, 200))
     # palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
     palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(150, 150, 150))
     palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
@@ -52,9 +53,9 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     
     self.cal = QtWidgets.QCalendarWidget(self)
     self.cal.setMinimumHeight(160)
-    self.cal.setMinimumWidth(265)
     self.cal.setMaximumHeight(160)
-    self.cal.setMaximumWidth(300)
+    self.cal.setMinimumWidth(265)
+    self.cal.setMaximumWidth(265)
     self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
     self.cal.setMaximumDate(QtCore.QDate.currentDate())
     self.cal.clicked.connect(self.pick_date)
@@ -97,29 +98,37 @@ def add_buttons(self, Layout):
     self.refreshButton.clicked.connect(self.refresh)
 
     self.quitButton = QtGui.QToolButton()
-    self.quitButton.setCheckable(True)
-    self.quitButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserStop))
+    # self.quitButton.setCheckable(True)
+    self.quitButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DialogCloseButton))
     self.quitButton.setIconSize(iconSize)
     self.quitButton.setToolTip("Quit")
     self.quitButton.clicked.connect(self.quit)
+    
+    self.settingsButton = QtGui.QToolButton()
+    # self.settingsButton.setCheckable(True)
+    self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
+    self.settingsButton.setIconSize(iconSize)
+    self.settingsButton.setToolTip("Settings")
+    self.settingsButton.clicked.connect(self.settings)
     
     Layout.addWidget(self.quitButton)
     Layout.addWidget(self.playButton)
     Layout.addWidget(self.pauseButton)
     Layout.addWidget(self.refreshButton)
+    Layout.addWidget(self.settingsButton)
     
 
 def build_slider(self, Layout):
     self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
     self.frameSlider.setMinimum(0)
-    self.frameSlider.setMaximum(100)
-    self.frameSlider.setTickInterval(0.5)
+    self.frameSlider.setMaximum(200)
+    self.frameSlider.setTickInterval(1)
     self.frameSlider.setTracking(False)
     self.frameSlider.valueChanged.connect(self.update_frame)
     Layout.addWidget(self.frameSlider)
 
         
-def load_config1(self, win1_Wmax=800, win1_Hmax=300):
+def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
 
     self.cwidget = QtGui.QWidget(self)
     self.setCentralWidget(self.cwidget)
@@ -132,9 +141,9 @@ def load_config1(self, win1_Wmax=800, win1_Hmax=300):
     Layout11 = QtWidgets.QVBoxLayout()
     Layout1.addLayout(Layout11)
     create_calendar(self, Layout11)
-    self.notes = QtWidgets.QLabel('...', self)
-    self.notes.setMinimumHeight(40)
-    self.notes.setMaximumHeight(60)
+    self.notes = QtWidgets.QLabel(63*'-'+5*'\n', self)
+    self.notes.setMinimumHeight(70)
+    self.notes.setMaximumHeight(70)
     Layout11.addWidget(self.notes)
 
     self.pbox = QtWidgets.QComboBox(self)
@@ -187,36 +196,91 @@ def load_config1(self, win1_Wmax=800, win1_Hmax=300):
         x.setAspectLocked()
         x.addItem(y)
         x.show()
-        y.setImage(numpy.random.randn(10,13))
+        # y.setImage(numpy.random.randn(10,13))
 
-    self.p1 = self.winTrace.addPlot(row=0, col=0, rowspan=2, title='Calcium traces')
-    self.p2 = self.winTrace.addPlot(row=2, col=0, rowspan=1, title='Pupil diameter')
-    self.p3 = self.winTrace.addPlot(row=3, col=0, rowspan=1, title='Locomotion')
-    self.p4 = self.winTrace.addPlot(row=4, col=0, rowspan=1, title='Electrophysiology')
-    for p in [self.p1, self.p2, self.p3, self.p4]:
-        p.hideAxis('left')
-        p.setMouseEnabled(x=True,y=False)
-        p.setMenuEnabled(False)
-        p.plot(numpy.arange(200), numpy.random.randn(200))
-        p.setRange(xRange=(0,200), padding=0.0)
-        
+    self.plot = self.winTrace.addPlot()
+    self.plot.hideAxis('left')
+    # self.plot.setMouseEnabled(x=True,y=False)
+    # self.plot.setMenuEnabled(False)
+    self.plot.setLabel('bottom', 'time (s)')
 
-def load_config2(self):
+def load_config2(self, win1_Wmax=800, win1_Hmax=300):
 
-    init_layout(self)
+    self.cwidget = QtGui.QWidget(self)
+    self.setCentralWidget(self.cwidget)
+
+    mainLayout = QtWidgets.QVBoxLayout()
+
+    Layout1 = QtWidgets.QVBoxLayout()
+    mainLayout.addLayout(Layout1)
+
+    # Layout11 = QtWidgets.QVBoxLayout()
+    # Layout1.addLayout(Layout11)
+    # create_calendar(self, Layout11)
+    # self.notes = QtWidgets.QLabel('...', self)
+    # self.notes.setMinimumHeight(40)
+    # self.notes.setMaximumHeight(60)
+    # Layout11.addWidget(self.notes)
+
+    # self.pbox = QtWidgets.QComboBox(self)
+    # self.pbox.activated.connect(self.display_quantities)
+    # self.pbox.setMaximumHeight(selector_height)
+    # Layout11.addWidget(self.pbox)
+
+    # Layout113 = QtWidgets.QHBoxLayout()
+    # Layout11.addLayout(Layout113)
+
+    # add_buttons(self, Layout113)
+
+    # Layout12 = QtWidgets.QVBoxLayout()
+    # Layout1.addLayout(Layout12)
+
+    # self.dbox = QtWidgets.QComboBox(self)
+    # self.dbox.setMinimumWidth(df_width)
+    # self.dbox.setMaximumWidth(win1_Wmax)
+    # self.dbox.setMinimumHeight(selector_height)
+    # self.dbox.setMaximumHeight(selector_height)
+    # self.dbox.activated.connect(self.pick_datafolder)
+    # Layout12.addWidget(self.dbox)
+
+    # self.win1 = pg.GraphicsLayoutWidget()
+    # self.win1.setMaximumWidth(win1_Wmax)
+    # self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+    # Layout12.addWidget(self.win1)
+
+
+    # self.win2 = pg.GraphicsLayoutWidget()
+    # self.win2.setMaximumHeight(win1_Hmax)
+    # Layout1.addWidget(self.win2)
+
+    # self.winTrace = pg.GraphicsLayoutWidget()
+    # mainLayout.addWidget(self.winTrace)
+
+    # build_slider(self, mainLayout)
+
+    # self.cwidget.setLayout(mainLayout)
+    # self.show()
     
-    self.win1 = pg.GraphicsLayoutWidget()
-    self.win2 = pg.GraphicsLayoutWidget()
-    self.winTrace = pg.GraphicsLayoutWidget()
+    # self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
+    # self.pFaceimg = pg.ImageItem(None)
+    # self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[20, 20, 20])
+    # self.pPupilimg = pg.ImageItem(None)
+    # self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
+    # self.pCaimg = pg.ImageItem(None)
+    # for x, y in zip([self.pFace,self.pPupil,self.pCa],
+    #                 [self.pFaceimg, self.pPupilimg, self.pCaimg]):
+    #     x.setAspectLocked()
+    #     x.addItem(y)
+    #     x.show()
+    #     y.setImage(numpy.random.randn(10,13))
 
-    self.grid.addWidget(self.winTrace, 0, self.Csplit, 1, self.Ncol-self.Csplit)
-    self.grid.addWidget(self.win2, self.Rsplit, 0, self.Nrow-self.Rsplit-1, self.CalendarSize[1])
-    self.grid.addWidget(self.win1, 1, self.CalendarSize[0], self.Nrow-2,self.Ncol-self.CalendarSize[1])
-
-    # self.layout.setColumnStretch(0, )
-    
-    remove_size_props(self.win1)
-    remove_size_props(self.win3)
-    remove_size_props(self.win2, fcol=True)
-
-    draw_layout(self)
+    # self.p1 = self.winTrace.addPlot(row=0, col=0, rowspan=2, title='Calcium traces')
+    # self.p2 = self.winTrace.addPlot(row=2, col=0, rowspan=1, title='Pupil diameter')
+    # self.p3 = self.winTrace.addPlot(row=3, col=0, rowspan=1, title='Locomotion')
+    # self.p4 = self.winTrace.addPlot(row=4, col=0, rowspan=1, title='Electrophysiology')
+    # for p in [self.p1, self.p2, self.p3, self.p4]:
+    #     p.hideAxis('left')
+    #     p.setMouseEnabled(x=True,y=False)
+    #     p.setMenuEnabled(False)
+    #     p.plot(numpy.arange(200), numpy.random.randn(200))
+    #     p.setRange(xRange=(0,200), padding=0.0)

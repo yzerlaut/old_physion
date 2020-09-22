@@ -19,6 +19,7 @@ def propose_preprocessing(folder):
 init_date = QtCore.QDate(2020, 8, 1) # experiments started after 1st of August 2020
 init_date = datetime.date(2020, 8, 1) # experiments started after 1st of August 2020
 
+
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
