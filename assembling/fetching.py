@@ -134,6 +134,7 @@ def transform_into_realigned_episodes(data, debug=False):
         cond = (data['t']>=t0-.3) & (data['t']<=t0+length)
         tnew, integral, threshold = find_onset_time(data['t'][cond]-t0, data['NIdaq'][0,cond], npulses)
         if debug and ((i<3) or (i>Nepisodes-3)):
+            ge.plot(data['t'][cond], data['NIdaq'][0,cond])
             ge.plot(data['t'][cond], Y=[integral, integral*0+threshold])
             ge.show()
         t0+=tnew
