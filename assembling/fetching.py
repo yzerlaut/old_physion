@@ -87,6 +87,15 @@ def waveform(t, n=4):
     return output
 
 
+# def find_onset_time(t, photodiode_signal, npulses):
+#     def to_minimize(x):
+#         return np.abs(photodiode_signal-x[1]-x[2]*waveform(t-x[0], n=npulses)).sum()
+#     res = minimize(to_minimize,
+#                    [0.001, 0.1, 0.2],
+#                    method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
+#                    bounds=[(-.1,0.5), (0.001, 0.2), (0.1, 0.4)])
+#     return res.x
+
 def find_onset_time(t, photodiode_signal, npulses):
     def to_minimize(x):
         return np.abs(photodiode_signal-x[1]-x[2]*waveform(t-x[0], n=npulses)).sum()
@@ -112,6 +121,7 @@ def transform_into_realigned_episodes(data, debug=False):
     if 'NIdaq' in data:
         tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the above
     data['tlim'] = tlim
+
     
     t0 = data['time_start'][0]
     length = data['presentation-duration']+data['presentation-interstim-period']
@@ -147,8 +157,9 @@ if __name__=='__main__':
         data = get_multimodal_dataset(fn)
 
         import matplotlib.pylab as plt
-        plt.plot(np.cumsum(data['NIdaq'][0][:10000]-data['NIdaq'][0][:1000].mean()))
-        # plt.plot(data['NIdaq'][0][:10000])
+        plt.hist(data['NIdaq'][0], bins=200)
+        # plt.plot(np.cumsum(data['NIdaq'][0][:10000]-data['NIdaq'][0][:1000].mean()))
+        # # plt.plot(data['NIdaq'][0][:10000])
         plt.show()
         
 
