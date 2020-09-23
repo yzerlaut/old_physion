@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict, list_dayfolder
+from assembling.fetching import Dataset
 from analysis import guiparts, plots
 
 settings = {
@@ -108,14 +109,12 @@ class MasterWindow(QtWidgets.QMainWindow):
     def load_data(self):
 
         # NI daq: Screen+Locomotion+Electrophy
-        data = np.load(os.path.join(self.datafolder,'NIdaq.npy'))
-        self.Screen = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
-                       'photodiode':data[0,:]}
-        self.Locomotion = {'times':self.Screen['times'],
-                           'trace':data[1,:]}
-        self.Electrophy = {'times':self.Screen['times'],
-                           'trace':data[2,:]}
-
+        dataset = Dataset(self.datafolder)
+        
+        self.Screen = dataset.Screen
+        self.Locomotion = dataset.Locomotion
+        self.Electrophy = dataset.Electrophy
+        
         ## PUPIL
         try:
             data = np.load(os.path.join(self.datafolder,'pupil-data.npy'),

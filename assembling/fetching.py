@@ -1,17 +1,9 @@
 import numpy as np
 import os, sys, pathlib
 from PIL import Image
-from scipy.optimize import minimize
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path, load_dict
-
-def exp_thresh(x, thresh=50):
-    """
-    useful for fitting (where the argument is varied)
-    """
-    x2 = np.less(x,thresh).astype(int)
-    return x2*np.exp(x*x2)+(1-x2)*np.exp(thresh)
 
 def get_list_of_datafiles(data_folder):
 
@@ -24,6 +16,120 @@ def get_list_of_datafiles(data_folder):
 def last_datafile(data_folder):
     return get_list_of_datafiles(data_folder)[-1]
 
+
+class Dataset:
+    
+    def __init__(self, datafolder):
+        
+        self.datafolder = datafolder
+
+        self.Screen, self.Locomotion, self.Electrophy,\
+            self.Pupil, self.Calcium = None, None, None, None, None
+
+        # metadata should always be there
+        self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
+                                allow_pickle=True).item()
+        print(self.metadata)
+        # also the NIdaq data should always be there !
+        data = np.load(os.path.join(self.datafolder,'NIdaq.npy'))
+        self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
+
+        self.init_screen_data(data)
+        # if ('with-VisualStim' in self.metadata) and self.metadata['with-VisualStim']:
+        #     self.init_screen_data()
+        # if self.metadata['with-Locomotion']:
+        #     self.init_locomotion_data(data)
+        # if self.metadata['with-Pupil']:
+        #     self.init_pupil_data()
+        # if self.metadata['with-Electrophy']:
+        #     self.init_electrophy_data(data)
+
+    def init_locomotion_data(self, data):
+        self.Locomotion = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
+                           'trace':data[1,:]}
+        
+    def init_pupil_data(self, data):
+        pass
+    
+    def init_electrophy_data(self, data):
+        self.Eletrophy = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
+                          'trace':data[0,:]}
+
+        
+    def init_screen_data(self, data):
+        
+        self.Screen = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
+                       'photodiode':data[0,:]}
+        # Screen images
+
+        # (sample) images displayed on the screen
+        self.Screen['imgs'] = []
+        i=1
+        while os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame%i.tiff' %i)) or\
+              os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame0%i.tiff' %i)) or\
+              os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame00%i.tiff' %i)):
+            if os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame%i.tiff' %i)):
+                fn = os.path.join(self.datafolder,'screen-frames', 'frame%i.tiff' %i)
+            elif os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame0%i.tiff' %i)):
+                fn = os.path.join(self.datafolder,'screen-frames', 'frame0%i.tiff' %i)
+            elif os.path.isfile(os.path.join(self.datafolder,'screen-frames', 'frame00%i.tiff' %i)):
+                fn = os.path.join(self.datafolder,'screen-frames', 'frame00%i.tiff' %i)
+            self.Screen['imgs'].append(fn)
+            i+=1
+
+        self.realigned_from_photodiode(self, debug=False, verbose=False)
+
+        
+    def realigned_from_photodiode(self, debug=False, verbose=True):
+
+        if verbose:
+            print('... Realigning data [...] ')
+
+        if debug:
+            from datavyz import ges as ge
+
+        # extract parameters
+        dt = 1./self.metadata['NIdaq-acquisition-frequency']
+        tlim = [0, self.Screen['times'][-1]]
+
+        t0 = self.metadata['time_start'][0]
+        length = self.metadata['presentation-duration']+self.metadata['presentation-interstim-period']
+        npulses = int(self.metadata['presentation-duration'])
+        self.metadata['time_start_realigned'] = []
+        Nepisodes = np.sum(self.metadata['time_start']<tlim[1])
+        for i in range(Nepisodes):
+            cond = (self.Screen['times']>=t0-.3) & (self.Screen['times']<=t0+length)
+            tnew, integral, threshold = find_onset_time(self.Screen['times'][cond]-t0, self.Screen['photodiode'][cond], npulses)
+            if debug and ((i<3) or (i>Nepisodes-3)):
+                ge.plot(self.Screen['times'][cond], self.Screen['photodiode'][cond])
+                ge.plot(self.Screen['times'][cond], Y=[integral, integral*0+threshold])
+                ge.show()
+            t0+=tnew
+            self.metadata['time_start_realigned'].append(t0)
+            t0+=length
+        self.metadata['time_start_realigned'] = np.array(self.metadata['time_start_realigned'])
+        self.metadata['time_stop_realigned'] = self.metadata['time_start_realigned']+self.metadata['presentation-duration']
+
+        if verbose:
+            print('[ok] Data realigned')
+
+        # l = self.metadata['presentation-interstim-period']+self.metadata['presentation-duration']
+        # self.metadata['t_realigned'] = -self.metadata['presentation-interstim-period']/2+np.arange(int(l/dt))*dt
+        # self.metadata['NIdaq_realigned'] = []
+        # for i, t0 in enumerate(self.metadata['time_start_realigned']):
+        #     cond = (self.Screen['times']>(t0+self.metadata['t_realigned'][0]))
+        #     self.metadata['NIdaq_realigned'].append(self.metadata['NIdaq'][:,cond][:,:len(self.metadata['t_realigned'])])
+        # if verbose:
+        #     print('[ok] Data transformed to episodes')
+    
+    # # -- NI DAQ ACQUISTION -- #
+    # if os.path.isfile(filename.replace('visual-stim.npz', 'NIdaq.npy')):
+    #     data['NIdaq'] = np.load(filename.replace('visual-stim.npz', 'NIdaq.npy'))
+    #     data['NIdaq-Tstart'] = np.load(filename.replace('visual-stim.npz', 'NIdaq.start.npy'))[0]
+    #     data['t'] = np.arange(data['NIdaq'].shape[1])/data['NIdaq-acquisition-frequency']
+        
+        
+    
 def get_multimodal_dataset(filename, image_sampling_number=10):
 
     # -- VISUAL STIMULATION -- #
@@ -64,38 +170,6 @@ def get_multimodal_dataset(filename, image_sampling_number=10):
     
     return data
 
-##################################
-## functions to fit for the realignement
-def heaviside(x):
-    return (np.sign(x+1e-12)+1.)/2. # 1e-12 to avoid the 1/2 value
-def step(x, x1, x2):
-    return heaviside(x-x1)*heaviside(x2-x)
-def resp_function(t, t1, t2):
-    T=0.03 # MIGHT NEED TO BE SET UP DIFFERENTLY IF THE KINETICS OF THE PHOTODIODE CHANGES 
-    return heaviside(t-t1)*(1-exp_thresh(-t/T+t1/T))+heaviside(t-t2)*(exp_thresh(-t/T+t2/T)-1)
-
-def waveform(t, n=4):
-    output, k = 0*t, 0.
-    for i in np.arange(2):
-        if k<=n:
-            output += resp_function(t, 0.5*i, 0.5*i+0.2)
-            k+=1
-    for i in np.arange(1, int(t.max())):
-        if k<=n:
-            output += resp_function(t, i, i+0.2)
-            k+=1
-    return output
-
-
-# def find_onset_time(t, photodiode_signal, npulses):
-#     def to_minimize(x):
-#         return np.abs(photodiode_signal-x[1]-x[2]*waveform(t-x[0], n=npulses)).sum()
-#     res = minimize(to_minimize,
-#                    [0.001, 0.1, 0.2],
-#                    method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
-#                    bounds=[(-.1,0.5), (0.001, 0.2), (0.1, 0.4)])
-#     return res.x
-
 def find_onset_time(t, photodiode_signal, npulses,
                     time_for_threshold=5e-3):
 
@@ -108,24 +182,20 @@ def find_onset_time(t, photodiode_signal, npulses,
     t0 = t[np.argwhere(integral>threshold)[0][0]]
     return t0, integral, threshold
 
-def transform_into_realigned_episodes(data, debug=False):
+def transform_into_realigned_episodes(dataset, debug=False, verbose=True):
 
-    print('... Realigning data [...] ')
+    if verbose:
+        print('... Realigning data [...] ')
 
     if debug:
         from datavyz import ges as ge
         
     # extract parameters
-    dt = 1./data['NIdaq-acquisition-frequency']
-    tlim = [0, data['time_stop'][-1]]
+    dt = 1./dataset.data['NIdaq-acquisition-frequency']
     
-    if 'FaceCamera-times' in data:
-        tlim = [0, data['FaceCamera-times'][-1]-data['FaceCamera-times'][0]]
-    if 'NIdaq' in data:
-        tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the above
-    data['tlim'] = tlim
-
-    t0 = data['time_start'][0]
+    tlim = [0, dataset.Screen['times'][-1]]
+        
+    t0 = dataset.metadata['time_start'][0]
     length = data['presentation-duration']+data['presentation-interstim-period']
     npulses = int(data['presentation-duration'])
     data['time_start_realigned'] = []
@@ -142,7 +212,8 @@ def transform_into_realigned_episodes(data, debug=False):
         t0+=length
     data['time_start_realigned'] = np.array(data['time_start_realigned'])
     
-    print('[ok] Data realigned ')
+    if verbose:
+        print('[ok] Data realigned')
     
     l = data['presentation-interstim-period']+data['presentation-duration']
     data['t_realigned'] = -data['presentation-interstim-period']/2+np.arange(int(l/dt))*dt
@@ -150,14 +221,19 @@ def transform_into_realigned_episodes(data, debug=False):
     for i, t0 in enumerate(data['time_start_realigned']):
         cond = (data['t']>(t0+data['t_realigned'][0]))
         data['NIdaq_realigned'].append(data['NIdaq'][:,cond][:,:len(data['t_realigned'])])
-    print('[ok] Data transformed to episodes ')
+    if verbose:
+        print('[ok] Data transformed to episodes')
+
         
 if __name__=='__main__':
 
     if sys.argv[-1]=='photodiode':
-        fn = '/home/yann/DATA/2020_09_23/16-40-54/visual-stim.npz'
-        data = get_multimodal_dataset(fn)
-        transform_into_realigned_episodes(data, debug=True)
+        fn = '/home/yann/DATA/2020_09_23/16-40-54/'
+        dataset = Dataset(fn)
+        dataset.realigned_from_photodiode()
+        print(dataset.metadata['time_start_realigned'], dataset.metadata['time_start'])
+        # data = get_multimodal_dataset(fn)
+        # transform_into_realigned_episodes(data, debug=True)
 
         # import matplotlib.pylab as plt
         # H, bins = np.histogram(data['NIdaq'][0], bins=50)
@@ -169,7 +245,6 @@ if __name__=='__main__':
         # # plt.plot(data['NIdaq'][0][:10000]*0+baseline)
         # plt.show()
         
-
     else:
         import json
         DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME

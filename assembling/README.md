@@ -42,6 +42,15 @@ One can see that is made of the following elements:
 
 ## Code
 
+### Finding visual-stimulation onset
+
+Base on the photodiode signal (that is a bit noisy), we integrate it over time (after having substracted the baseline defined by the peak of the signal distribution) for each episode. We determine the onset when the integral passes a threshold. This threshold in the integral corresponds to the signal settling at the maximum for 5ms. The onset is then the time of the crossing minus those 5 seconds.
+```
+python assembling/fetching.py
+```
+
+### Other assembling procedures
+
 The scripts doing the assembling is in the file [fetching.py](./fetching.py).
 
 
