@@ -142,17 +142,28 @@ def transform_into_realigned_episodes(data, debug=False):
         
 if __name__=='__main__':
 
-    import json
-    DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
-    with open(DFFN, 'r') as fp:
-        df = json.load(fp)['folder']
-    data = get_multimodal_dataset(last_datafile(df))
-    
-    # transform_into_realigned_episodes(data, debug=True)
-    # transform_into_realigned_episodes(data)
-    # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
-    
-    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))
-    import matplotlib.pylab as plt
-    plt.hist(1e3*np.diff(data['FaceCamera-times']))
-    plt.show()
+    if sys.argv[-1]=='photodiode':
+        fn = '/home/yann/DATA/2020_09_23/16-40-54/visual-stim.npz'
+        data = get_multimodal_dataset(fn)
+
+        import matplotlib.pylab as plt
+        plt.plot(np.cumsum(data['NIdaq'][0][:10000]-data['NIdaq'][0][:1000].mean()))
+        # plt.plot(data['NIdaq'][0][:10000])
+        plt.show()
+        
+
+    else:
+        import json
+        DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
+        with open(DFFN, 'r') as fp:
+            df = json.load(fp)['folder']
+        data = get_multimodal_dataset(last_datafile(df))
+
+        # transform_into_realigned_episodes(data, debug=True)
+        # transform_into_realigned_episodes(data)
+        # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
+
+        print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))
+        import matplotlib.pylab as plt
+        plt.hist(1e3*np.diff(data['FaceCamera-times']))
+        plt.show()

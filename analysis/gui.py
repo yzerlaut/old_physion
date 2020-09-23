@@ -138,7 +138,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.pbox.clear()
         self.plot.clear()
         i = self.dbox.currentIndex()
-        if i>1:
+        if i>0:
             self.datafolder = self.list_protocol_per_day[i-1]
             self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
                                     allow_pickle=True).item()

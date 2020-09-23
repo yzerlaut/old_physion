@@ -84,7 +84,6 @@ def analyze_data(filename='', data=None, dt=1e-3, subsampling=10):
 
     return data, fig
 
-    
 
 
 if __name__=='__main__':
