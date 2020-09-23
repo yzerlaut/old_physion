@@ -96,14 +96,17 @@ def waveform(t, n=4):
 #                    bounds=[(-.1,0.5), (0.001, 0.2), (0.1, 0.4)])
 #     return res.x
 
-def find_onset_time(t, photodiode_signal, npulses):
-    def to_minimize(x):
-        return np.abs(photodiode_signal-x[1]-x[2]*waveform(t-x[0], n=npulses)).sum()
-    res = minimize(to_minimize,
-                   [0.001, 0.1, 0.2],
-                   method = 'SLSQP', # 'L-BFGS-B',# TNC, SLSQP, Powel
-                   bounds=[(-.1,0.5), (0.001, 0.2), (0.1, 0.4)])
-    return res.x
+def find_onset_time(t, photodiode_signal, npulses,
+                    time_for_threshold=5e-3):
+
+    H, bins = np.histogram(photodiode_signal, bins=100)
+    baseline = bins[np.argmax(H)]
+
+    integral = np.cumsum(photodiode_signal-baseline)*(t[1]-t[0])
+
+    threshold = time_for_threshold*np.max(photodiode_signal)
+    t0 = t[np.argwhere(integral>threshold)[0][0]]
+    return t0, integral, threshold
 
 def transform_into_realigned_episodes(data, debug=False):
 
@@ -122,7 +125,6 @@ def transform_into_realigned_episodes(data, debug=False):
         tlim = [0, data['NIdaq'].shape[1]*dt] # overrides the above
     data['tlim'] = tlim
 
-    
     t0 = data['time_start'][0]
     length = data['presentation-duration']+data['presentation-interstim-period']
     npulses = int(data['presentation-duration'])
@@ -130,14 +132,13 @@ def transform_into_realigned_episodes(data, debug=False):
     Nepisodes = np.sum(data['time_start']<tlim[1])
     for i in range(Nepisodes):
         cond = (data['t']>=t0-.3) & (data['t']<=t0+length)
-        x = find_onset_time(data['t'][cond]-t0, data['NIdaq'][0,cond], npulses)
-        if debug and i<5:
-            ge.plot(data['t'][cond], Y=[data['NIdaq'][0,cond], x[1]+x[2]*waveform(data['t'][cond]-t0-x[0], npulses)])
+        tnew, integral, threshold = find_onset_time(data['t'][cond]-t0, data['NIdaq'][0,cond], npulses)
+        if debug and ((i<3) or (i>Nepisodes-3)):
+            ge.plot(data['t'][cond], Y=[integral, integral*0+threshold])
             ge.show()
-        if x is not None:
-            t0+=x[0]
-            data['time_start_realigned'].append(t0)
-            t0+=length
+        t0+=tnew
+        data['time_start_realigned'].append(t0)
+        t0+=length
     data['time_start_realigned'] = np.array(data['time_start_realigned'])
     
     print('[ok] Data realigned ')
@@ -155,12 +156,17 @@ if __name__=='__main__':
     if sys.argv[-1]=='photodiode':
         fn = '/home/yann/DATA/2020_09_23/16-40-54/visual-stim.npz'
         data = get_multimodal_dataset(fn)
+        transform_into_realigned_episodes(data, debug=True)
 
-        import matplotlib.pylab as plt
-        plt.hist(data['NIdaq'][0], bins=200)
-        # plt.plot(np.cumsum(data['NIdaq'][0][:10000]-data['NIdaq'][0][:1000].mean()))
+        # import matplotlib.pylab as plt
+        # H, bins = np.histogram(data['NIdaq'][0], bins=50)
+        # baseline = bins[np.argmax(H)]
+        # # plt.hist(data['NIdaq'][0], bins=50)
+        # plt.plot(np.cumsum(data['NIdaq'][0][:10000]-baseline))
+        # # plt.plot(np.cumsum(data['NIdaq'][0][:10000]-data['NIdaq'][0][:1000].mean()))
         # # plt.plot(data['NIdaq'][0][:10000])
-        plt.show()
+        # # plt.plot(data['NIdaq'][0][:10000]*0+baseline)
+        # plt.show()
         
 
     else:
@@ -169,12 +175,11 @@ if __name__=='__main__':
         with open(DFFN, 'r') as fp:
             df = json.load(fp)['folder']
         data = get_multimodal_dataset(last_datafile(df))
-
-        # transform_into_realigned_episodes(data, debug=True)
+        transform_into_realigned_episodes(data, debug=True)
         # transform_into_realigned_episodes(data)
         # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
 
-        print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))
-        import matplotlib.pylab as plt
-        plt.hist(1e3*np.diff(data['FaceCamera-times']))
-        plt.show()
+        # print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))
+        # import matplotlib.pylab as plt
+        # plt.hist(1e3*np.diff(data['FaceCamera-times']))
+        # plt.show()
