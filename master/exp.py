@@ -5,7 +5,6 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
-from assembling.analysis import quick_data_view, analyze_data, last_datafile
 
 from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
@@ -18,6 +17,28 @@ from hardware_control.LogitechWebcam.preview import launch_RigView
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
+CONFIG_LIST = ['                                (choose)',
+               'VisualStim',
+               'VisualStim+FaceCamera',
+               'VisualStim+Electrophy',
+               'VisualStim+CaImaging',
+               'VisualStim+FaceCamera+Electrophy',
+               'VisualStim+FaceCamera+CaImaging',
+               'VisualStim+FaceCamera+Electrophy+CaImaging',
+               'FaceCamera+Electrophy',
+               'FaceCamera+CaImaging',
+               'FaceCamera+Electrophy+CaImaging',
+               'Electrophy+CaImaging',
+               'NIdaq only']
+
+STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": 1.0, "value":5.0}
+
+default_settings = {'NIdaq-acquisition-frequency':1000.,
+                    'NIdaq-input-channels': 4,
+                    'protocol_folder':os.path.join('master', 'protocols'),
+                    'FaceCamera-frame-rate': 20}
+
+
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -25,14 +46,17 @@ class MasterWindow(QtWidgets.QMainWindow):
                  button_length = 100):
         
         super(MasterWindow, self).__init__(parent)
-        
-        self.protocol, self.protocol_folder = None, os.path.join('master', 'protocols')
-        self.config, self.config_folder = None, os.path.join('master', 'configs')
+        self.setWindowTitle('Experiment Control Program -- Physiology of Visual Circuits')
+        self.setGeometry(50, 50, 600, 500)
 
-        self.data_folder = get_data_folder()
+        self.settings = default_settings # set a load/save interface
+        self.protocol, self.protocol_folder = None, self.settings['protocol_folder']
+        self.config = None
+        self.metadata = {}
+
+        self.datafolder = get_data_folder()
             
         self.get_protocol_list()
-        self.get_config_list()
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
@@ -43,9 +67,6 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.RigView_process = None
         self.params_window = None
         
-        self.setWindowTitle('Master Program -- Physiology of Visual Circuits')
-        self.setGeometry(50, 50, 500, 260)
-
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -68,41 +89,60 @@ class MasterWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
+        # config choice
+        QtWidgets.QLabel("  Setup Config. :", self).move(30, 80)
+        self.cbc = QtWidgets.QComboBox(self)
+        self.cbc.addItems(CONFIG_LIST)
+        self.cbc.setMinimumWidth(300)
+        self.cbc.move(150, 80)
+
         # protocol choice
-        QtWidgets.QLabel(" /|=>  Protocol <=|\\", self).move(30, 80)
+        QtWidgets.QLabel("Visual Protocol :", self).move(30, 120)
         self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems([f.replace('.json', '') for f in self.protocol_list])
-        self.cbp.setMinimumWidth(200)
-        self.cbp.move(150, 80)
+        self.cbp.addItems(['None']+\
+                          [f.replace('.json', '') for f in self.protocol_list])
+        self.cbp.setMinimumWidth(300)
+        self.cbp.move(150, 120)
         self.pbtn = QtWidgets.QPushButton('Set folder', self)
         self.pbtn.clicked.connect(self.set_protocol_folder)
-        self.pbtn.move(370, 80)
+        self.pbtn.move(470, 120)
 
-        # config choice
-        QtWidgets.QLabel("   /|=>  Config <=|\\", self).move(30, 120)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.addItems([f.replace('.json', '') for f in self.config_list])
-        self.cbc.setMinimumWidth(200)
-        self.cbc.move(150, 120)
-        self.dbtn = QtWidgets.QPushButton('Set folder', self)
-        self.dbtn.clicked.connect(self.set_config_folder)
-        self.dbtn.move(370, 120)
-
-        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.data_folder), self)
+        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.datafolder), self)
         self.dfl.setMinimumWidth(300)
         self.dfl.move(30, 160)
         dfb = QtWidgets.QPushButton('Set folder', self)
         dfb.clicked.connect(self.choose_data_folder)
-        dfb.move(350, 160)
+        dfb.move(370, 160)
+
+        naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
+        naf.setMinimumWidth(300)
+        naf.move(50, 210)
+        self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
+        self.NIdaqFreq.move(250, 210)
+        self.NIdaqFreq.setValue(self.settings['NIdaq-acquisition-frequency']/1e3)
         
-        LABELS = ["Launch RigView", "v) View Data"]
-        FUNCTIONS = [self.rigview, self.view_data]
+        nrc = QtWidgets.QLabel("NI-daq recording channels (#): ", self)
+        nrc.setMinimumWidth(300)
+        nrc.move(50, 250)
+        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        self.NIdaqNchannel.move(250, 250)
+        self.NIdaqNchannel.setValue(self.settings['NIdaq-input-channels'])
+        
+        ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
+        ffr.setMinimumWidth(300)
+        ffr.move(50, 290)
+        self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
+        self.FaceCameraFreq.move(250, 290)
+        self.FaceCameraFreq.setValue(self.settings['FaceCamera-frame-rate'])
+        
+        LABELS = ["Launch RigView"]#, "v) View Data"]
+        FUNCTIONS = [self.rigview]#, self.view_data]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
                                             160*np.arange(len(LABELS)), [130, 130]):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(size)
-            btn.move(shift+30, 200)
+            btn.move(shift+30, 350)
             action = QtWidgets.QAction(label, self)
             if len(label.split(')'))>0:
                 action.setShortcut(label.split(')')[0])
@@ -115,88 +155,91 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.FaceCamera_process is not None:
             self.FaceCamera_process.terminate()
         self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-                                                          args=(self.run_event , self.quit_event, self.data_folder))
+                               args=(self.run_event , self.quit_event, self.datafolder))
         self.FaceCamera_process.start()
         time.sleep(6)
         return True
             
     def choose_data_folder(self):
         fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Root Data Folder", self.data_folder))
+                                                            "Select Root Data Folder", self.datafolder))
         if os.path.isdir(fd):
-            self.data_folder = fd
+            self.datafolder = fd
             set_data_folder(fd)
-            self.dfl.setText('Data-Folder (root): "%s"' % str(self.data_folder))
+            self.dfl.setText('Data-Folder (root): "%s"' % str(self.datafolder))
         else:
             self.statusBar.showMessage('Invalid folder -> folder unchanged')
 
             
     def analyze_data(self):
-        self.statusBar.showMessage('Analyzing last recording [...]')
-        data, fig1 = quick_data_view(last_datafile(self.data_folder), realign=True)
-        _, fig2 = analyze_data(data=data)
-        fig1.show()
-        fig2.show()
+        pass
     
     def view_data(self):
-        _, fig = quick_data_view(last_datafile(self.data_folder))
-        fig.show()
+        pass
 
     def rigview(self):
         if self.RigView_process is not None:
             self.RigView_process.terminate()
         self.statusBar.showMessage('Initializing RigView stream [...]')
         self.RigView_process = multiprocessing.Process(target=launch_RigView,
-                                                       args=(self.run_event , self.quit_event, self.data_folder))
+                                                       args=(self.run_event , self.quit_event, self.datafolder))
         self.RigView_process.start()
         time.sleep(5)
         self.statusBar.showMessage('Setup ready')
         
     def initialize(self):
-        try:
-            # loading config
-            filename = os.path.join(self.protocol_folder, self.cbp.currentText()+'.json')
-            with open(filename, 'r') as fp:
-                self.protocol = json.load(fp)
-            filename = os.path.join(self.config_folder, self.cbc.currentText()+'.json')
-            with open(filename, 'r') as fp:
-                self.config = json.load(fp)
+
+        i = self.cbc.currentIndex()
+        if self.cbc.currentIndex()==0:
+            self.statusBar.showMessage('/!\ Need to choose a configuration and a protocol !')
+        else:
             self.statusBar.showMessage('[...] preparing stimulation')
-            print(self.protocol)
-            print(self.config)
+            
+            self.config = self.cbc.currentText()
+            self.metadata['protocol'] = self.cbp.currentText()
+
+            if self.metadata['protocol']!='None':
+                with open(os.path.join(self.protocol_folder, protocol_name+'.json'), 'r') as fp:
+                    self.protocol = json.load(fp)
+            else:
+                    self.protocol = {}
+
             # init facecamera
-            if self.config['with-FaceCamera']=='True':
+            if 'FaceCamera' in self.config:
                 print('Initializing Camera streams [...]')
                 self.statusBar.showMessage('Initializing Camera streams [...]')
                 self.facecamera_init()
                 self.statusBar.showMessage('Camera ready !')
                 
             # init visual stimulation
-            if self.config['with-VisualStim']=='True':
+            if 'VisualStim' in self.config:
                 self.stim = build_stim(self.protocol)
                 max_time = self.stim.experiment['time_stop'][-1]+20
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
                 
-            self.statusBar.showMessage('stimulation ready !')
-            self.filename = generate_filename_path(self.data_folder,
-                                                   filename='NIdaq', extension='.npy',
-                                                   with_screen_frames_folder=True)
-            output_steps, istep = [], 1
-            while 'NIdaq-output-step-%i'%istep in self.config:
-                print(self.config['NIdaq-output-step-%i'%istep])
-                output_steps.append(self.config['NIdaq-output-step-%i'%istep])
-                istep+=1
-                
+            output_steps = []
+            if 'CaImaging' in self.config:
+                output_steps.append(STEP_FOR_CA_IMAGING)
+            
+            self.filename = generate_filename_path(self.datafolder,
+                                    filename='NIdaq', extension='.npy',
+                                    with_screen_frames_folder=('VisualStim' in self.config))
+            
             self.acq = Acquisition(dt=1./self.config['NIdaq-acquisition-frequency'],
                                    Nchannel_in=self.config['NIdaq-input-channels'],
                                    max_time=max_time,
                                    output_steps=output_steps,
                                    filename= self.filename)
+            
+            # SAVING THE METADATA FILES
+            self.metadata = {**self.metadata, **self.protocol} # joining dictionaries
+            np.save(os.path.join(self.datafolder, 'metadata.npy'), self.metadata)
+            
             self.init = True
-        except FileNotFoundError:
-            self.statusBar.showMessage('protocol file "%s" not found !' % filename)
-
+            
+            self.statusBar.showMessage('stimulation ready !')
+            
     def run(self):
         self.stop_flag=False
         self.run_event.set() # start the run flag for the facecamera
@@ -218,6 +261,8 @@ class MasterWindow(QtWidgets.QMainWindow):
                 self.stim.close() # close the visual stim
             self.acq.close()
             self.init = False
+        if 'CaImaging' in self.protocol and not self.stop_flag:
+            self.send_CaImaging_Stop_signal()
     
     def stop(self):
         self.run_event.clear() # this will close the camera process
@@ -228,6 +273,15 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.stim.close()
             self.init = False
+        if 'CaImaging' in self.protocol:
+            self.send_CaImaging_Stop_signal()
+        
+    def send_CaImaging_Stop_signal(self):
+        self.acq = Acquisition(dt=1e-3, # 1kHz
+                               Nchannel_in=1, max_time=1.1,
+                               output_steps= STEP_FOR_CA_IMAGING,
+                               filename=None)
+        
     
     def quit(self):
         self.quit_event.set()

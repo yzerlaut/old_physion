@@ -19,7 +19,7 @@ class Acquisition:
                  Nchannel_in=2,
                  max_time=10,
                  buffer_time=0.5,
-                 filename='data.npy',
+                 filename=None,
                  device=None,
                  outputs=None,
                  output_steps=[], # should be a set of dictionaries, output_steps=[{'channel':0, 'onset': 2.3, 'duration': 1., 'value':5}]
@@ -99,7 +99,9 @@ class Acquisition:
         if self.outputs is not None:
             self.write_task.start()
         self.sample_clk_task.start()
-        np.save(self.filename.replace('.npy', '.start.npy'), np.ones(1)*time.time()) # saving the time stamp of the start !
+        if self.filename is not None:
+            np.save(self.filename.replace('.npy', '.start.npy'),
+                    np.ones(1)*time.time()) # saving the time stamp of the start !
 
     def close(self):
         try:
@@ -114,8 +116,9 @@ class Acquisition:
             self.sample_clk_task.close()
         except AttributeError:
             pass
-        np.save(self.filename, self.data[:,1:])
-        print('NIdaq data saved as: %s ' % self.filename)
+        if self.filename is not None:
+            np.save(self.filename, self.data[:,1:])
+            print('NIdaq data saved as: %s ' % self.filename)
 
     def reading_task_callback(self, task_idx, event_type, num_samples, callback_data=None):
         if self.running:
