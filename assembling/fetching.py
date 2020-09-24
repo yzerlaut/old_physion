@@ -3,7 +3,7 @@ import os, sys, pathlib
 from PIL import Image
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, create_day_folder, generate_filename_path, load_dict
+from assembling.saving import day_folder, create_day_folder, generate_filename_path, check_datafolder
 
 def get_list_of_datafiles(data_folder):
 
@@ -19,37 +19,41 @@ def last_datafile(data_folder):
 
 class Dataset:
     
-    def __init__(self, datafolder):
+    def __init__(self, datafolder,
+                 modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium']):
         
+        for key in modalities:
+            setattr(self, key, None) # everything to None
+            
         self.datafolder = datafolder
+        self.metadata = check_datafolder(self.datafolder, modalities)
 
-        self.Screen, self.Locomotion, self.Electrophy,\
-            self.Pupil, self.Calcium = None, None, None, None, None
+        if self.metadata['NIdaq']: # loading the NIdaq data only once
+            data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
+            self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
+            
+        if self.metadata['VisualStim'] and ('Screen' in modalities):
+            self.init_screen_data(data)
+        if self.metadata['NIdaq'] and ('Locomotion' in modalities):
+            self.init_locomotion_data(data)
+        if self.metadata['NIdaq'] and ('Electrophy' in modalities):
+            self.init_electrophy_data(data)
 
-        # metadata should always be there
-        self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
-                                allow_pickle=True).item()
-        print(self.metadata)
-        # also the NIdaq data should always be there !
-        data = np.load(os.path.join(self.datafolder,'NIdaq.npy'))
-        self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
-
-        self.init_screen_data(data)
-        # if ('with-VisualStim' in self.metadata) and self.metadata['with-VisualStim']:
-        #     self.init_screen_data()
-        # if self.metadata['with-Locomotion']:
-        #     self.init_locomotion_data(data)
-        # if self.metadata['with-Pupil']:
-        #     self.init_pupil_data()
-        # if self.metadata['with-Electrophy']:
-        #     self.init_electrophy_data(data)
-
+        if self.metadata['FaceCamera'] and ('Pupil' in modalities):
+            self.init_pupil_data()
+            
+            
     def init_locomotion_data(self, data):
         self.Locomotion = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
                            'trace':data[1,:]}
         
-    def init_pupil_data(self, data):
-        pass
+    def init_pupil_data(self):
+        data = np.load(os.path.join(self.datafolder,'pupil-data.npy'),
+                       allow_pickle=True).item()
+        self.Pupil = {'times':data['times'],
+                      'imgs':data['filenames'],
+                      'diameter':np.sqrt(data['sx-corrected']*data['sy-corrected'])}
+
     
     def init_electrophy_data(self, data):
         self.Eletrophy = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
@@ -77,13 +81,13 @@ class Dataset:
             self.Screen['imgs'].append(fn)
             i+=1
 
-        self.realigned_from_photodiode(self, debug=False, verbose=False)
+        self.realigned_from_photodiode(debug=False, verbose=False)
 
         
     def realigned_from_photodiode(self, debug=False, verbose=True):
 
         if verbose:
-            print('... Realigning data [...] ')
+            print('---> Realigning data with respect to photodiode signal [...] ')
 
         if debug:
             from datavyz import ges as ge
@@ -111,7 +115,7 @@ class Dataset:
         self.metadata['time_stop_realigned'] = self.metadata['time_start_realigned']+self.metadata['presentation-duration']
 
         if verbose:
-            print('[ok] Data realigned')
+            print('[ok]             ---> done')
 
         # l = self.metadata['presentation-interstim-period']+self.metadata['presentation-duration']
         # self.metadata['t_realigned'] = -self.metadata['presentation-interstim-period']/2+np.arange(int(l/dt))*dt

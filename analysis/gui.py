@@ -108,27 +108,11 @@ class MasterWindow(QtWidgets.QMainWindow):
 
     def load_data(self):
 
-        # NI daq: Screen+Locomotion+Electrophy
-        dataset = Dataset(self.datafolder)
-        
-        self.Screen = dataset.Screen
-        self.Locomotion = dataset.Locomotion
-        self.Electrophy = dataset.Electrophy
-        
-        ## PUPIL
-        try:
-            data = np.load(os.path.join(self.datafolder,'pupil-data.npy'),
-                           allow_pickle=True).item()
-            print(data)
-            self.Pupil = {'times':data['times'],
-                          'imgs':data['filenames'],
-                          'diameter':np.sqrt(data['sx-corrected']*data['sy-corrected'])}
-        except Exception:
-            self.Pupil = None
+        dataset = Dataset(self.datafolder) # see assembling/fetching.py
 
-        # Calcium
-        ## TO BE DONE !
-
+        for key in ['Screen', 'Locomotion', 'Electrophy', 'Pupil']:
+            setattr(self, key) = getattr(dataset, key)
+            
         self.tzoom = [self.Screen['times'][0],self.Screen['times'][-1]]
         self.time = self.Screen['times'][0]
 

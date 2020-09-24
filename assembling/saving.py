@@ -61,50 +61,62 @@ def from_folder_to_datetime(folder):
     except Exception:
         return '', folder
 
-def check_datafolder(df):
-    
-    check = {}
+def check_datafolder(df,
+                     modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium'],
+                     verbose=True):
 
-    if os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
-       os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
-        check['FaceCamera'] = True
-    else:
-        check['FaceCamera'] = False
-
-    if os.path.isfile(os.path.join(df, 'NIdaq.npy')):
-        check['NIdaq'] = True
-    else:
-        check['NIdaq'] = False
-
-    if os.path.isfile(os.path.join(df, 'visual-stim.npz')) and \
-       os.path.isdir(os.path.join(df,'screen-frames')):
-        check['visual-stim'] = True
-    else:
-        check['visual-stim'] = False
-
+    if verbose:
+        print('---> Checking the integrity of the datafolder [...] ')
         
-    if check['FaceCamera']:
-        # insuring nice order of FaceCamera images
-        filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
-        nmax = max([len(fn) for fn in filenames])
-        for fn in filenames:
-            n0 = len(fn)
-            if n0<nmax:
-                os.rename(os.path.join(df,'FaceCamera-imgs',fn),
-                          os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
-                
+    # should always be there
+    if os.path.isfile(os.path.join(df,'metadata.npy')):
+        metadata = np.load(os.path.join(df,'metadata.npy'),
+                           allow_pickle=True).item()
+    
+        if os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
+           os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
+            metadata['FaceCamera'] = True
+        else:
+            metadata['FaceCamera'] = False
 
-    if check['visual-stim']:
-        # insuring nice order of screen frames
-        filenames = os.listdir(os.path.join(df,'screen-frames'))
-        nmax = max([len(fn) for fn in filenames])
-        for fn in filenames:
-            n0 = len(fn)
-            if n0<nmax:
-                os.rename(os.path.join(df,'screen-frames', fn),
-                          os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
+        if os.path.isfile(os.path.join(df, 'NIdaq.npy')):
+            metadata['NIdaq'] = True
+        else:
+            metadata['NIdaq'] = False
 
-    return check
+        if os.path.isfile(os.path.join(df, 'visual-stim.npz')) and \
+           os.path.isdir(os.path.join(df,'screen-frames')):
+            metadata['VisualStim'] = True
+        else:
+            metadata['VisualStim'] = False
+
+        if metadata['FaceCamera']:
+            # insuring nice order of FaceCamera images
+            filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
+            nmax = max([len(fn) for fn in filenames])
+            for fn in filenames:
+                n0 = len(fn)
+                if n0<nmax:
+                    os.rename(os.path.join(df,'FaceCamera-imgs',fn),
+                              os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+
+
+        if metadata['VisualStim']:
+            # insuring nice order of screen frames
+            filenames = os.listdir(os.path.join(df,'screen-frames'))
+            nmax = max([len(fn) for fn in filenames])
+            for fn in filenames:
+                n0 = len(fn)
+                if n0<nmax:
+                    os.rename(os.path.join(df,'screen-frames', fn),
+                              os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
+
+        if verbose:
+            print('[ok]')
+        return metadata
+    else:
+        print('Metadata file missing for "%s" ' % df)
+        return {}
             
 #########################################################
 #### Dealing with root data folder
