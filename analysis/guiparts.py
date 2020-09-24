@@ -218,11 +218,11 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     label = pg.LabelItem()
     txt = """
     <span style='font-size: 12pt'>
-    <span style='color: white'> <b>Screen</b> </span> <br/>
-    <span style='color: grey'> <b>Locomotion</b> </span> <br/>
+    <span style='color: grey'> <b>Screen</b> </span> <br/>
+    <span style='color: white'> <b>Locomotion</b> </span> <br/>
     <span style='color: red'> <b>Pupil</b> </span> <br/>
-    <span style='color: lightblue'> <b>Electrophy</b> </span> <br/>
-    <span style='color: lightgreen'> <b> Calcium </b> </span>"""
+    <span style='color: blue'> <b>Electrophy</b> </span> <br/>
+    <span style='color: green'> <b> Calcium </b> </span>"""
     label.setText(txt)
     self.win2.addItem(label)
     

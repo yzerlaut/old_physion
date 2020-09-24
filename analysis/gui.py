@@ -12,11 +12,11 @@ settings = {
     # raw data plot settings
     'increase-factor':2., # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
-    'colors':{'Screen':np.ones(3)*255,
-              'Locomotion':np.ones(3)*100,
-              'Pupil':(255, 70, 70),
-              'Electrophy':(70, 70, 255),
-              'Calcium':(70, 255, 70)},
+    'colors':{'Screen':(100, 100, 100, 255),#'grey',
+              'Locomotion':(255,255,255,255),#'white',
+              'Pupil':(255,0,0,255),#'red',
+              'Electrophy':(100,100,255,255),#'blue',
+              'Calcium':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':600}
 
@@ -91,6 +91,9 @@ class MasterWindow(QtWidgets.QMainWindow):
     def update_df_names(self):
         self.dbox.clear()
         self.pbox.clear()
+        self.plot.clear()
+        self.win1.clear()
+        self.win2.clear()
         if len(self.list_protocol_per_day)>0:
             self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
             for fn in self.list_protocol_per_day:
@@ -111,10 +114,12 @@ class MasterWindow(QtWidgets.QMainWindow):
         dataset = Dataset(self.datafolder) # see assembling/fetching.py
 
         for key in ['Screen', 'Locomotion', 'Electrophy', 'Pupil']:
-            setattr(self, key) = getattr(dataset, key)
-            
-        self.tzoom = [self.Screen['times'][0],self.Screen['times'][-1]]
-        self.time = self.Screen['times'][0]
+            setattr(self, key, getattr(dataset, key))
+        setattr(self, 'metadata', dataset.metadata)
+
+        self.metadata
+        self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
+        self.time = 0
 
         
     def pick_datafolder(self):
