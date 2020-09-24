@@ -130,7 +130,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.datafolder = self.list_protocol_per_day[i-1]
             self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
                                     allow_pickle=True).item()
-            self.add_datafolder_annotation()
+            # self.add_datafolder_annotation()
             self.pbox.addItem('...       (select a visualization/analysis)')
             self.pbox.addItem('-> Show Raw Data')
             self.load_data()

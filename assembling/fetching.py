@@ -62,8 +62,8 @@ class Dataset:
                           'imgs':data['filenames'],
                           'diameter':np.sqrt(data['sx-corrected']*data['sy-corrected'])}
         else:
-            self.Pupil['times'] = np.load(os.path.join(cls.datafolder, 'FaceCamera-times.npy'))
-            self.Pupil['imgs'] = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
+            self.Pupil['times'] = np.load(os.path.join(self.datafolder, 'FaceCamera-times.npy'))
+            self.Pupil['imgs'] = np.array(sorted(os.listdir(os.path.join(self.datafolder,
                                                                          'FaceCamera-imgs'))))
             self.Pupil['diameter'] = 0.*self.Pupil['times']
 
@@ -88,6 +88,11 @@ class Dataset:
         # realigning according to photodiode signal
         self.realign_from_photodiode()
 
+        # adding stimulus metadata
+        data = np.load(os.path.join(self.datafolder,'visual-stim.npy'), allow_pickle=True).item()
+        print(data)
+        self.metadata = {**self.metadata ,**data}
+        
         
     def realign_from_photodiode(self, debug=False, verbose=True):
 

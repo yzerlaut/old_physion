@@ -31,11 +31,12 @@ CONFIG_LIST = ['                                (choose)',
                'Electrophy+CaImaging',
                'NIdaq only']
 
-STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": 1.0, "value":5.0}
+STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
-default_settings = {'NIdaq-acquisition-frequency':1000.,
+default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'NIdaq-input-channels': 4,
                     'protocol_folder':os.path.join('master', 'protocols'),
+                    'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
                     'FaceCamera-frame-rate': 20}
 
 
@@ -49,12 +50,12 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Experiment Control Program -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 600, 500)
 
-        self.settings = default_settings # set a load/save interface
-        self.protocol, self.protocol_folder = None, self.settings['protocol_folder']
+        self.metadata = default_settings # set a load/save interface
+        self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
         self.config = None
-        self.metadata = {}
 
-        self.datafolder = get_data_folder()
+        self.root_datafolder = self.metadata['root_datafolder']
+        self.datafolder = None
             
         self.get_protocol_list()
         self.experiment = {} # storing the specifics of an experiment
@@ -107,7 +108,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.pbtn.clicked.connect(self.set_protocol_folder)
         self.pbtn.move(470, 120)
 
-        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.datafolder), self)
+        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
         self.dfl.setMinimumWidth(300)
         self.dfl.move(30, 160)
         dfb = QtWidgets.QPushButton('Set folder', self)
@@ -119,21 +120,21 @@ class MasterWindow(QtWidgets.QMainWindow):
         naf.move(50, 210)
         self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
         self.NIdaqFreq.move(250, 210)
-        self.NIdaqFreq.setValue(self.settings['NIdaq-acquisition-frequency']/1e3)
+        self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
         
         nrc = QtWidgets.QLabel("NI-daq recording channels (#): ", self)
         nrc.setMinimumWidth(300)
         nrc.move(50, 250)
         self.NIdaqNchannel = QtWidgets.QSpinBox(self)
         self.NIdaqNchannel.move(250, 250)
-        self.NIdaqNchannel.setValue(self.settings['NIdaq-input-channels'])
+        self.NIdaqNchannel.setValue(self.metadata['NIdaq-input-channels'])
         
         ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
         ffr.setMinimumWidth(300)
         ffr.move(50, 290)
         self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
         self.FaceCameraFreq.move(250, 290)
-        self.FaceCameraFreq.setValue(self.settings['FaceCamera-frame-rate'])
+        self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
         
         LABELS = ["Launch RigView"]#, "v) View Data"]
         FUNCTIONS = [self.rigview]#, self.view_data]
@@ -152,19 +153,34 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.show()
         
     def facecamera_init(self):
-        if self.FaceCamera_process is not None:
-            self.FaceCamera_process.terminate()
-        self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-                               args=(self.run_event , self.quit_event, self.datafolder))
-        self.FaceCamera_process.start()
-        time.sleep(6)
+        # if self.FaceCamera_process is not None:
+        #     self.FaceCamera_process.terminate()
+        # self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+        #                             args=(self.run_event , self.quit_event,
+        #                                   self.datafolder,
+        #                                   os.path.join(self.datafolder, 'FaceCamera-imgs')))
+        # self.FaceCamera_process.start()
+        # time.sleep(6)
+        # return True
+        if self.FaceCamera_process is None:
+
+            self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+                                        args=(self.run_event , self.quit_event,
+                                          self.root_datafolder))
+            self.FaceCamera_process.start()
+            print('  starting FaceCamera stream [...] ')
+            time.sleep(6)
+            print('[ok] FaceCamera ready ! ')
+        else:
+            print('[ok] FaceCamera already initialized ')
+            
         return True
             
     def choose_data_folder(self):
         fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Root Data Folder", self.datafolder))
+                                                            "Select Root Data Folder", self.root_datafolder))
         if os.path.isdir(fd):
-            self.datafolder = fd
+            self.root_datafolder = fd
             set_data_folder(fd)
             self.dfl.setText('Data-Folder (root): "%s"' % str(self.datafolder))
         else:
@@ -193,27 +209,37 @@ class MasterWindow(QtWidgets.QMainWindow):
         if self.cbc.currentIndex()==0:
             self.statusBar.showMessage('/!\ Need to choose a configuration and a protocol !')
         else:
-            self.statusBar.showMessage('[...] preparing stimulation')
-            
             self.config = self.cbc.currentText()
             self.metadata['protocol'] = self.cbp.currentText()
+            
+            self.statusBar.showMessage('[...] preparing stimulation')
+
+            self.filename = generate_filename_path(self.root_datafolder,
+                                    filename='metadata', extension='.npy',
+                                    with_FaceCamera_frames_folder=('FaceCamera' in self.config),
+                                    with_screen_frames_folder=('VisualStim' in self.config))
+            self.datafolder = os.path.dirname(self.filename)
+            
 
             if self.metadata['protocol']!='None':
-                with open(os.path.join(self.protocol_folder, protocol_name+'.json'), 'r') as fp:
+                with open(os.path.join(self.protocol_folder,
+                                       self.metadata['protocol']+'.json'), 'r') as fp:
                     self.protocol = json.load(fp)
             else:
                     self.protocol = {}
+                    
+            self.save_experiment() # saving all metadata
 
             # init facecamera
             if 'FaceCamera' in self.config:
-                print('Initializing Camera streams [...]')
-                self.statusBar.showMessage('Initializing Camera streams [...]')
+                self.statusBar.showMessage('Initializing Camera stream [...]')
                 self.facecamera_init()
-                self.statusBar.showMessage('Camera ready !')
                 
             # init visual stimulation
             if 'VisualStim' in self.config:
                 self.stim = build_stim(self.protocol)
+                np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
+                print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
                 max_time = self.stim.experiment['time_stop'][-1]+20
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
@@ -222,19 +248,11 @@ class MasterWindow(QtWidgets.QMainWindow):
             if 'CaImaging' in self.config:
                 output_steps.append(STEP_FOR_CA_IMAGING)
             
-            self.filename = generate_filename_path(self.datafolder,
-                                    filename='NIdaq', extension='.npy',
-                                    with_screen_frames_folder=('VisualStim' in self.config))
-            
-            self.acq = Acquisition(dt=1./self.config['NIdaq-acquisition-frequency'],
-                                   Nchannel_in=self.config['NIdaq-input-channels'],
+            self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
+                                   Nchannel_in=self.metadata['NIdaq-input-channels'],
                                    max_time=max_time,
                                    output_steps=output_steps,
-                                   filename= self.filename)
-            
-            # SAVING THE METADATA FILES
-            self.metadata = {**self.metadata, **self.protocol} # joining dictionaries
-            np.save(os.path.join(self.datafolder, 'metadata.npy'), self.metadata)
+                                   filename= self.filename.replace('metadata', 'NIdaq'))
             
             self.init = True
             
@@ -247,41 +265,45 @@ class MasterWindow(QtWidgets.QMainWindow):
         if (self.stim is None) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
         else:
-            self.save_experiment()
             # Ni-Daq
             self.acq.launch()
             self.statusBar.showMessage('stimulation & recording running [...]')
             # run visual stim
-            if bool(self.config['with-VisualStim']):
+            if 'VisualStim' in self.config:
                 self.stim.run(self)
             # stop and clean up things
-            if bool(self.config['with-FaceCamera']):
+            if 'FaceCamera' in self.config:
                 self.run_event.clear() # this will close the camera process
-            if bool(self.config['with-VisualStim']):
+            if 'VisualStim' in self.config:
                 self.stim.close() # close the visual stim
             self.acq.close()
             self.init = False
-        if 'CaImaging' in self.protocol and not self.stop_flag:
+        if 'CaImaging' in self.config and not self.stop_flag:
             self.send_CaImaging_Stop_signal()
+        print(100*'-', '\n', 50*'=')
     
     def stop(self):
         self.run_event.clear() # this will close the camera process
         self.stop_flag=True
         if self.acq is not None:
             self.acq.close()
-        self.statusBar.showMessage('stimulation stopped !')
         if self.stim is not None:
             self.stim.close()
             self.init = False
-        if 'CaImaging' in self.protocol:
+        if 'CaImaging' in self.config:
             self.send_CaImaging_Stop_signal()
+        self.statusBar.showMessage('stimulation stopped !')
+        print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):
-        self.acq = Acquisition(dt=1e-3, # 1kHz
-                               Nchannel_in=1, max_time=1.1,
-                               output_steps= STEP_FOR_CA_IMAGING,
-                               filename=None)
-        
+        acq = Acquisition(dt=1e-3, # 1kHz
+                          Nchannel_in=2, max_time=1.1,
+                          buffer_time=0.1,
+                          output_steps= [STEP_FOR_CA_IMAGING],
+                          filename=None)
+        acq.launch()
+        time.sleep(1.1)
+        acq.close()
     
     def quit(self):
         self.quit_event.set()
@@ -292,12 +314,11 @@ class MasterWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.quit()
 
     def save_experiment(self):
-        for key in self.config:
-            self.protocol[key] = self.config[key] # "config" overrides "protocol"
-        full_exp = dict(**self.protocol, **self.stim.experiment)
-        save_dict(self.filename, full_exp)
-        print('Stimulation & acquisition data saved as: %s ' % self.filename)
-        self.statusBar.showMessage('Stimulation & acquisition data saved as: %s ' % self.filename)
+        # SAVING THE METADATA FILES
+        self.metadata = {**self.metadata, **self.protocol} # joining dictionaries
+        np.save(os.path.join(self.datafolder, 'metadata.npy'), self.metadata)
+        print('[ok] Metadata data saved as: %s ' % os.path.join(self.datafolder, 'metadata.npy'))
+        self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(self.datafolder, 'metadata.npy'))
 
     def get_protocol_list(self):
         files = os.listdir(self.protocol_folder)

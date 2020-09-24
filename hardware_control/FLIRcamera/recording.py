@@ -21,13 +21,21 @@ class CameraAcquisition:
 
     def __init__(self,
                  folder='./',
-                 root_folder='./',
+                 root_folder=None,
+                 imgs_folder=None,
                  settings={'frame_rate':20., 'gain':10., 'exposure_time':10000}):
         
         self.times, self.frame_index = [], 0
-        self.folder, self.root_folder = folder, root_folder
-        self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
-        Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
+        if root_folder is not None:
+            self.root_folder = root_folder
+            self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
+        else:
+            self.root_folder = './'
+        if imgs_folder is None:
+            self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
+            Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
+        else:
+            self.imgs_folder = imgs_folder
         self.init_camera(settings)
         self.batch_index = 0
         self.running=False
@@ -99,7 +107,6 @@ class CameraAcquisition:
         
         self.cam.start()
         self.t = time.time()
-        print('FaceCamera ready ! ')
 
         while not quit_flag.is_set():
             
@@ -118,11 +125,11 @@ class CameraAcquisition:
                 self.t=time.time()
                 self.times.append(self.t)
 
-        self.save_times()
+        # self.save_times()
 
         
     def save_times(self, verbose=True):
-        print('Camera data saved as: ', os.path.join(self.folder, 'FaceCamera-times.npy'))
+        print('[ok] Camera data saved as: ', os.path.join(self.folder, 'FaceCamera-times.npy'))
         np.save(os.path.join(self.folder, 'FaceCamera-times.npy'), np.array(self.times))
         if verbose:
             print('FaceCamera -- effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
@@ -133,7 +140,7 @@ class CameraAcquisition:
         self.save_times()
 
         
-def camera_init_and_rec(duration, stop_flag, camready_flag, folder):
+def camera_init_and_rec(duration, stop_flag, camready_flag):
     camera = CameraAcquisition(folder=folder)
     camera.rec(duration, stop_flag, camready_flag)
 

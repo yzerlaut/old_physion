@@ -16,6 +16,7 @@ def create_second_folder(day_folder):
 def generate_filename_path(root_folder,
                            filename = '', extension='txt',
                            with_screen_frames_folder=False,
+                           with_FaceCamera_frames_folder=False,
                            with_microseconds=False):
 
     Day_folder = day_folder(root_folder)
@@ -31,6 +32,9 @@ def generate_filename_path(root_folder,
 
     if with_screen_frames_folder:
         pathlib.Path(os.path.join(Second_folder, 'screen-frames')).mkdir(parents=True, exist_ok=True)
+
+    if with_FaceCamera_frames_folder:
+        pathlib.Path(os.path.join(Second_folder, 'FaceCamera-imgs')).mkdir(parents=True, exist_ok=True)
         
     if not extension.startswith('.'):
         extension='.'+extension
@@ -124,7 +128,7 @@ def check_datafolder(df,
 
 DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
     
-def get_data_folder():
+def get_data_folder(root_datafolder):
     # if not existing we create the data-folder with tempdir
     if not os.path.isfile(DFFN):
         with open(DFFN, 'w') as fp:

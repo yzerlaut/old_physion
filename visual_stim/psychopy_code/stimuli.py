@@ -60,8 +60,8 @@ class visual_stim:
     def __init__(self, protocol,
                  screen_size = [1280, 768],
                  monitoring_square = {'size':6,
-                                      'x':18.5,
-                                      'y':-10.5,
+                                      'x':19.5,
+                                      'y':-11.5,
                                       'color-on':1,
                                       'color-off':-1,
                                       'time-on':0.2, 'time-off':0.8},
@@ -176,6 +176,7 @@ class visual_stim:
             self.off.draw()
             try:
                 self.win.flip()
+                self.win.getMovieFrame() # we store the last frame
             except AttributeError:
                 pass
             clock.wait(self.protocol['presentation-prestim-period'])
@@ -187,6 +188,7 @@ class visual_stim:
             self.off.draw()
             try:
                 self.win.flip()
+                self.win.getMovieFrame() # we store the last frame
             except AttributeError:
                 pass
             clock.wait(self.protocol['presentation-poststim-period'])
@@ -198,6 +200,7 @@ class visual_stim:
             self.off.draw()
             try:
                 self.win.flip()
+                self.win.getMovieFrame() # we store the last frame
             except AttributeError:
                 pass
             clock.wait(self.protocol['presentation-interstim-period'])
@@ -238,11 +241,14 @@ class visual_stim:
                 break
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_static_patterns_presentation(parent, i)
+            self.win.getMovieFrame() # we store the last frame
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
+        self.win.saveMovieFrames(os.path.join(os.path.dirname(parent.filename),
+                                              'screen-frames', 'frame.tiff'))
             
     #####################################################
     # showing a single dynamic pattern with a phase advance
