@@ -55,6 +55,19 @@ def last_datafolder_in_dayfolder(day_folder):
         print('No datafolder found, returning "./" ')
         return './'
 
+
+# def get_list_of_datafiles(data_folder):
+
+#     list_of_folders = [os.path.join(day_folder(data_folder), d)\
+#                        for d in os.listdir(day_folder(data_folder)) if os.path.isdir(os.path.join(day_folder(data_folder), d))]
+    
+#     return [os.path.join(d,'visual-stim.npz')\
+#               for d in list_of_folders if os.path.isfile(os.path.join(d,'visual-stim.npz'))]
+
+# def last_datafile(data_folder):
+#     return get_list_of_datafiles(data_folder)[-1]
+
+    
 def from_folder_to_datetime(folder):
 
     s = folder.split(os.path.sep)[-2:]
@@ -88,8 +101,7 @@ def check_datafolder(df,
         else:
             metadata['NIdaq'] = False
 
-        if os.path.isfile(os.path.join(df, 'visual-stim.npz')) and \
-           os.path.isdir(os.path.join(df,'screen-frames')):
+        if os.path.isfile(os.path.join(df, 'visual-stim.npz')):
             metadata['VisualStim'] = True
         else:
             metadata['VisualStim'] = False

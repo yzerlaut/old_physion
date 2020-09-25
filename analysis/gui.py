@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict, list_dayfolder
-from assembling.fetching import Dataset
+from assembling.dataset import Dataset
 from analysis import guiparts, plots
 
 settings = {
