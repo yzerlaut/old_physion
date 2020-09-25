@@ -1,6 +1,5 @@
 import numpy as np
 import os, sys, pathlib
-from PIL import Image
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path, check_datafolder
@@ -23,7 +22,7 @@ class Dataset:
                  modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium']):
         
         for key in modalities:
-            setattr(self, key, None) # everything to None
+            setattr(self, key, None) # all modalities to None by default
             
         self.datafolder = datafolder
         self.metadata = check_datafolder(self.datafolder, modalities)

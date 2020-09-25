@@ -1,7 +1,6 @@
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtGui
-from PIL import Image
 import os
 
 def scale_and_position(self, y, i=0):
