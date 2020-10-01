@@ -19,7 +19,7 @@ def compress_FaceCamera(datafolder,
     
 
     # ------------------------------------------------------------
-    # building custom compression functions depdending on the tool
+    # building custom compression functions depending on the tool
     
     if tool=='numpy':
         
@@ -125,7 +125,6 @@ if __name__=='__main__':
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
-    
         
     
 
