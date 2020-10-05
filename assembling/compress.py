@@ -17,7 +17,6 @@ def compress_FaceCamera(datafolder,
     directory = os.path.join(datafolder, 'FaceCamera-compressed')
     pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
     
-
     # ------------------------------------------------------------
     # building custom compression functions depending on the tool
     

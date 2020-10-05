@@ -9,11 +9,26 @@ from assembling.saving import day_folder, create_day_folder, generate_filename_p
 ###      Some general signal types         ###
 ##############################################
 
-class TimeSeries:
+class SingleValueTimeSerie:
+    
     def __init__(signal, dt,
                  t0=0):
         self.t = np.arange(len(signal))*dt+t0
-        self.value = signal
+        self.val = signal # value
+
+
+class ImageTimeSeries:
+    
+    def __init__(IMAGES,
+                 dt=None, times=None,
+                 t0=0):
+        if times is None:
+            if dt is None:
+                pass
+            else:
+                self.t = np.arange(len(IMAGES))
+        self.t = np.arange(len(signal))*dt+t0
+        self.im = signal
         
 ##############################################
 ###               Screen data              ###
@@ -26,31 +41,21 @@ class ScreenData:
                  lazy_loading=True):
 
         if NIdaq_trace is not None:
-            self.photodiode_times = np.arange(len(NIdaq_trace))\
-                /metadata['NIdaq-acquisition-frequency']
-            self.photodiode_trace = NIdaq_trace
+            self.photodiode = SingleValueTimeSerie(NIdaq_trace,
+                                                   dt = 1./metadata['NIdaq-acquisition-frequency'])
         else:
-            self.photodiode_times, self.photodiode_trace = None, None
+            self.photodiode = None #
 
     def grab_frame(self, t):
         pass
     
-# class PupilData:
-
-#     def __init__(self):
-#         pass
-#     def grab_image(self, t):
-#         pass
-
-#     def grab_value(self, t):
-#         pass
-        
 ##############################################
 ###           Locomotion data              ###
 ##############################################
 
 class LocomotionData:
     def __init__(self):
+        pass
 
         
 def init_locomotion_data(self, data):
@@ -61,6 +66,11 @@ def init_locomotion_data(self, data):
 ##############################################
 ###           Pupil data                   ###
 ##############################################
+
+class PupilData:
+
+    pass
+
 def init_pupil_data(self):
     self.Pupil = {}
     if os.path.isfile(os.path.join(self.datafolder,'pupil-data.npy')):
