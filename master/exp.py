@@ -9,27 +9,29 @@ from assembling.saving import *
 from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
-from hardware_control.NIdaq.main import Acquisition
-from hardware_control.FLIRcamera.recording import launch_FaceCamera
-from hardware_control.LogitechWebcam.preview import launch_RigView
+try:
+    from hardware_control.NIdaq.main import Acquisition
+    from hardware_control.FLIRcamera.recording import launch_FaceCamera
+    from hardware_control.LogitechWebcam.preview import launch_RigView
+except ModuleNotFoundError:
+    # just to be able to work on the UI without the modules
+    pass
 
 # os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
 CONFIG_LIST = ['                                (choose)',
+               'NIdaq',
                'VisualStim',
                'VisualStim+FaceCamera',
-               'VisualStim+Electrophy',
                'VisualStim+CaImaging',
-               'VisualStim+FaceCamera+Electrophy',
                'VisualStim+FaceCamera+CaImaging',
                'VisualStim+FaceCamera+Electrophy+CaImaging',
-               'FaceCamera+Electrophy',
-               'FaceCamera+CaImaging',
-               'FaceCamera+Electrophy+CaImaging',
-               'Electrophy+CaImaging',
-               'NIdaq only']
+               'FaceCamera',
+               'FaceCamera+NIdaq',
+               'FaceCamera+NIdaq+CaImaging',
+               'CaImaging']
 
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
@@ -37,6 +39,7 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'NIdaq-input-channels': 4,
                     'protocol_folder':os.path.join('master', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
+                    'config' : CONFIG_LIST[0],
                     'FaceCamera-frame-rate': 20}
 
 
@@ -44,11 +47,11 @@ class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
                  parent=None,
-                 button_length = 100):
+                 button_length = 135):
         
         super(MasterWindow, self).__init__(parent)
         self.setWindowTitle('Experiment Control Program -- Physiology of Visual Circuits')
-        self.setGeometry(50, 50, 600, 500)
+        self.setGeometry(50, 50, 550, 500)
 
         self.metadata = default_settings # set a load/save interface
         self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
@@ -94,7 +97,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         QtWidgets.QLabel("  Setup Config. :", self).move(30, 80)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.addItems(CONFIG_LIST)
-        self.cbc.setMinimumWidth(300)
+        self.cbc.setMinimumWidth(350)
         self.cbc.move(150, 80)
 
         # protocol choice
@@ -102,7 +105,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.addItems(['None']+\
                           [f.replace('.json', '') for f in self.protocol_list])
-        self.cbp.setMinimumWidth(300)
+        self.cbp.setMinimumWidth(350)
         self.cbp.move(150, 120)
         self.pbtn = QtWidgets.QPushButton('Set folder', self)
         self.pbtn.clicked.connect(self.set_protocol_folder)
@@ -153,17 +156,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.show()
         
     def facecamera_init(self):
-        # if self.FaceCamera_process is not None:
-        #     self.FaceCamera_process.terminate()
-        # self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-        #                             args=(self.run_event , self.quit_event,
-        #                                   self.datafolder,
-        #                                   os.path.join(self.datafolder, 'FaceCamera-imgs')))
-        # self.FaceCamera_process.start()
-        # time.sleep(6)
-        # return True
         if self.FaceCamera_process is None:
-
             self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
                                         args=(self.run_event , self.quit_event,
                                           self.root_datafolder))
@@ -220,7 +213,6 @@ class MasterWindow(QtWidgets.QMainWindow):
                                     with_screen_frames_folder=('VisualStim' in self.config))
             self.datafolder = os.path.dirname(self.filename)
             
-
             if self.metadata['protocol']!='None':
                 with open(os.path.join(self.protocol_folder,
                                        self.metadata['protocol']+'.json'), 'r') as fp:
@@ -243,16 +235,21 @@ class MasterWindow(QtWidgets.QMainWindow):
                 max_time = self.stim.experiment['time_stop'][-1]+20
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
-                
+                self.stim = None
+
             output_steps = []
             if 'CaImaging' in self.config:
                 output_steps.append(STEP_FOR_CA_IMAGING)
-            
-            self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                   Nchannel_in=self.metadata['NIdaq-input-channels'],
-                                   max_time=max_time,
-                                   output_steps=output_steps,
-                                   filename= self.filename.replace('metadata', 'NIdaq'))
+
+
+            if self.config not in ['VisualStim', 'FaceCamera']:
+                self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
+                                       Nchannel_in=self.metadata['NIdaq-input-channels'],
+                                       max_time=max_time,
+                                       output_steps=output_steps,
+                                       filename= self.filename.replace('metadata', 'NIdaq'))
+            else:
+                self.acq = None
             
             self.init = True
             
