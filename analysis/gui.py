@@ -57,11 +57,20 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.data_folder = os.path.join(os.path.expanduser('~'), 'DATA')
         self.Screen, self.Locomotion, self.Pupil, self.Calcium,\
             self.Electrophy, self.tzoom  = None, None, None, None, None, [0,1e3]
+        self.time = 0
         self.check_data_folder()
         
         self.minView = False
         self.showwindow()
 
+        # for debugging
+        self.day_folder = '/home/yann/DATA/2020_09_11/'
+        self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
+        self.preload_datafolder(self.datafolder)
+        self.load_data()
+        print(self.metadata)
+        self.display_quantities(force=True)
+        
     def check_data_folder(self):
         
         print('inspecting data folder [...]')
@@ -111,8 +120,10 @@ class MasterWindow(QtWidgets.QMainWindow):
 
     def load_data(self):
 
-        dataset = Dataset(self.datafolder) # see assembling/fetching.py
-
+         # see assembling/dataset.py
+        dataset = Dataset(self.datafolder,
+                          modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil'])
+        
         for key in ['Screen', 'Locomotion', 'Electrophy', 'Pupil']:
             setattr(self, key, getattr(dataset, key))
         setattr(self, 'metadata', dataset.metadata)
@@ -120,7 +131,6 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.metadata
         self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
         self.time = 0
-
         
     def pick_datafolder(self):
         self.pbox.clear()
@@ -149,11 +159,13 @@ class MasterWindow(QtWidgets.QMainWindow):
         info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
         self.notes.setText(info)
 
-    def display_quantities(self):
-        if self.pbox.currentIndex()==1:
+    def display_quantities(self, force=False):
+        self.statusBar.showMessage('Plotting quantities [...]')
+        if self.pbox.currentIndex()==1 or force:
             plots.raw_data_plot(self, self.tzoom)
             plots.update_images(self, self.time)
         self.statusBar.showMessage('')
+
 
     def back_to_initial_view(self):
         self.tzoom = [self.Screen['times'][0], self.Screen['times'][-1]]

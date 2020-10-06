@@ -56,6 +56,20 @@ def last_datafolder_in_dayfolder(day_folder):
         return './'
 
 
+def get_files_with_extension(folder, extension='.txt',
+                             recursive=False):
+    FILES = []
+    if recursive:
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                if file.endswith(extension):
+                     FILES.append(os.path.join(root, file))
+    else:
+        for file in os.listdir(folder):
+            if file.endswith(extension):
+                FILES.append(os.path.join(folder, file))
+    return FILES
+
 # def get_list_of_datafiles(data_folder):
 
 #     list_of_folders = [os.path.join(day_folder(data_folder), d)\
@@ -92,6 +106,9 @@ def check_datafolder(df,
     
         if os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
            os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
+            metadata['FaceCamera'] = True
+        elif os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
+           os.path.isdir(os.path.join(df,'FaceCamera-compressed')):
             metadata['FaceCamera'] = True
         else:
             metadata['FaceCamera'] = False
@@ -192,7 +209,7 @@ if __name__=='__main__':
 
     import tempfile
     data_folder = tempfile.gettempdir()
-    print(last_datafolder_in_dayfolder(day_folder(data_folder)))
+    # print(last_datafolder_in_dayfolder(day_folder(data_folder)))
     # print(filename_with_datetime('', folder='./', extension='.npy'))
     # print(filename_with_datetime('', folder='./', extension='npy'))
     

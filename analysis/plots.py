@@ -21,66 +21,71 @@ def raw_data_plot(self, tzoom):
     pen = pg.mkPen(color=self.settings['colors']['Screen'])
     if self.Screen is not None:
         # first photodiode signal
-        cond = (self.Screen['times']>=tzoom[0]) & (self.Screen['times']<=tzoom[1])
-        isampling = max([1,int(len(self.Screen['times'][cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Screen['photodiode'][cond][::isampling], i=0)
-        self.plot.plot(self.Screen['times'][cond][::isampling], y, pen=pen)
-        itime = np.argmin((self.Screen['times'][cond]-self.time)**2)
-        scatter.append((self.Screen['times'][cond][itime], y[itime]))
+        cond = (self.Screen.photodiode.t>=tzoom[0]) & (self.Screen.photodiode.t<=tzoom[1])
+        isampling = max([1,int(len(self.Screen.photodiode.t[cond])/self.settings['Npoints'])])
+        y = scale_and_position(self, self.Screen.photodiode.val[cond][::isampling], i=0)
+        self.plot.plot(self.Screen.photodiode.t[cond][::isampling], y, pen=pen)
+        itime = np.argmin((self.Screen.photodiode.t[cond]-self.time)**2)
+        scatter.append((self.Screen.photodiode.t[cond][itime], y[itime]))
     else:
-        self.plot.plot([tzoom[0], tzoom[1]], shift(self, 0)+np.zeros(2), pen=pen)
+        y = shift(self,0)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
+
 
     ## -------- Locomotion --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Locomotion'])
     if self.Locomotion is not None:
-        cond = (self.Locomotion['times']>=tzoom[0]) & (self.Locomotion['times']<=tzoom[1])
-        isampling = max([int(len(self.Locomotion['times'][cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Locomotion['trace'][cond][::isampling], i=1)
-        itime = np.argmin((self.Locomotion['times'][cond]-self.time)**2)
-        scatter.append((self.Locomotion['times'][cond][itime], y[itime]))
-        self.plot.plot(self.Locomotion['times'][cond][::isampling], y, pen=pen)
+        cond = (self.Locomotion.t>=tzoom[0]) & (self.Locomotion.t<=tzoom[1])
+        isampling = max([int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
+        y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=1)
+        itime = np.argmin((self.Locomotion.t[cond]-self.time)**2)
+        scatter.append((self.Locomotion.t[cond][itime], y[itime]))
+        self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
     else:
-        self.plot.plot([tzoom[0], tzoom[1]], shift(self, 1)+np.zeros(2), pen=pen)
-
+        y = shift(self,1)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
     ## -------- Pupil --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
     if self.Pupil is not None:
         # time-varying diameter
-        cond = (self.Pupil['times']>=tzoom[0]) & (self.Pupil['times']<=tzoom[1])
-        isampling = max([1,int(len(self.Pupil['times'][cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Pupil['diameter'][cond][::isampling], i=2)
-        self.plot.plot(self.Pupil['times'][cond][::isampling], y,pen=pen)
-        itime = np.argmin((self.Pupil['times'][cond]-self.time)**2)
-        scatter.append((self.Pupil['times'][cond][itime], y[itime]))
+        cond = (self.Pupil.t>=tzoom[0]) & (self.Pupil.t<=tzoom[1])
+        isampling = max([1,int(len(self.Pupil.t[cond])/self.settings['Npoints'])])
+        y = scale_and_position(self, self.Pupil.diameter[cond][::isampling], i=2)
+        self.plot.plot(self.Pupil.t[cond][::isampling], y,pen=pen)
+        itime = np.argmin((self.Pupil.t[cond]-self.time)**2)
+        scatter.append((self.Pupil.t[cond][itime], y[itime]))
     else:
-        self.plot.plot([tzoom[0], tzoom[1]], shift(self, 2)+np.zeros(2), pen=pen)
+        y = shift(self, 2)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
 
 
     ## -------- Electrophy --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Electrophy'])
     if self.Electrophy is not None:
         # time-varying diameter
-        cond = (self.Electrophy['times']>=tzoom[0]) & (self.Electrophy['times']<=tzoom[1])
-        isampling = max([1,int(len(self.Electrophy['times'][cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Electrophy['trace'][cond][::isampling], i=3)
-        itime = np.argmin((self.Electrophy['times'][cond]-self.time)**2)
-        scatter.append((self.Electrophy['times'][cond][itime], y[itime]))
-        self.plot.plot(self.Electrophy['times'][cond][::isampling], y, pen=pen)
+        cond = (self.Electrophy.t>=tzoom[0]) & (self.Electrophy.t<=tzoom[1])
+        isampling = max([1,int(len(self.Electrophy.t[cond])/self.settings['Npoints'])])
+        y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=3)
+        itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
+        scatter.append((self.Electrophy.t[cond][itime], y[itime]))
+        self.plot.plot(self.Electrophy.t[cond][::isampling], y, pen=pen)
     else:
-        self.plot.plot([tzoom[0], tzoom[1]],shift(self,3)+np.zeros(2), pen=pen)
+        y = shift(self,3)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
     ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Calcium'])
     if self.Calcium is not None:
         # time-varying diameter
-        cond = (self.Pupil['times']>=tzoom[0]) & (self.Pupil['times']<=tzoom[1])
-        isampling = max([1,int(len(self.Pupil['times'][cond])/self.settings['Npoints'])])
-        y = self.Pupil['diameter'][cond][::isampling]
-        self.plot.plot(self.Pupil['times'][cond][::isampling],
+        cond = (self.Pupil.t>=tzoom[0]) & (self.Pupil.t<=tzoom[1])
+        isampling = max([1,int(len(self.Pupil.t[cond])/self.settings['Npoints'])])
+        y = self.Pupil.diameter[cond][::isampling]
+        self.plot.plot(self.Pupil.t[cond][::isampling],
                        scale_and_position(self, y, i=4), pen=pen)
     else:
-        self.plot.plot([tzoom[0], tzoom[1]], shift(self,4)+np.zeros(2), pen=pen)
+        y = shift(self,4)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
 
     if self.Screen is not None:
         # if visual-stim we highlight the stim periods
@@ -108,12 +113,13 @@ def raw_data_plot(self, tzoom):
 def update_images(self, time):
 
     # pupil 
-    iframe = min([len(self.Pupil['imgs'])-1,np.argmin((self.Pupil['times']-time)**2)+1])
-    self.pFaceimg.setImage(np.load(self.Pupil['imgs'][iframe]))
+    # iframe = min([len(self.Pupil['imgs'])-1,np.argmin((self.Pupil.t-time)**2)+1])
+    if self.Pupil is not None:
+        self.pFaceimg.setImage(self.Pupil.grab_frame(time))
 
     # screen
     
-    # self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
+    # self.currentTime.setText('%.2f' % float(self.t[self.cframe]))
 
     # self.jump_to_frame()
     

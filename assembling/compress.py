@@ -75,10 +75,6 @@ def load_compressedFaceCamera(datafolder,
 
     directory = os.path.join(datafolder, 'FaceCamera-compressed')
     
-    # videodata = skvideo.io.vread(fn)
-    # print(np.max(X), np.max(videodata))#[:,:].mean(axis=-1))
-
-    
     X = np.empty(0)
     for i, fn in enumerate(os.listdir(directory)):
         x = skvideo.io.vread(fn)
@@ -89,38 +85,40 @@ def load_compressedFaceCamera(datafolder,
 
 if __name__=='__main__':
     
-    folder='/media/user/DATA/18-25-27/'
+    folder='/home/yann/DATA/2020_09_11/13-40-10/'
 
     import time
+
+    smoothing = 2
 
     tstart = time.time()
 
     extension, tool = '.npz', 'numpy'
-    # compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=10, verbose=True)
-    # print('extension:', extension,  'tool:' , tool)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
+    print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
 
     extension, tool = '.avi', 'skvideo'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=10, verbose=True)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
     
     extension, tool = '.avi', 'imageio'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=10, verbose=True)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
     
     extension, tool = '.mp4', 'skvideo'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=10, verbose=True)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
     
     extension, tool = '.mp4', 'imageio'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=10, verbose=True)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
