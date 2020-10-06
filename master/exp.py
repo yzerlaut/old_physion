@@ -24,10 +24,10 @@ except ModuleNotFoundError:
 CONFIG_LIST = ['                                (choose)',
                'NIdaq',
                'VisualStim',
-               'VisualStim+FaceCamera',
-               'VisualStim+CaImaging',
-               'VisualStim+FaceCamera+CaImaging',
-               'VisualStim+FaceCamera+Electrophy+CaImaging',
+               'VisualStim+NIdaq',
+               'VisualStim+NIdaq+FaceCamera',
+               'VisualStim+NIdaq+CaImaging',
+               'VisualStim+NIdaq+FaceCamera+CaImaging',
                'FaceCamera',
                'FaceCamera+NIdaq',
                'FaceCamera+NIdaq+CaImaging',
@@ -200,7 +200,9 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         i = self.cbc.currentIndex()
         if self.cbc.currentIndex()==0:
-            self.statusBar.showMessage('/!\ Need to choose a configuration and a protocol !')
+            self.statusBar.showMessage('/!\ Need to choose a configuration !')
+        elif self.cbp.currentIndex()==0:
+            self.statusBar.showMessage('/!\ Need to choose a protocol !')
         else:
             self.config = self.cbc.currentText()
             self.metadata['protocol'] = self.cbp.currentText()
@@ -242,7 +244,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                 output_steps.append(STEP_FOR_CA_IMAGING)
 
 
-            if self.config not in ['VisualStim', 'FaceCamera']:
+            if 'NIdaq' in self.config:
                 self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                        Nchannel_in=self.metadata['NIdaq-input-channels'],
                                        max_time=max_time,
@@ -259,11 +261,16 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.stop_flag=False
         self.run_event.set() # start the run flag for the facecamera
         
-        if (self.stim is None) or not self.init:
+        if ((self.acq is None) and (self.stim is None)) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
+        elif self.stim is None and self.acq is not None:
+            self.acq.launch()
+            self.statusBar.showMessage('NIdaq recording running [...]')
+            self.init = False
         else:
             # Ni-Daq
-            self.acq.launch()
+            if self.acq is not None:
+                self.acq.launch()
             self.statusBar.showMessage('stimulation & recording running [...]')
             # run visual stim
             if 'VisualStim' in self.config:
@@ -273,7 +280,8 @@ class MasterWindow(QtWidgets.QMainWindow):
                 self.run_event.clear() # this will close the camera process
             if 'VisualStim' in self.config:
                 self.stim.close() # close the visual stim
-            self.acq.close()
+            if self.acq is not None:
+                self.acq.close()
             self.init = False
         if 'CaImaging' in self.config and not self.stop_flag:
             self.send_CaImaging_Stop_signal()
