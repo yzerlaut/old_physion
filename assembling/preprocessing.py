@@ -51,7 +51,6 @@ class MasterWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
 
-            
         self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.data_folder), self)
         self.dfl.setMinimumWidth(300)
         self.dfl.move(30, 70)

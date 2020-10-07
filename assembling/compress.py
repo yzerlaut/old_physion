@@ -10,6 +10,7 @@ def compress_FaceCamera(datafolder,
                         extension='.npz', # '.avi', or '.mp4', ...
                         tool='numpy',
                         Nframe_per_file=500,
+                        max_file=int(1e6),
                         verbose=False):
 
 
@@ -48,7 +49,7 @@ def compress_FaceCamera(datafolder,
     # ------------------------------------------------
     # Now looping over frames to build the compression
 
-    X, i0 = [], 0
+    X, i0, file_count = [], 0, 0
     for i, fn in enumerate(os.listdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
         x = np.load(os.path.join(folder, 'FaceCamera-imgs', fn))
         if smoothing!=0:
@@ -63,26 +64,20 @@ def compress_FaceCamera(datafolder,
             X, i0 = [], i+1
             if verbose:
                 print('wrote: ', filename)
+
+            file_count +=1
+            
+        if file_count>=max_file:
+            break
+            
     # saving the last frames
-    filename = 'imgs-%i-%i' % (i0, i)
-    compress_func(np.array(X), os.path.join(directory, filename))
+    if file_count<max_file:
+        filename = 'imgs-%i-%i' % (i0, i)
+        compress_func(np.array(X), os.path.join(directory, filename))
     if verbose:
         print('wrote: ', filename)
 
                 
-def load_compressedFaceCamera(datafolder,
-                              extension='.npz'):
-
-    directory = os.path.join(datafolder, 'FaceCamera-compressed')
-    
-    X = np.empty(0)
-    for i, fn in enumerate(os.listdir(directory)):
-        x = skvideo.io.vread(fn)
-        X = np.concatenate([X, x])
-
-    return X
-    
-
 if __name__=='__main__':
     
     folder='/home/yann/DATA/2020_09_11/13-40-10/'
@@ -94,81 +89,77 @@ if __name__=='__main__':
     tstart = time.time()
 
     extension, tool = '.npz', 'numpy'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
+    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
     print('extension:', extension,  'tool:' , tool)
     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
     print(time.time()-tstart, 'seconds')
 
-    extension, tool = '.avi', 'skvideo'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
-    print('extension:', extension,  'tool:' , tool)
-    os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
-    print(time.time()-tstart, 'seconds')
+#     extension, tool = '.avi', 'skvideo'
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     print('extension:', extension,  'tool:' , tool)
+#     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
+#     print(time.time()-tstart, 'seconds')
     
-    extension, tool = '.avi', 'imageio'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
-    print('extension:', extension,  'tool:' , tool)
-    os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
-    print(time.time()-tstart, 'seconds')
+#     extension, tool = '.avi', 'imageio'
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     print('extension:', extension,  'tool:' , tool)
+#     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
+#     print(time.time()-tstart, 'seconds')
     
-    extension, tool = '.mp4', 'skvideo'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
-    print('extension:', extension,  'tool:' , tool)
-    os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
-    print(time.time()-tstart, 'seconds')
+#     extension, tool = '.mp4', 'skvideo'
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     print('extension:', extension,  'tool:' , tool)
+#     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
+#     print(time.time()-tstart, 'seconds')
     
-    extension, tool = '.mp4', 'imageio'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True)
-    print('extension:', extension,  'tool:' , tool)
-    os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
-    print(time.time()-tstart, 'seconds')
+#     extension, tool = '.mp4', 'imageio'
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     print('extension:', extension,  'tool:' , tool)
+#     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
+#     print(time.time()-tstart, 'seconds')
         
     
+# # # outputdata = np.random.random(size=(5, 480, 680, 3)) * 255
+# # # outputdata = outputdata.astype(np.uint8)
 
+# # 
+# # cfn = os.path.join(folder, 'FaceCamera-compressed')
+
+# # X = []
+# # print(len(os.listdir(os.path.join(folder, 'FaceCamera-imgs'))))
+# # for fn in os.listdir(os.path.join(folder, 'FaceCamera-imgs'))[:49]:
+# #     x = np.load(os.path.join(folder, 'FaceCamera-imgs', fn))
+# #     # x = gaussian_filter(x, 5)
+# #     X.append(x)
+
+# # Y = gaussian_filter(np.array(X), (1, 3, 3))
+# # # Y = np.array(X)
+# # print(Y.dtype)
+
+# # # f = gzip.GzipFile(os.path.join(folder, "my_array.npy.gz"), "w")
+# # # np.save(file=f, arr=np.array(X))
+# # # f.close()
+
+# # np.savez_compressed(cfn+'-1', X)
+# # np.savez_compressed(cfn+'-2', Y)
+
+# # # import shutil
+# # # shutil.make_archive(os.path.join(folder, 'archive'), 'tar', os.path.join(folder, 'FaceCamera-imgs'))
+
+
+# # # plt.imshow(X[-1])
+# # # plt.show()
     
-# # outputdata = np.random.random(size=(5, 480, 680, 3)) * 255
-# # outputdata = outputdata.astype(np.uint8)
+# # writer1 = skvideo.io.FFmpegWriter(cfn+'-1.avi')
+# # writer2 = skvideo.io.FFmpegWriter(cfn+'-2.avi')
+# # for i in range(Y.shape[0]):
+# #     writer1.writeFrame(X[i])
+# #     writer2.writeFrame(Y[i, :, :])
+# # writer1.close()
+# # writer2.close()
 
-# 
-# cfn = os.path.join(folder, 'FaceCamera-compressed')
+# # # videodata = skvideo.io.vread(fn)
+# # # print(np.max(X), np.max(videodata))#[:,:].mean(axis=-1))
 
-# X = []
-# print(len(os.listdir(os.path.join(folder, 'FaceCamera-imgs'))))
-# for fn in os.listdir(os.path.join(folder, 'FaceCamera-imgs'))[:49]:
-#     x = np.load(os.path.join(folder, 'FaceCamera-imgs', fn))
-#     # x = gaussian_filter(x, 5)
-#     X.append(x)
-
-# Y = gaussian_filter(np.array(X), (1, 3, 3))
-# # Y = np.array(X)
-# print(Y.dtype)
-
-# # f = gzip.GzipFile(os.path.join(folder, "my_array.npy.gz"), "w")
-# # np.save(file=f, arr=np.array(X))
-# # f.close()
-
-# np.savez_compressed(cfn+'-1', X)
-# np.savez_compressed(cfn+'-2', Y)
-
-
-# # import shutil
-# # shutil.make_archive(os.path.join(folder, 'archive'), 'tar', os.path.join(folder, 'FaceCamera-imgs'))
-
-
-# # plt.imshow(X[-1])
-# # plt.show()
-    
-# writer1 = skvideo.io.FFmpegWriter(cfn+'-1.avi')
-# writer2 = skvideo.io.FFmpegWriter(cfn+'-2.avi')
-# for i in range(Y.shape[0]):
-#     writer1.writeFrame(X[i])
-#     writer2.writeFrame(Y[i, :, :])
-# writer1.close()
-# writer2.close()
-
-# # videodata = skvideo.io.vread(fn)
-# # print(np.max(X), np.max(videodata))#[:,:].mean(axis=-1))
-
-# # imageio.mimwrite(cfn+'-1.avi', np.array(X))
-# # imageio.mimwrite(cfn+'-2.avi', np.array(Y))
-
+# # # imageio.mimwrite(cfn+'-1.avi', np.array(X))
+# # # imageio.mimwrite(cfn+'-2.avi', np.array(Y))

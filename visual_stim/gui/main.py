@@ -10,7 +10,7 @@ from assembling.saving import create_day_folder, generate_filename_path
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.stimuli import build_stim
 
-from params_window import *
+from gui.params_window import *
 from default_params import STIMULI, PRESENTATIONS, SETUP
 import json
 

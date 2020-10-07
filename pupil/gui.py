@@ -14,6 +14,7 @@ from pupil import guiparts, process, roi
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
 class MainW(QtGui.QMainWindow):
+    
     def __init__(self, moviefile=None, savedir=None,
                  sampling_rate=0.5,
                  gaussian_smoothing=2,
@@ -101,31 +102,31 @@ class MainW(QtGui.QMainWindow):
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.reflector, 1, 8+5, 1, 1)
+        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil')
-        self.l0.addWidget(self.fit_pupil, 1, 9+5, 1, 1)
+        self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
         self.fit_pupil.setEnabled(False)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
         # choose pupil shape
         self.pupil_shape = QtGui.QComboBox(self)
         self.pupil_shape.addItem("Circle fit")
         self.pupil_shape.addItem("Ellipse fit")
-        self.l0.addWidget(self.pupil_shape, 1, 10+5, 1, 1)
+        self.l0.addWidget(self.pupil_shape, 1, 10+6, 1, 1)
         # reset
         self.reset_btn = QtGui.QPushButton('reset')
-        self.l0.addWidget(self.reset_btn, 1, 11+5, 1, 1)
+        self.l0.addWidget(self.reset_btn, 1, 11+6, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
         # draw pupil
         self.pupil_draw = QtGui.QPushButton('draw Pupil')
-        self.l0.addWidget(self.pupil_draw, 2, 10+5, 1, 1)
+        self.l0.addWidget(self.pupil_draw, 2, 10+6, 1, 1)
         self.pupil_draw.setEnabled(False)
         self.pupil_draw.clicked.connect(self.draw_pupil)
         self.pupil_draw_save = QtGui.QPushButton('- Debug -')
-        self.l0.addWidget(self.pupil_draw_save, 2, 11+5, 1, 1)
+        self.l0.addWidget(self.pupil_draw_save, 2, 11+6, 1, 1)
         # self.pupil_draw_save.setEnabled(False)
         self.pupil_draw_save.setEnabled(True)
         self.pupil_draw_save.clicked.connect(self.debug)
@@ -821,5 +822,5 @@ def run(moviefile=None,savedir=None):
     ret = app.exec_()
     sys.exit(ret)
 
-
-run()
+if __name__=='__main__':
+    run()

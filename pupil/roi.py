@@ -1,7 +1,4 @@
-import sys
-import os
-import shutil
-import time
+import sys, pathlib, os, shutil, time
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
@@ -12,7 +9,8 @@ from scipy.ndimage import gaussian_filter
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
-import process
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from pupil import process
 
 def extract_ellipse_props(ROI):
     """ extract ellipse props from ROI (NEED TO RECENTER !)"""

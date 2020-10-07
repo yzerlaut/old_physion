@@ -49,12 +49,13 @@ def raw_data_plot(self, tzoom):
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
     if self.Pupil is not None:
         # time-varying diameter
-        cond = (self.Pupil.t>=tzoom[0]) & (self.Pupil.t<=tzoom[1])
-        isampling = max([1,int(len(self.Pupil.t[cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Pupil.diameter[cond][::isampling], i=2)
-        self.plot.plot(self.Pupil.t[cond][::isampling], y,pen=pen)
-        itime = np.argmin((self.Pupil.t[cond]-self.time)**2)
-        scatter.append((self.Pupil.t[cond][itime], y[itime]))
+        pt = self.Pupil.processed['times']
+        cond = (pt>=tzoom[0]) & (pt<=tzoom[1])
+        isampling = max([1,int(len(self.Pupil.processed['diameter'][cond])/self.settings['Npoints'])])
+        y = scale_and_position(self, self.Pupil.processed['diameter'][cond][::isampling], i=2)
+        self.plot.plot(pt[cond][::isampling], y,pen=pen)
+        itime = np.argmin((pt[cond]-self.time)**2)
+        scatter.append((pt[cond][itime], y[itime]))
     else:
         y = shift(self, 2)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
@@ -63,7 +64,6 @@ def raw_data_plot(self, tzoom):
     ## -------- Electrophy --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Electrophy'])
     if self.Electrophy is not None:
-        # time-varying diameter
         cond = (self.Electrophy.t>=tzoom[0]) & (self.Electrophy.t<=tzoom[1])
         isampling = max([1,int(len(self.Electrophy.t[cond])/self.settings['Npoints'])])
         y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=3)

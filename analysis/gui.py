@@ -207,6 +207,7 @@ class MasterWindow(QtWidgets.QMainWindow):
     def quit(self):
         sys.exit()
 
-app = QtWidgets.QApplication(sys.argv)
-main = MasterWindow(app)
-sys.exit(app.exec_())
+if __name__=='__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    main = MasterWindow(app)
+    sys.exit(app.exec_())
