@@ -15,9 +15,13 @@ from assembling.saving import day_folder, create_day_folder, generate_filename_p
 
 class SingleValueTimeSerie:
     
-    def __init__(self, signal, dt,
+    def __init__(self, signal, dt=1.,
+                 times = None,
                  t0=0):
-        self.t = np.arange(len(signal))*dt+t0
+        if times is not None:
+            self.t = times
+        else:
+            self.t = np.arange(len(signal))*dt+t0
         self.val = signal # value
 
 
@@ -67,12 +71,9 @@ class ImageTimeSeries:
         elif extension=='.jpeg':
             self.PICS = FILES
         elif extension=='.tiff':
-            if not lazy_loading:
-                self.IMAGES = []
-                for fn in FILES:
-                    self.IMAGES.append(np.array(Image.open(fn)))
-            else:
-                 print('TIFF with lazy_loading not implemented')
+            self.IMAGES = []
+            for fn in FILES:
+                self.IMAGES.append(np.array(Image.open(fn)))
         else:
             print('Extension', extension, ' not recognized !')
 
@@ -88,16 +89,15 @@ class ImageTimeSeries:
                         if iframe in frame_sampling:
                             self.index_frame_map.append([fn, i])
             else:
+                print('Loading the full-set of videos [...]')
                 # we pre-load the video !
                 self.IMAGES = []
                 for i, fn in enumerate(self.VIDS):
-                    print(fn)
                     s = fn.split('imgs-')[1].replace(extension, '').split('-')
                     i0, i1 = int(s[0]), int(s[1])
                     x = skvideo.io.vread(fn)
                     for i, iframe in enumerate(np.arange(i0, i1+1)):
                         if iframe in frame_sampling:
-                            print(i, iframe)
                             self.IMAGES.append(x[i,:,:,0])
 
     def grab_frame(self, t,
@@ -143,8 +143,7 @@ class ScreenData(ImageTimeSeries):
               
         super().__init__(folder, 
                          extension='.tiff',
-                         times = self.t,
-                         lazy_loading=False)
+                         times = self.t)
         
         if NIdaq_trace is not None:
             self.photodiode = SingleValueTimeSerie(NIdaq_trace,
@@ -185,35 +184,10 @@ def init_locomotion_data(self, data):
                        data[Locomotion_NIdaqChannel[1],:]}
 
 ##############################################
-###           Pupil data                   ###
+###           Face data                   ###
 ##############################################
 
 class FaceData(ImageTimeSeries):
-
-    def __init__(self, datafolder, metadata,
-                 dt=None, times=None,
-                 t0=0,
-                 compressed_version=True):
-
-        times = np.load(os.path.join(datafolder, 'FaceCamera-times.npy'))
-
-        if compressed_version:
-            folder = os.path.join(datafolder, 'FaceCamera-compressed')
-            extension, lazy_loading ='.mp4', False
-        else:
-            folder = os.path.join(datafolder, 'FaceCamera-imgs')
-            extension='.npy',
-            
-        super().__init__(folder, times=times,
-                         extension=extension,
-                         lazy_loading=lazy_loading)
-
-
-##############################################
-###           Pupil data                   ###
-##############################################
-
-class PupilData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
@@ -226,40 +200,18 @@ class PupilData(ImageTimeSeries):
         self.build_temporal_sampling(times,
                                      sampling_rate=sampling_rate)
 
-        if os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs')):
+        if compressed_version or (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
+            # means we have a compressed version
+            super().__init__(os.path.join(datafolder, 'FaceCamera-compressed'),
+                             times=self.t,
+                             frame_sampling=self.iframes,
+                             extension='.avi')
+        else:
             super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
                              times=self.t,
                              frame_sampling=self.iframes,
                              extension='.npy')
-        else:
-            folder = os.path.join(datafolder, 'FaceCamera-compressed')
-            super().__init__(folder,
-                             times=self.t,
-                             frame_sampling=self.iframes,
-                             extension='.avi')
-            # means we have a compressed version
-            
-            
-        if compressed_version:
-            folder = os.path.join(datafolder, 'FaceCamera-compressed')
-            extension, lazy_loading ='.mp4', False
-        else:
-            folder = os.path.join(datafolder, 'FaceCamera-imgs')
-            extension='.npy',
-            
 
-        
-        if os.path.isfile(os.path.join(datafolder,'pupil-data.npy')):
-            data = np.load(os.path.join(datafolder,'pupil-data.npy'),
-                           allow_pickle=True).item()
-            setattr(self, 'sampling_rate', data['sampling_rate'])
-            # we add the diameter
-            setattr(self, 't', data['times'])
-            setattr(self, 'diameter', np.sqrt(data['sx-corrected']*data['sy-corrected']))
-        else:
-            # we fill with zeros
-            setattr(self, 'sampling_rate', 1e6)
-            setattr(self, 'diameter', 0*times)
 
     def build_temporal_sampling(self, times,
                                 sampling_rate=None):
@@ -278,6 +230,51 @@ class PupilData(ImageTimeSeries):
                 t+=1./self.sampling_rate
             self.t = np.array(self.t)
             
+
+##############################################
+###           Pupil data                   ###
+##############################################
+
+class PupilData(FaceData):
+    """
+    Same than FaceData but 
+
+    -> need to introduce a zoom and a saturation
+    -> need to override the grab_frame method
+    """
+    
+    def __init__(self, datafolder, metadata,
+                 dt=None, times=None,
+                 t0=0, sampling_rate=None,
+                 compressed_version=True):
+
+        super().__init__(datafolder, metadata,
+                         dt=dt, times=times,
+                         t0=t0, sampling_rate=sampling_rate,
+                         compressed_version=compressed_version)
+
+        # Adding ROI data to the object
+        folder = os.path.join(datafolder, 'pupil-ROIs.npy')
+        if os.path.isdir(folder):
+            rois = np.load(folder,allow_pickle=True).item()
+            setattr(self, 'saturation', rois['ROIsaturation'])
+            setattr(self, 'reflectors', rois['reflectors'])
+            setattr(self, 'ellipse', rois['ROIellipse'])
+        else:
+            for key in ['saturation', 'reflectors', 'ellipse']:
+                setattr(self, key, None)
+        
+        # Adding processed pupil data to the object
+        folder = os.path.join(datafolder,'pupil-data.npy')
+        if os.path.isfile(folder):
+            data = np.load(folder, allow_pickle=True).item()
+            setattr(self, 'processed', data)
+            # adding the diameter
+            self.processed['diameter'] = np.sqrt(data['sx-corrected']*data['sy-corrected'])
+        else:
+            setattr(self, 'processed', None)
+            
+
             
     
 ##############################################
@@ -449,16 +446,17 @@ if __name__=='__main__':
         plt.show()
     else:
 
-        check_datafolder(fn)
         dataset = Dataset(fn,
-                          FaceCamera_frame_rate=1.,
-                          modalities=['Pupil'])
+                          # FaceCamera_frame_rate=1.,
+                          modalities=['Face', 'Pupil'])
 
-        frame = dataset.Pupil.grab_frame(30, verbose=True)
-
-        from datavyz import ges
-        ges.image(frame)
-        ges.show()
+        # print(dataset.Pupil.t)
+        print(len(dataset.Pupil.t), len(dataset.Pupil.iframes), len(dataset.Pupil.index_frame_map))
+        # frame = dataset.Pupil.grab_frame(30, verbose=True)
+        
+        # from datavyz import ges
+        # ges.image(frame)
+        # ges.show()
         
         # import json
         # DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME

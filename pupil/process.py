@@ -6,7 +6,7 @@ from scipy.ndimage import gaussian_filter
 from analyz.workflow.shell import printProgressBar
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import check_datafolder
+from assembling.dataset import Dataset
 from pupil.outliers import replace_outliers
 
 def ellipse_coords(xc, yc, sx, sy, n=50):
@@ -98,7 +98,22 @@ def fit_pupil_size(parent, shape='circle',
     
     return perform_fit(img, x, y, reflectors, shape=shape)
     
-    
+
+def load_data(parent,
+              sampling_rate=None):
+
+    dataset = Dataset(parent.datafolder,
+                      FaceCamera_frame_rate=parent.sampling_rate,
+                      modalities=['Face', 'Pupil'])
+
+    setattr(parent, 'Face', dataset.Face)
+    setattr(parent, 'Pupil', dataset.Pupil)
+
+    if parent.Face is not None:
+        parent.times = parent.Face.t
+
+    return dataset
+
 def preprocess(cls, ellipse=None, img=None):
 
     if img is None:
@@ -138,7 +153,9 @@ def preprocess(cls, ellipse=None, img=None):
 def build_temporal_subsampling(cls,
                                folders = [],
                                sampling_rate=None):
+    
     """
+    DEPRECATED
     """
     if sampling_rate is None:
         cls.sampling_rate = float(cls.rateBox.text())
@@ -211,8 +228,9 @@ if __name__=='__main__':
             args.reflectors = rois['reflectors']
             args.ellipse = rois['ROIellipse']
             # insure data ordering and build sampling
-            check_datafolder(args.datafolder)
-            build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
+            dataset = load_data(args.datafolder, sampling_rate=args.sampling_rate)
+            # check_datafolder(args.datafolder)
+            # build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
             # initialize data
             data = dict(vars(args))
             for key in ['cx', 'cy', 'sx', 'sy', 'residual']:

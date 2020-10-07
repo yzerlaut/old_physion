@@ -12,7 +12,6 @@ from analyz.workflow.shell import printProgressBar
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, roi
 from assembling.saving import from_folder_to_datetime, check_datafolder
-from assembling.dataset import Dataset
 
 class MainW(QtGui.QMainWindow):
     def __init__(self, moviefile=None, savedir=None,
@@ -36,7 +35,8 @@ class MainW(QtGui.QMainWindow):
         self.setWindowIcon(app_icon)
 
         pg.setConfigOptions(imageAxisOrder='row-major')
-        self.setGeometry(30,30,1470,800)
+        self.setGeometry(30,30,1300,700)
+        
         self.setWindowTitle('Pupil-size tracking software')
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = ("QPushButton {Text-align: left; "
@@ -101,31 +101,31 @@ class MainW(QtGui.QMainWindow):
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.reflector, 1, 8+5, 1, 1.5)
+        self.l0.addWidget(self.reflector, 1, 8+5, 1, 1)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil')
-        self.l0.addWidget(self.fit_pupil, 1, 9+5, 1, 1.5)
+        self.l0.addWidget(self.fit_pupil, 1, 9+5, 1, 1)
         self.fit_pupil.setEnabled(False)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
         # choose pupil shape
         self.pupil_shape = QtGui.QComboBox(self)
         self.pupil_shape.addItem("Circle fit")
         self.pupil_shape.addItem("Ellipse fit")
-        self.l0.addWidget(self.pupil_shape, 1, 10+5, 1, 1.5)
+        self.l0.addWidget(self.pupil_shape, 1, 10+5, 1, 1)
         # reset
         self.reset_btn = QtGui.QPushButton('reset')
-        self.l0.addWidget(self.reset_btn, 1, 11+5, 1, 1.5)
+        self.l0.addWidget(self.reset_btn, 1, 11+5, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
         # draw pupil
         self.pupil_draw = QtGui.QPushButton('draw Pupil')
-        self.l0.addWidget(self.pupil_draw, 2, 10+5, 1, 1.5)
+        self.l0.addWidget(self.pupil_draw, 2, 10+5, 1, 1)
         self.pupil_draw.setEnabled(False)
         self.pupil_draw.clicked.connect(self.draw_pupil)
         self.pupil_draw_save = QtGui.QPushButton('- Debug -')
-        self.l0.addWidget(self.pupil_draw_save, 2, 11+5, 1, 1.5)
+        self.l0.addWidget(self.pupil_draw_save, 2, 11+5, 1, 1)
         # self.pupil_draw_save.setEnabled(False)
         self.pupil_draw_save.setEnabled(True)
         self.pupil_draw_save.clicked.connect(self.debug)
@@ -216,12 +216,13 @@ class MainW(QtGui.QMainWindow):
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
-            self.fullimg = np.load(self.filenames[self.cframe])
+            self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
+            
             #
             self.Lx, self.Ly = self.fullimg.shape
 
             self.p1.clear()
-            self.p1.plot(self.times, self.PD, pen=(0,255,0))
+            self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
             if self.nframes > 0:
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
@@ -243,18 +244,21 @@ class MainW(QtGui.QMainWindow):
         #                                                          "Choose data folder",
         #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
 
-        check = check_datafolder(self.datafolder)
-        if os.path.isdir(self.datafolder) and check['FaceCamera']:
+
+        process.load_data(self,
+                          sampling_rate=self.sampling_rate)
+        
+
+
+        if self.Face is not None:
             self.reset()
 
-            dataset = Dataset(self.datafolder,
-                              modalities=['Face', 'Pupil'])
-
-            self.data = dataset.Pupil
-            self.times = dataset.Pupil.times
-            self.sampling_rate = self.Pupil.sampling_rate
+            if self.Pupil.processed is not None:
+                self.data = self.Pupil.processed
+            self.sampling_rate = self.Face.sampling_rate
             self.rateBox.setText(str(self.sampling_rate))
-            
+
+            self.nframes = len(self.times)
             # # try to load existing pupil data
             # if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
             #     self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
@@ -272,21 +276,23 @@ class MainW(QtGui.QMainWindow):
             # else:
             #     self.data = None
                 
-            # insure data ordering and build sampling
-            process.check_datafolder(self.datafolder)
-            process.build_temporal_subsampling(self)
+            # process.build_temporal_subsampling(self)
 
             # update time limits
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
-            self.fullimg = self.data.grab_frame(self.times[self.cframe])
+            self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
             #
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
 
             self.p1.clear()
-            self.p1.plot(self.times, self.PD, pen=(0,255,0))
+            if self.data is not None:
+                self.p1.plot(self.data['times'], self.data['diameter'], pen=(0,255,0))
+            else:
+                self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
+                
             # self.movieLabel.setText(os.path.dirname(self.datafolder))
             self.movieLabel.setText("%s => %s" %\
                         from_folder_to_datetime(self.datafolder))
@@ -486,7 +492,7 @@ class MainW(QtGui.QMainWindow):
             datafolder = self.datafolder
         data = np.load(os.path.join(datafolder, 'pupil-ROIs.npy'), allow_pickle=True).item()
         self.saturation = data['ROIsaturation']
-        self.sl.setValue(self.saturation)
+        self.sl.setValue(int(self.saturation))
         self.ROI = roi.sROI(parent=self,
                             pos = roi.ellipse_props_to_ROI(data['ROIellipse']))
         self.ROI.plot(self)
@@ -506,7 +512,7 @@ class MainW(QtGui.QMainWindow):
         self.cframe = min([self.nframes-1,np.argmin((self.times-self.times[0]-\
                                                      float(self.currentTime.text()))**2)+1])
         self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
-        self.frameSlider.setValue(self.cframe/self.nframes*self.slider_nframes)
+        self.frameSlider.setValue(int(self.cframe/self.nframes*self.slider_nframes))
 
         self.jump_to_frame()
         
@@ -532,7 +538,7 @@ class MainW(QtGui.QMainWindow):
 
     def jump_to_frame(self):
 
-        self.fullimg = np.load(self.filenames[self.cframe])
+        self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
         self.pimg.setImage(self.fullimg)
         self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
         if self.ROI is not None:
@@ -540,8 +546,10 @@ class MainW(QtGui.QMainWindow):
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
         if self.data is not None:
-            self.scatter.setData(self.times[self.cframe]*np.ones(1),
-                                 self.PD[self.cframe]*np.ones(1),
+            i0 = np.argmin((self.data['times']-self.times[self.cframe])**2)
+            print(self.data['times'][i0], self.times[self.cframe])
+            self.scatter.setData(self.data['times'][i0]*np.ones(1),
+                                 self.data['diameter'][i0]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             if self.fit is not None:
@@ -637,7 +645,7 @@ class MainW(QtGui.QMainWindow):
         self.show()
 
         print('processing pupil size over the whole recording [...]')
-        process.build_temporal_subsampling(self) # we re-build the sampling
+        # process.build_temporal_subsampling(self) # we re-build the sampling
         printProgressBar(0, self.nframes)
         for self.cframe in range(self.nframes):
             # preprocess image
@@ -762,9 +770,9 @@ class MainW(QtGui.QMainWindow):
         
     def plot_pupil_trace(self):
             self.p1.clear()
-            self.p1.plot(self.times, self.PD, pen=(0,255,0))
+            self.p1.plot(self.data['times'], self.data['diameter'], pen=(0,255,0))
             self.p1.setRange(xRange=(self.times[0],self.times[-1]),
-                             yRange=(self.PD.min()-.1, self.PD.max()+.1),
+                             yRange=(self.data['diameter'].min()-.1, self.data['diameter'].max()+.1),
                              padding=0.0)
             self.p1.show()
 
