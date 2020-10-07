@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict, list_dayfolder
-from assembling.dataset import Dataset
+from assembling.dataset import Dataset, MODALITIES
 from analysis import guiparts, plots
 
 settings = {
@@ -46,7 +46,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
 
         # default (small) geometry
-        self.setGeometry(200,200,*self.settings['window_size'])
+        self.setGeometry(100,100,*self.settings['window_size'])
 
         self.statusBar = QtWidgets.QStatusBar()
         # self.setStatusBar(self.statusBar)
@@ -55,8 +55,9 @@ class MasterWindow(QtWidgets.QMainWindow):
         guiparts.load_config1(self)
 
         self.data_folder = os.path.join(os.path.expanduser('~'), 'DATA')
-        self.Screen, self.Locomotion, self.Pupil, self.Calcium,\
-            self.Electrophy, self.tzoom  = None, None, None, None, None, [0,1e3]
+        for mod in MODALITIES:
+            setattr(self, mod, None)
+            
         self.time = 0
         self.check_data_folder()
         
@@ -64,11 +65,11 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.showwindow()
 
         # for debugging
-        self.day_folder = '/home/yann/DATA/2020_09_11/'
-        self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
+        self.day_folder = '/home/yann/DATA/2020_10_07/'
+        self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
         self.preload_datafolder(self.datafolder)
         self.load_data()
-        print(self.metadata)
+
         self.display_quantities(force=True)
         
     def check_data_folder(self):
@@ -122,14 +123,17 @@ class MasterWindow(QtWidgets.QMainWindow):
 
          # see assembling/dataset.py
         dataset = Dataset(self.datafolder,
-                          modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil'])
+                                  modalities=MODALITIES)
         
-        for key in ['Screen', 'Locomotion', 'Electrophy', 'Pupil']:
+        for key in MODALITIES:
             setattr(self, key, getattr(dataset, key))
         setattr(self, 'metadata', dataset.metadata)
 
-        self.metadata
-        self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
+        try:
+            self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
+        except KeyError:
+            self.tzoom = [0, 10] # if no visual stim, showing 10s
+            
         self.time = 0
         
     def pick_datafolder(self):
@@ -140,7 +144,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             self.datafolder = self.list_protocol_per_day[i-1]
             self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
                                     allow_pickle=True).item()
-            # self.add_datafolder_annotation()
+            self.add_datafolder_annotation()
             self.pbox.addItem('...       (select a visualization/analysis)')
             self.pbox.addItem('-> Show Raw Data')
             self.load_data()
@@ -150,12 +154,10 @@ class MasterWindow(QtWidgets.QMainWindow):
 
     def add_datafolder_annotation(self):
         info = 63*'-'+'\n'
+        print(self.metadata)
         for key in self.metadata:
             if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
-                info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key],
-                                  np.min(self.metadata[key[2:]]),np.max(self.metadata[key[2:]]))
-                # if len(info)>30:
-                #     info+='\n'
+                info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
         info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
         self.notes.setText(info)
 
@@ -165,7 +167,6 @@ class MasterWindow(QtWidgets.QMainWindow):
             plots.raw_data_plot(self, self.tzoom)
             plots.update_images(self, self.time)
         self.statusBar.showMessage('')
-
 
     def back_to_initial_view(self):
         self.tzoom = [self.Screen['times'][0], self.Screen['times'][-1]]

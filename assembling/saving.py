@@ -103,7 +103,7 @@ def check_datafolder(df,
     if os.path.isfile(os.path.join(df,'metadata.npy')):
         metadata = np.load(os.path.join(df,'metadata.npy'),
                            allow_pickle=True).item()
-    
+
         if os.path.isfile(os.path.join(df, 'FaceCamera-times.npy')) and \
            os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             metadata['FaceCamera'] = True
@@ -118,12 +118,15 @@ def check_datafolder(df,
         else:
             metadata['NIdaq'] = False
 
-        if os.path.isfile(os.path.join(df, 'visual-stim.npz')):
+        if os.path.isfile(os.path.join(df, 'visual-stim.npy')):
             metadata['VisualStim'] = True
+            data = np.load(os.path.join(df, 'visual-stim.npy'), allow_pickle=True).item()
+            for key, val in data.items():
+                metadata[key] = val
         else:
             metadata['VisualStim'] = False
 
-        if metadata['FaceCamera']:
+        if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
             nmax = max([len(fn) for fn in filenames])
@@ -132,6 +135,19 @@ def check_datafolder(df,
                 if n0<nmax:
                     os.rename(os.path.join(df,'FaceCamera-imgs',fn),
                               os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+
+        if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-compressed')):
+            # insuring nice order of FaceCamera images
+            filenames = os.listdir(os.path.join(df,'FaceCamera-compressed'))
+            nmax1 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[0]) for fn in filenames])
+            nmax2 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[1]) for fn in filenames])
+            for fn in filenames:
+                n1 = fn.split('imgs-')[1].split('.')[0].split('-')[0]
+                n2 = fn.split('imgs-')[1].split('.')[0].split('-')[1]
+                if (len(n1)<nmax1) or (len(n2)<nmax2):
+                    fn_full = os.path.join(df,'FaceCamera-compressed',fn)
+                    os.rename(fn_full,
+                              fn_full.replace('-'+n1+'-', '-'+'0'*(nmax1-len(n1))+n1+'-').replace('-'+n2+'.', '-'+'0'*(nmax2-len(n2))+n2+'.'))
 
 
         if metadata['VisualStim']:
@@ -146,6 +162,7 @@ def check_datafolder(df,
 
         if verbose:
             print('[ok]')
+            
         return metadata
     else:
         print('Metadata file missing for "%s" ' % df)

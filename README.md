@@ -33,7 +33,7 @@ Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the depend
 pip install -r requirements.txt
 ```
 
-# The installation instructions for the experimental setup are described in a dedicated README
+The installation instructions for the experimental setup are described in a dedicated README
 
 
 ## Running experiments

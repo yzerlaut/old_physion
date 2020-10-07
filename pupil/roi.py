@@ -6,7 +6,6 @@ import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
-import pims
 from scipy.stats import zscore, skew
 from matplotlib import cm
 from scipy.ndimage import gaussian_filter

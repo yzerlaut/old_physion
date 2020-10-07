@@ -2,6 +2,7 @@ import numpy as np
 import os, sys, pathlib
 
 import skvideo.io
+from PIL import Image
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path,\
@@ -23,7 +24,8 @@ class SingleValueTimeSerie:
 class ImageTimeSeries:
     
     def __init__(self, folder,
-                 dt=None, times=None,
+                 dt=None,
+                 times=None, frame_sampling=None,
                  extension='.npy',
                  lazy_loading=True,
                  t0=0):
@@ -32,18 +34,13 @@ class ImageTimeSeries:
         """
             
         self.BINARY_IMAGES, self.VIDS, self.PICS = None, None, None
-        FILES = get_files_with_extension(folder, extension=extension)
-        if extension=='.npy':
-            self.BINARY_IMAGES = FILES
-        elif extension=='.avi':
-            self.VIDS= FILES
-        elif extension=='.mp4':
-            self.VIDS= FILES
-        elif extension=='.jpeg':
-            self.PICS = FILES
-        else:
-            print('Extension', extension, ' not recognized !')
+        self.IMAGES = None
+        
+        FILES = sorted(get_files_with_extension(folder,
+                                                extension=extension))
 
+        ### ASSOCIATING A TEMPORAL SAMPLING
+        # ---------------------------------------------
         if times is not None:
             self.t = times
         else:
@@ -51,16 +48,57 @@ class ImageTimeSeries:
                 dt = 1
             self.t = np.arange(len(FILES))*dt+t0
 
-        if (self.VIDS is not None) and not lazy_loading:
-            # we pre-load the video !
-            self.IMAGES = np.empty(0)
-            for i, fn in enumerate(self.VIDS[:1]):
-                x = skvideo.io.vread(fn)
-                if i==0:
-                    self.IMAGES = x[:,:,:,0]
-                else:
-                    self.IMAGES = np.vstack([self.IMAGES, x[:,:,:,0]])
-            
+        ### DEALING WITH FRAME SAMPLING
+        # ---------------------------------------------
+        # you can specify a specific subsampling here !
+        if frame_sampling is not None and times is None:
+            print('/!\ Need to pass the specific times if you subsample the frames /!\ ')
+        elif frame_sampling is None:
+            frame_sampling = np.arange(len(self.t))
+
+        ### LOADING FRAMES
+        # ---------------------------------------------
+        if extension=='.npy':
+            self.BINARY_IMAGES = [FILES[f] for f in frame_sampling]
+        elif extension=='.avi':
+            self.VIDS= FILES
+        elif extension=='.mp4':
+            self.VIDS= FILES
+        elif extension=='.jpeg':
+            self.PICS = FILES
+        elif extension=='.tiff':
+            if not lazy_loading:
+                self.IMAGES = []
+                for fn in FILES:
+                    self.IMAGES.append(np.array(Image.open(fn)))
+            else:
+                 print('TIFF with lazy_loading not implemented')
+        else:
+            print('Extension', extension, ' not recognized !')
+
+        
+        if (self.VIDS is not None):
+            if lazy_loading:
+                # we just make a map between indices and videos/frames
+                self.index_frame_map = []
+                for i, fn in enumerate(self.VIDS):
+                    s = fn.split('imgs-')[1].replace(extension, '').split('-')
+                    i0, i1 = int(s[0]), int(s[1])
+                    for i, iframe in enumerate(np.arange(i0, i1+1)):
+                        if iframe in frame_sampling:
+                            self.index_frame_map.append([fn, i])
+            else:
+                # we pre-load the video !
+                self.IMAGES = []
+                for i, fn in enumerate(self.VIDS):
+                    print(fn)
+                    s = fn.split('imgs-')[1].replace(extension, '').split('-')
+                    i0, i1 = int(s[0]), int(s[1])
+                    x = skvideo.io.vread(fn)
+                    for i, iframe in enumerate(np.arange(i0, i1+1)):
+                        if iframe in frame_sampling:
+                            print(i, iframe)
+                            self.IMAGES.append(x[i,:,:,0])
 
     def grab_frame(self, t,
                    force_previous_time=False,
@@ -68,25 +106,27 @@ class ImageTimeSeries:
 
         # finding the image index at that time
         if force_previous_time:
-            i0 = np.argmin((t-self.t)**2) # ADAPT HERE
+            i0 = np.arange(len(self.t))[self.t<=t][-1]
         else:
             i0 = np.argmin((t-self.t)**2)
         if verbose:
             print('found t=', self.t[i0], 'for t=', t)
+            
         # return the image
-        if self.BINARY_IMAGES is not None:
-            if with_time:
-                return self.t[i0], np.load(self.BINARY_IMAGES[i0])
-            else:
-                return np.load(self.BINARY_IMAGES[i0])
-        elif self.IMAGES is not None:
-            if with_time:
-                return self.t[i0], self.IMAGES[i0]
-            else:
-                return self.IMAGES[i0]
-        # else:
-        #     return self.t[i0], self.im[i0]
-        
+        if self.IMAGES is not None:
+            im = self.IMAGES[i0]
+        elif self.BINARY_IMAGES is not None:
+            im = np.load(self.BINARY_IMAGES[i0])
+        else:
+            # we have loaded it using the "lazy_loading" option
+            fn, index = self.index_frame_map[i0]
+            x = skvideo.io.vread(fn)
+            im = x[index,:,:,0]
+            
+        if with_time:
+            return self.t[i0], im
+        else:
+            return im
         
 ##############################################
 ###               Screen data              ###
@@ -95,16 +135,16 @@ class ImageTimeSeries:
 class ScreenData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
-                 NIdaq_trace=None,
-                 lazy_loading=True):
+                 NIdaq_trace=None):
 
         folder = os.path.join(datafolder, 'screen-frames')
 
-        # COMPUTE TIMES FRO METADATA
-        
+        self.set_times_from_metadata(metadata)
+              
         super().__init__(folder, 
                          extension='.tiff',
-                         lazy_loading=lazy_loading)
+                         times = self.t,
+                         lazy_loading=False)
         
         if NIdaq_trace is not None:
             self.photodiode = SingleValueTimeSerie(NIdaq_trace,
@@ -112,20 +152,32 @@ class ScreenData(ImageTimeSeries):
         else:
             self.photodiode = None #
 
-        # videodata = skvideo.io.vread("video_file_name")  
-        # print(videodata.shape)
+    def set_times_from_metadata(self, metadata,
+                                realigned=False):
+        """
+        Adding a custom procedure to set the times of the frames
+        (so that you can recall it after re-alignement)
+        """
+        if realigned:
+            time_start = metadata['time_start_realigned']
+        else:
+            time_start = metadata['time_start']
             
-    def grab_frame(self, t):
-        pass
-    
+        times = [0] # starting with the pre-frame
+        for ts in time_start:
+            times = times + [ts, ts+metadata['presentation-duration']]
+        times.append(1e10) # adding a last point very far in the future
+        self.t = np.array(times)
+            
 ##############################################
 ###           Locomotion data              ###
 ##############################################
 
 class LocomotionData:
-    def __init__(self):
-        pass
-
+    """ NOT USED YET "SingleValueTimeSerie" is enough ! """
+    def __init__(self, *args):
+        super().__init__(*args)
+    
         
 def init_locomotion_data(self, data):
     self.Locomotion = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
@@ -136,7 +188,7 @@ def init_locomotion_data(self, data):
 ###           Pupil data                   ###
 ##############################################
 
-class PupilData(ImageTimeSeries):
+class FaceData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
@@ -156,38 +208,102 @@ class PupilData(ImageTimeSeries):
                          extension=extension,
                          lazy_loading=lazy_loading)
 
+
+##############################################
+###           Pupil data                   ###
+##############################################
+
+class PupilData(ImageTimeSeries):
+
+    def __init__(self, datafolder, metadata,
+                 dt=None, times=None,
+                 t0=0, sampling_rate=None,
+                 compressed_version=True):
+
+        times = np.load(os.path.join(datafolder,
+                                     'FaceCamera-times.npy'))
+
+        self.build_temporal_sampling(times,
+                                     sampling_rate=sampling_rate)
+
+        if os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs')):
+            super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
+                             times=self.t,
+                             frame_sampling=self.iframes,
+                             extension='.npy')
+        else:
+            folder = os.path.join(datafolder, 'FaceCamera-compressed')
+            super().__init__(folder,
+                             times=self.t,
+                             frame_sampling=self.iframes,
+                             extension='.avi')
+            # means we have a compressed version
+            
+            
+        if compressed_version:
+            folder = os.path.join(datafolder, 'FaceCamera-compressed')
+            extension, lazy_loading ='.mp4', False
+        else:
+            folder = os.path.join(datafolder, 'FaceCamera-imgs')
+            extension='.npy',
+            
+
+        
         if os.path.isfile(os.path.join(datafolder,'pupil-data.npy')):
             data = np.load(os.path.join(datafolder,'pupil-data.npy'),
                            allow_pickle=True).item()
+            setattr(self, 'sampling_rate', data['sampling_rate'])
             # we add the diameter
             setattr(self, 't', data['times'])
             setattr(self, 'diameter', np.sqrt(data['sx-corrected']*data['sy-corrected']))
         else:
             # we fill with zeros
+            setattr(self, 'sampling_rate', 1e6)
             setattr(self, 'diameter', 0*times)
+
+    def build_temporal_sampling(self, times,
+                                sampling_rate=None):
+
+        if sampling_rate is None:
+            self.sampling_rate = 1./np.diff(times).mean()
+            self.t = times
+            self.iframes = np.arange(len(times))
+        else:
+            self.sampling_rate = sampling_rate
+            t0, t, self.iframes, self.t = times[0], times[0], [], []
+            while t<=times[-1]:
+                it = np.argmin((times-t)**2)
+                self.iframes.append(it)
+                self.t.append(t-t0)
+                t+=1./self.sampling_rate
+            self.t = np.array(self.t)
+            
             
     
 ##############################################
 ###           Electrophy data              ###
 ##############################################
-# def init_electrophy_data(self, data):
-#     self.Electrophy={'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
-#                      'trace':data[Electrophy_NIdaqChannel,:]}
 
-
+class ElectrophyData(SingleValueTimeSerie):
+    """ NOT USED YET "SingleValueTimeSerie" is enough ! """
+    def __init__(self, *args):
+        super().__init__(*args)
+        
         
 ##############################################
 ###         Multimodal dataset             ###
 ##############################################
 
-MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium']
+MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','Calcium']
 
 class Dataset:
     
     def __init__(self, datafolder,
+                 Photodiode_NIdaqChannel=0, # switch to 
                  Electrophy_NIdaqChannel=0, # switch to 
                  Locomotion_NIdaqChannels=[1,2],
                  compressed_version=True,
+                 FaceCamera_frame_rate=None,
                  modalities=MODALITIES):
         """
 
@@ -202,20 +318,50 @@ class Dataset:
         if self.metadata['NIdaq']: # loading the NIdaq data only once
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
+
+        # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
             self.Screen = ScreenData(self.datafolder, self.metadata,
-                                     NIdaq_trace=data[0,:])
-        # if self.metadata['NIdaq'] and ('Locomotion' in modalities):
-        #     self.Locomotion = LocomotionData(self.datafolder, metadata)
-        # if self.metadata['NIdaq'] and ('Electrophy' in modalities):
-        #     self.Electrophyinit_electrophy_data(data)
+                                     NIdaq_trace=data[Photodiode_NIdaqChannel,:])
+        elif 'Screen' in modalities:
+            print('[X] Screen data not found !')
+
+        # Locomotion
+        if self.metadata['NIdaq'] and (data.shape[0]>max(Locomotion_NIdaqChannels)) and ('Locomotion' in modalities):
+            self.Locomotion = SingleValueTimeSerie(data[Locomotion_NIdaqChannels[0],:]+data[Locomotion_NIdaqChannels[1],:],
+                                                   dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+        elif 'Locomotion' in modalities:
+            print('[X] Locomotion data not found !')
+
+        # Electrophy
+        if self.metadata['NIdaq'] and (data.shape[0]>Electrophy_NIdaqChannel) and ('Electrophy' in modalities):
+            self.Electrophy = SingleValueTimeSerie(data[Electrophy_NIdaqChannel,:],
+                                                   dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+        elif 'Electrophy' in modalities:
+            print('[X] Electrophy data not found !')
+
+        # Face images
+        if self.metadata['FaceCamera'] and ('Face' in modalities):
+            self.Face = FaceData(self.datafolder, self.metadata,
+                                 sampling_rate=FaceCamera_frame_rate,
+                                 compressed_version=compressed_version)
+        elif 'Face' in modalities:
+            print('[X] Face data not found !')
+
+        # Pupil
         if self.metadata['FaceCamera'] and ('Pupil' in modalities):
             self.Pupil = PupilData(self.datafolder, self.metadata,
+                                   sampling_rate=FaceCamera_frame_rate,
                                    compressed_version=compressed_version)
+        elif 'Pupil' in modalities:
+            print('[X] Pupil data not found !')
 
-        if self.Screen.photodiode is not None:
+        # Realignement if possible
+        if ('Screen' in modalities) and self.metadata['NIdaq'] and (self.Screen is not None) and (self.Screen.photodiode is not None):
             self.realign_from_photodiode()
-
+            self.Screen.set_times_from_metadata(self.metadata,
+                                                realigned=True)
+            
             
     def realign_from_photodiode(self, debug=False, verbose=True):
 
@@ -283,9 +429,10 @@ def find_onset_time(t, photodiode_signal, npulses,
         
 if __name__=='__main__':
 
+    fn = '/home/yann/DATA/2020_09_11/13-40-10/'
+    fn = '/home/yann/DATA/2020_09_23/16-40-54/'
+    fn = '/home/yann/DATA/2020_10_07/16-02-19/'
     if sys.argv[-1]=='photodiode':
-        fn = '/home/yann/DATA/2020_09_23/16-40-54/'
-        # dataset = Dataset(fn)
 
         data = np.load(os.path.join(fn, 'NIdaq.npy'))
         import matplotlib.pylab as plt
@@ -301,14 +448,18 @@ if __name__=='__main__':
         # plt.plot(data['NIdaq'][0][:10000])
         plt.show()
     else:
-        fn = '/home/yann/DATA/2020_09_11/13-40-10/'
 
-        dataset = Dataset(fn, compressed_version=True)
+        check_datafolder(fn)
+        dataset = Dataset(fn,
+                          FaceCamera_frame_rate=1.,
+                          modalities=['Pupil'])
 
-        frame = dataset.Pupil.grab_frame(0, verbose=True)
+        frame = dataset.Pupil.grab_frame(30, verbose=True)
+
         from datavyz import ges
         ges.image(frame)
         ges.show()
+        
         # import json
         # DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
         # with open(DFFN, 'r') as fp:

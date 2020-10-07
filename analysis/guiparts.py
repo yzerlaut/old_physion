@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
 
-df_width = 450
+df_width = 600
 selector_height = 40
 
 
@@ -179,7 +179,6 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.win1.setMaximumWidth(win1_Wmax)
     self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
     Layout12.addWidget(self.win1)
-
 
     self.win2 = pg.GraphicsLayoutWidget()
     self.win2.setMaximumHeight(win1_Hmax)

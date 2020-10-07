@@ -114,9 +114,20 @@ def update_images(self, time):
 
     # pupil 
     # iframe = min([len(self.Pupil['imgs'])-1,np.argmin((self.Pupil.t-time)**2)+1])
-    if self.Pupil is not None:
-        self.pFaceimg.setImage(self.Pupil.grab_frame(time))
 
+    if self.Screen is not None:
+        self.pScreenimg.setImage(self.Screen.grab_frame(time,
+                                        force_previous_time=True))
+
+    if self.Face is not None:
+        self.pFaceimg.setImage(self.Face.grab_frame(time))
+
+    if self.Pupil is not None:
+        self.pPupilimg.setImage(self.Pupil.grab_frame(time))
+        
+    if self.Calcium is not None:
+        self.pCaimg.setImage(self.Calcium.grab_frame(time))
+        
     # screen
     
     # self.currentTime.setText('%.2f' % float(self.t[self.cframe]))

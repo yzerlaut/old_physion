@@ -101,12 +101,12 @@ def fit_pupil_size(parent, shape='circle',
     
 def preprocess(cls, ellipse=None, img=None):
 
-    # applying the ellipse mask
     if img is None:
-        img = np.load(cls.filenames[cls.cframe]).copy()
+        img = cls.Pupil.grab_frame(cls.times[cls.cframe]).copy()
     else:
         img = img.copy()
 
+    # applying the ellipse mask
     if ellipse is not None:
         cx, cy, sx, sy = ellipse
         Lx, Ly = img.shape
@@ -124,7 +124,8 @@ def preprocess(cls, ellipse=None, img=None):
                   np.min(cls.ROI.y[cls.ROI.ellipse]):np.max(cls.ROI.y[cls.ROI.ellipse])]
 
     # first smooth
-    img = gaussian_filter(img, cls.gaussian_smoothing)
+    if cls.gaussian_smoothing>0:
+        img = gaussian_filter(img, cls.gaussian_smoothing)
     
     # then threshold
     img[img>cls.saturation] = cls.saturation
@@ -165,7 +166,7 @@ def build_temporal_subsampling(cls,
                                       [os.path.join(df, 'FaceCamera-imgs', f) for f in fns]])
             last_time = cls.times[-1] # 
             
-        cls.times, cls.PD = np.array(cls.times), np.zeros(len(cls.times))
+        cls.times, cls.diameter = np.array(cls.times), np.zeros(len(cls.times))
         cls.nframes = len(cls.times)
         
     else: # single datafolder processing
@@ -178,12 +179,13 @@ def build_temporal_subsampling(cls,
             t+=1./cls.sampling_rate
         cls.times = np.array(cls.times)
         if not hasattr(cls, 'PD'):
-            cls.PD = np.zeros(len(cls.times))
+            cls.diameter = np.zeros(len(cls.times))
         cls.nframes = len(cls.iframes)
         fns = np.array(sorted(os.listdir(os.path.join(cls.datafolder,
                                                       'FaceCamera-imgs'))))[cls.iframes]
         cls.filenames = np.array([os.path.join(cls.datafolder, 'FaceCamera-imgs', f) for f in fns])
 
+        
 if __name__=='__main__':
 
     import argparse

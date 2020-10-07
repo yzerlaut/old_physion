@@ -222,8 +222,6 @@ class MasterWindow(QtWidgets.QMainWindow):
             else:
                     self.protocol = {}
                     
-            self.save_experiment() # saving all metadata
-
             # init facecamera
             if 'FaceCamera' in self.config:
                 self.statusBar.showMessage('Initializing Camera stream [...]')
@@ -255,6 +253,8 @@ class MasterWindow(QtWidgets.QMainWindow):
             
             self.init = True
             
+            self.save_experiment() # saving all metadata after full initialization
+
             self.statusBar.showMessage('stimulation ready !')
             
     def run(self):

@@ -12,6 +12,7 @@ from analyz.workflow.shell import printProgressBar
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, roi
 from assembling.saving import from_folder_to_datetime, check_datafolder
+from assembling.dataset import Dataset
 
 class MainW(QtGui.QMainWindow):
     def __init__(self, moviefile=None, savedir=None,
@@ -237,29 +238,39 @@ class MainW(QtGui.QMainWindow):
         self.batch = False
         
         # self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
-        self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
-                                                                 "Choose data folder",
-                                              os.path.join(os.path.expanduser('~'), 'DATA'))
+        self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
+        # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
+        #                                                          "Choose data folder",
+        #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
 
         check = check_datafolder(self.datafolder)
         if os.path.isdir(self.datafolder) and check['FaceCamera']:
             self.reset()
 
-            # try to load existing pupil data
-            if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
-                self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
-                                    allow_pickle=True).item()
-                print(self.data)
-                if 'sx-corrected' in self.data:
-                    suffix = '-corrected'
-                else:
-                    suffix = ''
-                self.times, self.PD =  self.data['times'],\
-                    np.sqrt(self.data['sx'+suffix]*self.data['sy'+suffix])
-                self.sampling_rate = self.data['sampling_rate']
-                self.rateBox.setText(str(self.sampling_rate))
-            else:
-                self.data = None
+            dataset = Dataset(self.datafolder,
+                              modalities=['Face', 'Pupil'])
+
+            self.data = dataset.Pupil
+            self.times = dataset.Pupil.times
+            self.sampling_rate = self.Pupil.sampling_rate
+            self.rateBox.setText(str(self.sampling_rate))
+            
+            # # try to load existing pupil data
+            # if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
+            #     self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
+            #                         allow_pickle=True).item()
+            #     print(self.data)
+            #     if 'sx-corrected' in self.data:
+            #         suffix = '-corrected'
+            #     else:
+            #         suffix = ''
+                    
+            #     self.times, self.PD =  self.data['times'],\
+            #         np.sqrt(self.data['sx'+suffix]*self.data['sy'+suffix])
+            #     self.sampling_rate = self.data['sampling_rate']
+            #     self.rateBox.setText(str(self.sampling_rate))
+            # else:
+            #     self.data = None
                 
             # insure data ordering and build sampling
             process.check_datafolder(self.datafolder)
@@ -269,7 +280,7 @@ class MainW(QtGui.QMainWindow):
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
             # initialize to first available image
             self.cframe = 0
-            self.fullimg = np.load(self.filenames[self.cframe])
+            self.fullimg = self.data.grab_frame(self.times[self.cframe])
             #
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
@@ -473,7 +484,7 @@ class MainW(QtGui.QMainWindow):
 
         if datafolder is None:
             datafolder = self.datafolder
-        data = np.load(os.path.join(datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
+        data = np.load(os.path.join(datafolder, 'pupil-ROIs.npy'), allow_pickle=True).item()
         self.saturation = data['ROIsaturation']
         self.sl.setValue(self.saturation)
         self.ROI = roi.sROI(parent=self,
