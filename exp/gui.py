@@ -37,7 +37,7 @@ STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
 default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'NIdaq-input-channels': 4,
-                    'protocol_folder':os.path.join('master', 'protocols'),
+                    'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
                     'config' : CONFIG_LIST[0],
                     'FaceCamera-frame-rate': 20}
@@ -80,7 +80,7 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('ready for initialization/analysis')
+        self.statusBar.showMessage('select a module')
         
         for func, label, shift in zip(FUNCTIONS, LABELS,\
                                       button_length*np.arange(len(LABELS))):

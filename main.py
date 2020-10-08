@@ -2,16 +2,17 @@ import sys, pathlib
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve()))
-
+from analysis import guiparts
 
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
-                 parent=None,
                  button_height = 20):
 
+        # guiparts.build_dark_palette(app)
         self.app = app
-        super(MasterWindow, self).__init__(parent)
+        
+        super(MasterWindow, self).__init__()
         self.setWindowTitle('Physiology of Visual Circuits')
 
         # buttons and functions
@@ -20,6 +21,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                   "c) Compress data",
                   "t) Transfer data",
                   "p) preprocess Pupil",
+                  "i) preprocess ca2+ Imaging",
                   "a) Analyze data",
                   "q) Quit"]
         lmax = max([len(l) for l in LABELS])
@@ -29,6 +31,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                      self.launch_compress,
                      self.launch_transfer,
                      self.launch_pupil,
+                     self.launch_caimaging,
                      self.launch_analysis,
                      self.quit]
         
@@ -39,7 +42,7 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('ready for initialization/analysis')
+        self.statusBar.showMessage('select a module')
         
         for func, label, ishift in zip(FUNCTIONS, LABELS,\
                                        range(len(LABELS))):
@@ -47,7 +50,7 @@ class MasterWindow(QtWidgets.QMainWindow):
             btn.clicked.connect(func)
             btn.setMinimumHeight(button_height)
             btn.setMinimumWidth(250)
-            btn.move(25, 20+2*button_height*ishift)
+            btn.move(25, 30+2*button_height*ishift)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
@@ -56,7 +59,7 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.show()
 
     def launch_exp(self):
-        from protocols.exp import MasterWindow as ExpMasterWindow
+        from exp.gui import MasterWindow as ExpMasterWindow
         self.child = ExpMasterWindow(self.app)
     def launch_visual_stim(self):
         from visual_stim.gui.main import Window as VisualMasterWindow
@@ -72,6 +75,8 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
         from pupil.gui import MainW as PupilMasterWindow
         self.child = PupilMasterWindow(self.app)
+    def launch_caimaging(self):
+        pass
     def launch_analysis(self):
         self.statusBar.showMessage('Loading Analysis Module [...]')
         self.show()

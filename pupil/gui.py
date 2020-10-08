@@ -15,7 +15,7 @@ from assembling.saving import from_folder_to_datetime, check_datafolder
 
 class MainW(QtGui.QMainWindow):
     
-    def __init__(self, moviefile=None, savedir=None,
+    def __init__(self, parent=None, savedir=None,
                  sampling_rate=0.5,
                  gaussian_smoothing=2,
                  slider_nframes=200):
@@ -166,8 +166,7 @@ class MainW(QtGui.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
-        if moviefile is not None:
-            self.load_movies([[moviefile]])
+        
         if savedir is not None:
             self.save_path = savedir
             self.savelabel.setText(savedir)

@@ -58,7 +58,7 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self, protocol,
-                 screen_size = [1280, 768],
+                 screen_size = np.array([1280, 768]),
                  monitoring_square = {'size':6,
                                       'x':-19.5,
                                       'y':-11.5,
