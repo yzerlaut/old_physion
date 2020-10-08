@@ -321,9 +321,9 @@ MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','Calcium']
 class Dataset:
     
     def __init__(self, datafolder,
-                 Photodiode_NIdaqChannel=0, # switch to 
-                 Electrophy_NIdaqChannel=0, # switch to 
-                 Locomotion_NIdaqChannels=[1,2],
+                 Photodiode_NIdaqChannel=0,
+                 Electrophy_NIdaqChannel=1,
+                 Locomotion_NIdaqChannels=[2,3],
                  compressed_version=False,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,

@@ -89,8 +89,9 @@ def compress_FaceCamera(datafolder,
     
                 
 if __name__=='__main__':
+
     
-    folder='/home/yann/DATA/2020_10_08/16-02-19/'
+    folder= sys.argv[-1] #'/home/yann/DATA/2020_10_08/16-02-19/'
 
     import time, sys
 
