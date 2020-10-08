@@ -246,8 +246,8 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(os.path.dirname(parent.filename),
-                                              'screen-frames', 'frame.tiff'))
+        self.win.saveMovieFrames(os.path.join(parent.datafolder, 'screen-frames', 'frame.tiff'))
+
             
     #####################################################
     # showing a single dynamic pattern with a phase advance
@@ -279,8 +279,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(os.path.dirname(parent.filename),
-                                              'screen-frames', 'frame.tiff'))
+        self.win.saveMovieFrames(os.path.join(parent.datafolder, 'screen-frames', 'frame.tiff'))
         
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
@@ -610,7 +609,7 @@ class sparse_noise(visual_stim):
         
         for i in range(len(self.STIM['t'])-1):
             self.PATTERNS.append(visual.ImageStim(self.win,
-                                                  image=self.gamma_corrected_lum(bself.STIM['array'][i,:,:].T),
+                                                  image=self.gamma_corrected_lum(self.STIM['array'][i,:,:].T),
                                                   units='pix', size=self.win.size))
 
         self.experiment = {'refresh-times':self.STIM['t']}

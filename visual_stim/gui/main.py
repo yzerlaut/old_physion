@@ -25,9 +25,11 @@ class Window(QtWidgets.QMainWindow):
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
-        self.data_folder = tempfile.gettempdir()
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'protocols')
-        self.filename = os.path.join(self.data_folder, 'visual-stim.npz')
+        self.filename = generate_filename_path(tempfile.gettempdir(),
+                                               filename='visual-stim', extension='.npz',
+                                               with_screen_frames_folder=True)
+        self.datafolder = os.path.dirname(self.filename)
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -35,7 +37,7 @@ class Window(QtWidgets.QMainWindow):
         button_length = 100
         
         self.setWindowTitle('Visual Stimulation Program')
-        self.setGeometry(50, 50, 1.01*button_length*len(LABELS), 310)
+        self.setGeometry(50, 50, int(1.01*button_length*len(LABELS)), 310)
 
         # protocol change
         label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
@@ -139,8 +141,8 @@ class Window(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         full_exp = dict(**self.protocol, **self.experiment)
-        create_day_folder(self.data_folder)
-        filename = generate_filename_path(self.data_folder, extension='.npz',
+        create_day_folder(self.datafolder)
+        filename = generate_filename_path(self.datafolder, extension='.npz',
                                           with_screen_frames_folder=True)
         np.savez(filename, full_exp, allow_pickle=True)
         print('Stimulation data saved as: %s ' % filename)
@@ -150,7 +152,7 @@ class Window(QtWidgets.QMainWindow):
     def save_protocol(self):
         if self.params_window is not None:
             self.protocol = extract_params_from_window(self)
-            self.protocol['data-folder'] = self.data_folder
+            self.protocol['data-folder'] = self.datafolder
             self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file', self.protocol_folder, "Protocol files (*.json)")
@@ -167,7 +169,7 @@ class Window(QtWidgets.QMainWindow):
         try:
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
-            self.data_folder = self.protocol['data-folder']
+            self.datafolder = self.protocol['data-folder']
             self.protocol_folder = self.protocol['protocol-folder']
             self.setup = self.protocol['Setup']
             # update main window
@@ -186,10 +188,10 @@ class Window(QtWidgets.QMainWindow):
     def set_folders(self):
         self.protocol_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
                                                                               "Select Protocol Folder"))
-        self.data_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+        self.datafolder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
                                                                           "Select Data Folder"))
         self.statusBar.showMessage('Protocol folder: "%s", Data folder "%s"' %\
-                                   (self.protocol_folder, self.data_folder))
+                                   (self.protocol_folder, self.datafolder))
 
     def change_protocol(self):
         self.params_window = draw_window(self, None)

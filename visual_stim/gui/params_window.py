@@ -70,6 +70,7 @@ def set_single_stim_params_window(parent, window, protocol):
     window.durationBox = QtWidgets.QDoubleSpinBox(window)
     window.durationBox.move(100, LS*(4+len(params_keys))-.15*LS)
     window.durationBox.setValue(protocol['presentation-duration'])
+    window.durationBox.setRange(0, 10000)
     window.durationBox.setSuffix(' s')
     QtWidgets.QLabel(" Pre-stim: ", window).move(0, LS*(5+len(params_keys)))
     window.prestimBox = QtWidgets.QDoubleSpinBox(window)
