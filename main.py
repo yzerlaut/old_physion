@@ -4,15 +4,12 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve()))
 from analysis import guiparts
 
-class MasterWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
                  button_height = 20):
 
-        # guiparts.build_dark_palette(app)
-        self.app = app
-        
-        super(MasterWindow, self).__init__()
+        super(MainWindow, self).__init__()
         self.setWindowTitle('Physiology of Visual Circuits')
 
         # buttons and functions
@@ -23,6 +20,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                   "p) preprocess Pupil",
                   "i) preprocess ca2+ Imaging",
                   "a) Analyze data",
+                  "n) lab Notebook ",
                   "q) Quit"]
         lmax = max([len(l) for l in LABELS])
         # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
@@ -33,6 +31,7 @@ class MasterWindow(QtWidgets.QMainWindow):
                      self.launch_pupil,
                      self.launch_caimaging,
                      self.launch_analysis,
+                     self.launch_notebook,
                      self.quit]
         
         self.setGeometry(50, 50, 300, 50*len(LABELS))
@@ -59,33 +58,37 @@ class MasterWindow(QtWidgets.QMainWindow):
         self.show()
 
     def launch_exp(self):
-        from exp.gui import MasterWindow as ExpMasterWindow
-        self.child = ExpMasterWindow(self.app)
+        from exp.gui import MainWindow as ExpMainWindow
+        self.child = ExpMainWindow()
     def launch_visual_stim(self):
-        from visual_stim.gui.main import Window as VisualMasterWindow
-        self.child = VisualMasterWindow(self.app)
+        from visual_stim.gui.main import Window as VisualMainWindow
+        self.child = VisualMainWindow(self.app)
     def launch_compress(self):
         pass
-        # from assembling.compress import MainWindow as CompressMasterWindow
-        # self.child = CompressMasterWindow(self.app)
+        # from assembling.compress import MainWindow as CompressMainWindow
+        # self.child = CompressMainWindow(self.app)
     def launch_transfer(self):
-        from assembling.transfer import MainWindow as TransferMasterWindow
-        self.child = TransferMasterWindow(self.app)
+        from assembling.transfer import MainWindow as TransferMainWindow
+        self.child = TransferMainWindow(self.app)
     def launch_pupil(self):
         self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
-        from pupil.gui import MainW as PupilMasterWindow
-        self.child = PupilMasterWindow(self.app)
+        self.show()
+        from pupil.gui import MainWindow as PupilMainWindow
+        self.child = PupilMainWindow()
     def launch_caimaging(self):
         pass
     def launch_analysis(self):
         self.statusBar.showMessage('Loading Analysis Module [...]')
         self.show()
-        from analysis.gui import MasterWindow as AnalysisMasterWindow
-        self.child = AnalysisMasterWindow(self.app)
+        from analysis.gui import MainWindow as AnalysisMainWindow
+        self.child = AnalysisMainWindow()
+    def launch_notebook(self):
+        pass
     def quit(self):
         QtWidgets.QApplication.quit()
         
 
 app = QtWidgets.QApplication(sys.argv)
-main = MasterWindow(app)
+guiparts.build_dark_palette(app)
+main = MainWindow(app)
 sys.exit(app.exec_())

@@ -20,17 +20,15 @@ settings = {
     # general settings
     'Npoints':600}
 
-class MasterWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app,
+    def __init__(self, parent=None,
                  saturation=100,
                  fullscreen=False):
 
         self.settings = settings
         
-        guiparts.build_dark_palette(app)
-        
-        super(MasterWindow, self).__init__()
+        super(MainWindow, self).__init__()
 
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
@@ -209,5 +207,6 @@ class MasterWindow(QtWidgets.QMainWindow):
 
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
-    main = MasterWindow(app)
+    guiparts.build_dark_palette(app)
+    main = MainWindow(app)
     sys.exit(app.exec_())

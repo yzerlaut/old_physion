@@ -9,6 +9,7 @@ from assembling.saving import *
 from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
+from analysis.guiparts import set_app_icon, build_dark_palette
 try:
     from hardware_control.NIdaq.main import Acquisition
     from hardware_control.FLIRcamera.recording import launch_FaceCamera
@@ -43,14 +44,14 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'FaceCamera-frame-rate': 20}
 
 
-class MasterWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app,
-                 parent=None,
+    def __init__(self, parent=None,
                  button_length = 135):
         
-        super(MasterWindow, self).__init__(parent)
-        self.setWindowTitle('Experiment Control Program -- Physiology of Visual Circuits')
+        super(MainWindow, self).__init__()
+        
+        self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 550, 500)
 
         self.metadata = default_settings # set a load/save interface
@@ -352,5 +353,7 @@ class MasterWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     
     app = QtWidgets.QApplication(sys.argv)
-    main = MasterWindow(app)
+    build_dark_palette(app)
+    set_app_icon(app)
+    main = MainWindow(app)
     sys.exit(app.exec_())
