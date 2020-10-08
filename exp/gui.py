@@ -80,7 +80,7 @@ class MasterWindow(QtWidgets.QMainWindow):
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('select a module')
+        self.statusBar.showMessage('ready for select a protocol/')
         
         for func, label, shift in zip(FUNCTIONS, LABELS,\
                                       button_length*np.arange(len(LABELS))):
