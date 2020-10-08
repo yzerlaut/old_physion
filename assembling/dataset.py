@@ -209,13 +209,17 @@ class FaceData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
-                 t0=0, sampling_rate=None,
+                 t0=None, sampling_rate=None,
                  lazy_loading=True,
                  compressed_version=False):
 
         times = np.load(os.path.join(datafolder,
                                      'FaceCamera-times.npy'))
-        times = times-times[0]
+        if t0 is None:
+            t0 = times[0] # just in case, but should be relative to NIdaq.start
+            
+        times = times-t0 
+        
         self.build_temporal_sampling(times,
                                      sampling_rate=sampling_rate)
 
@@ -270,7 +274,7 @@ class PupilData(FaceData):
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
                  lazy_loading=True,
-                 t0=0, sampling_rate=None,
+                 t0=None, sampling_rate=None,
                  compressed_version=True):
 
         super().__init__(datafolder, metadata,
@@ -343,7 +347,7 @@ class Dataset:
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
         else:
-            self.NIdaq_Tstart = 0
+            self.NIdaq_Tstart = None
 
         # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
@@ -371,6 +375,7 @@ class Dataset:
             self.Face = FaceData(self.datafolder, self.metadata,
                                  sampling_rate=FaceCamera_frame_rate,
                                  lazy_loading=lazy_loading,
+                                 t0 = self.NIdaq_Tstart,
                                  compressed_version=compressed_version)
         elif 'Face' in modalities:
             print('[X] Face data not found !')
@@ -380,6 +385,7 @@ class Dataset:
             self.Pupil = PupilData(self.datafolder, self.metadata,
                                    lazy_loading=lazy_loading,
                                    sampling_rate=FaceCamera_frame_rate,
+                                   t0 = self.NIdaq_Tstart,
                                    compressed_version=compressed_version)
         elif 'Pupil' in modalities:
             print('[X] Pupil data not found !')
@@ -459,7 +465,8 @@ if __name__=='__main__':
 
     fn = '/home/yann/DATA/2020_09_11/13-40-10/'
     fn = '/home/yann/DATA/2020_09_23/16-40-54/'
-    fn = '/home/yann/DATA/2020_10_08/14-15-18/'
+    fn = '/home/yann/DATA/2020_10_07/16-02-19/'
+    
     if sys.argv[-1]=='photodiode':
 
         data = np.load(os.path.join(fn, 'NIdaq.npy'))
