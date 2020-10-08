@@ -1,7 +1,7 @@
+from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
 import numpy as np
-from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
@@ -9,7 +9,7 @@ from assembling.saving import *
 from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.default_params import SETUP
 
-from analysis.guiparts import set_app_icon, build_dark_palette
+from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
     from hardware_control.FLIRcamera.recording import launch_FaceCamera
@@ -46,8 +46,10 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, parent=None,
+    def __init__(self, app,
                  button_length = 135):
+        """
+        """
         
         super(MainWindow, self).__init__()
         
@@ -65,7 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
-        # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
 
         self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
         self.FaceCamera_process = None
@@ -81,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.showMessage('ready for select a protocol/')
+        self.statusBar.showMessage('ready to select a protocol/config')
         
         for func, label, shift in zip(FUNCTIONS, LABELS,\
                                       button_length*np.arange(len(LABELS))):
@@ -108,10 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
                           [f.replace('.json', '') for f in self.protocol_list])
         self.cbp.setMinimumWidth(350)
         self.cbp.move(150, 120)
-        self.pbtn = QtWidgets.QPushButton('Set folder', self)
-        self.pbtn.clicked.connect(self.set_protocol_folder)
-        self.pbtn.move(470, 120)
-
+        
         self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
         self.dfl.setMinimumWidth(300)
         self.dfl.move(30, 160)
@@ -140,8 +139,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.FaceCameraFreq.move(250, 290)
         self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
         
-        LABELS = ["Launch RigView"]#, "v) View Data"]
-        FUNCTIONS = [self.rigview]#, self.view_data]
+        LABELS = ["Set protocol folder"]
+        FUNCTIONS = [self.set_protocol_folder]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
                                             160*np.arange(len(LABELS)), [130, 130]):
             btn = QtWidgets.QPushButton(label, self)
@@ -284,8 +283,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.acq is not None:
                 self.acq.close()
             self.init = False
-        if 'CaImaging' in self.config and not self.stop_flag:
-            self.send_CaImaging_Stop_signal()
+            if 'CaImaging' in self.config and not self.stop_flag:
+                self.send_CaImaging_Stop_signal()
         print(100*'-', '\n', 50*'=')
     
     def stop(self):
@@ -350,10 +349,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.get_config_list()
             self.cbp.addItems([f.replace('.json', '') for f in self.config_list])
         
-if __name__ == '__main__':
+def run(app):
+    return MainWindow(app)
     
+if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
-    build_dark_palette(app)
-    set_app_icon(app)
-    main = MainWindow(app)
+    main = run(app)
     sys.exit(app.exec_())

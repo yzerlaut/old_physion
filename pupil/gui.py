@@ -9,11 +9,13 @@ import pathlib
 from analyz.IO.npz import load_dict
 from analyz.workflow.shell import printProgressBar
 
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from pupil import guiparts, process, roi
+import pupil.guiparts as guiparts
+from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
-class MainW(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, parent=None, savedir=None,
                  sampling_rate=0.5,
@@ -22,34 +24,17 @@ class MainW(QtGui.QMainWindow):
         """
         sampling in Hz
         """
-        super(MainW, self).__init__()
-        icon_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
+        super(MainWindow, self).__init__()
 
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
-        
-        app_icon = QtGui.QIcon()
-        for x in [16, 24, 32, 40, 96, 256]:
-            app_icon.addFile(icon_path, QtCore.QSize(x, x))
-        self.setWindowIcon(app_icon)
 
         pg.setConfigOptions(imageAxisOrder='row-major')
         self.setGeometry(30,30,1300,700)
         
         self.setWindowTitle('Pupil-size tracking software')
-        self.setStyleSheet("QMainWindow {background: 'black';}")
-        self.styleUnpressed = ("QPushButton {Text-align: left; "
-                               "background-color: rgb(50,50,50); "
-                               "color:white;}")
-        self.stylePressed = ("QPushButton {Text-align: left; "
-                             "background-color: rgb(100,50,100); "
-                             "color:white;}")
-        self.styleInactive = ("QPushButton {Text-align: left; "
-                              "background-color: rgb(50,50,50); "
-                              "color:gray;}")
-
+        
         self.sampling_rate = sampling_rate
         self.gaussian_smoothing = gaussian_smoothing
         self.slider_nframes = slider_nframes
@@ -807,19 +792,13 @@ class MainW(QtGui.QMainWindow):
         QtWidgets.QApplication.quit()
 
 
-def run(moviefile=None,savedir=None):
-    # Always start by initializing Qt (only once per application)
-    app = QtGui.QApplication(sys.argv)
-    icon_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
-
-    app_icon = QtGui.QIcon()
-    for x in [16, 24, 32, 40, 96, 256]:
-        app_icon.addFile(icon_path, QtCore.QSize(x, x))
-    app.setWindowIcon(app_icon)
-    GUI = MainW(moviefile,savedir)
-    ret = app.exec_()
-    sys.exit(ret)
-
+def run(app, parent=None):
+    set_dark_style(app)
+    set_app_icon(app)
+    return MainWindow(app)
+    
 if __name__=='__main__':
-    run()
+    app = QtWidgets.QApplication(sys.argv)
+    main = run(app)
+    sys.exit(app.exec_())
+        

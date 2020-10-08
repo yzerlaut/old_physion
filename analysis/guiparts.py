@@ -234,12 +234,4 @@ def load_config2(self, win1_Wmax=800, win1_Hmax=300):
 
     Layout1 = QtWidgets.QVBoxLayout()
     mainLayout.addLayout(Layout1)
-
-def set_app_icon(app):
-    icon_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), '..', 'doc', "icon.png")
-    app_icon = QtGui.QIcon()
-    for x in [16, 24, 32, 40, 96, 256]:
-        app_icon.addFile(icon_path, QtCore.QSize(x, x))
-    
     

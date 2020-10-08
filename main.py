@@ -1,24 +1,31 @@
-import sys, pathlib
-from PyQt5 import QtGui, QtWidgets, QtCore
+import sys, pathlib, os
+from PyQt5 import QtGui, QtCore, QtWidgets
 
 sys.path.append(str(pathlib.Path(__file__).resolve()))
-from analysis import guiparts
+# from misc.style import set_dark_style, set_app_icon
+
+if not sys.argv[-1]=='no-stim':
+    from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
+else:
+    print('Experiment & Visual-Stim modules disabled !')
 
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
                  button_height = 20):
 
+        self.app = app
         super(MainWindow, self).__init__()
-        self.setWindowTitle('Physiology of Visual Circuits')
+        self.setWindowTitle('Physiology of Visual Circuits    ')
 
         # buttons and functions
-        LABELS = ["e) launch Experiment",
-                  "v) prepare Visual stim. protocols",
+        LABELS = ["e) start Experiment",
+                  "s) prepare Stimulation",
                   "c) Compress data",
                   "t) Transfer data",
-                  "p) preprocess Pupil",
-                  "i) preprocess ca2+ Imaging",
+                  "p) Pupil preprocessing",
+                  "i) Imaging (Ca2+) preprocessing",
+                  "v) Visualize data",
                   "a) Analyze data",
                   "n) lab Notebook ",
                   "q) Quit"]
@@ -30,11 +37,12 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_transfer,
                      self.launch_pupil,
                      self.launch_caimaging,
+                     self.launch_visualization,
                      self.launch_analysis,
                      self.launch_notebook,
                      self.quit]
         
-        self.setGeometry(50, 50, 300, 50*len(LABELS))
+        self.setGeometry(50, 50, 300, 47*len(LABELS))
         
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('')
@@ -58,37 +66,43 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def launch_exp(self):
-        from exp.gui import MainWindow as ExpMainWindow
-        self.child = ExpMainWindow()
+        from exp.gui import run
+        self.child = run(self.app)
+        # self.child.show()
     def launch_visual_stim(self):
         from visual_stim.gui.main import Window as VisualMainWindow
         self.child = VisualMainWindow(self.app)
     def launch_compress(self):
-        pass
-        # from assembling.compress import MainWindow as CompressMainWindow
-        # self.child = CompressMainWindow(self.app)
+        self.statusBar.showMessage('Compression module not implemented yet')
     def launch_transfer(self):
-        from assembling.transfer import MainWindow as TransferMainWindow
-        self.child = TransferMainWindow(self.app)
+        self.statusBar.showMessage('Transfer module not implemented yet')
     def launch_pupil(self):
         self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
-        self.show()
-        from pupil.gui import MainWindow as PupilMainWindow
-        self.child = PupilMainWindow()
+        from pupil.gui import run as RunPupilGui
+        self.child = RunPupilGui(self.app)
     def launch_caimaging(self):
-        pass
+        self.statusBar.showMessage('Ca-Imaging module not implemented yet')
+    def launch_visualization(self):
+        self.statusBar.showMessage('Loading Visualization Module [...]')
+        from analysis.gui import run as RunAnalysisGui
+        self.child = RunAnalysisGui(self.app)
     def launch_analysis(self):
-        self.statusBar.showMessage('Loading Analysis Module [...]')
-        self.show()
-        from analysis.gui import MainWindow as AnalysisMainWindow
-        self.child = AnalysisMainWindow()
+        from analysis.gui import run as RunAnalysisGui
+        self.child = RunAnalysisGui(self.app)
     def launch_notebook(self):
-        pass
+        self.statusBar.showMessage('Notebook module not implemented yet')
     def quit(self):
         QtWidgets.QApplication.quit()
         
+def run():
+    # Always start by initializing Qt (only once per application)
+    app = QtWidgets.QApplication(sys.argv)
+    # set_dark_style(app)
+    # set_app_icon(app)
+    GUI = MainWindow(app)
+    ret = app.exec_()
+    sys.exit(ret)
 
-app = QtWidgets.QApplication(sys.argv)
-guiparts.build_dark_palette(app)
-main = MainWindow(app)
-sys.exit(app.exec_())
+if __name__=='__main__':
+    run()
+

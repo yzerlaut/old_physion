@@ -2,7 +2,6 @@ from psychopy import visual, core, event, clock, monitors # some libraries from 
 import numpy as np
 import itertools, os, sys, pathlib, subprocess, time
  
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.noise import build_sparse_noise, build_dense_noise
 

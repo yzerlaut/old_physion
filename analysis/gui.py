@@ -62,13 +62,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.minView = False
         self.showwindow()
 
-        # for debugging
-        self.day_folder = '/home/yann/DATA/2020_10_07/'
-        self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
-        self.preload_datafolder(self.datafolder)
-        self.load_data()
+        # # for debugging
+        # self.day_folder = '/home/yann/DATA/2020_10_07/'
+        # self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
+        # self.preload_datafolder(self.datafolder)
+        # self.load_data()
 
-        self.display_quantities(force=True)
+        # self.display_quantities(force=True)
         
     def check_data_folder(self):
         
@@ -205,8 +205,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def quit(self):
         sys.exit()
 
+
+def run(app, parent=None):
+    guiparts.build_dark_palette(app)
+    return MainWindow(app)
+    
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
-    guiparts.build_dark_palette(app)
-    main = MainWindow(app)
+    main = run(app)
     sys.exit(app.exec_())
