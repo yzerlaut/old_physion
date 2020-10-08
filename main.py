@@ -19,12 +19,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Physiology of Visual Circuits    ')
 
         # buttons and functions
-        LABELS = ["e) start Experiment",
+        LABELS = ["r) Run experiment",
                   "s) prepare Stimulation",
                   "c) Compress data",
                   "t) Transfer data",
                   "p) Pupil preprocessing",
-                  "i) Imaging (Ca2+) preprocessing",
+                  "i) Imaging preprocessing",
+                  "e) Electrophy preprocessing",
                   "v) Visualize data",
                   "a) Analyze data",
                   "n) lab Notebook ",
@@ -37,6 +38,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_transfer,
                      self.launch_pupil,
                      self.launch_caimaging,
+                     self.launch_electrophy,
                      self.launch_visualization,
                      self.launch_analysis,
                      self.launch_notebook,
@@ -82,6 +84,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = RunPupilGui(self.app)
     def launch_caimaging(self):
         self.statusBar.showMessage('Ca-Imaging module not implemented yet')
+    def launch_electrophy(self):
+        self.statusBar.showMessage('Electrophy module not implemented yet')
     def launch_visualization(self):
         self.statusBar.showMessage('Loading Visualization Module [...]')
         from analysis.gui import run as RunAnalysisGui

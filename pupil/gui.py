@@ -17,13 +17,15 @@ from assembling.saving import from_folder_to_datetime, check_datafolder
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, parent=None, savedir=None,
-                 sampling_rate=0.5,
+                 sampling_rate=0.,
                  gaussian_smoothing=2,
+                 compressed_version=False,
                  slider_nframes=200):
         """
         sampling in Hz
         """
         super(MainWindow, self).__init__()
+        self.sampling_rate = sampling_rate
 
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
@@ -34,7 +36,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.setWindowTitle('Pupil-size tracking software')
         
-        self.sampling_rate = sampling_rate
         self.gaussian_smoothing = gaussian_smoothing
         self.slider_nframes = slider_nframes
         
@@ -128,6 +129,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scatter = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter)
         self.p1.setLabel('bottom', 'time (s)')
+        self.xaxis = self.p1.getAxis('bottom')
         # self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
@@ -229,7 +231,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
         process.load_data(self,
-                          sampling_rate=self.sampling_rate)
+                          lazy_loading=True,
+                          compressed_version=compressed_version)
 
         if self.Face is not None:
             self.reset()
@@ -238,35 +241,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.data = self.Pupil.processed
 
             self.sampling_rate = self.Face.sampling_rate
-            self.rateBox.setText(str(self.sampling_rate))
+            self.rateBox.setText(str(round(self.sampling_rate)))
 
             self.nframes = len(self.times)
             
-            # # try to load existing pupil data
-            # if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
-            #     self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
-            #                         allow_pickle=True).item()
-            #     print(self.data)
-            #     if 'sx-corrected' in self.data:
-            #         suffix = '-corrected'
-            #     else:
-            #         suffix = ''
-                    
-            #     self.times, self.PD =  self.data['times'],\
-            #         np.sqrt(self.data['sx'+suffix]*self.data['sy'+suffix])
-            #     self.sampling_rate = self.data['sampling_rate']
-            #     self.rateBox.setText(str(self.sampling_rate))
-            # else:
-            #     self.data = None
-                
-            # process.build_temporal_subsampling(self)
-
             # update time limits
             self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
-            # initialize to first available image
-            self.cframe = 0
-            self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
-            #
+            self.time = 0 # initialize to first available image
+            self.jump_to_frame()
+
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
 
@@ -277,9 +260,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
                 
             # self.movieLabel.setText(os.path.dirname(self.datafolder))
-            self.movieLabel.setText("%s => %s" %\
-                        from_folder_to_datetime(self.datafolder))
-            if self.nframes > 0:
+            self.movieLabel.setText("%s => %s" % from_folder_to_datetime(self.datafolder))
+            if len(self.times)>0:
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
                 self.updateFrameSlider()
@@ -492,16 +474,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saverois.setEnabled(True)
 
     def set_precise_time(self):
-        self.cframe = min([self.nframes-1,np.argmin((self.times-self.times[0]-\
-                                                     float(self.currentTime.text()))**2)+1])
-        self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
-        self.frameSlider.setValue(int(self.cframe/self.nframes*self.slider_nframes))
-
+        self.time = float(self.currentTime.text())
+        t1, t2 = self.xaxis.range
+        frac_value = (self.time-t1)/(t2-t1)
+        self.frameSlider.setValue(int(self.slider_nframes*frac_value))
         self.jump_to_frame()
         
     def go_to_frame(self):
-        self.cframe = min([int(self.nframes*self.frameSlider.value()/self.slider_nframes),
-                           self.nframes-1])
+
+        t1, t2 = self.xaxis.range
+        self.time = t1+(t2-t1)*float(self.frameSlider.value())/self.slider_nframes
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -521,16 +503,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def jump_to_frame(self):
 
-        self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
+        self.time, self.fullimg = self.Pupil.grab_frame(self.time, with_time=True)
+        self.currentTime.setText('%.2f' % float(self.time))
+        
         self.pimg.setImage(self.fullimg)
-        self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
+        self.currentTime.setText('%.2f' % float(self.time))
         if self.ROI is not None:
             self.ROI.plot(self)
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
         if self.data is not None:
-            i0 = np.argmin((self.data['times']-self.times[self.cframe])**2)
-            print(self.data['times'][i0], self.times[self.cframe])
+            i0 = np.argmin((self.data['times']-self.time)**2)
+            print(self.data['times'][i0], self.time)
             self.scatter.setData(self.data['times'][i0]*np.ones(1),
                                  self.data['diameter'][i0]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
@@ -539,9 +523,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.fit.remove(self)
             coords = []
             for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
-                coords.append(self.data[key1][self.cframe]-self.data[key2])
+                coords.append(self.data[key1][i0]-self.data[key2])
             for key in ['sx', 'sy']:
-                coords.append(self.data[key][self.cframe])
+                coords.append(self.data[key][i0])
             self.fit = roi.pupilROI(moveable=True,
                                     parent=self,
                                     color=(0, 200, 0),
@@ -549,18 +533,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
             
-
-    def get_frame(self, cframe):
-        cframe = np.maximum(0, np.minimum(self.nframes-1, cframe))
-        cframe = int(cframe)
-        try:
-            ivid = (self.cumframes < cframe).nonzero()[0][-1]
-        except:
-            ivid = 0
-        img = []
-        for vs in self.video[ivid]:
-            img.append(np.array(vs[cframe - self.cumframes[ivid]]))
-        return img
 
     def show_fullframe(self):
 
@@ -605,7 +577,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 f.write('python pupil/process.py -df %s &\n' % fn)
 
         print('Script successfully written in "%s"' % str(os.path.abspath('./script.sh')))
-        
 
 
     def save_pupil_data(self):
@@ -616,7 +587,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             # loop over datafiles !
             pass
-
             
     def process_ROIs(self):
 
@@ -653,103 +623,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def plot_processed(self):
         pass
-        # #self.cframe = 0
-        # self.p1.clear()
-        # self.p2.clear()
-        # self.traces1 = np.zeros((0,self.nframes))
-        # self.traces2 = np.zeros((0,self.nframes))
-        # #self.p1.plot(3*np.ones((self.nframes,)), pen=(0,0,0))
-        # #self.p2.plot(3*np.ones((self.nframes,)), pen=(0,0,0))
-        # for k in range(len(self.cbs1)):
-        #     if self.cbs1[k].isChecked():
-        #         tr = self.plot_trace(1, self.proctype[k], self.wroi[k], self.col[k])
-        #         if tr.ndim<2:
-        #             self.traces1 = np.concatenate((self.traces1,tr[np.newaxis,:]), axis=0)
-        #         else:
-        #             self.traces1 = np.concatenate((self.traces1,tr), axis=0)
-        # for k in range(len(self.cbs2)):
-        #     if self.cbs2[k].isChecked():
-        #         tr = self.plot_trace(2, self.proctype[k], self.wroi[k], self.col[k])
-        #         if tr.ndim<2:
-        #             self.traces2 = np.concatenate((self.traces2,tr[np.newaxis,:]), axis=0)
-        #         else:
-        #             self.traces2 = np.concatenate((self.traces2,tr), axis=0)
-
-        # self.p1.setRange(xRange=(0,self.nframes),
-        #                  yRange=(-4, 4),
-        #                   padding=0.0)
-        # self.p2.setRange(xRange=(0,self.nframes),
-        #                  yRange=(-4, 4),
-        #                   padding=0.0)
-        # self.p1.setLimits(xMin=0,xMax=self.nframes)
-        # self.p2.setLimits(xMin=0,xMax=self.nframes)
-        # self.p1.show()
-        # self.p2.show()
-        # self.plot_scatter()
-        # self.jump_to_frame()
-
+    
     def plot_trace(self, wplot, proctype, wroi, color):
         pass
-        # if wplot==1:
-        #     wp = self.p1
-        # else:
-        #     wp = self.p2
-        # if proctype==0 or proctype==2:
-        #     # motSVD
-        #     if proctype==0:
-        #         ir = 0
-        #     else:
-        #         ir = wroi+1
-        #     cmap = cm.get_cmap("hsv")
-        #     nc = min(10,self.motSVDs[ir].shape[1])
-        #     cmap = (255 * cmap(np.linspace(0,0.2,nc))).astype(int)
-        #     norm = (self.motSVDs[ir][:,0]).std()
-        #     tr = (self.motSVDs[ir][:,:10]**2).sum(axis=1)**0.5 / norm
-        #     for c in np.arange(0,nc,1,int)[::-1]:
-        #         pen = pg.mkPen(tuple(cmap[c,:]), width=1)#, style=QtCore.Qt.DashLine)
-        #         tr2 = self.motSVDs[ir][:, c] / norm
-        #         tr2 *= np.sign(skew(tr2))
-        #         wp.plot(tr2,  pen=pen)
-        #     pen = pg.mkPen(color)
-        #     wp.plot(tr, pen=pen)
-        #     wp.setRange(yRange=(-3, 3))
-        # elif proctype==1:
-        #     pup = self.pupil[wroi]
-        #     pen = pg.mkPen(color, width=2)
-        #     pp=wp.plot(zscore(pup['area_smooth'])*2, pen=pen)
-        #     if 'com_smooth' in pup:
-        #         pupcom = pup['com_smooth'].copy()
-        #     else:
-        #         pupcom = pup['com'].copy()
-        #     pupcom -= pupcom.mean(axis=0)
-        #     norm = pupcom.std()
-        #     pen = pg.mkPen((155,255,155), width=1, style=QtCore.Qt.DashLine)
-        #     py=wp.plot(pupcom[:,0] / norm * 2, pen=pen)
-        #     pen = pg.mkPen((0,100,0), width=1, style=QtCore.Qt.DashLine)
-        #     px=wp.plot(pupcom[:,1] / norm * 2, pen=pen)
-        #     tr = np.concatenate((zscore(pup['area_smooth'])[np.newaxis,:]*2,
-        #                          pupcom[:,0][np.newaxis,:] / norm*2,
-        #                          pupcom[:,1][np.newaxis,:] / norm*2), axis=0)
-        #     lg=wp.addLegend(offset=(0,0))
-        #     lg.addItem(pp,"<font color='white'><b>area</b></font>")
-        #     lg.addItem(py,"<font color='white'><b>ypos</b></font>")
-        #     lg.addItem(px,"<font color='white'><b>xpos</b></font>")
-        # elif proctype==3:
-        #     tr = zscore(self.blink[wroi])
-        #     pen = pg.mkPen(color, width=2)
-        #     wp.plot(tr, pen=pen)
-        # elif proctype==4:
-        #     running = self.running[wroi]
-        #     running *= np.sign(running.mean(axis=0))
-        #     running -= running.min()
-        #     running /= running.max()
-        #     running *=16
-        #     running -=8
-        #     wp.plot(running[:,0], pen=color)
-        #     wp.plot(running[:,1], pen=color)
-        #     tr = running.T
-        # return tr
-
         
     def plot_pupil_trace(self):
             self.p1.clear()
@@ -790,13 +666,19 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.quit()
 
 
-def run(app, parent=None):
+def run(app, parent=None, compressed_version=False):
     set_dark_style(app)
     set_app_icon(app)
-    return MainWindow(app)
+    return MainWindow(app,
+                      compressed_version=compressed_version)
     
 if __name__=='__main__':
+    if sys.argv[-1]=='raw':
+        compressed_version = False
+    else:
+        compressed_version = True
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app)
+    main = run(app,
+               compressed_version=compressed_version)
     sys.exit(app.exec_())
         

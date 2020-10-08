@@ -24,6 +24,7 @@ except ModuleNotFoundError:
 
 CONFIG_LIST = ['                                (choose)',
                'NIdaq',
+               'NIdaq+CaImaging',
                'VisualStim',
                'VisualStim+NIdaq',
                'VisualStim+NIdaq+FaceCamera',
@@ -31,8 +32,7 @@ CONFIG_LIST = ['                                (choose)',
                'VisualStim+NIdaq+FaceCamera+CaImaging',
                'FaceCamera',
                'FaceCamera+NIdaq',
-               'FaceCamera+NIdaq+CaImaging',
-               'CaImaging']
+               'FaceCamera+NIdaq+CaImaging']
 
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 

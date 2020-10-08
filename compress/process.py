@@ -50,8 +50,10 @@ def compress_FaceCamera(datafolder,
     # ------------------------------------------------
     # Now looping over frames to build the compression
 
+    FILES = sorted(os.listdir(os.path.join(datafolder, 'FaceCamera-imgs')))
+    
     X, i0, file_count = [], 0, 0
-    for i, fn in enumerate(os.listdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
+    for i, fn in enumerate(FILES):
         x = np.load(os.path.join(folder, 'FaceCamera-imgs', fn))
         if smoothing!=0:
             x = gaussian_filter(x, smoothing)

@@ -91,6 +91,7 @@ class ImageTimeSeries:
                 for i, iframe in enumerate(np.arange(i0, i1+1)):
                     if iframe in frame_sampling:
                         self.index_frame_map.append([fn, i])
+                        print([fn, i])
         elif (self.VIDS is not None):
             print('Pre-loading the full-set of videos [...]')
             self.IMAGES = []
@@ -214,7 +215,7 @@ class FaceData(ImageTimeSeries):
 
         times = np.load(os.path.join(datafolder,
                                      'FaceCamera-times.npy'))
-
+        times = times-times[0]
         self.build_temporal_sampling(times,
                                      sampling_rate=sampling_rate)
 
@@ -341,6 +342,8 @@ class Dataset:
         if self.metadata['NIdaq']: # loading the NIdaq data only once
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
+        else:
+            self.NIdaq_Tstart = 0
 
         # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
@@ -456,7 +459,7 @@ if __name__=='__main__':
 
     fn = '/home/yann/DATA/2020_09_11/13-40-10/'
     fn = '/home/yann/DATA/2020_09_23/16-40-54/'
-    fn = '/home/yann/DATA/2020_10_07/16-02-19/'
+    fn = '/home/yann/DATA/2020_10_08/14-15-18/'
     if sys.argv[-1]=='photodiode':
 
         data = np.load(os.path.join(fn, 'NIdaq.npy'))

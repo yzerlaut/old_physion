@@ -102,10 +102,15 @@ def fit_pupil_size(parent, shape='circle',
 
 def load_data(parent,
               compressed_version=True,
+              FaceCamera_frame_rate=None,
               lazy_loading=True):
 
+    if not compressed_version and os.path.isdir(os.path.join(parent.datafolder, 'FaceCamera-imgs')):
+        print('Forcing compressed version')
+        compressed_version = True
+        
     dataset = Dataset(parent.datafolder,
-                      FaceCamera_frame_rate=parent.sampling_rate,
+                      FaceCamera_frame_rate=FaceCamera_frame_rate,
                       compressed_version=compressed_version,
                       lazy_loading=lazy_loading,
                       modalities=['Face', 'Pupil'])
@@ -121,7 +126,7 @@ def load_data(parent,
 def preprocess(cls, ellipse=None, img=None):
 
     if img is None:
-        img = cls.Pupil.grab_frame(cls.times[cls.cframe]).copy()
+        img = cls.Pupil.grab_frame(cls.time).copy()
     else:
         img = img.copy()
 
@@ -235,7 +240,8 @@ if __name__=='__main__':
             # insure data ordering and build sampling
             dataset = load_data(args,
                                 lazy_loading=False,
-                                sampling_rate=args.sampling_rate)
+                                compressed_version=False,
+                                FaceCamera_frame_rate=args.sampling_rate)
             # initialize processed data
             data = dict(vars(args))
             for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
@@ -245,7 +251,7 @@ if __name__=='__main__':
             print('\n Processing images to track pupil size and position in "%s"' % args.datafolder)
             if not args.non_verbose:
                 printProgressBar(0, len(args.times))
-            for args.cframe in range(len(args.times)):
+            for args.cframe, args.time in enumerate(args.times):
                 # preprocess image
                 args.img = preprocess(args, ellipse=args.ellipse)
                 data['xmin'], data['xmax'] = args.xmin, args.xmax

@@ -140,7 +140,6 @@ def check_datafolder(df,
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-compressed'))
             filenames.remove('metadata.npy')
-            print(filenames)
             nmax1 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[0]) for fn in filenames])
             nmax2 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[1]) for fn in filenames])
             for fn in filenames[:-1]:
@@ -163,7 +162,7 @@ def check_datafolder(df,
                               os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
 
         if verbose:
-            print('[ok]')
+            print('[ok] datafolder checked !')
             
         return metadata
     else:
