@@ -18,7 +18,7 @@ settings = {
               'Electrophy':(100,100,255,255),#'blue',
               'Calcium':(0,255,0,255)},#'green'},
     # general settings
-    'Npoints':600}
+    'Npoints':400}
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Link))
         self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.BrightText))
 
-        date = datetime.date(2020, 10, 1)
+        date = datetime.date(2020, 9, 1)
         while date!=(datetime.date.today()+datetime.timedelta(30)):
             if os.path.isdir(os.path.join(self.data_folder, date.strftime("%Y_%m_%d"))):
                 self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
@@ -184,8 +184,67 @@ class MainWindow(QtWidgets.QMainWindow):
         self.display_quantities()
         
     
-    def update_frame(self):
-        pass
+    def update_frame(self, from_slider=True):
+        
+        if from_slider:
+            # update time based on slider
+            t1, t2 = self.xaxis.range
+            self.time = t1+(t2-t1)*\
+                float(self.frameSlider.value())/self.settings['Npoints']
+        else:
+            self.time = self.xaxis.range[0]
+
+        # update screen frame
+        if self.Screen is not None:
+            self.pScreenimg.setImage(self.Screen.grab_frame(self.time))
+
+        if self.Face is not None:
+            im_face = self.Face.grab_frame(self.time)
+            self.pFaceimg.setImage(im_face)
+            
+            if self.Pupil is not None:
+                setattr(self.Pupil, 'ROI', None) # to be 
+                # increasing the saturation threshold to see better
+                self.Pupil.saturation=2*self.Pupil.saturation
+                im_pupil = pupil_process.preprocess(self,
+                                                    ellipse=None,
+                                                    im=im_face)
+                
+            self.pPupilimg.setImage(im_pupil)
+            
+        # if self.scatter is not None:
+        #     self.p1.removeItem(self.scatter)
+        plots.add_scatter_to_raw_data(self)
+
+        
+        # self.currentTime.setText('%.2f' % float(self.time))
+        # if self.ROI is not None:
+        #     self.ROI.plot(self)
+        # if self.scatter is not None:
+        #     self.p1.removeItem(self.scatter)
+        # if self.data is not None:
+        #     i0 = np.argmin((self.data['times']-self.time)**2)
+        #     print(self.data['times'][i0], self.time)
+        #     self.scatter.setData(self.data['times'][i0]*np.ones(1),
+        #                          self.data['diameter'][i0]*np.ones(1),
+        #                          size=10, brush=pg.mkBrush(255,255,255))
+        #     self.p1.addItem(self.scatter)
+        #     if self.fit is not None:
+        #         self.fit.remove(self)
+        #     coords = []
+        #     for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
+        #         coords.append(self.data[key1][i0]-self.data[key2])
+        #     for key in ['sx', 'sy']:
+        #         coords.append(self.data[key][i0])
+        #     self.fit = roi.pupilROI(moveable=True,
+        #                             parent=self,
+        #                             color=(0, 200, 0),
+        #                             pos = roi.ellipse_props_to_ROI(coords))
+
+        # self.win.show()
+        # self.show()
+
+        
 
     def showwindow(self):
         if self.minView:

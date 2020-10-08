@@ -483,7 +483,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def go_to_frame(self):
 
         t1, t2 = self.xaxis.range
-        self.time = t1+(t2-t1)*float(self.frameSlider.value())/self.slider_nframes
+        self.time = t1+(t2-t1)*\
+            float(self.frameSlider.value())/self.slider_nframes
         self.jump_to_frame()
 
     def fitToWindow(self):

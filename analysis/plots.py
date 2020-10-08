@@ -12,6 +12,46 @@ def shift(self, i):
     return self.settings['blank-space']*i+\
         np.sum(np.power(self.settings['increase-factor'], np.arange(i)))
 
+def add_scatter_to_raw_data(self):
+
+    scatter = []
+    ## -------- Screen --------- ##
+    if self.Screen is not None:
+        icond = np.argmin((self.Screen.photodiode.t-self.time)**2)
+        y = scale_and_position(self, self.Screen.photodiode.val[icond], i=0)
+        scatter.append((self.Screen.photodiode.t[icond], y))
+
+    ## -------- Locomotion --------- ##
+    if self.Locomotion is not None:
+        icond = np.argmin((self.Locomotion.t-self.time)**2)
+        y = scale_and_position(self, self.Locomotion.val[icond], i=1)
+        scatter.append((self.Locomotion.t[icond], y))
+
+    ## -------- Pupil --------- ##
+    if self.Pupil is not None:
+        # time-varying diameter
+        pt = self.Pupil.processed['times']
+        icond = np.argmin((pt-self.time)**2)
+        y = scale_and_position(self, self.Pupil.processed['diameter'][icond], i=2)
+        scatter.append((pt[icond], y))
+
+    ## -------- Electrophy --------- ##
+    if self.Electrophy is not None:
+        icond = np.argmin((self.Electrophy.t-self.time)**2)
+        y = scale_and_position(self, self.Electrophy.val[icond], i=3)
+        scatter.append((self.Electrophy.t[icond], y))
+
+    ## -------- Calcium --------- ##
+    if self.Calcium is not None:
+        pass # TODO
+        
+    self.scatter.setData([s[0] for s in scatter], [s[1] for s in scatter],
+                         size=10, brush=pg.mkBrush(255,255,255))
+    self.plot.addItem(self.scatter)
+
+    self.plot.show()
+    
+
 def raw_data_plot(self, tzoom):
 
     iplot = 0

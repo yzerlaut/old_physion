@@ -215,6 +215,7 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.plot.setMouseEnabled(x=True,y=False)
     # self.plot.setMenuEnabled(False)
     self.plot.setLabel('bottom', 'time (s)')
+    self.xaxis = self.plot.getAxis('bottom')
     self.scatter = pg.ScatterPlotItem()
     self.plot.addItem(self.scatter)
 
