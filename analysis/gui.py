@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Link))
         self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.BrightText))
 
-        date = datetime.date(2020, 8, 1)
+        date = datetime.date(2020, 10, 1)
         while date!=(datetime.date.today()+datetime.timedelta(30)):
             if os.path.isdir(os.path.join(self.data_folder, date.strftime("%Y_%m_%d"))):
                 self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
