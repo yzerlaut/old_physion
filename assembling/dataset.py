@@ -460,11 +460,8 @@ def find_onset_time(t, photodiode_signal, npulses,
     return t0-time_for_threshold, integral, threshold
 
 
-        
 if __name__=='__main__':
 
-    fn = '/home/yann/DATA/2020_09_11/13-40-10/'
-    fn = '/home/yann/DATA/2020_09_23/16-40-54/'
     fn = '/home/yann/DATA/2020_10_07/16-02-19/'
     
     if sys.argv[-1]=='photodiode':

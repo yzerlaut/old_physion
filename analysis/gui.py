@@ -84,6 +84,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.isdir(os.path.join(self.data_folder, date.strftime("%Y_%m_%d"))):
                 self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
             date = date+datetime.timedelta(1)
+        date = self.cal.setSelectedDate(date+datetime.timedelta(1))
         
     def pick_date(self):
         date = self.cal.selectedDate()

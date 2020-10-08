@@ -57,7 +57,7 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     self.cal.setMinimumWidth(265)
     self.cal.setMaximumWidth(265)
     self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
-    self.cal.setMaximumDate(QtCore.QDate.currentDate())
+    self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
     self.cal.clicked.connect(self.pick_date)
     Layout.addWidget(self.cal)
 
