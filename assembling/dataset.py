@@ -29,14 +29,17 @@ class ImageTimeSeries:
     
     def __init__(self, folder,
                  dt=None,
-                 times=None, frame_sampling=None,
+                 times=None,
+                 frame_sampling=None,
                  extension='.npy',
                  lazy_loading=True,
+                 compression_metadata=None,
                  t0=0):
         """
         IMAGES can be initialized
         """
-            
+
+        self.extension=extension
         self.BINARY_IMAGES, self.VIDS, self.PICS = None, None, None
         self.IMAGES = None
         
@@ -64,6 +67,8 @@ class ImageTimeSeries:
         # ---------------------------------------------
         if extension=='.npy':
             self.BINARY_IMAGES = [FILES[f] for f in frame_sampling]
+        elif extension=='.npz':
+            self.VIDS = FILES
         elif extension=='.avi':
             self.VIDS= FILES
         elif extension=='.mp4':
@@ -77,21 +82,28 @@ class ImageTimeSeries:
         else:
             print('Extension', extension, ' not recognized !')
 
-        
-        if (self.VIDS is not None):
-            if lazy_loading:
-                # we just make a map between indices and videos/frames
-                self.index_frame_map = []
+        if lazy_loading and self.VIDS is not None:
+            # we just make a map between indices and videos/frames
+            self.index_frame_map = []
+            for i, fn in enumerate(self.VIDS):
+                s = fn.split('imgs-')[1].replace(extension, '').split('-')
+                i0, i1 = int(s[0]), int(s[1])
+                for i, iframe in enumerate(np.arange(i0, i1+1)):
+                    if iframe in frame_sampling:
+                        self.index_frame_map.append([fn, i])
+        elif (self.VIDS is not None):
+            print('Pre-loading the full-set of videos [...]')
+            self.IMAGES = []
+            if extension=='.npz':
+                # we pre-load the video !
                 for i, fn in enumerate(self.VIDS):
                     s = fn.split('imgs-')[1].replace(extension, '').split('-')
                     i0, i1 = int(s[0]), int(s[1])
+                    x = np.load(fn)
                     for i, iframe in enumerate(np.arange(i0, i1+1)):
                         if iframe in frame_sampling:
-                            self.index_frame_map.append([fn, i])
+                            self.IMAGES.append(x[i,:,:,0])
             else:
-                print('Loading the full-set of videos [...]')
-                # we pre-load the video !
-                self.IMAGES = []
                 for i, fn in enumerate(self.VIDS):
                     s = fn.split('imgs-')[1].replace(extension, '').split('-')
                     i0, i1 = int(s[0]), int(s[1])
@@ -117,6 +129,10 @@ class ImageTimeSeries:
             im = self.IMAGES[i0]
         elif self.BINARY_IMAGES is not None:
             im = np.load(self.BINARY_IMAGES[i0])
+        elif self.extension=='.npz':
+            fn, index = self.index_frame_map[i0]
+            x = np.load(fn)['arr_0']
+            im = x[index,:,:]
         else:
             # we have loaded it using the "lazy_loading" option
             fn, index = self.index_frame_map[i0]
@@ -183,6 +199,7 @@ def init_locomotion_data(self, data):
                        'trace':data[Locomotion_NIdaqChannel[0],:]+\
                        data[Locomotion_NIdaqChannel[1],:]}
 
+    
 ##############################################
 ###           Face data                   ###
 ##############################################
@@ -192,6 +209,7 @@ class FaceData(ImageTimeSeries):
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
                  t0=0, sampling_rate=None,
+                 lazy_loading=True,
                  compressed_version=True):
 
         times = np.load(os.path.join(datafolder,
@@ -201,11 +219,16 @@ class FaceData(ImageTimeSeries):
                                      sampling_rate=sampling_rate)
 
         if compressed_version or (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
+            
             # means we have a compressed version
+            compression_metadata = np.load(os.path.join(datafolder, 'FaceCamera-compressed', 'metadata.npy'),
+                                           allow_pickle=True).item()
+            
             super().__init__(os.path.join(datafolder, 'FaceCamera-compressed'),
                              times=self.t,
                              frame_sampling=self.iframes,
-                             extension='.avi')
+                             lazy_loading=lazy_loading,
+                             extension=compression_metadata['extension'])
         else:
             super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
                              times=self.t,
@@ -245,11 +268,13 @@ class PupilData(FaceData):
     
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
+                 lazy_loading=True,
                  t0=0, sampling_rate=None,
                  compressed_version=True):
 
         super().__init__(datafolder, metadata,
                          dt=dt, times=times,
+                         lazy_loading=lazy_loading,
                          t0=t0, sampling_rate=sampling_rate,
                          compressed_version=compressed_version)
 
@@ -299,7 +324,8 @@ class Dataset:
                  Photodiode_NIdaqChannel=0, # switch to 
                  Electrophy_NIdaqChannel=0, # switch to 
                  Locomotion_NIdaqChannels=[1,2],
-                 compressed_version=True,
+                 compressed_version=False,
+                 lazy_loading=True,
                  FaceCamera_frame_rate=None,
                  modalities=MODALITIES):
         """
@@ -341,6 +367,7 @@ class Dataset:
         if self.metadata['FaceCamera'] and ('Face' in modalities):
             self.Face = FaceData(self.datafolder, self.metadata,
                                  sampling_rate=FaceCamera_frame_rate,
+                                 lazy_loading=lazy_loading,
                                  compressed_version=compressed_version)
         elif 'Face' in modalities:
             print('[X] Face data not found !')
@@ -348,6 +375,7 @@ class Dataset:
         # Pupil
         if self.metadata['FaceCamera'] and ('Pupil' in modalities):
             self.Pupil = PupilData(self.datafolder, self.metadata,
+                                   lazy_loading=lazy_loading,
                                    sampling_rate=FaceCamera_frame_rate,
                                    compressed_version=compressed_version)
         elif 'Pupil' in modalities:
@@ -447,7 +475,7 @@ if __name__=='__main__':
     else:
 
         dataset = Dataset(fn,
-                          # FaceCamera_frame_rate=1.,
+                          compressed_version=False,
                           modalities=['Face', 'Pupil'])
 
         # print(dataset.Pupil.t)

@@ -57,6 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
             setattr(self, mod, None)
             
         self.time = 0
+        self.tzoom = [0, 10]
         self.check_data_folder()
         
         self.minView = False
@@ -121,7 +122,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
          # see assembling/dataset.py
         dataset = Dataset(self.datafolder,
-                                  modalities=MODALITIES)
+                          modalities=MODALITIES)
         
         for key in MODALITIES:
             setattr(self, key, getattr(dataset, key))
@@ -130,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
         except KeyError:
-            self.tzoom = [0, 10] # if no visual stim, showing 10s
+            pass
             
         self.time = 0
         

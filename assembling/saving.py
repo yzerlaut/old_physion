@@ -139,9 +139,11 @@ def check_datafolder(df,
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-compressed')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-compressed'))
+            filenames.remove('metadata.npy')
+            print(filenames)
             nmax1 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[0]) for fn in filenames])
             nmax2 = max([len(fn.split('imgs-')[1].split('.')[0].split('-')[1]) for fn in filenames])
-            for fn in filenames:
+            for fn in filenames[:-1]:
                 n1 = fn.split('imgs-')[1].split('.')[0].split('-')[0]
                 n2 = fn.split('imgs-')[1].split('.')[0].split('-')[1]
                 if (len(n1)<nmax1) or (len(n2)<nmax2):

@@ -7,9 +7,10 @@ from scipy.ndimage import gaussian_filter
 
 def compress_FaceCamera(datafolder,
                         smoothing=0, # either 2, or (1, 4, 5)
+                        subsampling=1,
                         extension='.npz', # '.avi', or '.mp4', ...
                         tool='numpy',
-                        Nframe_per_file=500,
+                        Nframe_per_file=1000,
                         max_file=int(1e6),
                         verbose=False):
 
@@ -20,7 +21,7 @@ def compress_FaceCamera(datafolder,
     
     # ------------------------------------------------------------
     # building custom compression functions depending on the tool
-    
+
     if tool=='numpy':
         
         extension='.npz' # forcing the extension in that case
@@ -74,46 +75,82 @@ def compress_FaceCamera(datafolder,
     if file_count<max_file:
         filename = 'imgs-%i-%i' % (i0, i)
         compress_func(np.array(X), os.path.join(directory, filename))
-    if verbose:
-        print('wrote: ', filename)
+        if verbose:
+            print('wrote: ', filename)
 
+    # saving compression metadata 
+    compression_metadata = {'tool':tool,
+                            'subsampling':subsampling,
+                            'smoothing':smoothing,
+                            'extension':extension,
+                            'Nframe_per_file':Nframe_per_file,
+                            'max_file':max_file}
+    np.save(os.path.join(directory, 'metadata.npy'), compression_metadata)
+    
                 
 if __name__=='__main__':
     
-    folder='/home/yann/DATA/2020_09_11/13-40-10/'
+    folder='/home/yann/DATA/2020_10_08/16-02-19/'
 
-    import time
+    import time, sys
 
-    smoothing = 2
+    smoothing = 0
+    max_file = int(1e6)
 
     tstart = time.time()
 
-    extension, tool = '.npz', 'numpy'
-    compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
-    print('extension:', extension,  'tool:' , tool)
-    os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
-    print(time.time()-tstart, 'seconds')
+    if sys.argv[-1]=='run':
+        # extension, tool = '.npz', 'numpy'
+        extension, tool = '.avi', 'skvideo'
+        print('Running extension:', extension,  'tool:' , tool)
+        compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=max_file)
+        os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
+        print(time.time()-tstart, 'seconds')
+    else:
+        import sys
+        sys.path.append('./')
+        from assembling.dataset import Dataset
+        
+        dataset = Dataset(folder,
+                          compressed_version=False,
+                          modalities=['Face'])
+        im0 = dataset.Face.grab_frame(0)
+        
+        dataset = Dataset(folder,
+                          compressed_version=True,
+                          modalities=['Face'])
+        im1 = dataset.Face.grab_frame(0)
 
+        from datavyz import ges
+        fig0, ax0 = ges.figure(figsize=(3,3), right=0, bottom=0, left=0)
+        ges.image(im0, title='original', ax=ax0)
+        fig1, ax1 = ges.figure(figsize=(3,3), right=0, bottom=0, left=0)
+        ges.image(im1, title='compressed', ax=ax1)
+        ges.show()
+        
+        print(len(dataset.Face.t), len(dataset.Face.iframes))
+
+    # print(len(dataset.Face.t), len(dataset.Face.iframes), len(dataset.Face.index_frame_map))
 #     extension, tool = '.avi', 'skvideo'
-#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=max_file)
 #     print('extension:', extension,  'tool:' , tool)
 #     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
 #     print(time.time()-tstart, 'seconds')
     
 #     extension, tool = '.avi', 'imageio'
-#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=max_file)
 #     print('extension:', extension,  'tool:' , tool)
 #     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
 #     print(time.time()-tstart, 'seconds')
     
 #     extension, tool = '.mp4', 'skvideo'
-#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=max_file)
 #     print('extension:', extension,  'tool:' , tool)
 #     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
 #     print(time.time()-tstart, 'seconds')
     
 #     extension, tool = '.mp4', 'imageio'
-#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=1)
+#     compress_FaceCamera(folder, extension=extension, tool=tool, smoothing=smoothing, verbose=True, max_file=max_file)
 #     print('extension:', extension,  'tool:' , tool)
 #     os.system('du -sh %s ' % os.path.join(folder, 'FaceCamera-compressed', 'imgs-0-499'+extension))
 #     print(time.time()-tstart, 'seconds')

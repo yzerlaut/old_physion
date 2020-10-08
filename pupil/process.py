@@ -56,7 +56,7 @@ def circle_residual(coords, x, y, img_no_reflect, reflector_cond):
         return 1e3
     
 def perform_fit(img, x, y, reflectors,
-                shape='ellipse'):
+                shape='ellipse', maxiter=100):
 
     reflector_cond = np.zeros(x.shape, dtype=bool)
     for r in reflectors:
@@ -83,12 +83,13 @@ def perform_fit(img, x, y, reflectors,
     res = minimize(residual, initial_guess,
                    args=(x, y, img_no_reflect, reflector_cond),
                    method='Nelder-Mead',
-                   tol=1e-8, options={'maxiter':1000})
+                   tol=1e-8, options={'maxiter':maxiter})
     return res.x, shape(*res.x), res.fun
 
 def fit_pupil_size(parent, shape='circle',
                    reflectors=None,
-                   ellipse=None):
+                   ellipse=None,
+                   maxiter=100):
 
     img = (parent.img.max()-parent.img)/(parent.img.max()-parent.img.min())
     x, y = np.meshgrid(parent.ximg, parent.yimg, indexing='ij')
@@ -96,14 +97,17 @@ def fit_pupil_size(parent, shape='circle',
     if reflectors is None: # means we can extract it from parent object
         reflectors = [r.extract_props() for r in parent.rROI]
     
-    return perform_fit(img, x, y, reflectors, shape=shape)
+    return perform_fit(img, x, y, reflectors, shape=shape, maxiter=maxiter)
     
 
 def load_data(parent,
-              sampling_rate=None):
+              compressed_version=True,
+              lazy_loading=True):
 
     dataset = Dataset(parent.datafolder,
                       FaceCamera_frame_rate=parent.sampling_rate,
+                      compressed_version=compressed_version,
+                      lazy_loading=lazy_loading,
                       modalities=['Face', 'Pupil'])
 
     setattr(parent, 'Face', dataset.Face)
@@ -211,6 +215,7 @@ if __name__=='__main__':
     parser.add_argument("--shape", default='circle')
     parser.add_argument("--sampling_rate", type=float, default=5.)
     parser.add_argument("--saturation", type=float, default=75)
+    parser.add_argument("--maxiter", type=int, default=100)
     # parser.add_argument("--ellipse", type=float, default=[], nargs=)
     parser.add_argument("--gaussian_smoothing", type=float, default=2)
     parser.add_argument('-df', "--datafolder", default='./')
@@ -228,24 +233,24 @@ if __name__=='__main__':
             args.reflectors = rois['reflectors']
             args.ellipse = rois['ROIellipse']
             # insure data ordering and build sampling
-            dataset = load_data(args.datafolder, sampling_rate=args.sampling_rate)
-            # check_datafolder(args.datafolder)
-            # build_temporal_subsampling(args, sampling_rate=args.sampling_rate)
-            # initialize data
+            dataset = load_data(args,
+                                lazy_loading=False,
+                                sampling_rate=args.sampling_rate)
+            # initialize processed data
             data = dict(vars(args))
             for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
-                data[key] = np.zeros(args.nframes)
+                data[key] = np.zeros(len(args.times))
             data['times'] = args.times
             # -- loop over frames
             print('\n Processing images to track pupil size and position in "%s"' % args.datafolder)
             if not args.non_verbose:
-                printProgressBar(0, args.nframes)
-            for args.cframe in range(args.nframes):
+                printProgressBar(0, len(args.times))
+            for args.cframe in range(len(args.times)):
                 # preprocess image
                 args.img = preprocess(args, ellipse=args.ellipse)
                 data['xmin'], data['xmax'] = args.xmin, args.xmax
                 data['ymin'], data['ymax'] = args.ymin, args.ymax
-                coords, _, res = fit_pupil_size(args, reflectors=args.reflectors)
+                coords, _, res = fit_pupil_size(args, reflectors=args.reflectors, maxiter=args.maxiter)
                 data['cx'][args.cframe] = coords[0]
                 data['cy'][args.cframe] = coords[1]
                 data['sx'][args.cframe] = coords[2]
@@ -255,11 +260,11 @@ if __name__=='__main__':
                     data['sy'][args.cframe] = coords[3]
                 data['residual'][args.cframe] = res
                 if not args.non_verbose:
-                    printProgressBar(args.cframe, args.nframes)
+                    printProgressBar(args.cframe, len(args.times))
             data = replace_outliers(data) # dealing with outliers
             np.save(os.path.join(args.datafolder, args.saving_filename), data)
             if not args.non_verbose:
-                printProgressBar(args.nframes, args.nframes)
+                printProgressBar(len(args.times), len(args.times))
                 print('Pupil size calculation over !')
                 print('Processed data saved as:', os.path.join(args.datafolder, args.saving_filename))
             # save analysis output

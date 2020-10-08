@@ -9,9 +9,8 @@ import pathlib
 from analyz.IO.npz import load_dict
 from analyz.workflow.shell import printProgressBar
 
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-import pupil.guiparts as guiparts
+from pupil import guiparts, process, roi
 from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
@@ -223,8 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.batch = False
         
-        # self.datafolder = '/home/yann/DATA/2020_09_11/13-40-10/'
-        self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
+        self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
         # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
         #                                                          "Choose data folder",
         #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
@@ -232,18 +230,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         process.load_data(self,
                           sampling_rate=self.sampling_rate)
-        
-
 
         if self.Face is not None:
             self.reset()
 
             if self.Pupil.processed is not None:
                 self.data = self.Pupil.processed
+
             self.sampling_rate = self.Face.sampling_rate
             self.rateBox.setText(str(self.sampling_rate))
 
             self.nframes = len(self.times)
+            
             # # try to load existing pupil data
             # if os.path.isfile(os.path.join(self.datafolder, 'pupil-data.npy')):
             #     self.data = np.load(os.path.join(self.datafolder, 'pupil-data.npy'),
