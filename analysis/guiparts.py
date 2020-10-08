@@ -193,13 +193,17 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.show()
     
     self.pScreen = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
-    self.pScreenimg = pg.ImageItem(None)
+    self.pScreenimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pScreenimg.setLevels([0,255])
     self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True,border=[20,20,20])
-    self.pFaceimg = pg.ImageItem(None)
+    self.pFaceimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pFaceimg.setLevels([0,255])
     self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=2,invertY=True, border=[20, 20, 20])
-    self.pPupilimg = pg.ImageItem(None)
+    self.pPupilimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pPupilimg.setLevels([0,255])
     self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
-    self.pCaimg = pg.ImageItem(None)
+    self.pCaimg = pg.ImageItem(numpy.ones((50,50))*100)
+    self.pCaimg.setLevels([0,255])
     for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
                     [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pCaimg]):
         x.setAspectLocked()

@@ -211,7 +211,7 @@ class FaceData(ImageTimeSeries):
                  dt=None, times=None,
                  t0=0, sampling_rate=None,
                  lazy_loading=True,
-                 compressed_version=True):
+                 compressed_version=False):
 
         times = np.load(os.path.join(datafolder,
                                      'FaceCamera-times.npy'))

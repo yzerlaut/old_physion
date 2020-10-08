@@ -69,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.preload_datafolder(self.datafolder)
         # self.load_data()
 
-        # self.display_quantities(force=True)
+        self.display_quantities()
         
     def check_data_folder(self):
         
@@ -101,8 +101,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dbox.clear()
         self.pbox.clear()
         self.plot.clear()
-        self.win1.clear()
-        self.win2.clear()
+        # self.win1.clear()
+        # self.win2.clear()
         if len(self.list_protocol_per_day)>0:
             self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
             for fn in self.list_protocol_per_day:
