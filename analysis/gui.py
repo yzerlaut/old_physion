@@ -254,6 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def see_metadata(self):
         for key, val in self.metadata.items():
             print('- %s : ' % key, val)
+            
     def change_settings(self):
         pass
     
