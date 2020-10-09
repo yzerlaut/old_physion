@@ -129,16 +129,18 @@ def raw_data_plot(self, tzoom):
 
     if self.Screen is not None:
         # if visual-stim we highlight the stim periods
-        icond = np.argwhere((self.metadata['time_start_realigned']>tzoom[0]-\
+        icond = np.argwhere((self.Screen.time_start>tzoom[0]-\
                              self.metadata['presentation-duration']) & \
-                            (self.metadata['time_stop_realigned']<tzoom[1]+\
+                            (self.Screen.time_stop<tzoom[1]+\
                              self.metadata['presentation-duration'])).flatten()
+
         if len(icond)>0:
             for i in range(max([0,icond[0]-1]),
-                           min([icond[-1]+1,len(self.metadata['time_stop_realigned'])])):
-                t0 = self.metadata['time_start_realigned'][i]
-                t1 = self.metadata['time_stop_realigned'][i]
-                self.plot.plot([t0, t1], [0, 0], fillLevel=y.max(), brush=(150,150,150,100))
+                           min([icond[-1]+1,len(self.Screen.time_stop)])):
+                t0 = self.Screen.time_start[i]
+                t1 = self.Screen.time_stop[i]
+                self.plot.plot([t0, t1], [0, 0],
+                               fillLevel=y.max(), brush=(150,150,150,80))
         
     self.scatter.setData([s[0] for s in scatter], [s[1] for s in scatter],
                          size=10, brush=pg.mkBrush(255,255,255))
@@ -157,22 +159,39 @@ def update_images(self, time):
 
     if self.Screen is not None:
         im = self.Screen.grab_frame(time, force_previous_time=True)
-        print(im)
         self.pScreenimg.setImage(im)
 
-    if self.Face is not None:
-        im = self.Face.grab_frame(time)
-        print('Face', im)
-        self.pFaceimg.setImage(im)
+    # # update screen frame
+    # if self.Face is not None:
+    #     im_face = self.Face.grab_frame(self.time)
+    #     self.pFaceimg.setImage(im_face)
 
-    if self.Pupil is not None:
-        im = self.Pupil.grab_frame(time)
-        print('Pupil', im)
-        self.pPupilimg.setImage(im)
+    #     if self.Pupil is not None:
+    #         setattr(self.Pupil, 'ROI', None) # to be 
+    #         # increasing the saturation threshold to see better
+    #         self.Pupil.saturation=2*self.Pupil.saturation
+    #         im_pupil = pupil_process.preprocess(self,
+    #                                             ellipse=None,
+    #                                             im=im_face)
+
+    #     self.pPupilimg.setImage(im_pupil)
+            
+        # if self.scatter is not None:
+        #     self.p1.removeItem(self.scatter)
+    add_scatter_to_raw_data(self)
+        
+    # if self.Face is not None:
+    #     im = self.Face.grab_frame(time)
+    #     print('Face', im)
+    #     self.pFaceimg.setImage(im)
+
+    # if self.Pupil is not None:
+    #     im = self.Pupil.grab_frame(time)
+    #     print('Pupil', im)
+    #     self.pPupilimg.setImage(im)
         
     if self.Calcium is not None:
         im = self.Calcium.grab_frame(time)
-        print(im)
         self.pCaimg.setImage()
 
     # screen

@@ -65,11 +65,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # # for debugging
         # self.day_folder = '/home/yann/DATA/2020_10_07/'
-        # self.datafolder = '/home/yann/DATA/2020_10_07/16-02-19/'
+        self.datafolder = '/home/yann/DATA/2020_10_07/16-00-00/'
+        date = datetime.date(2020, 10, 7)
+        date = self.cal.setSelectedDate(date)
+        self.pick_date()
         # self.preload_datafolder(self.datafolder)
-        # self.load_data()
-
+        self.dbox.setCurrentIndex(1)
+        self.pick_datafolder()
+        self.pbox.setCurrentIndex(1)
         self.display_quantities()
+
+        # self.display_quantities()
         
     def check_data_folder(self):
         
@@ -154,7 +160,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_datafolder_annotation(self):
         info = 63*'-'+'\n'
-        print(self.metadata)
         for key in self.metadata:
             if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
                 info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
@@ -162,14 +167,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.notes.setText(info)
 
     def display_quantities(self, force=False):
-        self.statusBar.showMessage('Plotting quantities [...]')
+        # self.statusBar.showMessage('Plotting quantities [...]')
         if self.pbox.currentIndex()==1 or force:
             plots.raw_data_plot(self, self.tzoom)
             plots.update_images(self, self.time)
-        self.statusBar.showMessage('')
+        # self.statusBar.showMessage('')
 
     def back_to_initial_view(self):
-        self.tzoom = [self.Screen['times'][0], self.Screen['times'][-1]]
+        self.plot.clear()
+        for mod in MODALITIES:
+            if getattr(self, mod) is not None:
+                self.tzoom = [getattr(self, mod).t[0],
+                              getattr(self, mod).t[-2]]
+                break
+            print(mod)
         self.display_quantities()
         
     def play(self):
@@ -194,27 +205,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.time = self.xaxis.range[0]
 
-        # update screen frame
-        if self.Screen is not None:
-            self.pScreenimg.setImage(self.Screen.grab_frame(self.time))
-
-        if self.Face is not None:
-            im_face = self.Face.grab_frame(self.time)
-            self.pFaceimg.setImage(im_face)
-            
-            if self.Pupil is not None:
-                setattr(self.Pupil, 'ROI', None) # to be 
-                # increasing the saturation threshold to see better
-                self.Pupil.saturation=2*self.Pupil.saturation
-                im_pupil = pupil_process.preprocess(self,
-                                                    ellipse=None,
-                                                    im=im_face)
-                
-            self.pPupilimg.setImage(im_pupil)
-            
-        # if self.scatter is not None:
-        #     self.p1.removeItem(self.scatter)
-        plots.add_scatter_to_raw_data(self)
+        plots.update_images(self, self.time)
 
         
         # self.currentTime.setText('%.2f' % float(self.time))
@@ -260,6 +251,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showNormal()
         return True
 
+    def see_metadata(self):
+        for key, val in self.metadata.items():
+            print('- %s : ' % key, val)
     def change_settings(self):
         pass
     

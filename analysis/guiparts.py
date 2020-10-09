@@ -115,8 +115,10 @@ def add_buttons(self, Layout):
     # self.settingsButton.setCheckable(True)
     self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
     self.settingsButton.setIconSize(iconSize)
-    self.settingsButton.setToolTip("Settings")
-    self.settingsButton.clicked.connect(self.change_settings)
+    # self.settingsButton.setToolTip("Settings")
+    # self.settingsButton.clicked.connect(self.change_settings)
+    self.settingsButton.setToolTip("Metadata")
+    self.settingsButton.clicked.connect(self.see_metadata)
     
     Layout.addWidget(self.quitButton)
     Layout.addWidget(self.playButton)

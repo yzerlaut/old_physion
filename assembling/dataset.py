@@ -91,7 +91,6 @@ class ImageTimeSeries:
                 for i, iframe in enumerate(np.arange(i0, i1+1)):
                     if iframe in frame_sampling:
                         self.index_frame_map.append([fn, i])
-                        print([fn, i])
         elif (self.VIDS is not None):
             print('Pre-loading the full-set of videos [...]')
             self.IMAGES = []
@@ -175,12 +174,15 @@ class ScreenData(ImageTimeSeries):
         (so that you can recall it after re-alignement)
         """
         if realigned:
-            time_start = metadata['time_start_realigned']
+            setattr(self, 'time_start', np.array(metadata['time_start_realigned']))
+            setattr(self, 'time_stop', np.array(metadata['time_stop_realigned']))
         else:
-            time_start = metadata['time_start']
-            
+            setattr(self, 'time_start', np.array(metadata['time_start']))
+            setattr(self, 'time_stop', np.array(metadata['time_stop']))
+
+        print(self.time_start, self.time_stop)
         times = [0] # starting with the pre-frame
-        for ts in time_start:
+        for ts in self.time_start:
             times = times + [ts, ts+metadata['presentation-duration']]
         times.append(1e10) # adding a last point very far in the future
         self.t = np.array(times)
@@ -391,11 +393,14 @@ class Dataset:
             print('[X] Pupil data not found !')
 
         # Realignement if possible
+        success = False
         if ('Screen' in modalities) and self.metadata['NIdaq'] and (self.Screen is not None) and (self.Screen.photodiode is not None):
             self.realign_from_photodiode()
+            success = self.Screen.set_times_from_metadata(self.metadata,
+                                                          realigned=True)
+        if not success:
             self.Screen.set_times_from_metadata(self.metadata,
-                                                realigned=True)
-            
+                                                realigned=False)
             
     def realign_from_photodiode(self, debug=False, verbose=True):
 
@@ -443,6 +448,7 @@ class Dataset:
         else:
             self.metadata['time_start_realigned'] = np.array([])
             self.metadata['time_stop_realigned'] = np.array([])
+        return success
 
 
 def find_onset_time(t, photodiode_signal, npulses,
