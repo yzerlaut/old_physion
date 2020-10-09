@@ -224,10 +224,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.batch = False
         
-        self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
-        # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
-        #                                                          "Choose data folder",
-        #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
+        # self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
+        self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
+                                                                 "Choose data folder",
+                                              os.path.join(os.path.expanduser('~'), 'DATA'))
 
 
         process.load_data(self,
@@ -515,7 +515,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.p1.removeItem(self.scatter)
         if self.data is not None:
             i0 = np.argmin((self.data['times']-self.time)**2)
-            print(self.data['times'][i0], self.time)
             self.scatter.setData(self.data['times'][i0]*np.ones(1),
                                  self.data['diameter'][i0]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))

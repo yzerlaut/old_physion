@@ -180,7 +180,6 @@ class ScreenData(ImageTimeSeries):
             setattr(self, 'time_start', np.array(metadata['time_start']))
             setattr(self, 'time_stop', np.array(metadata['time_stop']))
 
-        print(self.time_start, self.time_stop)
         times = [0] # starting with the pre-frame
         for ts in self.time_start:
             times = times + [ts, ts+metadata['presentation-duration']]
@@ -286,16 +285,19 @@ class PupilData(FaceData):
                          compressed_version=compressed_version)
 
         # Adding ROI data to the object
-        folder = os.path.join(datafolder, 'pupil-ROIs.npy')
-        if os.path.isdir(folder):
-            rois = np.load(folder,allow_pickle=True).item()
-            setattr(self, 'saturation', rois['ROIsaturation'])
-            setattr(self, 'reflectors', rois['reflectors'])
-            setattr(self, 'ellipse', rois['ROIellipse'])
+        fn = os.path.join(datafolder, 'pupil-ROIs.npy')
+        if os.path.isfile(fn):
+            rois = np.load(fn,allow_pickle=True).item()
+            for key in rois:
+                setattr(self, key, rois[key])
         else:
             for key in ['saturation', 'reflectors', 'ellipse']:
                 setattr(self, key, None)
-        
+        # to be filled once the images are loaded
+        for key in ['xmin', 'xmax', 'ymin', 'ymax']:
+            setattr(self, key, None)
+
+
         # Adding processed pupil data to the object
         folder = os.path.join(datafolder,'pupil-data.npy')
         if os.path.isfile(folder):
@@ -398,7 +400,7 @@ class Dataset:
             self.realign_from_photodiode()
             success = self.Screen.set_times_from_metadata(self.metadata,
                                                           realigned=True)
-        if not success:
+        if ('Screen' in modalities) and not success :
             self.Screen.set_times_from_metadata(self.metadata,
                                                 realigned=False)
             

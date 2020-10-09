@@ -1,7 +1,11 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtGui
-import os
+from PyQt5 import QtGui, QtCore
+import os, sys, pathlib
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
+pupilpen = pg.mkPen((255,0,0), width=3, style=QtCore.Qt.SolidLine)
 
 def scale_and_position(self, y, i=0):
     return shift(self, i)++\
@@ -152,51 +156,51 @@ def raw_data_plot(self, tzoom):
     
     self.plot.show()
 
+
+def plot_pupil(self, img):
+
+    if self.Pupil.xmin is None:
+        x,y = np.meshgrid(np.arange(0,img.shape[0]),
+                          np.arange(0,img.shape[1]), indexing='ij')
+        cx, cy, sx, sy = self.Pupil.ROIellipse
+        ellipse = ((y - cy)**2 / (sy/2)**2 +
+                   (x - cx)**2 / (sx/2)**2) <= 1
+        self.Pupil.xmin = np.min(x[ellipse])
+        self.Pupil.xmax = np.max(x[ellipse])
+        self.Pupil.ymin = np.min(y[ellipse])
+        self.Pupil.ymax = np.max(y[ellipse])
+    
+    cropped_img = img[self.Pupil.xmin:self.Pupil.xmax,
+                      self.Pupil.ymin:self.Pupil.ymax]
+
+    self.pPupilimg.setImage(cropped_img)
+
+    if self.Pupil.processed is not None:
+        if self.PupilROI is not None:
+            self.pPupil.removeItem(self.PupilROI)
+        self.PupilROI = pg.EllipseROI([0, 0], [sx, sy],
+                            pen=pupilpen)
+        self.pPupil.addItem(self.PupilROI)
+
+    
 def update_images(self, time):
 
-    # pupil 
-    # iframe = min([len(self.Pupil['imgs'])-1,np.argmin((self.Pupil.t-time)**2)+1])
-
+    # # update screen frame
     if self.Screen is not None:
         im = self.Screen.grab_frame(time, force_previous_time=True)
         self.pScreenimg.setImage(im)
 
-    # # update screen frame
-    # if self.Face is not None:
-    #     im_face = self.Face.grab_frame(self.time)
-    #     self.pFaceimg.setImage(im_face)
+    if self.Face is not None:
+        im_face = self.Face.grab_frame(self.time)
+        # self.pFaceimg.setImage(im_face)
 
-    #     if self.Pupil is not None:
-    #         setattr(self.Pupil, 'ROI', None) # to be 
-    #         # increasing the saturation threshold to see better
-    #         self.Pupil.saturation=2*self.Pupil.saturation
-    #         im_pupil = pupil_process.preprocess(self,
-    #                                             ellipse=None,
-    #                                             im=im_face)
-
-    #     self.pPupilimg.setImage(im_pupil)
+    if self.Pupil is not None:
+        # increasing the saturation threshold to see better
+        plot_pupil(self, im_face)
             
-        # if self.scatter is not None:
-        #     self.p1.removeItem(self.scatter)
-    add_scatter_to_raw_data(self)
-        
-    # if self.Face is not None:
-    #     im = self.Face.grab_frame(time)
-    #     print('Face', im)
-    #     self.pFaceimg.setImage(im)
-
-    # if self.Pupil is not None:
-    #     im = self.Pupil.grab_frame(time)
-    #     print('Pupil', im)
-    #     self.pPupilimg.setImage(im)
-        
     if self.Calcium is not None:
         im = self.Calcium.grab_frame(time)
-        self.pCaimg.setImage()
-
-    # screen
-    
-    # self.currentTime.setText('%.2f' % float(self.t[self.cframe]))
-
-    # self.jump_to_frame()
-    
+        self.pCaimg.setImage(im)
+        
+    # add_scatter_to_raw_data(self)
+        

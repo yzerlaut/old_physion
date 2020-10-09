@@ -23,10 +23,11 @@ settings = {
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, parent=None,
-                 saturation=100,
+                 raw_data_visualization=False,
                  fullscreen=False):
 
         self.settings = settings
+        self.raw_data_visualization = raw_data_visualization
         
         super(MainWindow, self).__init__()
 
@@ -63,9 +64,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.minView = False
         self.showwindow()
 
-        # # for debugging
-        # self.day_folder = '/home/yann/DATA/2020_10_07/'
-        self.datafolder = '/home/yann/DATA/2020_10_07/16-00-00/'
+        # ----------------------------------
+        # ========= for debugging ==========
+        # ----------------------------------
+        # self.datafolder = '/home/yann/DATA/2020_10_07/16-00-00/'
         date = datetime.date(2020, 10, 7)
         date = self.cal.setSelectedDate(date)
         self.pick_date()
@@ -75,7 +77,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pbox.setCurrentIndex(1)
         self.display_quantities()
 
-        # self.display_quantities()
         
     def check_data_folder(self):
         
@@ -104,17 +105,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.list_protocol_per_day = []
         self.update_df_names()
 
+
     def update_df_names(self):
         self.dbox.clear()
         self.pbox.clear()
         self.plot.clear()
-        # self.win1.clear()
-        # self.win2.clear()
+        self.pScreenimg.setImage(np.ones((10,12))*50)
+        self.pFaceimg.setImage(np.ones((10,12))*50)
+        self.pPupilimg.setImage(np.ones((10,12))*50)
+        self.pCaimg.setImage(np.ones((50,50))*100)
         if len(self.list_protocol_per_day)>0:
             self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
             for fn in self.list_protocol_per_day:
                 self.dbox.addItem(self.preload_datafolder(fn))
 
+                
     def preload_datafolder(self, fn):
         output = '   '+fn.split(os.path.sep)[-1].replace('-', ':')+' --------- '
         try:
@@ -151,9 +156,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
                                     allow_pickle=True).item()
             self.add_datafolder_annotation()
-            self.pbox.addItem('...       (select a visualization/analysis)')
-            self.pbox.addItem('-> Show Raw Data')
-            self.load_data()
+            if self.raw_data_visualization:
+                self.load_data()
+                self.display_quantities(force=True)
+            else:
+                self.pbox.addItem('...       (select a visualization/analysis)')
+                self.pbox.addItem('-> Show Raw Data')
+                self.load_data()
+            
         else:
             self.metadata = None
             self.notes.setText(63*'-'+5*'\n')
@@ -171,6 +181,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.pbox.currentIndex()==1 or force:
             plots.raw_data_plot(self, self.tzoom)
             plots.update_images(self, self.time)
+        # IMPLEMENT OTHER ANALYSIS HERE
         # self.statusBar.showMessage('')
 
     def back_to_initial_view(self):
@@ -206,36 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.time = self.xaxis.range[0]
 
         plots.update_images(self, self.time)
-
-        
-        # self.currentTime.setText('%.2f' % float(self.time))
-        # if self.ROI is not None:
-        #     self.ROI.plot(self)
-        # if self.scatter is not None:
-        #     self.p1.removeItem(self.scatter)
-        # if self.data is not None:
-        #     i0 = np.argmin((self.data['times']-self.time)**2)
-        #     print(self.data['times'][i0], self.time)
-        #     self.scatter.setData(self.data['times'][i0]*np.ones(1),
-        #                          self.data['diameter'][i0]*np.ones(1),
-        #                          size=10, brush=pg.mkBrush(255,255,255))
-        #     self.p1.addItem(self.scatter)
-        #     if self.fit is not None:
-        #         self.fit.remove(self)
-        #     coords = []
-        #     for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
-        #         coords.append(self.data[key1][i0]-self.data[key2])
-        #     for key in ['sx', 'sy']:
-        #         coords.append(self.data[key][i0])
-        #     self.fit = roi.pupilROI(moveable=True,
-        #                             parent=self,
-        #                             color=(0, 200, 0),
-        #                             pos = roi.ellipse_props_to_ROI(coords))
-
-        # self.win.show()
-        # self.show()
-
-        
+        plots.add_scatter_to_raw_data(self)
 
     def showwindow(self):
         if self.minView:
@@ -262,9 +244,9 @@ class MainWindow(QtWidgets.QMainWindow):
         sys.exit()
 
 
-def run(app, parent=None):
+def run(app, parent=None, raw_data_visualization=False):
     guiparts.build_dark_palette(app)
-    return MainWindow(app)
+    return MainWindow(app, raw_data_visualization=raw_data_visualization)
     
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
