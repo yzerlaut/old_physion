@@ -40,7 +40,7 @@ def ellipse_residual(coords, x, y, img_no_reflect, reflector_cond):
     Residual function: 1/CorrelationCoefficient ! (after blanking)
     """
     im = ellipse_binary_func(x, y, *coords)[~reflector_cond]
-    if np.std(im)>0:
+   if np.std(im)>0:
         return 1./np.abs(np.corrcoef(img_no_reflect,im)[0,1])
     else:
         return 1e3

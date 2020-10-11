@@ -20,6 +20,7 @@ settings = {
     # general settings
     'Npoints':400}
 
+
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, parent=None,
@@ -177,12 +178,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.notes.setText(info)
 
     def display_quantities(self, force=False):
-        # self.statusBar.showMessage('Plotting quantities [...]')
+        """
+        # IMPLEMENT OTHER ANALYSIS HERE
+        """
         if self.pbox.currentIndex()==1 or force:
             plots.raw_data_plot(self, self.tzoom)
-            plots.update_images(self, self.time)
-        # IMPLEMENT OTHER ANALYSIS HERE
-        # self.statusBar.showMessage('')
 
     def back_to_initial_view(self):
         self.plot.clear()
@@ -191,8 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.tzoom = [getattr(self, mod).t[0],
                               getattr(self, mod).t[-2]]
                 break
-            print(mod)
-        self.display_quantities()
+        self.display_quantities(force=True)
         
     def play(self):
         pass
@@ -203,9 +202,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh(self):
         self.plot.clear()
         self.tzoom = self.plot.getAxis('bottom').range
-        self.display_quantities()
+        self.display_quantities(with_scatter=False,
+                                with_images=False)
+
         
-    
     def update_frame(self, from_slider=True):
         
         if from_slider:
@@ -216,8 +216,11 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.time = self.xaxis.range[0]
 
-        plots.update_images(self, self.time)
-        plots.add_scatter_to_raw_data(self)
+        plots.raw_data_plot(self, self.tzoom,
+                            with_images=True,
+                            with_scatter=True,
+                            plot_update=False)
+
 
     def showwindow(self):
         if self.minView:

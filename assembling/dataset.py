@@ -114,7 +114,9 @@ class ImageTimeSeries:
 
     def grab_frame(self, t,
                    force_previous_time=False,
-                   verbose=False, with_time=False):
+                   verbose=False,
+                   with_time=False,
+                   with_index=False):
 
         # finding the image index at that time
         if force_previous_time:
@@ -139,8 +141,12 @@ class ImageTimeSeries:
             x = skvideo.io.vread(fn)
             im = x[index,:,:,0]
             
-        if with_time:
+        if with_time and with_index:
+            return i0, self.t[i0], im
+        elif with_time:
             return self.t[i0], im
+        elif with_index:
+            return i0, im
         else:
             return im
         

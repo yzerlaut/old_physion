@@ -81,9 +81,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
-        qlabel = QtGui.QLabel('saturation')
+        qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
-        self.l0.addWidget(qlabel,0,8,1,3)
+        self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
