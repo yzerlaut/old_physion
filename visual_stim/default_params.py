@@ -174,7 +174,7 @@ STIMULI = {
         'sparseness-1':1,'sparseness-2':50,'N-sparseness':0,
         'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
-        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
+        'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
     },
     
     'dense-noise':{
@@ -185,7 +185,7 @@ STIMULI = {
         'square-size-1':0.2,'square-size-2':9,'N-square-size':3,
         'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
-        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
+        'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
     },
     # 'full-field-grating+VEM':{},
 }
