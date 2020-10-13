@@ -6,7 +6,6 @@ import pyqtgraph as pg
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, save_dict, load_dict
-from assembling.analysis import quick_data_view, analyze_data, last_datafile
 from pupil import process
 
 from hardware_control.FLIRcamera.recording import CameraAcquisition

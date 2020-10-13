@@ -57,6 +57,7 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self, protocol,
+                 screen_id = 0,
                  screen_size = np.array([1280, 768]),
                  monitoring_square = {'size':6,
                                       'x':-19.5,
@@ -82,7 +83,7 @@ class visual_stim:
         else:
             self.monitor = monitors.Monitor('Lilliput')
             self.win = visual.Window(screen_size, monitor=self.monitor,
-                                     screen=1, fullscr=True, units='deg', color=-1)
+                                     screen=screen_id, fullscr=True, units='deg', color=-1)
             
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
