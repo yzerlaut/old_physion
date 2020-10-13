@@ -160,7 +160,7 @@ class visual_stim:
                 self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
                                                      n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
                 self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
-                                                     (n+1)*protocol['presentation-duration']+(n+1)*protocol['presentation-interstim-period'])
+                                                     (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
 
     # the close function
     def close(self):

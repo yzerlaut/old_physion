@@ -1,0 +1,16 @@
+{
+  "Presentation": "Single-Stimulus",
+  "Stimulus": "dense-noise",
+  "Setup": "Bacci-2P-setup",
+  "presentation-duration": 600.0,
+  "presentation-prestim-period": 5.0,
+  "presentation-poststim-period": 5.0,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "square-size (deg)": 2.0,
+  "mean-refresh-time (s)": 2.0,
+  "jitter-refresh-time (s)": 0.5,
+  "noise-seed (#)": 1.0,
+  "data-folder": "/tmp/2020_10_12/21-00-06",
+  "protocol-folder": "/home/yann/work/cortical-physio-icm/visual_stim/protocols"
+}

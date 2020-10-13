@@ -1,3 +1,4 @@
+
 from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
@@ -326,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(self.datafolder, 'metadata.npy'))
 
     def get_protocol_list(self):
-        files = os.listdir(self.protocol_folder)
+        files = sorted(os.listdir(self.protocol_folder))
         self.protocol_list = [f for f in files if f.endswith('.json')]
         
     def get_config_list(self):

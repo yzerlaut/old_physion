@@ -57,7 +57,7 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     self.cal.setMinimumWidth(265)
     self.cal.setMaximumWidth(265)
     self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
-    self.cal.setMaximumDate(QtCore.QDate.currentDate())
+    self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
     self.cal.clicked.connect(self.pick_date)
     Layout.addWidget(self.cal)
 
@@ -115,8 +115,10 @@ def add_buttons(self, Layout):
     # self.settingsButton.setCheckable(True)
     self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
     self.settingsButton.setIconSize(iconSize)
-    self.settingsButton.setToolTip("Settings")
-    self.settingsButton.clicked.connect(self.change_settings)
+    # self.settingsButton.setToolTip("Settings")
+    # self.settingsButton.clicked.connect(self.change_settings)
+    self.settingsButton.setToolTip("Metadata")
+    self.settingsButton.clicked.connect(self.see_metadata)
     
     Layout.addWidget(self.quitButton)
     Layout.addWidget(self.playButton)
@@ -140,7 +142,8 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
 
     self.cwidget = QtGui.QWidget(self)
     self.setCentralWidget(self.cwidget)
-
+    self.PupilROI = None
+    
     mainLayout = QtWidgets.QVBoxLayout()
 
     Layout1 = QtWidgets.QHBoxLayout()
@@ -157,6 +160,8 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.pbox = QtWidgets.QComboBox(self)
     self.pbox.activated.connect(self.display_quantities)
     self.pbox.setMaximumHeight(selector_height)
+    if self.raw_data_visualization:
+        self.pbox.addItem('-> Show Raw Data')
     Layout11.addWidget(self.pbox)
 
     Layout113 = QtWidgets.QHBoxLayout()
@@ -193,13 +198,17 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.show()
     
     self.pScreen = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[20,20,20])
-    self.pScreenimg = pg.ImageItem(None)
+    self.pScreenimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pScreenimg.setLevels([0,255])
     self.pFace = self.win1.addViewBox(lockAspect=True,row=0,col=1,invertY=True,border=[20,20,20])
-    self.pFaceimg = pg.ImageItem(None)
+    self.pFaceimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pFaceimg.setLevels([0,255])
     self.pPupil=self.win1.addViewBox(lockAspect=True,row=0,col=2,invertY=True, border=[20, 20, 20])
-    self.pPupilimg = pg.ImageItem(None)
+    self.pPupilimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pPupilimg.setLevels([0,255])
     self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
-    self.pCaimg = pg.ImageItem(None)
+    self.pCaimg = pg.ImageItem(numpy.ones((50,50))*100)
+    self.pCaimg.setLevels([0,255])
     for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
                     [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pCaimg]):
         x.setAspectLocked()
@@ -211,6 +220,7 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.plot.setMouseEnabled(x=True,y=False)
     # self.plot.setMenuEnabled(False)
     self.plot.setLabel('bottom', 'time (s)')
+    self.xaxis = self.plot.getAxis('bottom')
     self.scatter = pg.ScatterPlotItem()
     self.plot.addItem(self.scatter)
 

@@ -1,0 +1,17 @@
+{
+  "Presentation": "Single-Stimulus",
+  "Stimulus": "sparse-noise",
+  "Setup": "Bacci-2P-setup",
+  "presentation-duration": 600.0,
+  "presentation-prestim-period": 5.0,
+  "presentation-poststim-period": 5.0,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "square-size (deg)": 2.0,
+  "sparseness (%)": 10.0,
+  "mean-refresh-time (s)": 2.0,
+  "jitter-refresh-time (s)": 0.5,
+  "noise-seed (#)": 1.0,
+  "data-folder": "/home/yann/work/cortical-physio-icm/exp/protocols",
+  "protocol-folder": "/home/yann/work/cortical-physio-icm/exp/protocols"
+}

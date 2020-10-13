@@ -1,18 +1,28 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtGui
-import os
+from PyQt5 import QtGui, QtCore
+import os, sys, pathlib
 
-def scale_and_position(self, y, i=0):
-    return shift(self, i)++\
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
+pupilpen = pg.mkPen((255,0,0), width=3, style=QtCore.Qt.SolidLine)
+
+def scale_and_position(self, y, value=None, i=0):
+    if value is None:
+        value=y
+    return shift(self, i)+\
         self.settings['increase-factor']**i*\
-        (y-y.min())/(y.max()-y.min())
+        (value-y.min())/(y.max()-y.min())
 
 def shift(self, i):
     return self.settings['blank-space']*i+\
         np.sum(np.power(self.settings['increase-factor'], np.arange(i)))
 
-def raw_data_plot(self, tzoom):
+    
+def raw_data_plot(self, tzoom,
+                  plot_update=True,
+                  with_images=False,
+                  with_scatter=False):
 
     iplot = 0
     scatter = []
@@ -24,9 +34,22 @@ def raw_data_plot(self, tzoom):
         cond = (self.Screen.photodiode.t>=tzoom[0]) & (self.Screen.photodiode.t<=tzoom[1])
         isampling = max([1,int(len(self.Screen.photodiode.t[cond])/self.settings['Npoints'])])
         y = scale_and_position(self, self.Screen.photodiode.val[cond][::isampling], i=0)
-        self.plot.plot(self.Screen.photodiode.t[cond][::isampling], y, pen=pen)
-        itime = np.argmin((self.Screen.photodiode.t[cond]-self.time)**2)
-        scatter.append((self.Screen.photodiode.t[cond][itime], y[itime]))
+        if plot_update:
+            self.plot.plot(self.Screen.photodiode.t[cond][::isampling], y, pen=pen)
+        if with_images:
+            tt, im = self.Screen.grab_frame(self.time,
+                                            with_time=True,
+                                            force_previous_time=True)
+            self.pScreenimg.setImage(im)
+            scatter.append((tt, 0))
+            
+        if with_scatter:
+            itime = np.argmin((self.Screen.photodiode.t[cond]-\
+                               self.time)**2)
+            val = scale_and_position(self, y,
+                    value=self.Screen.photodiode.val[cond][itime], i=0)
+            scatter.append((self.Screen.photodiode.t[cond][itime], val))
+            
     else:
         y = shift(self,0)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
@@ -38,9 +61,12 @@ def raw_data_plot(self, tzoom):
         cond = (self.Locomotion.t>=tzoom[0]) & (self.Locomotion.t<=tzoom[1])
         isampling = max([int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
         y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=1)
-        itime = np.argmin((self.Locomotion.t[cond]-self.time)**2)
-        scatter.append((self.Locomotion.t[cond][itime], y[itime]))
-        self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
+        if plot_update:
+            self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
+        if with_scatter:
+            itime = np.argmin((self.Locomotion.t[cond]-self.time)**2)
+            val = scale_and_position(self, y, value=self.Locomotion.val[cond][itime], i=1)
+            scatter.append((self.Screen.photodiode.t[cond][itime], val))
     else:
         y = shift(self,1)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
@@ -52,10 +78,22 @@ def raw_data_plot(self, tzoom):
         pt = self.Pupil.processed['times']
         cond = (pt>=tzoom[0]) & (pt<=tzoom[1])
         isampling = max([1,int(len(self.Pupil.processed['diameter'][cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Pupil.processed['diameter'][cond][::isampling], i=2)
-        self.plot.plot(pt[cond][::isampling], y,pen=pen)
-        itime = np.argmin((pt[cond]-self.time)**2)
-        scatter.append((pt[cond][itime], y[itime]))
+        y = scale_and_position(self,
+            self.Pupil.processed['diameter'][cond][::isampling], i=2)
+        if plot_update:
+            self.plot.plot(pt[cond][::isampling], y,pen=pen)
+        if with_images:
+            im_face = self.Face.grab_frame(self.time)
+            self.pFaceimg.setImage(im_face)
+            plot_pupil(self, im_face)
+        if with_scatter:
+            self.ipt = np.argmin((pt[cond]-self.time)**2) # used later
+            val = scale_and_position(self, y,
+                value=self.Pupil.processed['diameter'][cond][self.ipt],
+                                     i=2)
+            scatter.append((pt[cond][self.ipt], val))
+        else:
+            self.ipt = 0
     else:
         y = shift(self, 2)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
@@ -67,9 +105,12 @@ def raw_data_plot(self, tzoom):
         cond = (self.Electrophy.t>=tzoom[0]) & (self.Electrophy.t<=tzoom[1])
         isampling = max([1,int(len(self.Electrophy.t[cond])/self.settings['Npoints'])])
         y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=3)
-        itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
-        scatter.append((self.Electrophy.t[cond][itime], y[itime]))
-        self.plot.plot(self.Electrophy.t[cond][::isampling], y, pen=pen)
+        if plot_update:
+            self.plot.plot(self.Electrophy.t[cond][::isampling], y, pen=pen)
+        if with_scatter:
+            itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
+            val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=3)
+            scatter.append((self.Electrophy.t[cond][itime], val))
     else:
         y = shift(self,3)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
@@ -77,32 +118,32 @@ def raw_data_plot(self, tzoom):
     ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Calcium'])
     if self.Calcium is not None:
-        # time-varying diameter
-        cond = (self.Pupil.t>=tzoom[0]) & (self.Pupil.t<=tzoom[1])
-        isampling = max([1,int(len(self.Pupil.t[cond])/self.settings['Npoints'])])
-        y = self.Pupil.diameter[cond][::isampling]
-        self.plot.plot(self.Pupil.t[cond][::isampling],
-                       scale_and_position(self, y, i=4), pen=pen)
-    else:
-        y = shift(self,4)+np.zeros(2)
-        self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
+        pass
 
     if self.Screen is not None:
         # if visual-stim we highlight the stim periods
-        icond = np.argwhere((self.metadata['time_start_realigned']>tzoom[0]-\
+        icond = np.argwhere((self.Screen.time_start>tzoom[0]-\
                              self.metadata['presentation-duration']) & \
-                            (self.metadata['time_stop_realigned']<tzoom[1]+\
+                            (self.Screen.time_stop<tzoom[1]+\
                              self.metadata['presentation-duration'])).flatten()
+
+        if hasattr(self, 'StimFill') and self.StimFill is not None:
+            self.plot.removeItem(self.StimFill)
+            
         if len(icond)>0:
             for i in range(max([0,icond[0]-1]),
-                           min([icond[-1]+1,len(self.metadata['time_stop_realigned'])])):
-                t0 = self.metadata['time_start_realigned'][i]
-                t1 = self.metadata['time_stop_realigned'][i]
-                self.plot.plot([t0, t1], [0, 0], fillLevel=y.max(), brush=(150,150,150,100))
-        
-    self.scatter.setData([s[0] for s in scatter], [s[1] for s in scatter],
-                         size=10, brush=pg.mkBrush(255,255,255))
-    self.plot.addItem(self.scatter)
+                           min([icond[-1]+1,len(self.Screen.time_stop)])):
+                t0 = self.Screen.time_start[i]
+                t1 = self.Screen.time_stop[i]
+                self.StimFill = self.plot.plot([t0, t1], [0, 0],
+                            fillLevel=y.max(), brush=(150,150,150,80))
+
+    if with_scatter and hasattr(self, 'scatter'):
+        self.plot.removeItem(self.scatter)
+        self.scatter.setData([s[0] for s in scatter],
+                             [s[1] for s in scatter],
+                             size=10, brush=pg.mkBrush(255,255,255))
+        self.plot.addItem(self.scatter)
 
     self.plot.setRange(xRange=tzoom, yRange=[0,y.max()], padding=0.0)
     
@@ -110,27 +151,33 @@ def raw_data_plot(self, tzoom):
     
     self.plot.show()
 
-def update_images(self, time):
 
-    # pupil 
-    # iframe = min([len(self.Pupil['imgs'])-1,np.argmin((self.Pupil.t-time)**2)+1])
+def plot_pupil(self, img):
 
-    if self.Screen is not None:
-        self.pScreenimg.setImage(self.Screen.grab_frame(time,
-                                        force_previous_time=True))
-
-    if self.Face is not None:
-        self.pFaceimg.setImage(self.Face.grab_frame(time))
-
-    if self.Pupil is not None:
-        self.pPupilimg.setImage(self.Pupil.grab_frame(time))
-        
-    if self.Calcium is not None:
-        self.pCaimg.setImage(self.Calcium.grab_frame(time))
-        
-    # screen
+    if self.Pupil.xmin is None:
+        x,y = np.meshgrid(np.arange(0,img.shape[0]),
+                          np.arange(0,img.shape[1]), indexing='ij')
+        cx, cy, sx, sy = self.Pupil.ROIellipse
+        ellipse = ((y - cy)**2 / (sy/2)**2 +
+                   (x - cx)**2 / (sx/2)**2) <= 1
+        self.Pupil.xmin = np.min(x[ellipse])
+        self.Pupil.xmax = np.max(x[ellipse])
+        self.Pupil.ymin = np.min(y[ellipse])
+        self.Pupil.ymax = np.max(y[ellipse])
     
-    # self.currentTime.setText('%.2f' % float(self.t[self.cframe]))
+    cropped_img = img[self.Pupil.xmin:self.Pupil.xmax,
+                      self.Pupil.ymin:self.Pupil.ymax]
 
-    # self.jump_to_frame()
-    
+    self.pPupilimg.setImage(cropped_img)
+
+    if self.Pupil.processed is not None:
+        if self.PupilROI is not None:
+            self.pPupil.removeItem(self.PupilROI)
+        mx = self.Pupil.processed['cx'][self.ipt] - self.Pupil.xmin
+        my = self.Pupil.processed['cy'][self.ipt] - self.Pupil.ymin
+        sx = self.Pupil.processed['sx-corrected'][self.ipt]
+        sy = self.Pupil.processed['sy-corrected'][self.ipt]
+        
+        self.PupilROI = pg.EllipseROI([my-sy/2., mx-sx/2.], [2*sy, 2*sx],
+                                      pen=pupilpen)
+        self.pPupil.addItem(self.PupilROI)

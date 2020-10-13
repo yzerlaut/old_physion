@@ -91,7 +91,6 @@ class ImageTimeSeries:
                 for i, iframe in enumerate(np.arange(i0, i1+1)):
                     if iframe in frame_sampling:
                         self.index_frame_map.append([fn, i])
-                        print([fn, i])
         elif (self.VIDS is not None):
             print('Pre-loading the full-set of videos [...]')
             self.IMAGES = []
@@ -115,7 +114,9 @@ class ImageTimeSeries:
 
     def grab_frame(self, t,
                    force_previous_time=False,
-                   verbose=False, with_time=False):
+                   verbose=False,
+                   with_time=False,
+                   with_index=False):
 
         # finding the image index at that time
         if force_previous_time:
@@ -140,8 +141,12 @@ class ImageTimeSeries:
             x = skvideo.io.vread(fn)
             im = x[index,:,:,0]
             
-        if with_time:
+        if with_time and with_index:
+            return i0, self.t[i0], im
+        elif with_time:
             return self.t[i0], im
+        elif with_index:
+            return i0, im
         else:
             return im
         
@@ -175,12 +180,14 @@ class ScreenData(ImageTimeSeries):
         (so that you can recall it after re-alignement)
         """
         if realigned:
-            time_start = metadata['time_start_realigned']
+            setattr(self, 'time_start', np.array(metadata['time_start_realigned']))
+            setattr(self, 'time_stop', np.array(metadata['time_stop_realigned']))
         else:
-            time_start = metadata['time_start']
-            
+            setattr(self, 'time_start', np.array(metadata['time_start']))
+            setattr(self, 'time_stop', np.array(metadata['time_stop']))
+
         times = [0] # starting with the pre-frame
-        for ts in time_start:
+        for ts in self.time_start:
             times = times + [ts, ts+metadata['presentation-duration']]
         times.append(1e10) # adding a last point very far in the future
         self.t = np.array(times)
@@ -209,13 +216,17 @@ class FaceData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
-                 t0=0, sampling_rate=None,
+                 t0=None, sampling_rate=None,
                  lazy_loading=True,
-                 compressed_version=True):
+                 compressed_version=False):
 
         times = np.load(os.path.join(datafolder,
                                      'FaceCamera-times.npy'))
-        times = times-times[0]
+        if t0 is None:
+            t0 = times[0] # just in case, but should be relative to NIdaq.start
+            
+        times = times-t0 
+        
         self.build_temporal_sampling(times,
                                      sampling_rate=sampling_rate)
 
@@ -270,7 +281,7 @@ class PupilData(FaceData):
     def __init__(self, datafolder, metadata,
                  dt=None, times=None,
                  lazy_loading=True,
-                 t0=0, sampling_rate=None,
+                 t0=None, sampling_rate=None,
                  compressed_version=True):
 
         super().__init__(datafolder, metadata,
@@ -280,16 +291,19 @@ class PupilData(FaceData):
                          compressed_version=compressed_version)
 
         # Adding ROI data to the object
-        folder = os.path.join(datafolder, 'pupil-ROIs.npy')
-        if os.path.isdir(folder):
-            rois = np.load(folder,allow_pickle=True).item()
-            setattr(self, 'saturation', rois['ROIsaturation'])
-            setattr(self, 'reflectors', rois['reflectors'])
-            setattr(self, 'ellipse', rois['ROIellipse'])
+        fn = os.path.join(datafolder, 'pupil-ROIs.npy')
+        if os.path.isfile(fn):
+            rois = np.load(fn,allow_pickle=True).item()
+            for key in rois:
+                setattr(self, key, rois[key])
         else:
             for key in ['saturation', 'reflectors', 'ellipse']:
                 setattr(self, key, None)
-        
+        # to be filled once the images are loaded
+        for key in ['xmin', 'xmax', 'ymin', 'ymax']:
+            setattr(self, key, None)
+
+
         # Adding processed pupil data to the object
         folder = os.path.join(datafolder,'pupil-data.npy')
         if os.path.isfile(folder):
@@ -343,7 +357,7 @@ class Dataset:
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
         else:
-            self.NIdaq_Tstart = 0
+            self.NIdaq_Tstart = None
 
         # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
@@ -371,6 +385,7 @@ class Dataset:
             self.Face = FaceData(self.datafolder, self.metadata,
                                  sampling_rate=FaceCamera_frame_rate,
                                  lazy_loading=lazy_loading,
+                                 t0 = self.NIdaq_Tstart,
                                  compressed_version=compressed_version)
         elif 'Face' in modalities:
             print('[X] Face data not found !')
@@ -380,16 +395,20 @@ class Dataset:
             self.Pupil = PupilData(self.datafolder, self.metadata,
                                    lazy_loading=lazy_loading,
                                    sampling_rate=FaceCamera_frame_rate,
+                                   t0 = self.NIdaq_Tstart,
                                    compressed_version=compressed_version)
         elif 'Pupil' in modalities:
             print('[X] Pupil data not found !')
 
         # Realignement if possible
+        success = False
         if ('Screen' in modalities) and self.metadata['NIdaq'] and (self.Screen is not None) and (self.Screen.photodiode is not None):
             self.realign_from_photodiode()
+            success = self.Screen.set_times_from_metadata(self.metadata,
+                                                          realigned=True)
+        if ('Screen' in modalities) and not success :
             self.Screen.set_times_from_metadata(self.metadata,
-                                                realigned=True)
-            
+                                                realigned=False)
             
     def realign_from_photodiode(self, debug=False, verbose=True):
 
@@ -437,6 +456,7 @@ class Dataset:
         else:
             self.metadata['time_start_realigned'] = np.array([])
             self.metadata['time_stop_realigned'] = np.array([])
+        return success
 
 
 def find_onset_time(t, photodiode_signal, npulses,
@@ -454,12 +474,10 @@ def find_onset_time(t, photodiode_signal, npulses,
     return t0-time_for_threshold, integral, threshold
 
 
-        
 if __name__=='__main__':
 
-    fn = '/home/yann/DATA/2020_09_11/13-40-10/'
-    fn = '/home/yann/DATA/2020_09_23/16-40-54/'
-    fn = '/home/yann/DATA/2020_10_08/14-15-18/'
+    fn = '/home/yann/DATA/2020_10_07/16-02-19/'
+    
     if sys.argv[-1]=='photodiode':
 
         data = np.load(os.path.join(fn, 'NIdaq.npy'))

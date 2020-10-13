@@ -1,3 +1,4 @@
+
 import numpy as np
 
 PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
@@ -50,8 +51,8 @@ STIMULI = {
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -65,8 +66,8 @@ STIMULI = {
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -82,8 +83,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -111,8 +112,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
         'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -128,8 +129,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':2, 'radius-2':15., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -147,8 +148,8 @@ STIMULI = {
         'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-5., 'x-center-2':5., 'N-x-center':0,
-        'y-center-1':-4., 'y-center-2':4., 'N-y-center':0,
+        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
+        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -165,15 +166,15 @@ STIMULI = {
     
     'sparse-noise':{
         'square-size (deg)':2., # in degrees
-        'sparseness (%)':5,
-        'mean-refresh-time (s)':0.3,
-        'jitter-refresh-time (s)':0.3,
+        'sparseness (%)':10,
+        'mean-refresh-time (s)':2.,
+        'jitter-refresh-time (s)':0.5,
         'noise-seed (#)':1,
         'square-size-1':0.2,'square-size-2':9,'N-square-size':3,
         'sparseness-1':1,'sparseness-2':50,'N-sparseness':0,
         'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
-        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
+        'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
     },
     
     'dense-noise':{
@@ -184,7 +185,7 @@ STIMULI = {
         'square-size-1':0.2,'square-size-2':9,'N-square-size':3,
         'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
-        'noise-seed-1':1, 'noise-seed-2':1, 'N-noise-seed':10,
+        'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
     },
     # 'full-field-grating+VEM':{},
 }

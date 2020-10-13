@@ -81,9 +81,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
-        qlabel = QtGui.QLabel('saturation')
+        qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
-        self.l0.addWidget(qlabel,0,8,1,3)
+        self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
@@ -209,6 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.p1.clear()
             self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
+            
             if self.nframes > 0:
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
@@ -224,14 +225,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.batch = False
         
-        self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
-        # self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
-        #                                                          "Choose data folder",
-        #                                       os.path.join(os.path.expanduser('~'), 'DATA'))
+        # self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
+        self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
+                                                                 "Choose data folder",
+                                              os.path.join(os.path.expanduser('~'), 'DATA'))
 
 
         process.load_data(self,
-                          lazy_loading=True,
+                          # lazy_loading=True,
                           compressed_version=compressed_version)
 
         if self.Face is not None:
@@ -253,12 +254,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.reset()
             self.Lx, self.Ly = self.fullimg.shape
 
-            self.p1.clear()
-            if self.data is not None:
-                self.p1.plot(self.data['times'], self.data['diameter'], pen=(0,255,0))
-            else:
-                self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
-                
             # self.movieLabel.setText(os.path.dirname(self.datafolder))
             self.movieLabel.setText("%s => %s" % from_folder_to_datetime(self.datafolder))
             if len(self.times)>0:
@@ -483,7 +478,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def go_to_frame(self):
 
         t1, t2 = self.xaxis.range
-        self.time = t1+(t2-t1)*float(self.frameSlider.value())/self.slider_nframes
+        self.time = t1+(t2-t1)*\
+            float(self.frameSlider.value())/self.slider_nframes
+        print(self.time)
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -513,8 +510,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
         if self.data is not None:
+            print(self.data)
             i0 = np.argmin((self.data['times']-self.time)**2)
-            print(self.data['times'][i0], self.time)
             self.scatter.setData(self.data['times'][i0]*np.ones(1),
                                  self.data['diameter'][i0]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
@@ -524,12 +521,14 @@ class MainWindow(QtWidgets.QMainWindow):
             coords = []
             for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
                 coords.append(self.data[key1][i0]-self.data[key2])
-            for key in ['sx', 'sy']:
+            for key in ['sx-corrected', 'sy-corrected']:
                 coords.append(self.data[key][i0])
             self.fit = roi.pupilROI(moveable=True,
                                     parent=self,
                                     color=(0, 200, 0),
                                     pos = roi.ellipse_props_to_ROI(coords))
+            self.p1.addItem(self.scatter)
+            self.p1.show()
         self.win.show()
         self.show()
             
@@ -629,10 +628,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def plot_pupil_trace(self):
             self.p1.clear()
-            self.p1.plot(self.data['times'], self.data['diameter'], pen=(0,255,0))
-            self.p1.setRange(xRange=(self.times[0],self.times[-1]),
-                             yRange=(self.data['diameter'].min()-.1, self.data['diameter'].max()+.1),
-                             padding=0.0)
+            if self.data is not None:
+                self.p1.plot(self.data['times'], self.data['diameter'], pen=(0,255,0))
+                self.p1.setRange(xRange=(self.data['times'][0],self.data['times'][-2]),
+                                 yRange=(self.data['diameter'].min()-.1, self.data['diameter'].max()+.1),
+                                 padding=0.0)
             self.p1.show()
 
                 
