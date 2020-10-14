@@ -191,6 +191,7 @@ class ScreenData(ImageTimeSeries):
             times = times + [ts, ts+metadata['presentation-duration']]
         times.append(1e10) # adding a last point very far in the future
         self.t = np.array(times)
+        
             
 ##############################################
 ###           Locomotion data              ###
@@ -403,12 +404,13 @@ class Dataset:
         # Realignement if possible
         success = False
         if ('Screen' in modalities) and self.metadata['NIdaq'] and (self.Screen is not None) and (self.Screen.photodiode is not None):
-            self.realign_from_photodiode()
-            success = self.Screen.set_times_from_metadata(self.metadata,
+            success = self.realign_from_photodiode()
+            self.Screen.set_times_from_metadata(self.metadata,
                                                           realigned=True)
-        if ('Screen' in modalities) and not success :
+        if ('Screen' in modalities) and not success:
             self.Screen.set_times_from_metadata(self.metadata,
                                                 realigned=False)
+            
             
     def realign_from_photodiode(self, debug=False, verbose=True):
 
@@ -494,7 +496,6 @@ if __name__=='__main__':
         # plt.plot(data['NIdaq'][0][:10000])
         plt.show()
     else:
-
         dataset = Dataset(fn,
                           compressed_version=False,
                           modalities=['Face', 'Pupil'])

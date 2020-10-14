@@ -59,7 +59,7 @@ def raw_data_plot(self, tzoom,
     pen = pg.mkPen(color=self.settings['colors']['Locomotion'])
     if self.Locomotion is not None:
         cond = (self.Locomotion.t>=tzoom[0]) & (self.Locomotion.t<=tzoom[1])
-        isampling = max([int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
+        isampling = max([1, int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
         y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=1)
         if plot_update:
             self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
@@ -71,9 +71,15 @@ def raw_data_plot(self, tzoom,
         y = shift(self,1)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
+    ## -------- Face --------- ##
+    if self.Face is not None:
+        im_face = self.Face.grab_frame(self.time)
+        self.pFaceimg.setImage(im_face)
+        
+    
     ## -------- Pupil --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
-    if self.Pupil is not None:
+    if self.Pupil is not None and self.Pupil.processed is not None:
         # time-varying diameter
         pt = self.Pupil.processed['times']
         cond = (pt>=tzoom[0]) & (pt<=tzoom[1])
@@ -83,7 +89,7 @@ def raw_data_plot(self, tzoom,
         if plot_update:
             self.plot.plot(pt[cond][::isampling], y,pen=pen)
         if with_images:
-            im_face = self.Face.grab_frame(self.time)
+            # im_face = self.Face.grab_frame(self.time) # already loaded above
             self.pFaceimg.setImage(im_face)
             plot_pupil(self, im_face)
         if with_scatter:
@@ -128,15 +134,19 @@ def raw_data_plot(self, tzoom,
                              self.metadata['presentation-duration'])).flatten()
 
         if hasattr(self, 'StimFill') and self.StimFill is not None:
-            self.plot.removeItem(self.StimFill)
-            
+            for x in self.StimFill:
+                self.plot.removeItem(x)
+
+        X, Y = [], []
         if len(icond)>0:
-            for i in range(max([0,icond[0]-1]),
-                           min([icond[-1]+1,len(self.Screen.time_stop)])):
+            # for i in range(max([0,icond[0]-1]),
+            #                min([icond[-1]+1,len(self.Screen.time_stop)])):
+            self.StimFill = []
+            for i in icond:
                 t0 = self.Screen.time_start[i]
                 t1 = self.Screen.time_stop[i]
-                self.StimFill = self.plot.plot([t0, t1], [0, 0],
-                            fillLevel=y.max(), brush=(150,150,150,80))
+                self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
+                                fillLevel=y.max(), brush=(150,150,150,80)))
 
     if with_scatter and hasattr(self, 'scatter'):
         self.plot.removeItem(self.scatter)

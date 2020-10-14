@@ -65,6 +65,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.minView = False
         self.showwindow()
 
+
+        """
         # ----------------------------------
         # ========= for debugging ==========
         # ----------------------------------
@@ -77,6 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pick_datafolder()
         self.pbox.setCurrentIndex(1)
         self.display_quantities()
+        """
 
         
     def check_data_folder(self):
@@ -177,12 +180,19 @@ class MainWindow(QtWidgets.QMainWindow):
         info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
         self.notes.setText(info)
 
-    def display_quantities(self, force=False):
+    def display_quantities(self,
+                           force=False,
+                           plot_update=True,
+                           with_images=False,
+                           with_scatter=False):
         """
         # IMPLEMENT OTHER ANALYSIS HERE
         """
         if self.pbox.currentIndex()==1 or force:
-            plots.raw_data_plot(self, self.tzoom)
+            plots.raw_data_plot(self, self.tzoom,
+                                plot_update=plot_update,
+                                with_images=with_images,
+                                with_scatter=with_scatter)
 
     def back_to_initial_view(self):
         self.plot.clear()
