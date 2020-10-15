@@ -462,7 +462,7 @@ class Dataset:
 
 
 def find_onset_time(t, photodiode_signal, npulses,
-                    time_for_threshold=5e-3):
+                    time_for_threshold=10e-3):
     """
     the threshold of integral increase corresponds to spending X-ms at half the maximum
     """

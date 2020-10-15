@@ -57,7 +57,7 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self, protocol,
-                 screen_id = 0,
+                 screen_id = 1,
                  screen_size = np.array([1280, 768]),
                  monitoring_square = {'size':6,
                                       'x':-19.5,
@@ -65,8 +65,6 @@ class visual_stim:
                                       'color-on':1,
                                       'color-off':-1,
                                       'time-on':0.2, 'time-off':0.8},
-                 # gamma_correction= {'k':1.03,
-                 #                    'gamma':1.52}):
                  gamma_correction= {'k':1.03,
                                     'gamma':1.77}):
         """

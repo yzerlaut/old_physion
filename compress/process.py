@@ -88,6 +88,16 @@ def compress_FaceCamera(datafolder,
                             'Nframe_per_file':Nframe_per_file,
                             'max_file':max_file}
     np.save(os.path.join(directory, 'metadata.npy'), compression_metadata)
+
+def compress_datafolder(args):
+
+    compress_FaceCamera(args.datafolder,
+                        extension=args.extension,
+                        tool=args.tool,
+                        smoothing=args.smoothing,
+                        verbose=args.verbose,
+                        Nframe_per_file=args.Nframe_per_file,
+                        max_file=args.max_file)
     
                 
 if __name__=='__main__':
@@ -96,32 +106,37 @@ if __name__=='__main__':
     import argparse
 
     parser=argparse.ArgumentParser()
+    # compression type
     parser.add_argument("--extension", default='.mp4')
     parser.add_argument("--tool", default='imageio')
     parser.add_argument("--smoothing", type=int, default=0)
+    # Face Data
     parser.add_argument("--Nframe_per_file", type=int, default=1000)
     parser.add_argument("--max_file", type=int, default=100000)
+    # 
     parser.add_argument('-df', "--datafolder", default='./')
+    parser.add_argument('-ddf', "--day_datafolder", default='')
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
     import time, sys
 
-    tstart = time.time()
-    print('Running extension:', args.extension,  'tool:' , args.tool)
-    compress_FaceCamera(args.datafolder,
-                        extension=args.extension,
-                        tool=args.tool,
-                        smoothing=args.smoothing,
-                        verbose=True,
-                        Nframe_per_file=args.Nframe_per_file,
-                        max_file=args.max_file)
-    print('Compressed to:')
-    os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-compressed', 'imgs-0-%i' % (args.Nframe_per_file-1) + args.extension))
-    os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-compressed'))
-    print('Original:')
-    os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-imgs'))
-    print(time.time()-tstart, 'seconds')
+    if args.day_datafolder!='':
+        for df in sorted(os.listdir(args.day_datafolder)):
+            args.datafolder = os.path.join(args.day_datafolder, df)
+            print('compressing %s [...]' % args.datafolder)
+            compress_datafolder(args)
+    else:
+        tstart = time.time()
+        print('Running extension:', args.extension,  'tool:' , args.tool)
+        compress_datafolder(args)
+        print('Compressed to:')
+        os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-compressed', 'imgs-0-%i' % (args.Nframe_per_file-1) + args.extension))
+        os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-compressed'))
+        print('Original:')
+        os.system('du -sh %s ' % os.path.join(args.datafolder, 'FaceCamera-imgs'))
+        print(time.time()-tstart, 'seconds')
     
     # if sys.argv[-1]=='run':
     #     # extension, tool = '.npz', 'numpy'
