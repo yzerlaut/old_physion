@@ -25,11 +25,10 @@ class Window(QtWidgets.QMainWindow):
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
-        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'protocols')
-        self.filename = generate_filename_path(tempfile.gettempdir(),
-                                               filename='visual-stim', extension='.npz',
-                                               with_screen_frames_folder=True)
-        self.datafolder = os.path.dirname(self.filename)
+        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1]
+                                            , 'protocols')
+
+        self.root_datafolder = tempfile.gettempdir()
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -141,9 +140,10 @@ class Window(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         full_exp = dict(**self.protocol, **self.experiment)
-        create_day_folder(self.datafolder)
-        filename = generate_filename_path(self.datafolder, extension='.npz',
+        filename = generate_filename_path(self.root_datafolder,
+                                          filename='visual-stim', extension='.npz',
                                           with_screen_frames_folder=True)
+        self.datafolder = os.path.dirname(filename)
         np.savez(filename, full_exp, allow_pickle=True)
         print('Stimulation data saved as: %s ' % filename)
         self.statusBar.showMessage('Stimulation data saved as: %s ' % filename)
@@ -208,17 +208,17 @@ class Window(QtWidgets.QMainWindow):
         window = QtWidgets.QDialog()
 
         
-    def save_results(self):
-        if 'NSI' in self.data:
-            results_filename = '.'.join(self.filename.split('.')[:-1]) if '.' in self.filename else self.filename
-            results_filename += '_NSI_'+datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')+'.h5'
-            print(self.data.keys())
-            to_save = {'validated_times': self.data['new_t'][self.data['NSI_validated']],
-                       'validated_NSI':self.data['NSI'][self.data['NSI_validated']]}
-            save_dict_to_hdf5(to_save, results_filename)
-            self.statusBar.showMessage('Results of analysis saved as : '+results_filename)
-        else:
-            self.statusBar.showMessage('Need to perform analysis first...')
+    # def save_results(self):
+    #     if 'NSI' in self.data:
+    #         results_filename = '.'.join(self.filename.split('.')[:-1]) if '.' in self.filename else self.filename
+    #         results_filename += '_NSI_'+datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')+'.h5'
+    #         print(self.data.keys())
+    #         to_save = {'validated_times': self.data['new_t'][self.data['NSI_validated']],
+    #                    'validated_NSI':self.data['NSI'][self.data['NSI_validated']]}
+    #         save_dict_to_hdf5(to_save, results_filename)
+    #         self.statusBar.showMessage('Results of analysis saved as : '+results_filename)
+    #     else:
+    #         self.statusBar.showMessage('Need to perform analysis first...')
     
         
 if __name__ == '__main__':

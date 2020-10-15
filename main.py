@@ -89,7 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_visualization(self):
         self.statusBar.showMessage('Loading Visualization Module [...]')
         from analysis.gui import run as RunAnalysisGui
-        self.child = RunAnalysisGui(self.app, raw_data_visualization=True)
+        self.child = RunAnalysisGui(self.app,
+                                    raw_data_visualization=True)
     def launch_analysis(self):
         from analysis.gui import run as RunAnalysisGui
         self.child = RunAnalysisGui(self.app)

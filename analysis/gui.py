@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
-        
+
         super(MainWindow, self).__init__()
 
         # adding a "quit" keyboard shortcut
@@ -112,7 +112,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_df_names(self):
         self.dbox.clear()
-        self.pbox.clear()
+        if not self.raw_data_visualization:
+            self.pbox.clear()
         self.plot.clear()
         self.pScreenimg.setImage(np.ones((10,12))*50)
         self.pFaceimg.setImage(np.ones((10,12))*50)
@@ -129,7 +130,8 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             info = np.load(os.path.join(self.day_folder,fn,'metadata.npy'),
                            allow_pickle=True).item()
-            output += str(info['Stimulus'])
+            # output += str(info['Stimulus'])
+            output += str(info['protocol'])
         except Exception:
             print('No metadata found')
         return output
@@ -152,7 +154,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.time = 0
         
     def pick_datafolder(self):
-        self.pbox.clear()
+        if not self.raw_data_visualization:
+            self.pbox.clear()
         self.plot.clear()
         i = self.dbox.currentIndex()
         if i>0:
@@ -174,11 +177,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_datafolder_annotation(self):
         info = 63*'-'+'\n'
-        for key in self.metadata:
-            if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
-                info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
-        info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
-        self.notes.setText(info)
+
+        if self.metadata['protocol']=='None':
+            self.notes.setText('\nNo visual stimulation')
+        else:
+            for key in self.metadata:
+                if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
+                    info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
+            info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
+            self.notes.setText(info)
 
     def display_quantities(self,
                            force=False,
@@ -257,9 +264,11 @@ class MainWindow(QtWidgets.QMainWindow):
         sys.exit()
 
 
-def run(app, parent=None, raw_data_visualization=False):
+def run(app, parent=None,
+        raw_data_visualization=False):
     guiparts.build_dark_palette(app)
-    return MainWindow(app, raw_data_visualization=raw_data_visualization)
+    return MainWindow(app,
+                      raw_data_visualization=raw_data_visualization)
     
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)

@@ -192,7 +192,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.RigView_process.terminate()
         self.statusBar.showMessage('Initializing RigView stream [...]')
         self.RigView_process = multiprocessing.Process(target=launch_RigView,
-                                                       args=(self.run_event , self.quit_event, self.datafolder))
+                          args=(self.run_event , self.quit_event, self.datafolder))
         self.RigView_process.start()
         time.sleep(5)
         self.statusBar.showMessage('Setup ready')
@@ -202,8 +202,9 @@ class MainWindow(QtWidgets.QMainWindow):
         i = self.cbc.currentIndex()
         if self.cbc.currentIndex()==0:
             self.statusBar.showMessage('/!\ Need to choose a configuration !')
-        elif self.cbp.currentIndex()==0:
-            self.statusBar.showMessage('/!\ Need to choose a protocol !')
+        # elif self.cbp.currentIndex()==0 and self.cbc.currentIndex()!=1:
+        #     # we still tolerate NIdaq only
+        #     self.statusBar.showMessage('/!\ Need to choose a protocol !')
         else:
             self.config = self.cbc.currentText()
             self.metadata['protocol'] = self.cbp.currentText()

@@ -161,7 +161,10 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.pbox.activated.connect(self.display_quantities)
     self.pbox.setMaximumHeight(selector_height)
     if self.raw_data_visualization:
+        self.pbox.addItem('')
         self.pbox.addItem('-> Show Raw Data')
+        self.pbox.setCurrentIndex(1)
+        
     Layout11.addWidget(self.pbox)
 
     Layout113 = QtWidgets.QHBoxLayout()

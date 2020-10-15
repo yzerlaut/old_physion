@@ -49,7 +49,6 @@ def raw_data_plot(self, tzoom,
             val = scale_and_position(self, y,
                     value=self.Screen.photodiode.val[cond][itime], i=0)
             scatter.append((self.Screen.photodiode.t[cond][itime], val))
-            
     else:
         y = shift(self,0)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)

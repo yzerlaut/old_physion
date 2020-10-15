@@ -401,15 +401,16 @@ class Dataset:
         elif 'Pupil' in modalities:
             print('[X] Pupil data not found !')
 
-        # Realignement if possible
-        success = False
-        if ('Screen' in modalities) and self.metadata['NIdaq'] and (self.Screen is not None) and (self.Screen.photodiode is not None):
-            success = self.realign_from_photodiode()
-            self.Screen.set_times_from_metadata(self.metadata,
-                                                          realigned=True)
-        if ('Screen' in modalities) and not success:
-            self.Screen.set_times_from_metadata(self.metadata,
-                                                realigned=False)
+        if (self.Screen is not None) and ('Screen' in modalities):
+            # Realignement if possible
+            success = False
+            if (self.Screen.photodiode is not None):
+                success = self.realign_from_photodiode()
+                self.Screen.set_times_from_metadata(self.metadata,
+                                                    realigned=True)
+            if not success:
+                self.Screen.set_times_from_metadata(self.metadata,
+                                                    realigned=False)
             
             
     def realign_from_photodiode(self, debug=False, verbose=True):

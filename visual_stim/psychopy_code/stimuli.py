@@ -245,7 +245,8 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(parent.datafolder, 'screen-frames', 'frame.tiff'))
+        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+                                              'screen-frames', 'frame.tiff'))
 
             
     #####################################################
@@ -278,7 +279,8 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(parent.datafolder, 'screen-frames', 'frame.tiff'))
+        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+                                              'screen-frames', 'frame.tiff'))
         
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
