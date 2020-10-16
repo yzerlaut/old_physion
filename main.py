@@ -1,19 +1,9 @@
-"""
-Generate a executable on Windows with pyinstaller
+# Generate a executable on Windows by making a shortcut of props:
+# - Target:
+#   C:\ProgramData\Anaconda3\python.exe main.py
+# - Start in:
+#   C:\Users\VisualNeuroscientist\work\cortical-physio-icm
 
-$ pyi-makespec main.py
-
-then open main.spec and add the following:
--------------------------------------------
-# -*- mode: python -*-
-import sys
-sys.setrecursionlimit(5000)
--------------------------------------------
-then:
-
-$ pyinstaller main.spec --icon doc\icon.png --console --no-confirm
-
-"""
 import sys, pathlib, os
 from PyQt5 import QtGui, QtCore, QtWidgets
 
