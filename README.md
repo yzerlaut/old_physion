@@ -35,6 +35,7 @@ pip install -r requirements.txt
 
 The installation instructions for the experimental setup are described in a dedicated README
 
+`pyinstaller main.py --windowed`
 
 ## Running experiments
 

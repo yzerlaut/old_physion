@@ -128,7 +128,6 @@ def check_datafolder(df,
         else:
             metadata['VisualStim'] = False
 
-        print(metadata['FaceCamera'])
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
