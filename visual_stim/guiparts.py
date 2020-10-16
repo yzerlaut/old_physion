@@ -1,11 +1,10 @@
 from PyQt5 import QtWidgets
 
 import sys, os, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
 from default_params import STIMULI, PRESENTATION, NAME_TO_COLOR, BLANK_SCREENS
 
 LS = 25 # linespace
-
 
 def draw_window(parent, protocol):
 

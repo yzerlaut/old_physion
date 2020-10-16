@@ -2,31 +2,29 @@ import sys, time, tempfile
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
-import sys, os, pathlib
-
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from assembling.saving import create_day_folder, generate_filename_path
+import sys, os, pathlib, json
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from assembling.saving import create_day_folder, generate_filename_path
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
 from psychopy_code.stimuli import build_stim
-
-from gui.params_window import *
 from default_params import STIMULI, PRESENTATIONS, SETUP
-import json
+from guiparts import *
 
 
-class Window(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app, parent=None):
         
-        super(Window, self).__init__(parent)
+        super(MainWindow, self).__init__(parent)
         
         self.protocol = None # by default, can be loaded by the interface
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
-        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1]
-                                            , 'protocols')
+        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[0],
+                                            'protocols')
 
         self.root_datafolder = tempfile.gettempdir()
         
@@ -156,16 +154,17 @@ class Window(QtWidgets.QMainWindow):
             self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file', self.protocol_folder, "Protocol files (*.json)")
-            print(filename)
-            with open(filename[0], 'w') as fp:
-                json.dump(self.protocol, fp, indent=2)
-                self.statusBar.showMessage('protocol saved as "%s"' % filename[0])
+            if filename[0]!='':
+                with open(filename[0], 'w') as fp:
+                    json.dump(self.protocol, fp, indent=2)
+                    self.statusBar.showMessage('protocol saved as "%s"' % filename[0])
+            else:
+                self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
         else:
             self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
             
     def load_protocol(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', self.protocol_folder,"Protocol files (*.json)")
-        print(filename)
         try:
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
@@ -221,24 +220,10 @@ class Window(QtWidgets.QMainWindow):
     #         self.statusBar.showMessage('Need to perform analysis first...')
     
         
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    main = Window(app)
-    sys.exit(app.exec_())
+def run(app, parent=None):
+    return MainWindow(app)
     
-
-# def main():
-
-#     app = QApplication(sys.argv)
-
-#     w = QWidget()
-#     w.resize(600, 300)
-#     w.move(300, 300)
-#     w.setWindowTitle('Visual Stimulation Program')
-#     w.show()
-
-#     sys.exit(app.exec_())
-
-
-# if __name__ == '__main__':
-#     main()
+if __name__=='__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    main = run(app)
+    sys.exit(app.exec_())

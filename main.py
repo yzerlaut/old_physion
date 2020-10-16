@@ -1,8 +1,24 @@
+"""
+Generate a executable on Windows with pyinstaller
+
+$ pyi-makespec main.py
+
+then open main.spec and add the following:
+-------------------------------------------
+# -*- mode: python -*-
+import sys
+sys.setrecursionlimit(5000)
+-------------------------------------------
+then:
+
+$ pyinstaller main.spec --icon doc\icon.png --console --no-confirm
+
+"""
 import sys, pathlib, os
 from PyQt5 import QtGui, QtCore, QtWidgets
 
 sys.path.append(str(pathlib.Path(__file__).resolve()))
-# from misc.style import set_dark_style, set_app_icon
+from misc.style import set_dark_style, set_app_icon
 
 if not sys.argv[-1]=='no-stim':
     from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
@@ -15,6 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
                  button_height = 20):
 
         self.app = app
+        set_app_icon(app)
         super(MainWindow, self).__init__()
         self.setWindowTitle('Physiology of Visual Circuits    ')
 
@@ -72,8 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = run(self.app)
         # self.child.show()
     def launch_visual_stim(self):
-        from visual_stim.gui.main import Window as VisualMainWindow
-        self.child = VisualMainWindow(self.app)
+        from visual_stim.gui import run as RunVisualStim
+        self.child = RunVisualStim(self.app)
     def launch_compress(self):
         self.statusBar.showMessage('Compression module not implemented yet')
     def launch_transfer(self):

@@ -8,7 +8,9 @@ def second_folder(day_folder):
     return os.path.join(day_folder, datetime.datetime.now().strftime("%H-%M-%S"))
 
 def create_day_folder(root_folder):
-    pathlib.Path(day_folder(root_folder)).mkdir(parents=True, exist_ok=True)
+    df = day_folder(root_folder)
+    pathlib.Path(df).mkdir(parents=True, exist_ok=True)
+    return day_folder(root_folder)
 
 def create_second_folder(day_folder):
     pathlib.Path(second_folder(day_folder)).mkdir(parents=True, exist_ok=True)
@@ -126,6 +128,7 @@ def check_datafolder(df,
         else:
             metadata['VisualStim'] = False
 
+        print(metadata['FaceCamera'])
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
