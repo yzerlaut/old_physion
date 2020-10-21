@@ -4,13 +4,14 @@ import numpy as np
 from nidaqmx.utils import flatten_channel_string
 from nidaqmx.constants import Edge
 from nidaqmx.stream_readers import (
-    AnalogSingleChannelReader, AnalogMultiChannelReader)
+    AnalogSingleChannelReader, AnalogMultiChannelReader, DigitalMultiChannelReader)
 from nidaqmx.stream_writers import (
-    AnalogSingleChannelWriter, AnalogMultiChannelWriter)
+    AnalogSingleChannelWriter, AnalogMultiChannelWriter , DigitalMultiChannelWriter)
 
 import sys, os, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from hardware_control.NIdaq.config import find_x_series_devices, find_m_series_devices, get_analog_input_channels, get_analog_output_channels
+from hardware_control.NIdaq.config import find_x_series_devices, find_m_series_devices, get_analog_input_channels,\
+    get_analog_output_channels, get_digital_input_channels
 
 def rec_only(device, t_array, inputs):
 
@@ -49,16 +50,21 @@ def rec_only(device, t_array, inputs):
             timeout=t_array[-1]+2*dt)
 
         
-def stim_and_rec(device, t_array, inputs, outputs):
+def stim_and_rec(device, t_array,
+                 analog_inputs, analog_outputs,
+                 N_digital_inputs=0):
 
     dt = t_array[1]-t_array[0]
     sampling_rate = 1./dt
     
-    # if outputs.shape[0]>0:
-    output_channels = get_analog_output_channels(device)[:outputs.shape[0]]
-    input_channels = get_analog_input_channels(device)[:inputs.shape[0]]
-        
-    with nidaqmx.Task() as write_task, nidaqmx.Task() as read_task,  nidaqmx.Task() as sample_clk_task:
+    # if analog_outputs.shape[0]>0:
+    output_analog_channels = get_analog_output_channels(device)[:analog_outputs.shape[0]]
+    input_analog_channels = get_analog_input_channels(device)[:analog_inputs.shape[0]]
+    if N_digital_inputs >0:
+        input_digital_channels = get_digital_input_channels(device)[:N_digital_inputs]
+    
+    with nidaqmx.Task() as write_analog_task, nidaqmx.Task() as read_analog_task,\
+         nidaqmx.Task() as read_digital_task,  nidaqmx.Task() as sample_clk_task:
 
         # Use a counter output pulse train task as the sample clock source
         # for both the AI and AO tasks.
@@ -69,34 +75,56 @@ def stim_and_rec(device, t_array, inputs, outputs):
 
         samp_clk_terminal = '/{0}/Ctr0InternalOutput'.format(device.name)
 
-        write_task.ao_channels.add_ao_voltage_chan(
-            flatten_channel_string(output_channels),
+        ### ---- OUTPUTS ---- ##
+        write_analog_task.ao_channels.add_ao_voltage_chan(
+            flatten_channel_string(output_analog_channels),
                                    max_val=10, min_val=-10)
-        write_task.timing.cfg_samp_clk_timing(
+        write_analog_task.timing.cfg_samp_clk_timing(
             sampling_rate, source=samp_clk_terminal,
             active_edge=Edge.RISING, samps_per_chan=len(t_array))
 
-        read_task.ai_channels.add_ai_voltage_chan(
-                flatten_channel_string(input_channels),
+        ### ---- INPUTS ---- ##
+        read_analog_task.ai_channels.add_ai_voltage_chan(
+            flatten_channel_string(input_analog_channels),
             max_val=10, min_val=-10)
-        read_task.timing.cfg_samp_clk_timing(
+        if N_digital_inputs >0:
+            read_digital_task.di_channels.add_di_chan(
+                flatten_channel_string(input_digital_channels))
+            
+        read_analog_task.timing.cfg_samp_clk_timing(
+                sampling_rate, source=samp_clk_terminal,
+                active_edge=Edge.FALLING, samps_per_chan=len(t_array))
+        if N_digital_inputs >0:
+            read_digital_task.timing.cfg_samp_clk_timing(
                 sampling_rate, source=samp_clk_terminal,
                 active_edge=Edge.FALLING, samps_per_chan=len(t_array))
 
-        writer = AnalogMultiChannelWriter(write_task.out_stream)
-        reader = AnalogMultiChannelReader(read_task.in_stream)
+        analog_writer = AnalogMultiChannelWriter(write_analog_task.out_stream)
+        analog_reader = AnalogMultiChannelReader(read_analog_task.in_stream)
+        if N_digital_inputs >0:
+            digital_reader = DigitalMultiChannelReader(read_digital_task.in_stream)
 
-        writer.write_many_sample(outputs)
+        analog_writer.write_many_sample(analog_outputs)
 
         # Start the read and write tasks before starting the sample clock
         # source task.
-        read_task.start()
-        write_task.start()
+        read_analog_task.start()
+        if N_digital_inputs >0:
+            read_digital_task.start()
+        write_analog_task.start()
         sample_clk_task.start()
             
-        reader.read_many_sample(
-            inputs, number_of_samples_per_channel=len(t_array),
+        analog_reader.read_many_sample(
+            analog_inputs, number_of_samples_per_channel=len(t_array),
             timeout=t_array[-1]+2*dt)
+        if N_digital_inputs >0:
+            digital_inputs = np.zeros((1,len(t_array)), dtype=np.uint32)
+            digital_reader.read_many_sample_port_uint32(
+                digital_inputs, number_of_samples_per_channel=len(t_array),
+                timeout=t_array[-1]+2*dt)
+        else:
+            digital_inputs = None
+    return analog_inputs, digital_inputs
         
         
 if __name__=='__main__':
@@ -106,7 +134,8 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="Record data and send signals through a NI daq card",
                                    formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-os', "--output_signal", help="npy file for an array of output signal", default='')
-    parser.add_argument('-Ni', "--Nchannel_rec", help="Number of input channels to be recorded ", type=int, default=2)
+    parser.add_argument('-Nai', "--Nchannel_analog_rec", help="Number of analog input channels to be recorded ", type=int, default=2)
+    parser.add_argument('-Ndi', "--Nchannel_digital_rec", help="Number of digital input channels to be recorded ", type=int, default=4)
     parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/acquisition_frequency ", type=float, default=1e-3)
     parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=3)
     parser.add_argument('-f', "--filename", help="filename",type=str, default='data.npy')
@@ -116,15 +145,22 @@ if __name__=='__main__':
     if args.device=='':
         args.device = find_m_series_devices()[0]
 
+    print(args.device)
     # print('Output channels: ', get_analog_output_channels(args.device))
 
     t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
-    inputs = np.zeros((args.Nchannel_rec,len(t_array)))
+    analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
+    digital_inputs = np.zeros((args.Nchannel_digital_rec,len(t_array)), dtype=np.uint8)
 
-    outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
-                        2e-2*np.sin(2*np.pi*t_array)])
+    analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
+                                   2e-2*np.sin(2*np.pi*t_array)])
+
+
+    
     print('running rec & stim [...]')
-    stim_and_rec(args.device, t_array, inputs, outputs)
+    analog_inputs, digital_inputs = stim_and_rec(args.device, t_array, analog_inputs, analog_outputs,
+                                                 args.Nchannel_digital_rec)
+    print(digital_inputs)
     # tstart = 1e3*time.time()
     # print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
     # print('Running 5 rec only')
@@ -133,9 +169,9 @@ if __name__=='__main__':
     #     np.save('data.npy', inputs)
     #     print('writing T=%.1fs of recording (at f=%.2fkHz, across N=%i channels) in : %.2f ms' % (T, 1e-3/dt,inputs.shape[0],1e3*time.time()-tstart))
     # rec_only(args.device, t_array, inputs)
-    np.save(args.filename, inputs)
+    np.save(args.filename, analog_inputs)
 
     import matplotlib.pylab as plt
-    for i in range(args.Nchannel_rec):
-        plt.plot(t_array[::10], inputs[i][::10])
+    for i in range(args.Nchannel_analog_rec):
+        plt.plot(t_array[::10], analog_inputs[i][::10])
     plt.show()
