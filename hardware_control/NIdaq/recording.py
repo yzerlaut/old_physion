@@ -109,7 +109,7 @@ def stim_and_rec(device, t_array,
         # Start the read and write tasks before starting the sample clock
         # source task.
         read_analog_task.start()
-        if N_digital_inputs >0:
+        if N_digital_inputs>0:
             read_digital_task.start()
         write_analog_task.start()
         sample_clk_task.start()

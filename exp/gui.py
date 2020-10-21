@@ -246,7 +246,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if 'NIdaq' in self.config:
                 self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                       Nchannel_in=self.metadata['NIdaq-input-channels'],
+                                       Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
+                                       Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
                                        max_time=max_time,
                                        output_steps=output_steps,
                                        filename= self.filename.replace('metadata', 'NIdaq'))

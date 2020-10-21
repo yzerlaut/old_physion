@@ -16,7 +16,8 @@ class Acquisition:
 
     def __init__(self,
                  dt=1e-3,
-                 Nchannel_in=2,
+                 Nchannel_analog_in=2,
+                 Nchannel_digital_in=0,
                  max_time=10,
                  buffer_time=0.5,
                  filename=None,
@@ -35,8 +36,12 @@ class Acquisition:
         self.select_device()
 
         # preparing input channels
-        self.input_channels = get_analog_input_channels(self.device)[:Nchannel_in]
-        self.data = np.zeros((Nchannel_in, 1), dtype=np.float64)
+        # - analog:
+        self.analog_input_channels = get_analog_input_channels(self.device)[:Nchannel_analog_in]
+        self.analog_data = np.zeros((Nchannel_analog_in, 1), dtype=np.float64)
+        # - digital:
+        self.digital_input_channels = get_digital_input_channels(self.device)[:Nchannel_digital_in]
+        self.digital_data = np.zeros((1, 1), dtype=np.uint32)
         
         # preparing output channels
         if outputs is not None: # used as a flag for output or not
@@ -61,7 +66,7 @@ class Acquisition:
         if self.outputs is not None:
             self.write_task = nidaqmx.Task()
             
-        self.read_task = nidaqmx.Task()
+        self.read_analog_task = nidaqmx.Task()
         self.sample_clk_task = nidaqmx.Task()
 
         # Use a counter output pulse train task as the sample clock source
@@ -80,22 +85,22 @@ class Acquisition:
                 self.sampling_rate, source=samp_clk_terminal,
                 active_edge=Edge.FALLING, samps_per_chan=int(self.max_time/self.dt))
         
-        self.read_task.ai_channels.add_ai_voltage_chan(
+        self.read_analog_task.ai_channels.add_ai_voltage_chan(
                 flatten_channel_string(self.input_channels),
             max_val=10, min_val=-10)
 
-        self.read_task.timing.cfg_samp_clk_timing(
+        self.read_analog_task.timing.cfg_samp_clk_timing(
             self.sampling_rate, source=samp_clk_terminal,
             active_edge=Edge.FALLING, samps_per_chan=int(self.max_time/self.dt))
         
-        self.reader = AnalogMultiChannelReader(self.read_task.in_stream)
-        self.read_task.register_every_n_samples_acquired_into_buffer_event(self.buffer_size, self.reading_task_callback)
+        self.reader = AnalogMultiChannelReader(self.read_analog_task.in_stream)
+        self.read_analog_task.register_every_n_samples_acquired_into_buffer_event(self.buffer_size, self.reading_task_callback)
 
         if self.outputs is not None:
             self.writer = AnalogMultiChannelWriter(self.write_task.out_stream)
             self.writer.write_many_sample(self.outputs)
 
-        self.read_task.start() # Start the read task before starting the sample clock source task.
+        self.read_analog_task.start() # Start the read task before starting the sample clock source task.
         if self.outputs is not None:
             self.write_task.start()
         self.sample_clk_task.start()
@@ -105,7 +110,7 @@ class Acquisition:
 
     def close(self):
         try:
-            self.read_task.close()
+            self.read_analog_task.close()
         except AttributeError:
             pass
         try:
