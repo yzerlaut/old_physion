@@ -24,136 +24,66 @@ class ZaberStageControl:
                 raise Exception('', 'Need to specify port')
 
         self.offset = offset
-        self.position = 0
-        self.position_start = 0 - self.offset
+        self.position_whiskers = 0
+        self.current_position = 0
 
         self.status = 'Standby'
-
-
+        
         Library.enable_device_db_store()
         self.connection = Connection.open_serial_port(com_port)
-
         self.init_device()
 
         
     def init_device(self):
         # Setup and home x-axis
-        device_list = connection.detect_devices()
+        device_list = self.connection.detect_devices()
         print("    -Found {} devices".format(len(device_list)))
         self.device = device_list[0]
-        self.axis = device.get_axis(1)
+        self.axis = self.device.get_axis(1)
         print("    -Homing the device")
         time.sleep(1)
-        axis.home()
+        self.axis.home()
         time.sleep(1)
-    print('[3] Setting up treadmill interface')
-    # Setup rotary encoder
-    time.sleep(2)
-    print('[4] Setting up c-axis')
-    # Set stepper motor to base position
-    time.sleep(2)
-    return connection, device, axis
         
-
+        
     def set_start_position(self):
-        self.position = axis.get_position(Units.LENGTH_MILLIMETRES)
-        self.position_start = self.position - self.offset
-        axis.move_absolute(self.position_start, Units.LENGTH_MILLIMETRES)
+        self.axis.home()
+        time.sleep(2)
+        print('Using the manual controls, set the stimulator in the whisker field')
+        time.sleep(1)
+        input("Press Enter when ready...")
+        self.position_whiskers = self.axis.get_position(Units.LENGTH_MILLIMETRES)
+        self.axis.move_absolute((self.position_whiskers - self.offset), Units.LENGTH_MILLIMETRES)
 
 
     def start_stop(self):
         if self.status == 'Standby':
-            print('\n* Experiment Started')
+            print('\n- Experiment Started')
             self.status = 'Recording'
-            time.sleep(2)
-        elif status == 'Recording':
-            print('\n* Experiment Stopped')
+    
+        elif self.status == 'Recording':
+            print('\n- Experiment Stopped')
             self.status = 'Standby'
-            axis.home()
-            time.sleep(2)
-
-    def stage_move(self):
-        if self.status == 'Recording':
-            current_position = axis.get_position()
-            if current_position == position_start:
-                axis.move_absolute(position_whisker, Units.LENGTH_MILLIMETRES)
-            elif current_position == position_whisker:
-                axis.move_absolute(position_start, Units.LENGTH_MILLIMETRES)
-        else:
-            print('bla')
-
+            self.axis.move_absolute((self.position_whiskers - self.offset), Units.LENGTH_MILLIMETRES)
             
-   
-def startup():
-    print('[2] Setting up x-axis')
-    Library.enable_device_db_store()
-    connection = Connection.open_serial_port(com_port)
-    # Setup and home x-axis
-    device_list = connection.detect_devices()
-    print("    -Found {} devices".format(len(device_list)))
-    device = device_list[0]
-    axis = device.get_axis(1)
-    print("    -Homing the device")
-    time.sleep(1)
-    axis.home()
-    time.sleep(1)
-    print('[3] Setting up treadmill interface')
-    # Setup rotary encoder
-    time.sleep(2)
-    print('[4] Setting up c-axis')
-    # Set stepper motor to base position
-    time.sleep(2)
-    return connection, device, axis
-
-def experiment():
-    position_whisker, position_start = set_start_position()
-    print('\n*** READY ***')
-    print('* Waiting for start signal...')
-
-def exit():
-    print('* Closing connection....')
-    connection.close()
-   
-# Run function
-
-connection, device, axis = startup()
-status = 'Standby'
-
-while True:
-    experiment()
-
-exit()
+        
+    def move(self):
+        if self.status == 'Recording':
+            self.current_position = self.axis.get_position()
+            if self.current_position == self.position_whiskers:
+                self.axis.move_absolute((self.position_whiskers - self.offset), Units.LENGTH_MILLIMETRES)
+            elif self.current_position == (self.position_whiskers - self.offset):
+                self.axis.move_absolute(self.position_whiskers, Units.LENGTH_MILLIMETRES)
+            else:
+                print('* Stage position is not correct')
+        else:
+            print('* Recording not started')
+            
+    def close(self):
+        print('* Closing connection to Zaber Stage....')
+        self.connection.close()
 
 
 if __name__=='__main__':
 
     control = ZaberStageControl()
-    
-
-    print('Using the manual controls, set the stimulator in the whisker field')
-    time.sleep(1)
-    input("Press Enter when ready...")
-    control.set_start_position()
-
-
-#################################
-#
-# while True: # Run forever
-#     if GPIO.input(11) == GPIO.HIGH:
-#         if status == 'Standy':
-#             print('\n* Experiment Started')
-#             status = 'Recording'
-#             time.sleep(2)
-#     elif GPIO.input(11) == GPIO.LOW:
-#         if status == 'Recording':
-#             print('\n* Experiment Stopped')
-#             status = 'Standby'
-#             axis.home()
-#             time.sleep(2)
-#            
-# axis.move_absolute(position_whisker, Units.LENGTH_MILLIMETRES)
-# time.sleep(2)
-# axis.move_absolute(position_start, Units.LENGTH_MILLIMETRES)
-# time.sleep(5)
-# axis.move_absolute(position_whisker, Units.LENGTH_MILLIMETRES)
-# time.sleep(3)
