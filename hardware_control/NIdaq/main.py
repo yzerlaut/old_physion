@@ -142,7 +142,7 @@ class Acquisition:
             self.device = find_x_series_devices()[0]
             print('X-series card found:', self.device)
             success = True
-        except BaseException:
+        except BaseException: 
             pass
         try:
             self.device = find_m_series_devices()[0]
