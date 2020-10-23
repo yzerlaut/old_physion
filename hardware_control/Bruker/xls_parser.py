@@ -62,9 +62,11 @@ def bruker_xml_parser(filename):
 if __name__=='__main__':
 
     import sys, os, pathlib
-    
+
+    # we test it on the example file that we have in the repo:
     example_file = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
                                 'Ca_imaging', 'Bruker_xml', 'TSeries-190620-250-00-002.xml')
+    
     data = bruker_xml_parser(example_file)
     print(data.keys())
     print(data['Ch1'].keys())
