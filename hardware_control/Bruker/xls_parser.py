@@ -1,15 +1,17 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 
-def bruker_xml_parser(file): 
-    mytree = ET.parse(file)
+def bruker_xml_parser(filename):
+    """
+    function to parse the xml metadata file produced by the Prairie software
+
+    TODO:
+    - find automated ways to count channels
+    """
+    mytree = ET.parse(filename)
     root = mytree.getroot()
 
     data = {'settings':{}}
-
-    # for r in root[2]:
-    #     for i, key in enumerate(r):
-    #         print(r[i].attrib)
 
     settings = root[1]
     for setting in settings:
@@ -46,7 +48,8 @@ def bruker_xml_parser(file):
                         data[channel]['tifFile'].append(f.attrib['filename'])
                         for key in ['relativeTime', 'absoluteTime']:
                             data[channel][key].append(float(x.attrib[key]))
-                            
+
+    # translation to numpy arrays
     for channel in ['Ch1', 'Ch2']:
         for key in ['relativeTime', 'absoluteTime']:
             data[channel][key] = np.array(data[channel][key], dtype=np.float64)
