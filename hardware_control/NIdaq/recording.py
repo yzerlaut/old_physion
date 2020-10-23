@@ -136,7 +136,7 @@ if __name__=='__main__':
     parser.add_argument('-os', "--output_signal", help="npy file for an array of output signal", default='')
     parser.add_argument('-Nai', "--Nchannel_analog_rec", help="Number of analog input channels to be recorded ", type=int, default=2)
     parser.add_argument('-Ndi', "--Nchannel_digital_rec", help="Number of digital input channels to be recorded ", type=int, default=4)
-    parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/acquisition_frequency ", type=float, default=1e-3)
+    parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/acquisition_frequency ", type=float, default=1e-4)
     parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=3)
     parser.add_argument('-f', "--filename", help="filename",type=str, default='data.npy')
     parser.add_argument('-d', "--device", help="device name", type=str, default='')
@@ -146,11 +146,10 @@ if __name__=='__main__':
         args.device = find_m_series_devices()[0]
 
     print(args.device)
-    # print('Output channels: ', get_analog_output_channels(args.device))
+    print('Digital input channels: ', get_digital_input_channels(args.device))
 
     t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
     analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
-    digital_inputs = np.zeros((args.Nchannel_digital_rec,len(t_array)), dtype=np.uint8)
 
     analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
                                    2e-2*np.sin(2*np.pi*t_array)])
@@ -172,6 +171,7 @@ if __name__=='__main__':
     np.save(args.filename, analog_inputs)
 
     import matplotlib.pylab as plt
-    for i in range(args.Nchannel_analog_rec):
-        plt.plot(t_array[::10], analog_inputs[i][::10])
+    # for i in range(args.Nchannel_analog_rec):
+    #     plt.plot(t_array[::10], analog_inputs[i][::10])
+    plt.plot(t_array[::10], digital_inputs[0, ::10])
     plt.show()
