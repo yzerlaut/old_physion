@@ -83,7 +83,16 @@ def get_files_with_extension(folder, extension='.txt',
 # def last_datafile(data_folder):
 #     return get_list_of_datafiles(data_folder)[-1]
 
-    
+def get_files_with_given_exts(dir='./', EXTS=['npz','abf','bin']):
+    """ get files of a given extension and sort them..."""
+    FILES = []
+    for ext in EXTS:
+        for file in os.listdir(dir):
+            if file.endswith(ext):
+                FILES.append(os.path.join(dir, file))
+    return np.array(FILES)
+
+
 def from_folder_to_datetime(folder):
 
     s = folder.split(os.path.sep)[-2:]
