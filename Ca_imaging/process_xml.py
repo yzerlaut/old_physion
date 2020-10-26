@@ -1,9 +1,14 @@
-import xmltodict as xml
-import xml.etree.ElementTree as ET
-import os
+import sys, os, pathlib, shutil, glob, time
 
-fn = os.path.join('Bruker_xml', 'TSeries-190620-250-00-002.xml')
-data = xml.parse(ET.tostring(ET.parse(fn).getroot()))
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from hardware_control.Bruker import xml_parser
+from assembling.saving import from_folder_to_datetime, check_datafolder
+
+folder = '/home/yann/DATA/2020.09.25/M_1/TSeries-25092020-200-00-001'
+
+fn = get_files_with_given_exts(dir=folder, EXTS=['xml'])[0]
+
+print(fn)
 
 print(data['PVScan']['Sequence']['Frame'][0]['@absoluteTime'])
     
