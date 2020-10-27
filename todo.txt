@@ -1,0 +1,4 @@
+- Implement the virtual eye movement
+- Implement the digital reading thing
+- Suite2P workflow
+- 
