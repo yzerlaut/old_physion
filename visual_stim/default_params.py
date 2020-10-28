@@ -159,10 +159,17 @@ STIMULI = {
         'Image-ID (#)':1,
         'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5},
 
-    'Natural-Image+VEM':{
-        'Image-ID (#)':1, 'VEM-seed (#)':1,
+    'Natural-Image+VSE':{
+        'Image-ID (#)':1,
+        'VSE-seed (#)':1,
+        'mean-saccade-duration (s)':1.,
+        'std-saccade-duration (s)':0.5,
+        'lock-VSE-on-Image (0/1)':1,
+        'lock-VSE-on-Image-1':0,'lock-VSE-on-Image-2':1,'N-lock-VSE-on-Image':0,
+        'mean-saccade-duration-1':0.1,'mean-saccade-duration-2':10.,'N-mean-saccade-duration':0,
+        'std-saccade-duration-1':0.1,'std-saccade-duration-2':10.,'N-std-saccade-duration':0,
         'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5,
-        'VEM-seed-1':1,'VEM-seed-2':5,'N-VEM-seed':2},
+        'VSE-seed-1':1,'VSE-seed-2':5,'N-VSE-seed':1},
     
     'sparse-noise':{
         'square-size (deg)':2., # in degrees
@@ -187,5 +194,5 @@ STIMULI = {
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
         'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
     },
-    # 'full-field-grating+VEM':{},
+    # 'full-field-grating+VSE':{},
 }

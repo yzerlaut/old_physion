@@ -27,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                             'protocols')
 
         self.root_datafolder = tempfile.gettempdir()
+        self.datafolder = ''
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]

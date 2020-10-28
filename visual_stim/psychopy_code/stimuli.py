@@ -4,6 +4,7 @@ import itertools, os, sys, pathlib, subprocess, time
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from psychopy_code.noise import build_sparse_noise, build_dense_noise
+from psychopy_code.preprocess_NI import load, img_after_hist_normalization
 
 def build_stim(protocol):
     """
@@ -28,8 +29,8 @@ def build_stim(protocol):
         return drifting_surround_grating_stim(protocol)
     elif (protocol['Stimulus']=='Natural-Image'):
         return natural_image(protocol)
-    elif (protocol['Stimulus']=='Natural-Image+VEM'):
-        return natural_image_vem(protocol)
+    elif (protocol['Stimulus']=='Natural-Image+VSE'):
+        return natural_image_vse(protocol)
     elif (protocol['Stimulus']=='sparse-noise'):
         if protocol['Presentation']=='Single-Stimulus':
             return sparse_noise(protocol)
@@ -281,6 +282,37 @@ class visual_stim:
             parent.statusBar.showMessage('stimulation over !')
         self.win.saveMovieFrames(os.path.join(parent.datafolder,
                                               'screen-frames', 'frame.tiff'))
+
+    #####################################################
+    # adding a Virtual-Scene-Exploration on top of an image stim
+    def single_VSE_image_presentation(self, parent, index):
+        start, prev_t = clock.getTime(), clock.getTime()
+        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+            new_t = clock.getTime()
+            i0 = np.min(np.argwhere(self.VSEs[index]['t']>(new_t-start)))
+            self.PATTERNS[index][i0].draw()
+            self.add_monitoring_signal(new_t, start)
+            prev_t = new_t
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
+        self.win.getMovieFrame() # we store the last frame
+
+    def vse_run(self, parent):
+        self.start_screen(parent)
+        for i in range(len(self.experiment['index'])):
+            if stop_signal(parent):
+                break
+            print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
+            self.single_VSE_image_presentation(parent, i)
+            if self.protocol['Presentation']!='Single-Stimulus':
+                self.inter_screen(parent)
+        self.end_screen(parent)
+        if not parent.stop_flag:
+            parent.statusBar.showMessage('stimulation over !')
+        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+                                              'screen-frames', 'frame.tiff'))
         
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
@@ -318,10 +350,8 @@ class visual_stim:
     def run(self, parent):
         if len(self.protocol['Stimulus'].split('drifting'))>1:
             return self.drifting_run(parent)
-        elif len(self.protocol['Stimulus'].split('Natural-Image'))>1:
-            return self.array_run(parent)
-        # elif len(self.protocol['Stimulus'].split('VEM'))>1:
-        #     return self.array_run(parent)
+        elif len(self.protocol['Stimulus'].split('VSE'))>1:
+            return self.vse_run(parent)
         elif len(self.protocol['Stimulus'].split('noise'))>1:
             return self.array_run(parent)
         else:
@@ -532,12 +562,11 @@ class natural_image(visual_stim):
     def __init__(self, protocol):
 
         # from visual_stim.psychopy_code.preprocess_NI import load, img_after_hist_normalization
-        from .preprocess_NI import load, img_after_hist_normalization
+        # from .preprocess_NI import load, img_after_hist_normalization
         
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'])
 
-        
         for i in range(len(self.experiment['index'])):
             filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
             img = load(os.path.join(NI_directory, filename))
@@ -548,51 +577,73 @@ class natural_image(visual_stim):
                                                    units='pix', size=self.win.size)])
 
 
-def generate_VEM(duration=5,
-                 saccade_period=0.5, saccade_amplitude=50.,
-                 microsaccade_period=0.05, microsaccade_amplitude=10.,
-                 seed=0):
+#####################################################
+##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
+#####################################################
 
+
+def generate_VSE(duration=5,
+                 mean_saccade_duration=2.,# in s
+                 std_saccade_duration=1.,# in s
+                 # saccade_amplitude=50.,
+                 saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
+                 seed=0):
+    """
+    to do: clean up the VSE generator
+    """
+    print('generating Virtual-Scene-Exploration [...]')
+    
     np.random.seed(seed)
     
-    t, x, y = [], [], []
+    tsaccades = np.cumsum(np.clip(mean_saccade_duration+np.abs(np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
+                                  mean_saccade_duration/2., 1.5*mean_saccade_duration))
 
-    print('generating Virtual-Eye-Movement [...]')
+    x = np.array(np.clip(np.random.randn(len(tsaccades))*saccade_amplitude, 0, saccade_amplitude), dtype=int)
+    y = np.array(np.clip(np.random.randn(len(tsaccades))*saccade_amplitude, 0, saccade_amplitude), dtype=int)
     
-    for tt in np.cumsum(np.random.exponential(saccade_period, size=int(duration/saccade_period))):
-        
-        t.append(tt)
-        x.append(saccade_amplitude*np.random.randn())
-        y.append(saccade_amplitude*np.random.randn())
-
-    return {'t':np.array([0]+t),
-            'x':np.array([0]+x),
-            'y':np.array([0]+y)}
-            
+    return {'t':np.array([0]+list(tsaccades)),
+            'x':np.array([0]+list(x)),
+            'y':np.array([0]+list(y)),
+            'max_amplitude':saccade_amplitude}
 
             
-class natural_image_vem(visual_stim):
+
+class natural_image_vse(visual_stim):
 
     def __init__(self, protocol):
 
-        # from visual_stim.psychopy_code.preprocess_NI import load, img_after_hist_normalization
-        from .preprocess_NI import load, img_after_hist_normalization
-        
         super().__init__(protocol)
-        super().init_experiment(protocol, ['Image-ID', 'VEM-seed'])
+        super().init_experiment(protocol, ['Image-ID', 'VSE-seed', 'mean-saccade-duration', 'std-saccade-duration'])
 
-        self.VEMs = []
+        print(self.experiment)
+        self.VSEs = [] # array of Virtual-Scene-Exploration
         for i in range(len(self.experiment['index'])):
 
-            self.VEMs.append(generate_VEM(seed=int(self.experiment['VEM-seed'][i])))
+            vse = generate_VSE(duration=protocol['presentation-duration'],
+                               mean_saccade_duration=self.experiment['mean-saccade-duration'][i],
+                               std_saccade_duration=self.experiment['std-saccade-duration'][i],
+                               saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
+                               seed=int(self.experiment['VSE-seed'][i]+self.experiment['Image-ID'][i]))
+
+            self.VSEs.append(vse)
             
             filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
             img = load(os.path.join(NI_directory, filename))
-            img = 2*self.gamma_corrected_contrast(img_after_hist_normalization(img))-1 # normalization + gamma-correction
+            img = 2*self.gamma_corrected_contrast(img_after_hist_normalization(img))-1 # normalization + gamma_correction
             # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+            sx, sy = img.T.shape
 
-            self.PATTERNS.append([visual.ImageStim(self.win, image=img.T,
-                                                   units='pix', size=self.win.size)])
+            self.PATTERNS.append([])
+            
+            IMAGES = []
+            for i in range(len(vse['t'])):
+                ix, iy = vse['x'][i], vse['y'][i]
+                new_im = img.T[ix:sx-vse['max_amplitude']+ix,\
+                               iy:sy-vse['max_amplitude']+iy]
+                self.PATTERNS[-1].append(visual.ImageStim(self.win,
+                                                          image=new_im,
+                                                          units='pix', size=self.win.size))
+            
     
 
 #####################################################

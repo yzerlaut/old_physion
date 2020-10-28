@@ -206,9 +206,9 @@ if sys.argv[-1]=='natural-image':
     mywin.close()
     core.quit()
     
-if sys.argv[-1]=='natural-image+VEM':
+if sys.argv[-1]=='natural-image+VSE':
 
-    image_number = 4
+    image_number = 0
     
     NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
     filename = os.listdir(NI_directory)[image_number]
@@ -217,18 +217,36 @@ if sys.argv[-1]=='natural-image+VEM':
     mywin = visual.Window(SCREEN, monitor="testMonitor", units="deg") #create a window
 
     img = 2*img_after_hist_normalization(img)-1
-    rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
+    # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
 
-    image = visual.ImageStim(mywin, image=img.T,
-                             units='pix', size=mywin.size)
+    max_shift = 100
+    sx, sy = img.T.shape
+    
+    duration = 10
+    saccade_period = 2
+    tshift = list(np.cumsum(np.abs(np.random.randn(2*int(duration/saccade_period))*saccade_period)))
+    x = np.array(np.clip(np.random.randn(len(tshift))*max_shift/2, 0, max_shift), dtype=int)
+    y = np.array(np.clip(np.random.randn(len(tshift))*max_shift/2, 0, max_shift), dtype=int)
+    vse = {'t':np.array([0]+list(tshift)),
+           'x':np.array([0]+list(x)),
+           'y':np.array([0]+list(y))}
+
+    IMAGES = []
+    for i in range(len(tshift)+1):
+        # new_im = img.T
+        ix, iy = vse['x'][i], vse['y'][i]
+        new_im = img.T[ix:sx-max_shift+ix,iy:sy-max_shift+iy]
+        IMAGES.append(visual.ImageStim(mywin, image=new_im,
+                                          # pos=(vse['x'][i], vse['y'][i]),
+                                          # maskParams={'pos':(-vse['x'][i], -vse['y'][i])},
+                                          # maskParams={'center':(-vse['x'][i], -vse['y'][i])},
+                                          units='pix', size=mywin.size))
 
     #draw the stimuli and update the window
     start, prev = clock.getTime(), clock.getTime()
-    while (clock.getTime()-start)<4:
-        image.draw()
-        if (clock.getTime()-prev)>1:
-            image.pos += 100*np.random.randn(2)
-            prev = clock.getTime()
+    while (clock.getTime()-start)<duration:
+        i0 = np.min(np.argwhere(vse['t']>(clock.getTime()-start)))
+        IMAGES[i0].draw()
         mywin.flip()
 
     # #cleanup

@@ -2,3 +2,4 @@
 - Implement the digital reading thing
 - Suite2P workflow
 - Re-design the visual noise presentation strategy, do not preload all patterns...
+- Perform the characterization of the reliability of the Virtual-Scene-Exploration: use the photodiode, remove the monitoring signal (put it on top) and study the reliabilty of the transitions. Also remove the mask if there is one.
