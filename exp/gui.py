@@ -38,7 +38,8 @@ CONFIG_LIST = ['                                (choose)',
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
 default_settings = {'NIdaq-acquisition-frequency':10000.,
-                    'NIdaq-input-channels': 4,
+                    'NIdaq-analog-input-channels': 2,
+                    'NIdaq-digital-input-channels': 2,
                     'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
                     'config' : CONFIG_LIST[0],
@@ -123,36 +124,65 @@ class MainWindow(QtWidgets.QMainWindow):
         naf.setMinimumWidth(300)
         naf.move(50, 210)
         self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
-        self.NIdaqFreq.move(250, 210)
+        self.NIdaqFreq.move(300,210)
         self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
         
-        nrc = QtWidgets.QLabel("NI-daq recording channels (#): ", self)
-        nrc.setMinimumWidth(300)
-        nrc.move(50, 250)
+        narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
+        narc.setMinimumWidth(300)
+        narc.move(50, 250)
         self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        self.NIdaqNchannel.move(250, 250)
-        self.NIdaqNchannel.setValue(self.metadata['NIdaq-input-channels'])
+        self.NIdaqNchannel.move(300,250)
+        self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
+
+        ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
+        ndrc.setMinimumWidth(300)
+        ndrc.move(50, 290)
+        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        self.NIdaqNchannel.move(300,290)
+        self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
         
         ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
         ffr.setMinimumWidth(300)
-        ffr.move(50, 290)
+        ffr.move(50, 330)
         self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
-        self.FaceCameraFreq.move(250, 290)
+        self.FaceCameraFreq.move(300,330)
         self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
+
         
-        LABELS = ["Set protocol folder"]
-        FUNCTIONS = [self.set_protocol_folder]
-        for func, label, shift, size in zip(FUNCTIONS, LABELS,\
-                                            160*np.arange(len(LABELS)), [130, 130]):
-            btn = QtWidgets.QPushButton(label, self)
-            btn.clicked.connect(func)
-            btn.setMinimumWidth(size)
-            btn.move(shift+30, 350)
-            action = QtWidgets.QAction(label, self)
-            if len(label.split(')'))>0:
-                action.setShortcut(label.split(')')[0])
-                action.triggered.connect(func)
-                self.fileMenu.addAction(action)
+        mID = QtWidgets.QLabel("Mouse ID: ", self)
+        mID.move(100, 380)
+        self.qmID = QtWidgets.QLineEdit('0', self)
+        self.qmID.move(250, 380)
+        ms = QtWidgets.QLabel("Mouse sex: ", self)
+        ms.move(100, 420)
+        self.qms = QtWidgets.QComboBox(self)
+        self.qms.addItems(['N/A', 'Female', 'Male'])
+        self.qms.move(250, 420)
+        mg = QtWidgets.QLabel("Mouse genotype: ", self)
+        mg.move(100, 460)
+        self.qmg = QtWidgets.QLineEdit('wild type', self)
+        self.qmg.move(250, 460)
+        for m in [mID, ms, mg]:
+            m.setMinimumWidth(300)
+        
+        # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
+        # self.FaceCameraFreq.move(250, 380)
+        # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
+
+        
+        # LABELS = ["Set protocol folder"]
+        # FUNCTIONS = [self.set_protocol_folder]
+        # for func, label, shift, size in zip(FUNCTIONS, LABELS,\
+        #                                     160*np.arange(len(LABELS)), [130, 130]):
+        #     btn = QtWidgets.QPushButton(label, self)
+        #     btn.clicked.connect(func)
+        #     btn.setMinimumWidth(size)
+        #     btn.move(shift+30, 350)
+        #     action = QtWidgets.QAction(label, self)
+        #     if len(label.split(')'))>0:
+        #         action.setShortcut(label.split(')')[0])
+        #         action.triggered.connect(func)
+        #         self.fileMenu.addAction(action)
 
         self.show()
         
