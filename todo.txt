@@ -1,4 +1,4 @@
 - Implement the virtual eye movement
 - Implement the digital reading thing
 - Suite2P workflow
-- 
+- Re-design the visual noise presentation strategy, do not preload all patterns...

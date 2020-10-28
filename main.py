@@ -26,17 +26,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Physiology of Visual Circuits    ')
 
         # buttons and functions
-        LABELS = ["r) Run experiment",
-                  "s) prepare Stimulation",
-                  "c) Compress data",
-                  "t) Transfer data",
-                  "p) Pupil preprocessing",
-                  "i) Imaging preprocessing",
-                  "e) Electrophy preprocessing",
-                  "v) Visualize data",
-                  "a) Analyze data",
-                  "n) lab Notebook ",
-                  "q) Quit"]
+        LABELS = ["r) [R]un experiment",
+                  "s) prepare visual [S]timulation",
+                  "c) reformat/[C]ompress data",
+                  "t) [T]ransfer data",
+                  "p) [P]upil preprocessing",
+                  "i) [I]maging preprocessing",
+                  "e) [E]lectrophy preprocessing",
+                  "v) [V]isualize data",
+                  "a) [A]nalyze data",
+                  "n) lab [N]otebook ",
+                  "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
         # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
         FUNCTIONS = [self.launch_exp,
