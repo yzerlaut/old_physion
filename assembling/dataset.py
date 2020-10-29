@@ -339,7 +339,7 @@ class Dataset:
     def __init__(self, datafolder,
                  Photodiode_NIdaqChannel=0,
                  Electrophy_NIdaqChannel=1,
-                 Locomotion_NIdaqChannels=[2,3],
+                 Locomotion_NIdaqDigitalChannel=0,
                  compressed_version=False,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,
@@ -355,7 +355,7 @@ class Dataset:
         self.metadata = check_datafolder(self.datafolder, modalities)
 
         if self.metadata['NIdaq']: # loading the NIdaq data only once
-            data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'))
+            data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
         else:
             self.NIdaq_Tstart = None
@@ -363,20 +363,20 @@ class Dataset:
         # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
             self.Screen = ScreenData(self.datafolder, self.metadata,
-                                     NIdaq_trace=data[Photodiode_NIdaqChannel,:])
+                                     NIdaq_trace=data['analog'][Photodiode_NIdaqChannel,:])
         elif 'Screen' in modalities:
             print('[X] Screen data not found !')
 
         # Locomotion
-        if self.metadata['NIdaq'] and (data.shape[0]>max(Locomotion_NIdaqChannels)) and ('Locomotion' in modalities):
-            self.Locomotion = SingleValueTimeSerie(data[Locomotion_NIdaqChannels[0],:]+data[Locomotion_NIdaqChannels[1],:],
-                                                   dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+        if self.metadata['NIdaq'] and ('Locomotion' in modalities):
+            self.Locomotion = SingleValueTimeSerie(data['digital'][Locomotion_NIdaqDigitalChannel,:],
+                                        dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Locomotion' in modalities:
             print('[X] Locomotion data not found !')
 
         # Electrophy
-        if self.metadata['NIdaq'] and (data.shape[0]>Electrophy_NIdaqChannel) and ('Electrophy' in modalities):
-            self.Electrophy = SingleValueTimeSerie(data[Electrophy_NIdaqChannel,:],
+        if self.metadata['NIdaq'] and ('Electrophy' in modalities):
+            self.Electrophy = SingleValueTimeSerie(data['analog'][Electrophy_NIdaqChannel,:],
                                                    dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Electrophy' in modalities:
             print('[X] Electrophy data not found !')

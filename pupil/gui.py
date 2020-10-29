@@ -26,6 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         self.sampling_rate = sampling_rate
+        self.compressed_version=compressed_version
 
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
@@ -233,7 +234,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         process.load_data(self,
                           # lazy_loading=True,
-                          compressed_version=compressed_version)
+                          compressed_version=self.compressed_version)
 
         if self.Face is not None:
             self.reset()

@@ -23,7 +23,7 @@ class CameraAcquisition:
                  folder='./',
                  root_folder=None,
                  imgs_folder=None,
-                 settings={'frame_rate':20., 'gain':10., 'exposure_time':10000}):
+                 settings={'frame_rate':20.}):
         
         self.times, self.frame_index = [], 0
         if root_folder is not None:
@@ -140,12 +140,12 @@ class CameraAcquisition:
         self.save_times()
 
         
-def camera_init_and_rec(duration, stop_flag, camready_flag):
-    camera = CameraAcquisition(folder=folder)
+def camera_init_and_rec(duration, stop_flag, camready_flag, settings={'frame_rate':20.}):
+    camera = CameraAcquisition(folder=folder, settings=settings)
     camera.rec(duration, stop_flag, camready_flag)
 
-def launch_FaceCamera(run_flag, quit_flag, root_folder):
-    camera = CameraAcquisition(root_folder=root_folder)
+def launch_FaceCamera(run_flag, quit_flag, root_folder, settings={'frame_rate':20.}):
+    camera = CameraAcquisition(root_folder=root_folder, settings=settings)
     camera.rec_and_check(run_flag, quit_flag)
     
 if __name__=='__main__':

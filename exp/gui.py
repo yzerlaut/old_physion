@@ -45,7 +45,6 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'config' : CONFIG_LIST[0],
                     'FaceCamera-frame-rate': 20}
 
-
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -190,7 +189,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.FaceCamera_process is None:
             self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
                                         args=(self.run_event , self.quit_event,
-                                          self.root_datafolder))
+                                              self.root_datafolder,
+                                    {'frame_rate':default_settings['FaceCamera-frame-rate']}))
             self.FaceCamera_process.start()
             print('  starting FaceCamera stream [...] ')
             time.sleep(6)
@@ -335,7 +335,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def send_CaImaging_Stop_signal(self):
         acq = Acquisition(dt=1e-3, # 1kHz
-                          Nchannel_in=2, max_time=1.1,
+                          Nchannel_analog_in=1, max_time=1.1,
                           buffer_time=0.1,
                           output_steps= [STEP_FOR_CA_IMAGING],
                           filename=None)
