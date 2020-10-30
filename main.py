@@ -32,6 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
                   "c) reformat/[C]ompress data",
                   "t) [T]ransfer data",
                   "p) [P]upil preprocessing",
+                  "b) [B]ehavior preprocessing",
                   "i) [I]maging preprocessing",
                   "e) [E]lectrophy preprocessing",
                   "v) [V]isualize data",
@@ -46,6 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_compress,
                      self.launch_transfer,
                      self.launch_pupil,
+                     self.launch_behavior,
                      self.launch_caimaging,
                      self.launch_electrophy,
                      self.launch_visualization,
@@ -81,6 +83,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = run(self.app)
     def launch_habituation(self):
         self.statusBar.showMessage('Habituation module not implemented yet')
+    def launch_behavior(self):
+        self.statusBar.showMessage('Behavioral module not implemented yet')
     def launch_visual_stim(self):
         from visual_stim.gui import run as RunVisualStim
         self.child = RunVisualStim(self.app)

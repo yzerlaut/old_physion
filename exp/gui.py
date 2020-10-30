@@ -264,7 +264,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.stim = build_stim(self.protocol)
                 np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
                 print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
-                max_time = self.stim.experiment['time_stop'][-1]+20
+                try:
+                    max_time = self.stim.experiment['time_stop'][-1]+20
+                except KeyError:
+                    max_time = 2*60*60 # 2 hours, should be stopped manually
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
                 self.stim = None
