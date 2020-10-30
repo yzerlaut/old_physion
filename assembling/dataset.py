@@ -8,7 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path,\
     check_datafolder, get_files_with_extension
 
-from behavioral_monotoring.locomotion import compute_position_from_binary_signals
+from behavioral_monitoring.locomotion import compute_position_from_binary_signals
 
 ##############################################
 ###      Some general signal types         ###
@@ -199,17 +199,28 @@ class ScreenData(ImageTimeSeries):
 ##############################################
 
 class LocomotionData:
-    """ NOT USED YET "SingleValueTimeSerie" is enough ! """
-    def __init__(self, *args):
-        super().__init__(*args)
-    
-        
-def init_locomotion_data(self, data):
-    self.Locomotion = {'times':np.arange(data.shape[1])/self.metadata['NIdaq-acquisition-frequency'],
-                       'trace':data[Locomotion_NIdaqChannel[0],:]+\
-                       data[Locomotion_NIdaqChannel[1],:]}
+    """
+    We split the binary signal here, then
+    see ../behavioral_monitoring/locomotion.py for the algorithm to decode the rotary-encoder signal
 
+    should follow the same attributes than the  "SingleValueTimeSerie"
+    """
     
+    def __init__(self, binary_signal, dt=1.,
+                 times = None,
+                 t0=0):
+
+        A = binary_signal[0]%2
+        B = np.round(binary_signal[0]/2, 0)
+
+        if times is not None:
+            self.t = times
+        else:
+            self.t = np.arange(binary_signal.shape[1])*dt+t0
+            
+        self.val = compute_position_from_binary_signals(A, B)
+        
+
 ##############################################
 ###           Face data                   ###
 ##############################################
@@ -370,11 +381,8 @@ class Dataset:
 
         # Locomotion
         if self.metadata['NIdaq'] and ('Locomotion' in modalities):
-            pass
-            # self.Locomotion = None
-            # LocomotionData(data['digital'][Locomotion_NIdaqDigitalChannel,:],
-                                             
-            #                             dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+            self.Locomotion = LocomotionData(data['digital'],
+                                             dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Locomotion' in modalities:
             print('[X] Locomotion data not found !')
 

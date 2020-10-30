@@ -15,8 +15,6 @@ def compute_position_from_binary_signals(A, B,
     Output:
         Positions through time
 
-    
-
     '''
 
     Delta_position = np.zeros(len(A)-1, dtype=int) # N-1 elements
@@ -39,7 +37,6 @@ def compute_position_from_binary_signals(A, B,
         ( (A[:-1]==0) & (B[:-1]==1) & (A[1:]==1) & (B[1:]==1) )
     Delta_position[NIC] = -1
 
-    print(np.sum(Delta_position), len(Delta_position))
     position = np.cumsum(np.concatenate([[0], Delta_position]))
 
     return position*perimeter_cm/cpr
@@ -48,6 +45,10 @@ def compute_position_from_binary_signals(A, B,
 if __name__=='__main__':
 
 
+    """
+    testing the code on the setup with the NIdaq
+    """
+    
     import sys, os, pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
     from hardware_control.NIdaq.recording import *
