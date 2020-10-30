@@ -1,5 +1,16 @@
 # Behavioral monitoring
 
+## Monitoring of locomotion activity
+
+- Using a rotary encoder 
+
+Algorithm to compute the position was base on the case by case transitions depicted in the drawing below (left panel):
+
+<p align="center">
+  <img src="../doc/rotary-encoder.png"/>
+</p>
+
+
 ## Configure cameras
 
 ### 1) Face camera
