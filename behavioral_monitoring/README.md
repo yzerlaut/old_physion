@@ -4,11 +4,11 @@
 
 - Using a rotary encoder 
 
-Algorithm to compute the position was base on the case by case transitions depicted in the drawing below (left panel):
-
 <p align="center">
   <img src="../doc/rotary-encoder.png"/>
 </p>
+
+The algorithm to compute the position was base on the case by case transitions depicted in the drawing above (left panel), [./locomotion.py](./locomotion.py)
 
 
 ## Configure cameras
