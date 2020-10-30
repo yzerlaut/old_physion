@@ -8,6 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path,\
     check_datafolder, get_files_with_extension
 
+from behavioral_monotoring.locomotion import compute_position_from_binary_signals
 
 ##############################################
 ###      Some general signal types         ###
@@ -369,8 +370,11 @@ class Dataset:
 
         # Locomotion
         if self.metadata['NIdaq'] and ('Locomotion' in modalities):
-            self.Locomotion = SingleValueTimeSerie(data['digital'][Locomotion_NIdaqDigitalChannel,:],
-                                        dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+            pass
+            # self.Locomotion = None
+            # LocomotionData(data['digital'][Locomotion_NIdaqDigitalChannel,:],
+                                             
+            #                             dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Locomotion' in modalities:
             print('[X] Locomotion data not found !')
 

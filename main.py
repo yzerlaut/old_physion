@@ -27,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # buttons and functions
         LABELS = ["r) [R]un experiment",
+                  "h) [H]habituation protocols",
                   "s) prepare visual [S]timulation",
                   "c) reformat/[C]ompress data",
                   "t) [T]ransfer data",
@@ -40,6 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         lmax = max([len(l) for l in LABELS])
         # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
         FUNCTIONS = [self.launch_exp,
+                     self.launch_habituation,
                      self.launch_visual_stim,
                      self.launch_compress,
                      self.launch_transfer,
@@ -77,7 +79,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_exp(self):
         from exp.gui import run
         self.child = run(self.app)
-        # self.child.show()
+    def launch_habituation(self):
+        self.statusBar.showMessage('Habituation module not implemented yet')
     def launch_visual_stim(self):
         from visual_stim.gui import run as RunVisualStim
         self.child = RunVisualStim(self.app)

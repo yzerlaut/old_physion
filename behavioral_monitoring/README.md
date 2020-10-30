@@ -10,6 +10,9 @@
 
 The algorithm to compute the position was base on the case by case transitions depicted in the drawing above (left panel), [./locomotion.py](./locomotion.py)
 
+Two parameters to convert to cm (NEED TO PROVIDE REFS):
+- perimeter_cm=25
+- cpr=1000
 
 ## Configure cameras
 
