@@ -39,12 +39,13 @@ class Acquisition:
 
         # preparing input channels
         # - analog:
+        self.analog_data = np.zeros((Nchannel_analog_in, 1), dtype=np.float64)
         if self.Nchannel_analog_in>0:
             self.analog_input_channels = get_analog_input_channels(self.device)[:Nchannel_analog_in]
-            self.analog_data = np.zeros((Nchannel_analog_in, 1), dtype=np.float64)
         # - digital:
-        self.digital_input_channels = get_digital_input_channels(self.device)[:Nchannel_digital_in]
         self.digital_data = np.zeros((1, 1), dtype=np.uint32)
+        if self.Nchannel_digital_in>0:
+            self.digital_input_channels = get_digital_input_channels(self.device)[:Nchannel_digital_in]
         
         # preparing output channels
         if outputs is not None: # used as a flag for output or not
@@ -202,9 +203,10 @@ class Acquisition:
         
 if __name__=='__main__':
     acq = Acquisition(dt=1e-3,
-                      Nchannel_analog_in=2,
-                      Nchannel_digital_in=1,
-                      output_steps=[{'channel':0, 'onset': 0.3, 'duration': 1., 'value':5}])
+                      Nchannel_analog_in=0,
+                      Nchannel_digital_in=2,
+                      output_steps=[{'channel':0, 'onset': 0.3, 'duration': 1., 'value':5}],
+                      filename='data.npy')
     acq.launch()
     tstart = time.time()
     while (time.time()-tstart)<3.:
@@ -212,7 +214,7 @@ if __name__=='__main__':
     # acq.running=False
     acq.close()
     # print(acq.analog_data)
-    print(np.array(acq.digital_data)[0,-100:])
+    # print(np.array(acq.digital_data)[0,-100:])
     # print(acq.digital_data.shape)
     # np.save('data.npy', acq.analog_data)
     # from datavyz import ge
