@@ -213,8 +213,8 @@ if __name__=='__main__':
         pass
     # acq.running=False
     acq.close()
-    # print(acq.analog_data)
-    # print(np.array(acq.digital_data)[0,-100:])
+    print(acq.analog_data)
+    print(np.array(acq.digital_data)[0,-100:])
     # print(acq.digital_data.shape)
     # np.save('data.npy', acq.analog_data)
     # from datavyz import ge
