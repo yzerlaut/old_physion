@@ -236,7 +236,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
                                     [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]):
             self.metadata[modality] = bool(button.isChecked())
-            print(type(button.isChecked()))
         # Protocol
         self.metadata['protocol'] = self.cbp.currentText()
             
@@ -287,6 +286,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # --------------- #
         if self.metadata['VisualStim']:
             Nchannel_analog_in = 1
+        else:
+            Nchannel_analog_in = 0
         if self.metadata['Electrophy']:
             Nchannel_analog_in = 2
         if self.metadata['Locomotion']:
@@ -307,7 +308,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.init = True
         self.save_experiment() # saving all metadata after full initialization
-        self.statusBar.showMessage('stimulation ready !')
+        
+        if self.cbp.currentText()=='None':
+            self.statusBar.showMessage('Acquisition ready !')
+        else:
+            self.statusBar.showMessage('Acquisition & Stimulation ready !')
+
 
         
     def run(self):
@@ -320,10 +326,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.acq.launch()
             self.statusBar.showMessage('Acquisition running [...]')
         else:
+            self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # Ni-Daq
             if self.acq is not None:
                 self.acq.launch()
-            self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # run visual stim
             print(self.metadata['VisualStim'])
             if self.metadata['VisualStim']:
@@ -339,10 +345,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.stim.close() # close the visual stim
             if self.acq is not None:
                 self.acq.close()
+            if self.metadata['CaImaging'] and not self.stop_flag: # outside the pure acquisition case
+                self.send_CaImaging_Stop_signal()
                 
         self.init = False
-        if self.metadata['CaImaging'] and not self.stop_flag:
-            self.send_CaImaging_Stop_signal()
         print(100*'-', '\n', 50*'=')
         
     
