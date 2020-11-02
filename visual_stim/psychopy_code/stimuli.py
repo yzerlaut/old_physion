@@ -435,8 +435,9 @@ class drifting_center_grating_stim(visual_stim):
     
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed'])
+        super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'])
 
+        print(self.experiment['bg-color'])
         # then manually building patterns
         for i in range(len(self.experiment['index'])):
             self.PATTERNS.append([\

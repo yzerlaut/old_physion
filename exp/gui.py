@@ -1,4 +1,3 @@
-
 from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
@@ -23,18 +22,6 @@ except ModuleNotFoundError:
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
-CONFIG_LIST = ['                                (choose)',
-               'NIdaq',
-               'NIdaq+CaImaging',
-               'VisualStim',
-               'VisualStim+NIdaq',
-               'VisualStim+NIdaq+FaceCamera',
-               'VisualStim+NIdaq+CaImaging',
-               'VisualStim+NIdaq+FaceCamera+CaImaging',
-               'FaceCamera',
-               'FaceCamera+NIdaq',
-               'FaceCamera+NIdaq+CaImaging']
-
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
 default_settings = {'NIdaq-acquisition-frequency':10000.,
@@ -42,13 +29,12 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'NIdaq-digital-input-channels': 2,
                     'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
-                    'config' : CONFIG_LIST[0],
+                    # 'config' : CONFIG_LIST[0],
                     'FaceCamera-frame-rate': 20}
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app,
-                 button_length = 135):
+    def __init__(self, app):
         """
         """
         
@@ -59,7 +45,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.metadata = default_settings # set a load/save interface
         self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
-        self.config = None
 
         self.root_datafolder = self.metadata['root_datafolder']
         self.datafolder = None
@@ -75,6 +60,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.RigView_process = None
         self.params_window = None
         
+        rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
+        rml.move(30, 5)
+        rml.setMinimumWidth(500)
+        self.VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
+        self.VisualStimButton.move(30, 40)
+        self.LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
+        self.LocomotionButton.move(130, 40)
+        self.ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
+        self.ElectrophyButton.move(230, 40)
+        self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
+        self.FaceCameraButton.move(330, 40)
+        self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
+        self.CaImagingButton.move(430, 40)
+        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]:
+            button.setCheckable(True)
+        for button in [self.VisualStimButton, self.LocomotionButton]:
+            button.setChecked(True)
+
+        # protocol choice
+        QtWidgets.QLabel("Visual Protocol :", self).move(30, 90)
+        self.cbp = QtWidgets.QComboBox(self)
+        self.cbp.addItems(['None']+\
+                          [f.replace('.json', '') for f in self.protocol_list])
+        self.cbp.setMinimumWidth(350)
+        self.cbp.move(150, 90)
+        
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -85,90 +96,82 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('ready to select a protocol/config')
-        
+
         for func, label, shift in zip(FUNCTIONS, LABELS,\
-                                      button_length*np.arange(len(LABELS))):
+                                      100*np.arange(len(LABELS))):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
-            btn.setMinimumWidth(button_length)
-            btn.move(shift, 20)
+            btn.setMinimumWidth(100)
+            btn.move(50+shift, 140)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        # config choice
-        QtWidgets.QLabel("  Setup Config. :", self).move(30, 80)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.addItems(CONFIG_LIST)
-        self.cbc.setMinimumWidth(350)
-        self.cbc.move(150, 80)
+        # self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
+        # self.dfl.setMinimumWidth(300)
+        # self.dfl.move(30, 160)
+        # dfb = QtWidgets.QPushButton('Set folder', self)
+        # dfb.clicked.connect(self.choose_data_folder)
+        # dfb.move(370, 160)
 
-        # protocol choice
-        QtWidgets.QLabel("Visual Protocol :", self).move(30, 120)
-        self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems(['None']+\
-                          [f.replace('.json', '') for f in self.protocol_list])
-        self.cbp.setMinimumWidth(350)
-        self.cbp.move(150, 120)
+        # naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
+        # naf.setMinimumWidth(300)
+        # naf.move(50, 210)
+        # self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
+        # self.NIdaqFreq.move(300,210)
+        # self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
         
-        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
-        self.dfl.setMinimumWidth(300)
-        self.dfl.move(30, 160)
-        dfb = QtWidgets.QPushButton('Set folder', self)
-        dfb.clicked.connect(self.choose_data_folder)
-        dfb.move(370, 160)
+        # narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
+        # narc.setMinimumWidth(300)
+        # narc.move(50, 250)
+        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        # self.NIdaqNchannel.move(300,250)
+        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
 
-        naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
-        naf.setMinimumWidth(300)
-        naf.move(50, 210)
-        self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
-        self.NIdaqFreq.move(300,210)
-        self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
+        # ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
+        # ndrc.setMinimumWidth(300)
+        # ndrc.move(50, 290)
+        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        # self.NIdaqNchannel.move(300,290)
+        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
         
-        narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
-        narc.setMinimumWidth(300)
-        narc.move(50, 250)
-        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        self.NIdaqNchannel.move(300,250)
-        self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
+        # ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
+        # ffr.setMinimumWidth(300)
+        # ffr.move(50, 330)
+        # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
+        # self.FaceCameraFreq.move(300,330)
+        # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
 
-        ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
-        ndrc.setMinimumWidth(300)
-        ndrc.move(50, 290)
-        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        self.NIdaqNchannel.move(300,290)
-        self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
-        
-        ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
-        ffr.setMinimumWidth(300)
-        ffr.move(50, 330)
-        self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
-        self.FaceCameraFreq.move(300,330)
-        self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
+        QtWidgets.QLabel("Mouse ID: ", self).move(40, 210)
+        self.qmID = QtWidgets.QComboBox(self)
+        self.qmID.addItems(['1'])
+        self.qmID.move(140, 210)
+        self.addID = QtWidgets.QPushButton('Add new mouse')
+        self.addID.move(250, 210)
 
+        QtWidgets.QLabel("Notes: ", self).move(60, 260)
+        self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
+        self.qmNotes.move(130, 260)
+        self.qmNotes.setMinimumWidth(250)
+        self.qmNotes.setMinimumHeight(70)
         
-        mID = QtWidgets.QLabel("Mouse ID: ", self)
-        mID.move(100, 380)
-        self.qmID = QtWidgets.QLineEdit('0', self)
-        self.qmID.move(250, 380)
-        ms = QtWidgets.QLabel("Mouse sex: ", self)
-        ms.move(100, 420)
-        self.qms = QtWidgets.QComboBox(self)
-        self.qms.addItems(['N/A', 'Female', 'Male'])
-        self.qms.move(250, 420)
-        mg = QtWidgets.QLabel("Mouse genotype: ", self)
-        mg.move(100, 460)
-        self.qmg = QtWidgets.QLineEdit('wild type', self)
-        self.qmg.move(250, 460)
-        for m in [mID, ms, mg]:
-            m.setMinimumWidth(300)
+        # ms = QtWidgets.QLabel("Mouse sex: ", self)
+        # ms.move(100, 420)
+        # self.qms = QtWidgets.QComboBox(self)
+        # self.qms.addItems(['N/A', 'Female', 'Male'])
+        # self.qms.move(250, 420)
+        # mg = QtWidgets.QLabel("Mouse genotype: ", self)
+        # mg.move(100, 460)
+        # self.qmg = QtWidgets.QLineEdit('wild type', self)
+        # self.qmg.move(250, 460)
+        # for m in [mID, ms, mg]:
+        #     m.setMinimumWidth(300)
         
         # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
         # self.FaceCameraFreq.move(250, 380)
         # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
 
-        
         # LABELS = ["Set protocol folder"]
         # FUNCTIONS = [self.set_protocol_folder]
         # for func, label, shift, size in zip(FUNCTIONS, LABELS,\
@@ -211,12 +214,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Invalid folder -> folder unchanged')
 
             
-    def analyze_data(self):
-        pass
-    
-    def view_data(self):
-        pass
-
     def rigview(self):
         if self.RigView_process is not None:
             self.RigView_process.terminate()
@@ -229,70 +226,92 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def initialize(self):
 
-        i = self.cbc.currentIndex()
-        if self.cbc.currentIndex()==0:
-            self.statusBar.showMessage('/!\ Need to choose a configuration !')
-        # elif self.cbp.currentIndex()==0 and self.cbc.currentIndex()!=1:
-        #     # we still tolerate NIdaq only
-        #     self.statusBar.showMessage('/!\ Need to choose a protocol !')
+        # Setup configuration
+        for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
+                                    [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]):
+            self.metadata[modality] = bool(button.isChecked())
+        # Protocol
+        self.metadata['protocol'] = self.cbp.currentText()
+            
+
+        if self.cbp.currentText()=='None':
+            self.statusBar.showMessage('[...] initializing acquisition')
         else:
-            self.config = self.cbc.currentText()
-            self.metadata['protocol'] = self.cbp.currentText()
+            self.statusBar.showMessage('[...] initializing acquisition & stimulation')
             
-            self.statusBar.showMessage('[...] preparing stimulation')
 
-            self.filename = generate_filename_path(self.root_datafolder,
-                                    filename='metadata', extension='.npy',
-                                    with_FaceCamera_frames_folder=('FaceCamera' in self.config),
-                                    with_screen_frames_folder=('VisualStim' in self.config))
-            self.datafolder = os.path.dirname(self.filename)
+        self.filename = generate_filename_path(self.root_datafolder,
+                                               filename='metadata', extension='.npy',
+                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
+                                               with_screen_frames_folder=self.metadata['VisualStim'])
+        self.datafolder = os.path.dirname(self.filename)
             
-            if self.metadata['protocol']!='None':
-                with open(os.path.join(self.protocol_folder,
-                                       self.metadata['protocol']+'.json'), 'r') as fp:
-                    self.protocol = json.load(fp)
-            else:
-                    self.protocol = {}
+        if self.metadata['protocol']!='None':
+            with open(os.path.join(self.protocol_folder,
+                                   self.metadata['protocol']+'.json'), 'r') as fp:
+                self.protocol = json.load(fp)
+        else:
+                self.protocol = {}
                     
-            # init facecamera
-            if 'FaceCamera' in self.config:
-                self.statusBar.showMessage('Initializing Camera stream [...]')
-                self.facecamera_init()
+        # init facecamera
+        if self.metadata['FaceCamera']:
+            self.statusBar.showMessage('Initializing Camera stream [...]')
+            self.facecamera_init()
                 
-            # init visual stimulation
-            if 'VisualStim' in self.config:
-                self.stim = build_stim(self.protocol)
-                np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
-                print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
-                try:
-                    max_time = self.stim.experiment['time_stop'][-1]+20
-                except KeyError:
-                    max_time = 10*60 # 10 min, should be stopped manually
+        # init visual stimulation
+        if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
+            self.stim = build_stim(self.protocol)
+            np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
+            print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
+            if 'time_stop' in self.stim.experiment:
+                max_time = self.stim.experiment['time_stop'][-1]+20
+            elif 'refresh_times' in self.stim.experiment:
+                max_time = self.stim.experiment['refresh_times'][-1]+20
             else:
-                max_time = 2*60*60 # 2 hours, should be stopped manually
-                self.stim = None
+                max_time = 1*60*60 # 1 hour, should be stopped manually
+        else:
+            max_time = 1*60*60 # 1 hour, should be stopped manually
+            self.stim = None
 
-            output_steps = []
-            if 'CaImaging' in self.config:
-                output_steps.append(STEP_FOR_CA_IMAGING)
+        output_steps = []
+        if self.metadata['CaImaging']:
+            output_steps.append(STEP_FOR_CA_IMAGING)
+
+        # --------------- #
+        ### NI daq init ###
+        # --------------- #
+        if self.metadata['VisualStim']:
+            Nchannel_analog_in = 1
+        else:
+            Nchannel_analog_in = 0
+        if self.metadata['Electrophy']:
+            Nchannel_analog_in = 2
+        if self.metadata['Locomotion']:
+            Nchannel_digital_in = 2
+        else:
+            Nchannel_digital_in = 0
+        try:
+            self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
+                                   Nchannel_analog_in=Nchannel_analog_in,
+                                   Nchannel_digital_in=Nchannel_digital_in,
+                                   max_time=max_time,
+                                   output_steps=output_steps,
+                                   filename= self.filename.replace('metadata', 'NIdaq'))
+        except BaseException as e:
+            print(e)
+            print(' /!\ PB WITH NI-DAQ /!\ ')
+            self.acq = None
+
+        self.init = True
+        self.save_experiment() # saving all metadata after full initialization
+        
+        if self.cbp.currentText()=='None':
+            self.statusBar.showMessage('Acquisition ready !')
+        else:
+            self.statusBar.showMessage('Acquisition & Stimulation ready !')
 
 
-            if 'NIdaq' in self.config:
-                self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                       Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
-                                       Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
-                                       max_time=max_time,
-                                       output_steps=output_steps,
-                                       filename= self.filename.replace('metadata', 'NIdaq'))
-            else:
-                self.acq = None
-            
-            self.init = True
-            
-            self.save_experiment() # saving all metadata after full initialization
-
-            self.statusBar.showMessage('stimulation ready !')
-            
+        
     def run(self):
         self.stop_flag=False
         self.run_event.set() # start the run flag for the facecamera
@@ -301,27 +320,33 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Need to initialize the stimulation !')
         elif self.stim is None and self.acq is not None:
             self.acq.launch()
-            self.statusBar.showMessage('NIdaq recording running [...]')
-            self.init = False
+            self.statusBar.showMessage('Acquisition running [...]')
         else:
+            self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # Ni-Daq
             if self.acq is not None:
                 self.acq.launch()
-            self.statusBar.showMessage('stimulation & recording running [...]')
             # run visual stim
-            if 'VisualStim' in self.config:
+            print(self.metadata['VisualStim'])
+            if self.metadata['VisualStim']:
                 self.stim.run(self)
+            # ========================
+            # ---- HERE IT RUNS [...]
+            # ========================
             # stop and clean up things
-            if 'FaceCamera' in self.config:
+            if self.metadata['FaceCamera']:
                 self.run_event.clear() # this will close the camera process
-            if 'VisualStim' in self.config:
+            # close visual stim
+            if self.metadata['VisualStim']:
                 self.stim.close() # close the visual stim
             if self.acq is not None:
                 self.acq.close()
-            self.init = False
-            if 'CaImaging' in self.config and not self.stop_flag:
+            if self.metadata['CaImaging'] and not self.stop_flag: # outside the pure acquisition case
                 self.send_CaImaging_Stop_signal()
+                
+        self.init = False
         print(100*'-', '\n', 50*'=')
+        
     
     def stop(self):
         self.run_event.clear() # this will close the camera process
@@ -331,14 +356,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.stim.close()
             self.init = False
-        if 'CaImaging' in self.config:
+        if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
         self.statusBar.showMessage('stimulation stopped !')
         print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):
+        self.statusBar.showMessage('sending stop signal for 2-Photon acq.')
         acq = Acquisition(dt=1e-3, # 1kHz
-                          Nchannel_analog_in=1, max_time=1.1,
+                          Nchannel_analog_in=1, Nchannel_digital_in=0,
+                          max_time=1.1,
                           buffer_time=0.1,
                           output_steps= [STEP_FOR_CA_IMAGING],
                           filename=None)

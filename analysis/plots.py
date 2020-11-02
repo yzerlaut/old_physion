@@ -10,9 +10,13 @@ pupilpen = pg.mkPen((255,0,0), width=3, style=QtCore.Qt.SolidLine)
 def scale_and_position(self, y, value=None, i=0):
     if value is None:
         value=y
-    return shift(self, i)+\
-        self.settings['increase-factor']**i*\
-        (value-y.min())/(y.max()-y.min())
+    ymin, ymax = y.min(), y.max()
+    if ymin<ymax:
+        return shift(self, i)+\
+            self.settings['increase-factor']**i*\
+            (value-ymin)/(ymax-ymin)
+    else:
+        return shift(self, i)+value
 
 def shift(self, i):
     return self.settings['blank-space']*i+\
