@@ -22,26 +22,6 @@ except ModuleNotFoundError:
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
-CONFIG_LIST = ['                                (choose)',
-               'VisualStim',
-               'Locomotion',
-               'Electrophy',
-               'FaceCamera',
-               'VisualStim+Locomotion',
-               'VisualStim+FaceCamera+Locomotion+CaImaging',
-               'VisualStim+Locomotion+CaImaging',
-               'VisualStim+Locomotion+Electrophy',
-               'VisualStim+Locomotion+Electrophy+CaImaging',
-               'VisualStim+FaceCamera+Locomotion+Electrophy+CaImaging',
-               'Locomotion+CaImaging',
-               'VisualStim+NIdaq',
-               'VisualStim+NIdaq+FaceCamera',
-               'VisualStim+NIdaq+CaImaging',
-               'VisualStim+NIdaq+FaceCamera+CaImaging',
-               'FaceCamera',
-               'FaceCamera+NIdaq',
-               'FaceCamera+NIdaq+CaImaging']
-
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
 default_settings = {'NIdaq-acquisition-frequency':10000.,
@@ -123,7 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(100)
-            btn.move(100+shift, 140)
+            btn.move(50+shift, 140)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
@@ -253,65 +233,76 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def initialize(self):
 
-        i = self.cbc.currentIndex()
-        if self.cbc.currentIndex()==0:
-            self.statusBar.showMessage('/!\ Need to choose a configuration !')
-        # elif self.cbp.currentIndex()==0 and self.cbc.currentIndex()!=1:
-        #     # we still tolerate NIdaq only
-        #     self.statusBar.showMessage('/!\ Need to choose a protocol !')
-        else:
-            self.config = self.cbc.currentText()
-            self.metadata['protocol'] = self.cbp.currentText()
+        # Setup configuration
+        for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
+                                    [VisualStimButton, LocomotionButton, ElectrophyButton, FaceCameraButton, CaImagingButton]):
+            self.metadata[modality] = button.isChecked()
+        # Protocol
+        self.metadata['protocol'] = self.cbp.currentText()
             
-            self.statusBar.showMessage('[...] preparing stimulation')
 
-            self.filename = generate_filename_path(self.root_datafolder,
-                                    filename='metadata', extension='.npy',
-                                    with_FaceCamera_frames_folder=('FaceCamera' in self.config),
-                                    with_screen_frames_folder=('VisualStim' in self.config))
-            self.datafolder = os.path.dirname(self.filename)
+        if self.cbp.currentText()=='None':
+            self.statusBar.showMessage('[...] initializing acquisition')
+        else:
+            self.statusBar.showMessage('[...] initializing acquisition & stimulation')
             
-            if self.metadata['protocol']!='None':
-                with open(os.path.join(self.protocol_folder,
-                                       self.metadata['protocol']+'.json'), 'r') as fp:
-                    self.protocol = json.load(fp)
-            else:
-                    self.protocol = {}
+
+        self.filename = generate_filename_path(self.root_datafolder,
+                                               filename='metadata', extension='.npy',
+                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
+                                               with_screen_frames_folder=self.metadata['VisualStim'])
+        self.datafolder = os.path.dirname(self.filename)
+            
+        if self.metadata['protocol']!='None':
+            with open(os.path.join(self.protocol_folder,
+                                   self.metadata['protocol']+'.json'), 'r') as fp:
+                self.protocol = json.load(fp)
+        else:
+                self.protocol = {}
                     
-            # init facecamera
-            if 'FaceCamera' in self.config:
-                self.statusBar.showMessage('Initializing Camera stream [...]')
-                self.facecamera_init()
+        # init facecamera
+        if self.metadata['FaceCamera']:
+            self.statusBar.showMessage('Initializing Camera stream [...]')
+            self.facecamera_init()
                 
-            # init visual stimulation
-            if 'VisualStim' in self.config:
-                self.stim = build_stim(self.protocol)
-                np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
-                print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
-                try:
-                    max_time = self.stim.experiment['time_stop'][-1]+20
-                except KeyError:
-                    max_time = 2*60*60 # 2 hours, should be stopped manually
+        # init visual stimulation
+        if self.metadata['VisualStim']:
+            self.stim = build_stim(self.protocol)
+            np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
+            print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
+            try:
+                max_time = self.stim.experiment['time_stop'][-1]+20
+            except KeyError:
+                max_time = 2*60*60 # 2 hours, should be stopped manually
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
                 self.stim = None
 
-            output_steps = []
-            if 'CaImaging' in self.config:
-                output_steps.append(STEP_FOR_CA_IMAGING)
+        output_steps = []
+        if self.metadata['CaImaging']:
+            output_steps.append(STEP_FOR_CA_IMAGING)
 
+        try:
+            if self.metadata['VisualStim']:
+                Nchannel_analog_in = 1
+            if self.metadata['Electrophy']:
+                Nchannel_analog_in = 2
+            if self.metadata['Locomotion']:
+                Nchannel_digital_in = 2
+            else:
+                Nchannel_digital_in = 0
 
-            try:
-                self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                       Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
-                                       Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
-                                       max_time=max_time,
-                                       output_steps=output_steps,
-                                       filename= self.filename.replace('metadata', 'NIdaq'))
-            except BaseException as e:
-                print(e)
-                self.acq = None
-            
+            self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
+                                   Nchannel_analog_in=Nchannel_analog_in,
+                                   Nchannel_digital_in=Nchannel_digital_in,
+                                   max_time=max_time,
+                                   output_steps=output_steps,
+                                   filename= self.filename.replace('metadata', 'NIdaq'))
+        except BaseException as e:
+            print(e)
+            print(' /!\ PB WITH NI-DAQ /!\ ')
+            self.acq = None
+
             self.init = True
             
             self.save_experiment() # saving all metadata after full initialization
