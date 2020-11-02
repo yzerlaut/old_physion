@@ -267,7 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 try:
                     max_time = self.stim.experiment['time_stop'][-1]+20
                 except KeyError:
-                    max_time = 2*60*60 # 2 hours, should be stopped manually
+                    max_time = 10*60 # 10 min, should be stopped manually
             else:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
                 self.stim = None
