@@ -29,7 +29,7 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
                     'NIdaq-digital-input-channels': 2,
                     'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
-                    'config' : CONFIG_LIST[0],
+                    # 'config' : CONFIG_LIST[0],
                     'FaceCamera-frame-rate': 20}
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -45,7 +45,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.metadata = default_settings # set a load/save interface
         self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
-        self.config = None
 
         self.root_datafolder = self.metadata['root_datafolder']
         self.datafolder = None
@@ -64,19 +63,19 @@ class MainWindow(QtWidgets.QMainWindow):
         rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
         rml.move(30, 5)
         rml.setMinimumWidth(500)
-        VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
-        VisualStimButton.move(30, 40)
-        LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
-        LocomotionButton.move(130, 40)
-        ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
-        ElectrophyButton.move(230, 40)
-        FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
-        FaceCameraButton.move(330, 40)
-        CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
-        CaImagingButton.move(430, 40)
-        for button in [VisualStimButton, LocomotionButton, ElectrophyButton, FaceCameraButton, CaImagingButton]:
+        self.VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
+        self.VisualStimButton.move(30, 40)
+        self.LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
+        self.LocomotionButton.move(130, 40)
+        self.ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
+        self.ElectrophyButton.move(230, 40)
+        self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
+        self.FaceCameraButton.move(330, 40)
+        self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
+        self.CaImagingButton.move(430, 40)
+        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
-        for button in [VisualStimButton, LocomotionButton]:
+        for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
 
         # protocol choice
@@ -235,8 +234,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Setup configuration
         for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
-                                    [VisualStimButton, LocomotionButton, ElectrophyButton, FaceCameraButton, CaImagingButton]):
-            self.metadata[modality] = button.isChecked()
+                                    [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]):
+            self.metadata[modality] = bool(button.isChecked())
+            print(type(button.isChecked()))
         # Protocol
         self.metadata['protocol'] = self.cbp.currentText()
             
@@ -266,7 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.facecamera_init()
                 
         # init visual stimulation
-        if self.metadata['VisualStim']:
+        if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
             self.stim = build_stim(self.protocol)
             np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
@@ -274,24 +274,26 @@ class MainWindow(QtWidgets.QMainWindow):
                 max_time = self.stim.experiment['time_stop'][-1]+20
             except KeyError:
                 max_time = 2*60*60 # 2 hours, should be stopped manually
-            else:
-                max_time = 2*60*60 # 2 hours, should be stopped manually
-                self.stim = None
+        else:
+            max_time = 2*60*60 # 2 hours, should be stopped manually
+            self.stim = None
 
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(STEP_FOR_CA_IMAGING)
 
+        # --------------- #
+        ### NI daq init ###
+        # --------------- #
+        if self.metadata['VisualStim']:
+            Nchannel_analog_in = 1
+        if self.metadata['Electrophy']:
+            Nchannel_analog_in = 2
+        if self.metadata['Locomotion']:
+            Nchannel_digital_in = 2
+        else:
+            Nchannel_digital_in = 0
         try:
-            if self.metadata['VisualStim']:
-                Nchannel_analog_in = 1
-            if self.metadata['Electrophy']:
-                Nchannel_analog_in = 2
-            if self.metadata['Locomotion']:
-                Nchannel_digital_in = 2
-            else:
-                Nchannel_digital_in = 0
-
             self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                    Nchannel_analog_in=Nchannel_analog_in,
                                    Nchannel_digital_in=Nchannel_digital_in,
@@ -303,12 +305,11 @@ class MainWindow(QtWidgets.QMainWindow):
             print(' /!\ PB WITH NI-DAQ /!\ ')
             self.acq = None
 
-            self.init = True
-            
-            self.save_experiment() # saving all metadata after full initialization
+        self.init = True
+        self.save_experiment() # saving all metadata after full initialization
+        self.statusBar.showMessage('stimulation ready !')
 
-            self.statusBar.showMessage('stimulation ready !')
-            
+        
     def run(self):
         self.stop_flag=False
         self.run_event.set() # start the run flag for the facecamera
@@ -317,27 +318,33 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Need to initialize the stimulation !')
         elif self.stim is None and self.acq is not None:
             self.acq.launch()
-            self.statusBar.showMessage('NIdaq recording running [...]')
-            self.init = False
+            self.statusBar.showMessage('Acquisition running [...]')
         else:
             # Ni-Daq
             if self.acq is not None:
                 self.acq.launch()
-            self.statusBar.showMessage('stimulation & recording running [...]')
+            self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # run visual stim
-            if 'VisualStim' in self.config:
+            print(self.metadata['VisualStim'])
+            if self.metadata['VisualStim']:
                 self.stim.run(self)
+            # ========================
+            # ---- HERE IT RUNS [...]
+            # ========================
             # stop and clean up things
-            if 'FaceCamera' in self.config:
+            if self.metadata['FaceCamera']:
                 self.run_event.clear() # this will close the camera process
-            if 'VisualStim' in self.config:
+            # close visual stim
+            if self.metadata['VisualStim']:
                 self.stim.close() # close the visual stim
             if self.acq is not None:
                 self.acq.close()
-            self.init = False
-            if 'CaImaging' in self.config and not self.stop_flag:
-                self.send_CaImaging_Stop_signal()
+                
+        self.init = False
+        if self.metadata['CaImaging'] and not self.stop_flag:
+            self.send_CaImaging_Stop_signal()
         print(100*'-', '\n', 50*'=')
+        
     
     def stop(self):
         self.run_event.clear() # this will close the camera process
@@ -347,14 +354,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.stim is not None:
             self.stim.close()
             self.init = False
-        if 'CaImaging' in self.config:
+        if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
         self.statusBar.showMessage('stimulation stopped !')
         print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):
+        self.statusBar.showMessage('sending stop signal for 2-Photon acq.')
         acq = Acquisition(dt=1e-3, # 1kHz
-                          Nchannel_analog_in=1, max_time=1.1,
+                          Nchannel_analog_in=1, Nchannel_digital_in=0,
+                          max_time=1.1,
                           buffer_time=0.1,
                           output_steps= [STEP_FOR_CA_IMAGING],
                           filename=None)

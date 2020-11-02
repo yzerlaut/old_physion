@@ -150,9 +150,9 @@ class Acquisition:
                 self.read_digital_task.close()
             if self.Nchannel_analog_in>0:
                 self.read_analog_task.close()
-
-        self.write_task.close()
-        self.sample_clk_task.close()
+            if self.outputs is not None:
+                self.write_task.close()
+            self.sample_clk_task.close()
 
         if (self.filename is not None):
             if self.data_saved:
