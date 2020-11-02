@@ -1,4 +1,3 @@
-
 from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
@@ -24,9 +23,17 @@ except ModuleNotFoundError:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
 CONFIG_LIST = ['                                (choose)',
-               'NIdaq',
-               'NIdaq+CaImaging',
                'VisualStim',
+               'Locomotion',
+               'Electrophy',
+               'FaceCamera',
+               'VisualStim+Locomotion',
+               'VisualStim+FaceCamera+Locomotion+CaImaging',
+               'VisualStim+Locomotion+CaImaging',
+               'VisualStim+Locomotion+Electrophy',
+               'VisualStim+Locomotion+Electrophy+CaImaging',
+               'VisualStim+FaceCamera+Locomotion+Electrophy+CaImaging',
+               'Locomotion+CaImaging',
                'VisualStim+NIdaq',
                'VisualStim+NIdaq+FaceCamera',
                'VisualStim+NIdaq+CaImaging',
@@ -47,8 +54,7 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app,
-                 button_length = 135):
+    def __init__(self, app):
         """
         """
         
@@ -75,6 +81,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.RigView_process = None
         self.params_window = None
         
+        rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
+        rml.move(30, 5)
+        rml.setMinimumWidth(500)
+        VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
+        VisualStimButton.move(30, 40)
+        LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
+        LocomotionButton.move(130, 40)
+        ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
+        ElectrophyButton.move(230, 40)
+        FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
+        FaceCameraButton.move(330, 40)
+        CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
+        CaImagingButton.move(430, 40)
+        for button in [VisualStimButton, LocomotionButton, ElectrophyButton, FaceCameraButton, CaImagingButton]:
+            button.setCheckable(True)
+        for button in [VisualStimButton, LocomotionButton]:
+            button.setChecked(True)
+
+        # protocol choice
+        QtWidgets.QLabel("Visual Protocol :", self).move(30, 90)
+        self.cbp = QtWidgets.QComboBox(self)
+        self.cbp.addItems(['None']+\
+                          [f.replace('.json', '') for f in self.protocol_list])
+        self.cbp.setMinimumWidth(350)
+        self.cbp.move(150, 90)
+        
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -85,90 +117,82 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('ready to select a protocol/config')
-        
+
         for func, label, shift in zip(FUNCTIONS, LABELS,\
-                                      button_length*np.arange(len(LABELS))):
+                                      100*np.arange(len(LABELS))):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
-            btn.setMinimumWidth(button_length)
-            btn.move(shift, 20)
+            btn.setMinimumWidth(100)
+            btn.move(100+shift, 140)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        # config choice
-        QtWidgets.QLabel("  Setup Config. :", self).move(30, 80)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.addItems(CONFIG_LIST)
-        self.cbc.setMinimumWidth(350)
-        self.cbc.move(150, 80)
+        # self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
+        # self.dfl.setMinimumWidth(300)
+        # self.dfl.move(30, 160)
+        # dfb = QtWidgets.QPushButton('Set folder', self)
+        # dfb.clicked.connect(self.choose_data_folder)
+        # dfb.move(370, 160)
 
-        # protocol choice
-        QtWidgets.QLabel("Visual Protocol :", self).move(30, 120)
-        self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems(['None']+\
-                          [f.replace('.json', '') for f in self.protocol_list])
-        self.cbp.setMinimumWidth(350)
-        self.cbp.move(150, 120)
+        # naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
+        # naf.setMinimumWidth(300)
+        # naf.move(50, 210)
+        # self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
+        # self.NIdaqFreq.move(300,210)
+        # self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
         
-        self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
-        self.dfl.setMinimumWidth(300)
-        self.dfl.move(30, 160)
-        dfb = QtWidgets.QPushButton('Set folder', self)
-        dfb.clicked.connect(self.choose_data_folder)
-        dfb.move(370, 160)
+        # narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
+        # narc.setMinimumWidth(300)
+        # narc.move(50, 250)
+        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        # self.NIdaqNchannel.move(300,250)
+        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
 
-        naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
-        naf.setMinimumWidth(300)
-        naf.move(50, 210)
-        self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
-        self.NIdaqFreq.move(300,210)
-        self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
+        # ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
+        # ndrc.setMinimumWidth(300)
+        # ndrc.move(50, 290)
+        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
+        # self.NIdaqNchannel.move(300,290)
+        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
         
-        narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
-        narc.setMinimumWidth(300)
-        narc.move(50, 250)
-        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        self.NIdaqNchannel.move(300,250)
-        self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
+        # ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
+        # ffr.setMinimumWidth(300)
+        # ffr.move(50, 330)
+        # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
+        # self.FaceCameraFreq.move(300,330)
+        # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
 
-        ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
-        ndrc.setMinimumWidth(300)
-        ndrc.move(50, 290)
-        self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        self.NIdaqNchannel.move(300,290)
-        self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
-        
-        ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
-        ffr.setMinimumWidth(300)
-        ffr.move(50, 330)
-        self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
-        self.FaceCameraFreq.move(300,330)
-        self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
+        QtWidgets.QLabel("Mouse ID: ", self).move(40, 210)
+        self.qmID = QtWidgets.QComboBox(self)
+        self.qmID.addItems(['1'])
+        self.qmID.move(140, 210)
+        self.addID = QtWidgets.QPushButton('Add new mouse')
+        self.addID.move(250, 210)
 
+        QtWidgets.QLabel("Notes: ", self).move(60, 260)
+        self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
+        self.qmNotes.move(130, 260)
+        self.qmNotes.setMinimumWidth(250)
+        self.qmNotes.setMinimumHeight(70)
         
-        mID = QtWidgets.QLabel("Mouse ID: ", self)
-        mID.move(100, 380)
-        self.qmID = QtWidgets.QLineEdit('0', self)
-        self.qmID.move(250, 380)
-        ms = QtWidgets.QLabel("Mouse sex: ", self)
-        ms.move(100, 420)
-        self.qms = QtWidgets.QComboBox(self)
-        self.qms.addItems(['N/A', 'Female', 'Male'])
-        self.qms.move(250, 420)
-        mg = QtWidgets.QLabel("Mouse genotype: ", self)
-        mg.move(100, 460)
-        self.qmg = QtWidgets.QLineEdit('wild type', self)
-        self.qmg.move(250, 460)
-        for m in [mID, ms, mg]:
-            m.setMinimumWidth(300)
+        # ms = QtWidgets.QLabel("Mouse sex: ", self)
+        # ms.move(100, 420)
+        # self.qms = QtWidgets.QComboBox(self)
+        # self.qms.addItems(['N/A', 'Female', 'Male'])
+        # self.qms.move(250, 420)
+        # mg = QtWidgets.QLabel("Mouse genotype: ", self)
+        # mg.move(100, 460)
+        # self.qmg = QtWidgets.QLineEdit('wild type', self)
+        # self.qmg.move(250, 460)
+        # for m in [mID, ms, mg]:
+        #     m.setMinimumWidth(300)
         
         # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
         # self.FaceCameraFreq.move(250, 380)
         # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
 
-        
         # LABELS = ["Set protocol folder"]
         # FUNCTIONS = [self.set_protocol_folder]
         # for func, label, shift, size in zip(FUNCTIONS, LABELS,\
@@ -277,14 +301,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 output_steps.append(STEP_FOR_CA_IMAGING)
 
 
-            if 'NIdaq' in self.config:
+            try:
                 self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                        Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
                                        Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
                                        max_time=max_time,
                                        output_steps=output_steps,
                                        filename= self.filename.replace('metadata', 'NIdaq'))
-            else:
+            except BaseException as e:
+                print(e)
                 self.acq = None
             
             self.init = True

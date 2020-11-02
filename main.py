@@ -26,8 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Physiology of Visual Circuits    ')
 
         # buttons and functions
-        LABELS = ["r) [R]un experiment",
-                  "h) [H]habituation protocols",
+        LABELS = ["r) [R]un experiments",
                   "s) prepare visual [S]timulation",
                   "c) reformat/[C]ompress data",
                   "t) [T]ransfer data",
@@ -42,7 +41,6 @@ class MainWindow(QtWidgets.QMainWindow):
         lmax = max([len(l) for l in LABELS])
         # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
         FUNCTIONS = [self.launch_exp,
-                     self.launch_habituation,
                      self.launch_visual_stim,
                      self.launch_compress,
                      self.launch_transfer,
@@ -55,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_notebook,
                      self.quit]
         
-        self.setGeometry(50, 50, 300, 47*len(LABELS))
+        self.setGeometry(50, 50, 300, 46*len(LABELS))
         
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('')
@@ -64,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('select a module')
         
-        for func, label, ishift in zip(FUNCTIONS, LABELS,\
+        for func, label, ishift in zip(FUNCTIONS, LABELS,
                                        range(len(LABELS))):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
@@ -81,8 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_exp(self):
         from exp.gui import run
         self.child = run(self.app)
-    def launch_habituation(self):
-        self.statusBar.showMessage('Habituation module not implemented yet')
     def launch_behavior(self):
         self.statusBar.showMessage('Behavioral module not implemented yet')
     def launch_visual_stim(self):
