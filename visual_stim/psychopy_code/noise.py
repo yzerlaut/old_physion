@@ -16,7 +16,7 @@ def build_sparse_noise(duration,
                        noise_rdm_jitter_refresh_time=0.15,
                        seed=0):
 
-                                   
+    print('building sparse noise array [...]')
     pix = monitor.getSizePix()
     width_deg = 2*np.arctan(monitor.getWidth()/2./monitor.getDistance())*180./np.pi
     height_deg = 2*np.arctan(monitor.getWidth()*pix[1]/pix[0]/2./monitor.getDistance())*180./np.pi
@@ -47,6 +47,7 @@ def build_sparse_noise(duration,
             cond = (x>=x0) & (x<x0+square_size) & (y>=y0) & (y<y0+square_size)
             array[i,:,:][cond] = v
 
+    print('[ok] sparse noise array initialized !')
     STIM = {'t':events,
             'array':array}
     return STIM
@@ -59,6 +60,7 @@ def build_dense_noise(duration,
                       seed=0):
 
 
+    print('building dense noise array [...]')
     pix = monitor.getSizePix()
     width_deg = 2*np.arctan(monitor.getWidth()/2./monitor.getDistance())*180./np.pi
     height_deg = width_deg*pix[1]/pix[0]
@@ -91,7 +93,7 @@ def build_dense_noise(duration,
 
     STIM = {'t':events,
             'array':array}
-    
+    print('[ok] dense noise array initialized !')
     return STIM
 
 if __name__=='__main__':

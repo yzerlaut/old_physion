@@ -23,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
         self.params_window = None
-        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[0],
+        self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
                                             'protocols')
 
         self.root_datafolder = tempfile.gettempdir()

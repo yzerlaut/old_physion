@@ -1,13 +1,14 @@
 """
 
 """
-import simple_pyspin, time, os
+import simple_pyspin, time, sys, os
+from skimage.io import imsave
 import numpy as np
 from pathlib import Path
-import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from assembling.saving import last_datafolder_in_dayfolder, day_folder
 
+desktop_png = os.path.join(os.path.expanduser("~/Desktop"), 'FaceCamera.png')
 
 class stop_func: # dummy version of the multiprocessing.Event class
     def __init__(self):
@@ -71,7 +72,13 @@ class CameraAcquisition:
 
         # self.cam.ExposureAuto = 'Off'
         # self.cam.ExposureTime =settings['exposure_time'] # microseconds, ~20% of interframe interval
-        
+
+
+    def save_sample_on_desktop(self):
+        ### SAVING A SAMPLE ON THE DESKTOP
+        print('saving a sample image as:', desktop_png)
+        imsave(desktop_png, np.array(self.cam.get_array()))
+
     def rec(self, duration, stop_flag, camready_flag, t0=None):
         if t0 is None:
             t0=time.time()
@@ -108,15 +115,19 @@ class CameraAcquisition:
         self.cam.start()
         self.t = time.time()
 
+        self.save_sample_on_desktop()
+        
         while not quit_flag.is_set():
             
             image = self.cam.get_array()
             
             if not self.running and run_flag.is_set() : # not running and need to start  !
                 self.reinit_rec()
+                self.save_sample_on_desktop()
             elif self.running and not run_flag.is_set(): # running and we need to stop
                 self.running=False
                 self.save_times()
+                self.save_sample_on_desktop()
 
             # after the update
             if self.running:
@@ -125,6 +136,7 @@ class CameraAcquisition:
                 self.t=time.time()
                 self.times.append(self.t)
 
+        self.save_sample_on_desktop()
         # self.save_times()
 
         

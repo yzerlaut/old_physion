@@ -214,12 +214,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Invalid folder -> folder unchanged')
 
             
-    def analyze_data(self):
-        pass
-    
-    def view_data(self):
-        pass
-
     def rigview(self):
         if self.RigView_process is not None:
             self.RigView_process.terminate()
@@ -269,12 +263,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.stim = build_stim(self.protocol)
             np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
-            try:
+            if 'time_stop' in self.stim.experiment:
                 max_time = self.stim.experiment['time_stop'][-1]+20
-            except KeyError:
-                max_time = 2*60*60 # 2 hours, should be stopped manually
+            elif 'refresh_times' in self.stim.experiment:
+                max_time = self.stim.experiment['refresh_times'][-1]+20
+            else:
+                max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
-            max_time = 2*60*60 # 2 hours, should be stopped manually
+            max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
 
         output_steps = []
