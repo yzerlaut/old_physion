@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from assembling.saving import last_datafolder_in_dayfolder, day_folder
 
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 desktop_png = os.path.join(os.path.expanduser("~/Desktop"), 'FaceCamera.png')
 
 class stop_func: # dummy version of the multiprocessing.Event class
@@ -112,11 +113,11 @@ class CameraAcquisition:
         
     def rec_and_check(self, run_flag, quit_flag):
         
+        print(self.running)
         self.cam.start()
         self.t = time.time()
 
         self.save_sample_on_desktop()
-        
         while not quit_flag.is_set():
             
             image = self.cam.get_array()
@@ -137,7 +138,7 @@ class CameraAcquisition:
                 self.times.append(self.t)
 
         self.save_sample_on_desktop()
-        # self.save_times()
+        self.save_times()
 
         
     def save_times(self, verbose=True):
@@ -162,6 +163,8 @@ def launch_FaceCamera(run_flag, quit_flag, root_folder, settings={'frame_rate':2
     
 if __name__=='__main__':
 
+    os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
     T = 2 # seconds
 
     import multiprocessing
@@ -175,9 +178,10 @@ if __name__=='__main__':
     # camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event, './'))
     # camera_process.start()
 
+    folder = os.path.join(os.path.expanduser('~'), 'DATA')
     run = multiprocessing.Event()
     quit_event = multiprocessing.Event()
-    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, './'))
+    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, folder))
     run.clear()
     camera_process.start()
     time.sleep(3)
@@ -198,7 +202,8 @@ if __name__=='__main__':
     # stop_event.set()
     # print(stop_event.is_set())
     # camera.stop()
-    times = np.load('FaceCamera-times.npy')
+    folder = last_datafolder_in_dayfolder(day_folder(folder))
+    times = np.load(os.path.join(folder, 'FaceCamera-times.npy'))
     print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(times))))
     import matplotlib.pylab as plt
     plt.plot(times, 0*times, '|')

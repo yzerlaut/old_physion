@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
-        self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
 
         self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
         self.FaceCamera_process = None
@@ -327,7 +327,6 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.acq is not None:
                 self.acq.launch()
             # run visual stim
-            print(self.metadata['VisualStim'])
             if self.metadata['VisualStim']:
                 self.stim.run(self)
             # ========================
