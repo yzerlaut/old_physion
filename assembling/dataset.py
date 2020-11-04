@@ -243,7 +243,7 @@ class FaceData(ImageTimeSeries):
         self.build_temporal_sampling(times,
                                      sampling_rate=sampling_rate)
 
-        if compressed_version or (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
+        if compressed_version and (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
             
             # means we have a compressed version
             compression_metadata = np.load(os.path.join(datafolder, 'FaceCamera-compressed', 'metadata.npy'),
@@ -255,6 +255,7 @@ class FaceData(ImageTimeSeries):
                              lazy_loading=lazy_loading,
                              extension=compression_metadata['extension'])
         else:
+            print('trying to load')
             super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
                              times=self.t,
                              frame_sampling=self.iframes,
@@ -266,6 +267,7 @@ class FaceData(ImageTimeSeries):
 
         if sampling_rate is None:
             self.sampling_rate = 1./np.diff(times).mean()
+            print(self.sampling_rate)
             self.t = times
             self.iframes = np.arange(len(times))
         else:
@@ -316,7 +318,6 @@ class PupilData(FaceData):
         for key in ['xmin', 'xmax', 'ymin', 'ymax']:
             setattr(self, key, None)
 
-
         # Adding processed pupil data to the object
         folder = os.path.join(datafolder,'pupil-data.npy')
         if os.path.isfile(folder):
@@ -351,7 +352,7 @@ class Dataset:
     def __init__(self, datafolder,
                  Photodiode_NIdaqChannel=0,
                  Electrophy_NIdaqChannel=1,
-                 Locomotion_NIdaqDigitalChannel=0,
+                 # Locomotion_NIdaqDigitalChannels=[0,1], # not NEEDED, we just read the digital channels
                  compressed_version=False,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,
@@ -360,16 +361,18 @@ class Dataset:
 
         by default we take all modalities, you can restrict them using "modalities"
         """
-        for key in modalities:
+        for key in MODALITIES:
             setattr(self, key, None) # all modalities to None by default
             
         self.datafolder = datafolder
         self.metadata = check_datafolder(self.datafolder, modalities)
-
-        if self.metadata['NIdaq']: # loading the NIdaq data only once
+        
+        try:
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
             self.NIdaq_Tstart = np.load(os.path.join(self.datafolder, 'NIdaq.start.npy'))[0]
-        else:
+        except FileNotFoundError:
+            print('No NIdaq file available')
+            data=None
             self.NIdaq_Tstart = None
 
         # Screen and visual stim
@@ -380,14 +383,14 @@ class Dataset:
             print('[X] Screen data not found !')
 
         # Locomotion
-        if self.metadata['NIdaq'] and ('Locomotion' in modalities):
+        if self.metadata['Locomotion'] and ('Locomotion' in modalities):
             self.Locomotion = LocomotionData(data['digital'],
                                              dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Locomotion' in modalities:
             print('[X] Locomotion data not found !')
 
         # Electrophy
-        if self.metadata['NIdaq'] and ('Electrophy' in modalities):
+        if self.metadata['Electrophy'] and ('Electrophy' in modalities):
             self.Electrophy = SingleValueTimeSerie(data['analog'][Electrophy_NIdaqChannel,:],
                                                    dt = 1./self.metadata['NIdaq-acquisition-frequency'])
         elif 'Electrophy' in modalities:

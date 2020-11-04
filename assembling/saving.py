@@ -140,7 +140,7 @@ def check_datafolder(df,
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
-            nmax = max([len(fn) for fn in filenames])
+            nmax = np.max(np.array([len(fn) for fn in filenames]))
             for fn in filenames:
                 n0 = len(fn)
                 if n0<nmax:
@@ -165,7 +165,7 @@ def check_datafolder(df,
         if metadata['VisualStim']:
             # insuring nice order of screen frames
             filenames = os.listdir(os.path.join(df,'screen-frames'))
-            nmax = max([len(fn) for fn in filenames])
+            nmax = np.max(np.array([len(fn) for fn in filenames]))
             for fn in filenames:
                 n0 = len(fn)
                 if n0<nmax:
