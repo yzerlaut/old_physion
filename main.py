@@ -4,7 +4,7 @@
 # - Start in:
 #   C:\Users\VisualNeuroscientist\work\cortical-physio-icm
 
-import sys, pathlib, os
+import sys, pathlib, os, subprocess
 from PyQt5 import QtGui, QtCore, QtWidgets
 
 sys.path.append(str(pathlib.Path(__file__).resolve()))
@@ -27,13 +27,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # buttons and functions
         LABELS = ["r) [R]un experiments",
-                  "s) prepare visual [S]timulation",
-                  "o) [O]rganize and pre-process data",
+                  "s) [S]timulus design",
+                  "o) [O]rganize and preprocess data",
                   "t) [T]ransfer data",
-                  "p) [P]upil preprocessing",
-                  "b) [B]ehavior preprocessing",
-                  "i) [I]maging preprocessing",
-                  "e) [E]lectrophy preprocessing",
+                  "p) [P]upil processing",
+                  "w) [W]hisking processing",
+                  "i) [I]maging processing",
+                  "e) [E]lectrophy processing",
                   "v) [V]isualize data",
                   "a) [A]nalyze data",
                   "n) lab [N]otebook ",
@@ -45,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_organize,
                      self.launch_transfer,
                      self.launch_pupil,
-                     self.launch_behavior,
+                     self.launch_whisking,
                      self.launch_caimaging,
                      self.launch_electrophy,
                      self.launch_visualization,
@@ -79,24 +79,32 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_exp(self):
         from exp.gui import run
         self.child = run(self.app)
-    def launch_behavior(self):
-        self.statusBar.showMessage('Behavioral module not implemented yet')
+        
+    def launch_whisking(self):
+        p = subprocess.Popen('conda activate facemap; python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        
     def launch_visual_stim(self):
         from visual_stim.gui import run as RunVisualStim
         self.child = RunVisualStim(self.app)
+        
     def launch_organize(self):
         from organize.gui import run as RunOrganize
         self.child = RunOrganize(self.app)
+        
     def launch_transfer(self):
         self.statusBar.showMessage('Transfer module not implemented yet')
+        
     def launch_pupil(self):
         self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
         from pupil.gui import run as RunPupilGui
         self.child = RunPupilGui(self.app)
+        
     def launch_caimaging(self):
-        self.statusBar.showMessage('Ca-Imaging module not implemented yet')
+        p = subprocess.Popen('conda activate suite2p; python -m suite2p', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
     def launch_electrophy(self):
         self.statusBar.showMessage('Electrophy module not implemented yet')
+        
     def launch_visualization(self):
         self.statusBar.showMessage('Loading Visualization Module [...]')
         from analysis.gui import run as RunAnalysisGui
@@ -105,8 +113,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_analysis(self):
         from analysis.gui import run as RunAnalysisGui
         self.child = RunAnalysisGui(self.app)
+        
     def launch_notebook(self):
         self.statusBar.showMessage('Notebook module not implemented yet')
+        
     def quit(self):
         QtWidgets.QApplication.quit()
         
@@ -114,7 +124,7 @@ def run():
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
     # set_dark_style(app)
-    # set_app_icon(app)
+    set_app_icon(app)
     GUI = MainWindow(app)
     ret = app.exec_()
     sys.exit(ret)
