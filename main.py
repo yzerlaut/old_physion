@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) prepare visual [S]timulation",
-                  "o) re-[O]rganize data",
+                  "o) [O]rganize and pre-process data",
                   "t) [T]ransfer data",
                   "p) [P]upil preprocessing",
                   "b) [B]ehavior preprocessing",
