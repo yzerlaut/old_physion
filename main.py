@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) prepare visual [S]timulation",
-                  "c) reformat/[C]ompress data",
+                  "o) re-[O]rganize data",
                   "t) [T]ransfer data",
                   "p) [P]upil preprocessing",
                   "b) [B]ehavior preprocessing",
@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
         FUNCTIONS = [self.launch_exp,
                      self.launch_visual_stim,
-                     self.launch_compress,
+                     self.launch_organize,
                      self.launch_transfer,
                      self.launch_pupil,
                      self.launch_behavior,
@@ -84,8 +84,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_visual_stim(self):
         from visual_stim.gui import run as RunVisualStim
         self.child = RunVisualStim(self.app)
-    def launch_compress(self):
-        self.statusBar.showMessage('Compression module not implemented yet')
+    def launch_organize(self):
+        from organize.gui import run as RunOrganize
+        self.child = RunOrganize(self.app)
     def launch_transfer(self):
         self.statusBar.showMessage('Transfer module not implemented yet')
     def launch_pupil(self):
