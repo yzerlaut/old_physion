@@ -37,7 +37,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quitSc.activated.connect(self.quit)
         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
         self.refreshSc.activated.connect(self.refresh)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
         self.maxSc.activated.connect(self.showwindow)
 
         ####################################################

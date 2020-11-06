@@ -25,15 +25,20 @@ class MainWindow(QtWidgets.QMainWindow):
         sampling in Hz
         """
         super(MainWindow, self).__init__()
+        self.setGeometry(80,80,1000,600)
+        
         self.sampling_rate = sampling_rate
         self.compressed_version=compressed_version
 
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
-
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+        self.maxSc.activated.connect(self.showwindow)
+        self.minView = False
+        self.showwindow()
+        
         pg.setConfigOptions(imageAxisOrder='row-major')
-        self.setGeometry(30,30,1300,700)
         
         self.setWindowTitle('Pupil-size tracking software')
         
@@ -150,6 +155,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Floaded = False
         self.wraw = False
         # self.win.scene().sigMouseClicked.connect(self.plot_clicked)
+        
         self.win.show()
         self.show()
         self.processed = False
@@ -158,6 +164,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.save_path = savedir
             self.savelabel.setText(savedir)
 
+    def showwindow(self):
+        if self.minView:
+            self.minView = self.maxview()
+        else:
+            self.minView = self.minview()
+    def maxview(self):
+        self.showFullScreen()
+        return False
+    def minview(self):
+        self.showNormal()
+        return True
+    
     def load_data_batch(self):
 
         self.batch = True
