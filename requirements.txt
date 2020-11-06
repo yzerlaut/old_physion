@@ -10,5 +10,13 @@ scikit-image
 scikit-video
 xmltodict
 git+https://github.com/yzerlaut/simple_pyspin # forked from https://github.com/klecknerlab/simple_pyspin
+importlib_metadata
+natsort
+numba
+scikit-learn
+scanimage-tiff-reader>=1.4.1
+paramiko
+rastermap>0.1.0
 git+https://github.com/yzerlaut/datavyz
 git+https://github.com/yzerlaut/analyz
+
