@@ -51,43 +51,44 @@ def compress_FaceCamera(datafolder,
     # Now looping over frames to build the compression
 
     FILES = sorted(os.listdir(os.path.join(datafolder, 'FaceCamera-imgs')))
-    
-    X, i0, file_count = [], 0, 0
-    for i, fn in enumerate(FILES):
-        x = np.load(os.path.join(datafolder, 'FaceCamera-imgs', fn))
-        if smoothing!=0:
-            x = gaussian_filter(x, smoothing)
-        X.append(x)
+    print(FILES)
+    if len(FILES)>0:
+        X, i0, i, file_count = [], 0, 0, 0
+        for i, fn in enumerate(FILES):
+            x = np.load(os.path.join(datafolder, 'FaceCamera-imgs', fn))
+            if smoothing!=0:
+                x = gaussian_filter(x, smoothing)
+            X.append(x)
 
-        if ((i+1)%Nframe_per_file)==0:
-            # we save
+            if ((i+1)%Nframe_per_file)==0:
+                # we save
+                filename = 'imgs-%i-%i' % (i0, i)
+                compress_func(np.array(X), os.path.join(directory, filename))
+                # and we reinit
+                X, i0 = [], i+1
+                if verbose:
+                    print('wrote: ', filename)
+
+                file_count +=1
+
+            if file_count>=max_file:
+                break
+
+        # saving the last frames
+        if file_count<max_file:
             filename = 'imgs-%i-%i' % (i0, i)
             compress_func(np.array(X), os.path.join(directory, filename))
-            # and we reinit
-            X, i0 = [], i+1
             if verbose:
                 print('wrote: ', filename)
 
-            file_count +=1
-            
-        if file_count>=max_file:
-            break
-            
-    # saving the last frames
-    if file_count<max_file:
-        filename = 'imgs-%i-%i' % (i0, i)
-        compress_func(np.array(X), os.path.join(directory, filename))
-        if verbose:
-            print('wrote: ', filename)
-
-    # saving compression metadata 
-    compression_metadata = {'tool':tool,
-                            'subsampling':subsampling,
-                            'smoothing':smoothing,
-                            'extension':extension,
-                            'Nframe_per_file':Nframe_per_file,
-                            'max_file':max_file}
-    np.save(os.path.join(directory, 'metadata.npy'), compression_metadata)
+        # saving compression metadata 
+        compression_metadata = {'tool':tool,
+                                'subsampling':subsampling,
+                                'smoothing':smoothing,
+                                'extension':extension,
+                                'Nframe_per_file':Nframe_per_file,
+                                'max_file':max_file}
+        np.save(os.path.join(directory, 'metadata.npy'), compression_metadata)
 
 def compress_datafolder(args):
 
@@ -109,24 +110,32 @@ if __name__=='__main__':
     # compression type
     parser.add_argument("--extension", default='.mp4')
     parser.add_argument("--tool", default='imageio')
-    parser.add_argument("--smoothing", type=int, default=0)
+    parser.add_argument("--smoothing", type=int, default=2)
     # Face Data
     parser.add_argument("--Nframe_per_file", type=int, default=1000)
     parser.add_argument("--max_file", type=int, default=100000)
     # 
     parser.add_argument('-df', "--datafolder", default='./')
-    parser.add_argument('-ddf', "--day_datafolder", default='')
+    parser.add_argument('-ddf', "--day_folder", default='')
     parser.add_argument("--debug", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
-    import time, sys
-
-    if args.day_datafolder!='':
-        for df in sorted(os.listdir(args.day_datafolder)):
-            args.datafolder = os.path.join(args.day_datafolder, df)
-            print('compressing %s [...]' % args.datafolder)
-            compress_datafolder(args)
+    import time, sys, pathlib
+    sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+    from assembling.saving import check_datafolder, list_dayfolder
+    
+    if args.day_folder!='':
+        for df in list_dayfolder(args.day_folder):
+            args.datafolder = os.path.join(args.day_folder, df)
+            if os.path.isdir(os.path.join(args.datafolder, 'FaceCamera-imgs')):
+                print('checking %s [...]' % args.datafolder)
+                try:
+                    check_datafolder(args.datafolder)
+                except BaseException as e:
+                    print(e)
+                print('compressing %s [...]' % args.datafolder)
+                compress_datafolder(args)
     else:
         tstart = time.time()
         print('Running extension:', args.extension,  'tool:' , args.tool)

@@ -2,6 +2,7 @@ import sys, time, os, pathlib
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from assembling.saving import list_dayfolder
 from organize.compress import compress_datafolder
 from organize.process import list_TSeries_folder
 from misc.style import set_dark_style, set_app_icon
@@ -25,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 str(pathlib.Path(__file__).resolve().parents[1]),\
                 'script.sh')
 
-        self.load = QtWidgets.QPushButton(' [L]oad root folder  \u2b07', self)
+        self.load = QtWidgets.QPushButton(' [L]oad folder  \u2b07', self)
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_folder)
         self.load.setMinimumWidth(350)
@@ -33,43 +34,63 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('L'), self)
         self.loadSc.activated.connect(self.load_folder)
         
+        self.clean = QtWidgets.QPushButton('   [C]lean up folder', self)
+        self.clean.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.clean.clicked.connect(self.clean_folder)
+        self.clean.setMinimumWidth(350)
+        self.clean.move(100, 60)
+        self.cleanSc = QtWidgets.QShortcut(QtGui.QKeySequence('C'), self)
+        self.cleanSc.activated.connect(self.clean_folder)
+        
         self.bCa = QtWidgets.QCheckBox("Pre-process Ca-Imaging data", self)
         self.bCa.setMinimumWidth(350)
-        self.bCa.setChecked(True)
-        self.bCa.move(50, 80)
-
+        self.bCa.move(50, 120)
+        
         self.bMove = QtWidgets.QCheckBox("move Ca-imaging data to corresponding folder", self)
         self.bMove.setMinimumWidth(400)
-        self.bMove.setChecked(True)
-        self.bMove.move(50, 120)
+        self.bMove.move(50, 160)
         
         self.bFace = QtWidgets.QCheckBox("convert FaceCamera data to mp4 movie", self)
         self.bFace.setMinimumWidth(350)
-        self.bFace.setChecked(True)
-        self.bFace.move(50, 160)
+        self.bFace.move(50, 200)
         
-        self.gen = QtWidgets.QPushButton(' [G]enerate script ', self)
+        self.gen = QtWidgets.QPushButton(' [A]dd to script ', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.gen.clicked.connect(self.gen_script)
         self.gen.setMinimumWidth(350)
         self.gen.move(100, 300)
-        self.genSc = QtWidgets.QShortcut(QtGui.QKeySequence('G'), self)
+        self.genSc = QtWidgets.QShortcut(QtGui.QKeySequence('A'), self)
         self.genSc.activated.connect(self.gen_script)
 
+        # default activated options
+        # for b in [self.bCa, self.bMove, self.bFace]:
+        for b in [self.bFace]:
+            b.setChecked(True)
         
-        self.datafolder = ''
+        self.folder = ''
         self.show()
 
     def load_folder(self):
-        self.datafolder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-                                     "Choose folder", os.path.expanduser('~'))
+        df = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                "Choose folder", os.path.expanduser('~'))
+        if df!='':
+            self.folder = df
+        else:
+            pass
 
+    def clean_folder(self):
+        
+        if len(self.folder[-8:].split('_'))==3:
+            print(list_dayfolder(self.folder))
+        else:
+            print(self.folder)
+    
     def gen_script(self):
         with open(self.script, 'w') as f:
             if self.bCa.isChecked():
                 print('ok')
                 # f.write('conda activate suite2p \n')
-                # folders = list_TSeries_folder(self.datafolder)
+                # folders = list_TSeries_folder(self.folder)
                 # for fn in folders:
                 #     print(fn)
             if self.bFace.isChecked():

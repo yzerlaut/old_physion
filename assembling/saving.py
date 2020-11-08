@@ -44,7 +44,7 @@ def generate_filename_path(root_folder,
     return os.path.join(Second_folder, filename+extension)
 
 def list_dayfolder(day_folder):
-    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and os.path.isdir(os.path.join(day_folder, d)))]
+    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)))]
     return folders
     
 def last_datafolder_in_dayfolder(day_folder):
@@ -236,8 +236,9 @@ def load_dict(filename):
 
 if __name__=='__main__':
 
-    import tempfile
-    data_folder = tempfile.gettempdir()
+    print(list_dayfolder('/home/yann/DATA/2020_11_03'))
+    # import tempfile
+    # data_folder = tempfile.gettempdir()
     # print(last_datafolder_in_dayfolder(day_folder(data_folder)))
     # print(filename_with_datetime('', folder='./', extension='.npy'))
     # print(filename_with_datetime('', folder='./', extension='npy'))
