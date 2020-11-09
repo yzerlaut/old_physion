@@ -208,6 +208,7 @@ class LocomotionData:
     
     def __init__(self, binary_signal, dt=1.,
                  times = None,
+                 speed_smoothing=10., # ms
                  t0=0):
 
         A = binary_signal[0]%2
@@ -217,8 +218,8 @@ class LocomotionData:
             self.t = times
         else:
             self.t = np.arange(binary_signal.shape[1])*dt+t0
-            
-        self.val = compute_position_from_binary_signals(A, B)
+
+        self.val = compute_position_from_binary_signals(A, B, smoothing=int(speed_smoothing/dt/1e3))
         
 
 ##############################################
@@ -356,6 +357,7 @@ class Dataset:
                  compressed_version=False,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,
+                 speed_smoothing=10, # ms
                  modalities=MODALITIES):
         """
 
@@ -381,11 +383,12 @@ class Dataset:
                                      NIdaq_trace=data['analog'][Photodiode_NIdaqChannel,:])
         elif 'Screen' in modalities:
             print('[X] Screen data not found !')
-
+            
         # Locomotion
         if self.metadata['Locomotion'] and ('Locomotion' in modalities):
             self.Locomotion = LocomotionData(data['digital'],
-                                             dt = 1./self.metadata['NIdaq-acquisition-frequency'])
+                                             dt = 1./self.metadata['NIdaq-acquisition-frequency'],
+                                             speed_smoothing=speed_smoothing)
         elif 'Locomotion' in modalities:
             print('[X] Locomotion data not found !')
 

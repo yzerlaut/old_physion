@@ -103,6 +103,44 @@ def from_folder_to_datetime(folder):
     except Exception:
         return '', folder
 
+def folderName_to_daySeconds(datafolder):
+
+    Hour = int(datafolder.split('-')[0][-2:])
+    Min = int(datafolder.split('-')[1])
+    Seconds = int(datafolder.split('-')[2][:2])
+
+    return 60.*60.*Hour+60.*Min+Seconds
+            
+def computerTimestamp_to_daySeconds(t):
+
+    s = str(datetime.timedelta(seconds=t))
+
+    Hour = int(s.split(':')[0][-2:])
+    Min = int(s.split(':')[1])
+    Seconds = float(s.split(':')[2])
+    
+    return 60*60*Hour+60*Min+Seconds
+    
+
+def dealWithVariableTimestamps(folder, tstart):
+    """
+    ideally we should deal with day shift as well in here...
+    """
+
+    tfolder = folderName_to_daySeconds(folder)
+    tstart = computerTimestamp_to_daySeconds(tstart)
+    
+    if (tfolder-tstart)>90*60: # more than 1h30
+        print('We shift the computer time stamp by two hours...')
+        tstart += 2*60*60
+    elif (tfolder-tstart)>30*60: # more than 30m
+        print('We shift the computer time stamp by one hour...')
+        tstart += 60*60
+
+    return tstart
+
+    
+
 def check_datafolder(df,
                      modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium'],
                      verbose=True):
@@ -126,6 +164,25 @@ def check_datafolder(df,
 
         if os.path.isfile(os.path.join(df, 'NIdaq.npy')):
             metadata['NIdaq'] = True
+            # dealing with TimeStamps !!
+            if 'true_duration' not in metadata:
+                try:
+                    print('adding true "tstart" and "tstop" to metadata [...]')
+                    tstart = np.load(os.path.join(df, 'NIdaq.start.npy'))[0]
+                    tstart = dealWithVariableTimestamps(df, tstart)
+                    metadata['true_tstart'] = tstart
+                    data = np.load(os.path.join(df, 'NIdaq.npy'), allow_pickle=True).item()
+                    duration = len(data['analog'][0,:])/metadata['NIdaq-acquisition-frequency']
+                    metadata['true_duration'] = duration
+                    metadata['true_tstop'] = tstart+duration
+                    np.save(os.path.join(df,'metadata.npy'), metadata)
+                    print('[ok] True duration= %.1fs' % metadata['true_duration'])
+                except BaseException as e:
+                    print('e')
+                    print('\n'+100*'-'+'True start/stop undertermined for', df)
+            else:
+                print('True tstop= %.1fs' % metadata['true_tstop'])
+                    
         else:
             metadata['NIdaq'] = False
 
@@ -140,12 +197,13 @@ def check_datafolder(df,
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-imgs')):
             # insuring nice order of FaceCamera images
             filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
-            nmax = np.max(np.array([len(fn) for fn in filenames]))
-            for fn in filenames:
-                n0 = len(fn)
-                if n0<nmax:
-                    os.rename(os.path.join(df,'FaceCamera-imgs',fn),
-                              os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+            if len(filenames)>0:
+                nmax = np.max(np.array([len(fn) for fn in filenames]))
+                for fn in filenames:
+                    n0 = len(fn)
+                    if n0<nmax:
+                        os.rename(os.path.join(df,'FaceCamera-imgs',fn),
+                                  os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
 
         if metadata['FaceCamera'] and os.path.isdir(os.path.join(df,'FaceCamera-compressed')):
             # insuring nice order of FaceCamera images
@@ -165,12 +223,13 @@ def check_datafolder(df,
         if metadata['VisualStim']:
             # insuring nice order of screen frames
             filenames = os.listdir(os.path.join(df,'screen-frames'))
-            nmax = np.max(np.array([len(fn) for fn in filenames]))
-            for fn in filenames:
-                n0 = len(fn)
-                if n0<nmax:
-                    os.rename(os.path.join(df,'screen-frames', fn),
-                              os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
+            if len(filenames)>0:
+                nmax = np.max(np.array([len(fn) for fn in filenames]))
+                for fn in filenames:
+                    n0 = len(fn)
+                    if n0<nmax:
+                        os.rename(os.path.join(df,'screen-frames', fn),
+                                  os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
 
         if verbose:
             print('[ok] datafolder checked !')

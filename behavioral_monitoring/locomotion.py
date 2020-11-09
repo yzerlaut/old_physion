@@ -3,7 +3,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 def compute_position_from_binary_signals(A, B,
                                          perimeter_cm=25,
-                                         smoothing=100,
+                                         smoothing=10,
                                          cpr=1000):
     '''
     Takes traces A and B and converts it to a trace that has the same number of
