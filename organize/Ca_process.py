@@ -1,7 +1,8 @@
 import os, sys, pathlib
+import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from hardware_control.Bruker.xml_parser import bruker_xml_parser
-from assembling.saving import get_files_with_extension
+from assembling.saving import get_files_with_extension, list_dayfolder
 
 def list_TSeries_folder(folder):
     folders = [os.path.join(folder, d) for d in sorted(os.listdir(folder)) if ((d[:7]=='TSeries') and os.path.isdir(os.path.join(folder, d)))]
@@ -36,4 +37,13 @@ if __name__=='__main__':
     folder = '/home/yann/DATA/2020_11_04'
     CA_FILES = build_Ca_filelist(folder)
 
-    print(CA_FILES)
+    PROTOCOL_LIST = list_dayfolder(folder)
+
+    for pfolder in PROTOCOL_LIST:
+        metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True)
+        try:
+            tstart = np.load(os.path.join(pfolder, 'NIdaq.start.npy'))[0]
+            print(tsart)
+        except FileNotFoundError:
+            pass
+        # print(metadata)

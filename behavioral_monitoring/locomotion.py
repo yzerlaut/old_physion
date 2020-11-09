@@ -1,7 +1,9 @@
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter1d
 
 def compute_position_from_binary_signals(A, B,
                                          perimeter_cm=25,
+                                         smoothing=100,
                                          cpr=1000):
     '''
     Takes traces A and B and converts it to a trace that has the same number of
@@ -17,7 +19,7 @@ def compute_position_from_binary_signals(A, B,
 
     '''
 
-    Delta_position = np.zeros(len(A)-1, dtype=int) # N-1 elements
+    Delta_position = np.zeros(len(A)-1, dtype=float) # N-1 elements
 
     ################################
     ## positive_increment_cond #####
@@ -37,9 +39,12 @@ def compute_position_from_binary_signals(A, B,
         ( (A[:-1]==0) & (B[:-1]==1) & (A[1:]==1) & (B[1:]==1) )
     Delta_position[NIC] = -1
 
-    position = np.cumsum(np.concatenate([[0], Delta_position]))
+    # position = np.cumsum(np.concatenate([[0], Delta_position]))
+    # return position*perimeter_cm/cpr
+    
+    speed = gaussian_filter1d(np.concatenate([[0], Delta_position]), smoothing)
+    return -speed*perimeter_cm/cpr
 
-    return position*perimeter_cm/cpr
 
 
 if __name__=='__main__':

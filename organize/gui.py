@@ -3,8 +3,8 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder
-from organize.compress import compress_datafolder
-from organize.process import list_TSeries_folder
+from organize.pupil_compress import compress_datafolder
+from organize.Ca_process import list_TSeries_folder
 from misc.style import set_dark_style, set_app_icon
 
 class MainWindow(QtWidgets.QMainWindow):
