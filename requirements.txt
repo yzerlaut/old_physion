@@ -5,6 +5,8 @@ scikit-learn
 scikit-image
 scikit-video
 numba
+mkl # also need to conda install mkl_fft
+av
 # visual-stimulation
 psychopy
 # gui modules

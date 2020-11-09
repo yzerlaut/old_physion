@@ -126,8 +126,24 @@ def raw_data_plot(self, tzoom,
 
     ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Calcium'])
-    if self.Calcium is not None:
-        pass
+    if self.CaImaging is not None:
+        cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
+        isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])
+        print(self.CaImaging.Firing.shape)
+        if plot_update:
+            for n in range(self.CaImaging.Firing.shape[0]):
+                print(self.CaImaging.Firing[n,::isampling])
+                y = scale_and_position(self, self.CaImaging.Firing[n,::isampling], i=4)+.2
+                if plot_update:
+                    self.plot.plot(self.CaImaging.t[cond][::isampling], y, pen=pen)
+        # if with_scatter:
+        #     itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
+        #     val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=3)
+        #     scatter.append((self.Electrophy.t[cond][itime], val))
+    else:
+        y = shift(self,3)+np.zeros(2)
+        self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
+            
 
     if self.Screen is not None:
         # if visual-stim we highlight the stim periods

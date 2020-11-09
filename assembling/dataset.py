@@ -139,8 +139,11 @@ class ImageTimeSeries:
         else:
             # we have loaded it using the "lazy_loading" option
             fn, index = self.index_frame_map[i0]
-            x = skvideo.io.vread(fn)
-            im = x[index,:,:,0]
+            try:
+                x = skvideo.io.vread(fn)
+                im = x[index,:,:,0]
+            except MemoryError:
+                im = np.zeros((100,100))
             
         if with_time and with_index:
             return i0, self.t[i0], im
@@ -349,16 +352,19 @@ class ElectrophyData(SingleValueTimeSerie):
 class CaImagingData(ImageTimeSeries):
 
     def __init__(self, datafolder, metadata,
-                 dt=None, times=None,
+                 dt=None, times=None, t0=0,
                  lazy_loading=True,
                  compressed_version=True):
 
-        self.t = np.load(os.path.join(datafolder, 'times.npy'))
-        self.F = np.load(os.path.join(datafolder,'F.npy'))
-        self.Fneu = np.load(os.path.join(datafolder,'Fneu.npy'))
-        self.iscell=np.load(os.path.join(datafolder,'iscell.npy'))
-        
-        print(self.F)
+        try:
+            self.t = np.load(os.path.join(datafolder, 'times.npy'))-t0
+            iscell=np.load(os.path.join(datafolder,'iscell.npy'))
+            spks = np.load(os.path.join(datafolder,'spks.npy'))
+            self.Firing = spks[iscell[:,0]==1,:]
+            print(self.t, self.Firing)
+        except FileNotFoundError:
+            self.t=np.array([0,metadata['true_tstop']-metadata['true_tstart']])
+            self.Firing = np.zeros((2,2))
 
         """
         if compressed_version and (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
@@ -433,7 +439,7 @@ class Dataset:
         except FileNotFoundError:
             print('No NIdaq file available')
             data=None
-            self.NIdaq_Tstart = None
+            self.NIdaq_Tstart = 0
 
         # Screen and visual stim
         if self.metadata['VisualStim'] and ('Screen' in modalities):
@@ -482,6 +488,7 @@ class Dataset:
         if self.metadata['CaImaging'] and ('CaImaging' in modalities) and os.path.isdir(cafolder):
             self.CaImaging = CaImagingData(cafolder,
                                            self.metadata,
+                                           t0 = self.NIdaq_Tstart,
                                            lazy_loading=lazy_loading)
         elif 'CaImaging' in modalities:
             print('[X] Ca-Imaging data not found !')
