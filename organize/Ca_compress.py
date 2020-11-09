@@ -4,8 +4,9 @@ import imageio
 import os, pathlib
 import matplotlib.pylab as plt
 from scipy.ndimage import gaussian_filter
-from suite2p.io.binary import BinaryFile
 
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from assembling.binary import BinaryFile
 
 def compress_FluorescenceMovie(binaryFile,
                                smoothing=0, # either 2, or (1, 4, 5)
