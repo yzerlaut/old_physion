@@ -11,8 +11,8 @@ def bruker_xml_parser(filename):
     mytree = ET.parse(filename)
     root = mytree.getroot()
 
-    data = {'settings':{}}
-
+    data = {'settings':{}, 'date':root.attrib['date']}
+    
     settings = root[1]
     for setting in settings:
         if 'value' in setting.attrib:
