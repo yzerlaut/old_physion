@@ -37,7 +37,8 @@ def raw_data_plot(self, tzoom,
         # first photodiode signal
         cond = (self.Screen.photodiode.t>=tzoom[0]) & (self.Screen.photodiode.t<=tzoom[1])
         isampling = max([1,int(len(self.Screen.photodiode.t[cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Screen.photodiode.val[cond][::isampling], i=0)
+        y = scale_and_position(self, self.Screen.photodiode.val[cond][::isampling], i=iplot)
+        iplot+=1
         if plot_update:
             self.plot.plot(self.Screen.photodiode.t[cond][::isampling], y, pen=pen)
         if with_images:
@@ -63,12 +64,13 @@ def raw_data_plot(self, tzoom,
     if self.Locomotion is not None:
         cond = (self.Locomotion.t>=tzoom[0]) & (self.Locomotion.t<=tzoom[1])
         isampling = max([1, int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=1)
+        y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=iplot)
+        iplot+=1
         if plot_update:
             self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
         if with_scatter:
             itime = np.argmin((self.Locomotion.t[cond]-self.time)**2)
-            val = scale_and_position(self, y, value=self.Locomotion.val[cond][itime], i=1)
+            val = scale_and_position(self, y, value=self.Locomotion.val[cond][itime], i=iplot)
             scatter.append((self.Screen.photodiode.t[cond][itime], val))
     else:
         y = shift(self,1)+np.zeros(2)
@@ -88,7 +90,8 @@ def raw_data_plot(self, tzoom,
         cond = (pt>=tzoom[0]) & (pt<=tzoom[1])
         isampling = max([1,int(len(self.Pupil.processed['diameter'][cond])/self.settings['Npoints'])])
         y = scale_and_position(self,
-            self.Pupil.processed['diameter'][cond][::isampling], i=2)
+                               self.Pupil.processed['diameter'][cond][::isampling], i=iplot)
+        iplot+=1
         if plot_update:
             self.plot.plot(pt[cond][::isampling], y,pen=pen)
         if with_images:
@@ -98,8 +101,7 @@ def raw_data_plot(self, tzoom,
         if with_scatter:
             self.ipt = np.argmin((pt[cond]-self.time)**2) # used later
             val = scale_and_position(self, y,
-                value=self.Pupil.processed['diameter'][cond][self.ipt],
-                                     i=2)
+                                     value=self.Pupil.processed['diameter'][cond][self.ipt],i=iplot)
             scatter.append((pt[cond][self.ipt], val))
         else:
             self.ipt = 0
@@ -113,32 +115,35 @@ def raw_data_plot(self, tzoom,
     if self.Electrophy is not None:
         cond = (self.Electrophy.t>=tzoom[0]) & (self.Electrophy.t<=tzoom[1])
         isampling = max([1,int(len(self.Electrophy.t[cond])/self.settings['Npoints'])])
-        y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=3)
+        y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=iplot)
+        iplot+=1
         if plot_update:
             self.plot.plot(self.Electrophy.t[cond][::isampling], y, pen=pen)
         if with_scatter:
             itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
-            val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=3)
+            val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=iplot)
             scatter.append((self.Electrophy.t[cond][itime], val))
     else:
         y = shift(self,3)+np.zeros(2)
         self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
     ## -------- Calcium --------- ##
+    if self.CaImaging is not None:
+        self.pCaimg.setImage(self.CaImaging.meanImg)
+        
     pen = pg.mkPen(color=self.settings['colors']['Calcium'])
     if self.CaImaging is not None:
         cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
         isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])
-        print(self.CaImaging.Firing.shape)
-        if plot_update:
-            for n in range(self.CaImaging.Firing.shape[0]):
-                print(self.CaImaging.Firing[n,::isampling])
-                y = scale_and_position(self, self.CaImaging.Firing[n,::isampling], i=4)+.2
-                if plot_update:
-                    self.plot.plot(self.CaImaging.t[cond][::isampling], y, pen=pen)
+        for n in range(self.CaImaging.Firing.shape[0]):
+            y = scale_and_position(self, self.CaImaging.Firing[n,cond][::isampling], i=iplot)+.1*n
+            # y = scale_and_position(self, self.CaImaging.Fluo[n,cond][::isampling], i=iplot)+.1*n 
+            if plot_update:
+                self.plot.plot(self.CaImaging.t[cond][::isampling], y, pen=pen)
+        iplot+=1
         # if with_scatter:
-        #     itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
-        #     val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=3)
+        #     itime = np.argmin((self.CaImaging.t[cond]-self.time)**2)
+        #     val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=iplot)
         #     scatter.append((self.Electrophy.t[cond][itime], val))
     else:
         y = shift(self,3)+np.zeros(2)

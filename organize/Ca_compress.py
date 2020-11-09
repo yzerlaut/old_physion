@@ -17,7 +17,7 @@ def compress_FluorescenceMovie(folder, xml,
                                subsampling=1,
                                extension='.mp4', # '.avi', or '.mp4', ...
                                tool='skvideo',
-                               Nframe_per_file=1000,
+                               Nframe_per_file=500,
                                max_file=int(1e6),
                                verbose=False):
 
@@ -34,19 +34,45 @@ def compress_FluorescenceMovie(folder, xml,
     def rescale_function(im):
         return (im+600.)/4600.*255.
     
-    print('converting binary file "%s" to mp4 [...]', binaryFile)
+    print('converting binary file "%s" to mp4 (%i frames) [...]' % (binaryFile, imax))
     
     # ------------------------------------------------------------
     # building custom compression functions depending on the tool
     if tool=='skvideo':
+        
         writer = skvideo.io.FFmpegWriter(filename)
         i = -1
+
+        def compress_func(X, filename):
+            writer = skvideo.io.FFmpegWriter(filename)
+            for i in range(X.shape[0]):
+                writer.writeFrame(X[i,:,:])
+            writer.close()
+        
+        X, i0, i, file_count = [], 0, -1, 0
         while i<imax:
-            i, im = data.read()
+            try:
+                i, im = data.read()
+            except TypeError:
+                i, im = 1e9, np.zeros((Lx, Ly))
             if smoothing!=0:
                 im = gaussian_filter(im, smoothing)
-            writer.writeFrame(rescale_function(im))
-        writer.close()
+            X.append(rescale_function(im))
+                
+            
+            if ((i+1)%Nframe_per_file)==0:
+                # we save
+                filename = binaryFile.replace('data.bin', 'frames-%i-%i.mp4' % (i0, i))
+                compress_func(np.array(X), filename)
+                # and we reinit
+                X, i0 = [], i+1
+                if verbose:
+                    print('wrote: ', filename)
+
+                file_count +=1
+
+            if file_count>=max_file:
+                break
         print('[ok] ---> binary file converted to: %s' % filename)
     elif tool=='imageio':
         imageio.mimwrite(filename, X)
@@ -102,12 +128,18 @@ if __name__=='__main__':
     # fn = '/home/yann/DATA/2020_11_03/TSeries-28102020-231-00-031/'
     folder = '/home/yann/DATA/2020_11_03/'
 
-    for bdf in list_TSeries_folder(folder):
+    for bdf in list_TSeries_folder(folder)[6:]:
         fn = get_files_with_extension(bdf, extension='.xml')[0]
         xml = bruker_xml_parser(fn)
         binaryFile = os.path.join(bdf, 'suite2p', 'plane0', 'data.bin')
         if len(xml['Ch1']['absoluteTime'])>10 and os.path.isfile(binaryFile):
-            compress_FluorescenceMovie(bdf, xml)
+            compress_FluorescenceMovie(bdf, xml,
+                                       Nframe_per_file=1000,
+                                       max_file=1,
+                                       verbose=True,
+                                       subsampling=0,
+                                       smoothing=0)
+            os.system('ls -lh %s ' % os.path.join(bdf, 'suite2p', 'plane0'))
     
     # import argparse
 

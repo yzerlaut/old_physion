@@ -113,4 +113,4 @@ if __name__=='__main__':
 
     CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES)
 
-    transfer_analyzed_data(CA_FILES)
+    # transfer_analyzed_data(CA_FILES)

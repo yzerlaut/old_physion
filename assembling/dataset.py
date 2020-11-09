@@ -357,14 +357,20 @@ class CaImagingData(ImageTimeSeries):
                  compressed_version=True):
 
         try:
-            self.t = np.load(os.path.join(datafolder, 'times.npy'))-t0
+            self.t = np.load(os.path.join(datafolder, 'times.npy'))
+            self.t -= self.t[0] # to be replaced !
             iscell=np.load(os.path.join(datafolder,'iscell.npy'))
             spks = np.load(os.path.join(datafolder,'spks.npy'))
+            F = np.load(os.path.join(datafolder,'F.npy'))
+            Fneu = np.load(os.path.join(datafolder,'Fneu.npy'))
             self.Firing = spks[iscell[:,0]==1,:]
-            print(self.t, self.Firing)
+            self.Fluo = F[iscell[:,0]==1,:]-0.7*Fneu[iscell[:,0]==1,:]
+            stat = np.load(os.path.join(datafolder,'ops.npy'), allow_pickle=True).item()
+            self.meanImg = stat['max_proj']
         except FileNotFoundError:
             self.t=np.array([0,metadata['true_tstop']-metadata['true_tstart']])
-            self.Firing = np.zeros((2,2))
+            self.Firing, self.Fluo = np.zeros((2,2)), np.zeros((2,2))
+            self.meanImg = np.zeros((4,4))
 
         """
         if compressed_version and (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
