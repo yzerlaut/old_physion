@@ -232,7 +232,7 @@ class FaceData(ImageTimeSeries):
                  dt=None, times=None,
                  t0=None, sampling_rate=None,
                  lazy_loading=True,
-                 compressed_version=False):
+                 compressed_version=True):
 
         times = np.load(os.path.join(datafolder,
                                      'FaceCamera-times.npy'))
@@ -343,10 +343,68 @@ class ElectrophyData(SingleValueTimeSerie):
         
         
 ##############################################
+###        Calcium-Imaging data            ###
+##############################################
+
+class CaImagingData(ImageTimeSeries):
+
+    def __init__(self, datafolder, metadata,
+                 dt=None, times=None,
+                 lazy_loading=True,
+                 compressed_version=True):
+
+        self.t = np.load(os.path.join(datafolder, 'times.npy'))
+        self.F = np.load(os.path.join(datafolder,'F.npy'))
+        self.Fneu = np.load(os.path.join(datafolder,'Fneu.npy'))
+        self.iscell=np.load(os.path.join(datafolder,'iscell.npy'))
+        
+        print(self.F)
+
+        """
+        if compressed_version and (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
+            
+            # means we have a compressed version
+            compression_metadata = np.load(os.path.join(datafolder, 'Ca_imaging', 'compression-metadata.npy'),
+                                           allow_pickle=True).item()
+            
+            super().__init__(os.path.join(datafolder, 'FaceCamera-compressed'),
+                             times=self.t,
+                             frame_sampling=self.iframes,
+                             lazy_loading=lazy_loading,
+                             extension=compression_metadata['extension'])
+        else:
+            print('trying to load')
+            super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
+                             times=self.t,
+                             frame_sampling=self.iframes,
+                             extension='.npy')
+
+
+    def build_temporal_sampling(self, times,
+                                sampling_rate=None):
+
+        if sampling_rate is None:
+            self.sampling_rate = 1./np.diff(times).mean()
+            print(self.sampling_rate)
+            self.t = times
+            self.iframes = np.arange(len(times))
+        else:
+            self.sampling_rate = sampling_rate
+            t0, t, self.iframes, self.t = times[0], times[0], [], []
+            while t<=times[-1]:
+                it = np.argmin((times-t)**2)
+                self.iframes.append(it)
+                self.t.append(t-t0)
+                t+=1./self.sampling_rate
+            self.t = np.array(self.t)
+        """
+            
+
+##############################################
 ###         Multimodal dataset             ###
 ##############################################
 
-MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','Calcium']
+MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','CaImaging']
 
 class Dataset:
     
@@ -354,7 +412,7 @@ class Dataset:
                  Photodiode_NIdaqChannel=0,
                  Electrophy_NIdaqChannel=1,
                  # Locomotion_NIdaqDigitalChannels=[0,1], # not NEEDED, we just read the digital channels
-                 compressed_version=False,
+                 compressed_version=True,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,
                  speed_smoothing=10, # ms
@@ -418,6 +476,15 @@ class Dataset:
                                    compressed_version=compressed_version)
         elif 'Pupil' in modalities:
             print('[X] Pupil data not found !')
+
+        # Ca-imaging
+        cafolder = os.path.join(self.datafolder,'Ca-imaging')
+        if self.metadata['CaImaging'] and ('CaImaging' in modalities) and os.path.isdir(cafolder):
+            self.CaImaging = CaImagingData(cafolder,
+                                           self.metadata,
+                                           lazy_loading=lazy_loading)
+        elif 'CaImaging' in modalities:
+            print('[X] Ca-Imaging data not found !')
 
         if (self.Screen is not None) and ('Screen' in modalities):
             # Realignement if possible

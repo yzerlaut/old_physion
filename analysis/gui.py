@@ -244,11 +244,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.minView = self.maxview()
         else:
             self.minView = self.minview()
-            
     def maxview(self):
         self.showFullScreen()
         return False
-
     def minview(self):
         self.showNormal()
         return True
@@ -271,6 +269,11 @@ def run(app, parent=None,
                       raw_data_visualization=raw_data_visualization)
     
 if __name__=='__main__':
+
+    raw_data_visualization = False
+    if len(sys.argv)>1:
+        raw_data_visualization = True
+       
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app)
+    main = run(app,raw_data_visualization=raw_data_visualization)
     sys.exit(app.exec_())
