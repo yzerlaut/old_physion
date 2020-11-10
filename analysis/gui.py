@@ -14,6 +14,7 @@ settings = {
     'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'colors':{'Screen':(100, 100, 100, 255),#'grey',
               'Locomotion':(255,255,255,255),#'white',
+              'Whisking':(255,255,255,255),#'white',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
               'Calcium':(0,255,0,255)},#'green'},

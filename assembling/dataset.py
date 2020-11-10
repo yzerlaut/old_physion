@@ -1,3 +1,4 @@
+
 import numpy as np
 import os, sys, pathlib
 
@@ -358,6 +359,7 @@ class CaImagingData(ImageTimeSeries):
 
         try:
             self.t = np.load(os.path.join(datafolder, 'times.npy'))
+            print('Tstart CaImaging is:', self.t[0])
             self.t -= self.t[0] # to be replaced !
             iscell=np.load(os.path.join(datafolder,'iscell.npy'))
             spks = np.load(os.path.join(datafolder,'spks.npy'))
@@ -371,45 +373,6 @@ class CaImagingData(ImageTimeSeries):
             self.t=np.array([0,metadata['true_tstop']-metadata['true_tstart']])
             self.Firing, self.Fluo = np.zeros((2,2)), np.zeros((2,2))
             self.meanImg = np.zeros((4,4))
-
-        """
-        if compressed_version and (not os.path.isdir(os.path.join(datafolder, 'FaceCamera-imgs'))):
-            
-            # means we have a compressed version
-            compression_metadata = np.load(os.path.join(datafolder, 'Ca_imaging', 'compression-metadata.npy'),
-                                           allow_pickle=True).item()
-            
-            super().__init__(os.path.join(datafolder, 'FaceCamera-compressed'),
-                             times=self.t,
-                             frame_sampling=self.iframes,
-                             lazy_loading=lazy_loading,
-                             extension=compression_metadata['extension'])
-        else:
-            print('trying to load')
-            super().__init__(os.path.join(datafolder, 'FaceCamera-imgs'),
-                             times=self.t,
-                             frame_sampling=self.iframes,
-                             extension='.npy')
-
-
-    def build_temporal_sampling(self, times,
-                                sampling_rate=None):
-
-        if sampling_rate is None:
-            self.sampling_rate = 1./np.diff(times).mean()
-            print(self.sampling_rate)
-            self.t = times
-            self.iframes = np.arange(len(times))
-        else:
-            self.sampling_rate = sampling_rate
-            t0, t, self.iframes, self.t = times[0], times[0], [], []
-            while t<=times[-1]:
-                it = np.argmin((times-t)**2)
-                self.iframes.append(it)
-                self.t.append(t-t0)
-                t+=1./self.sampling_rate
-            self.t = np.array(self.t)
-        """
             
 
 ##############################################
@@ -492,9 +455,11 @@ class Dataset:
         # Ca-imaging
         cafolder = os.path.join(self.datafolder,'Ca-imaging')
         if self.metadata['CaImaging'] and ('CaImaging' in modalities) and os.path.isdir(cafolder):
+            print(self.NIdaq_Tstart, (int(100*self.NIdaq_Tstart)%(100*24*60*60))/100)
+            print('Tstart should be: ', (int(100*self.NIdaq_Tstart)%(100*24*60*60))/100)
             self.CaImaging = CaImagingData(cafolder,
                                            self.metadata,
-                                           t0 = self.NIdaq_Tstart,
+                                           t0 = (int(100*self.NIdaq_Tstart)%(100*24*60*60))/100,
                                            lazy_loading=lazy_loading)
         elif 'CaImaging' in modalities:
             print('[X] Ca-Imaging data not found !')

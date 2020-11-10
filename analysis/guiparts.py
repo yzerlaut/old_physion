@@ -234,7 +234,7 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     <span style='color: white'> <b>Locomotion</b> </span> <br/>
     <span style='color: red'> <b>Pupil</b> </span> <br/>
     <span style='color: blue'> <b>Electrophy</b> </span> <br/>
-    <span style='color: green'> <b> Calcium </b> </span>"""
+    <span style='color: green'> <b> Ca-Imaging </b> </span>"""
     label.setText(txt)
     self.win2.addItem(label)
     

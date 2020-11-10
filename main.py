@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = RunVisualStim(self.app)
         
     def launch_organize(self):
-        from organize.gui import run as RunOrganize
+        from assemble.gui import run as RunOrganize
         self.child = RunOrganize(self.app)
         
     def launch_transfer(self):
