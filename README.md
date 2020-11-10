@@ -4,7 +4,7 @@
 
 ## Modules
 
-- [Experimental characterization (multimodal)](exp/README.md)
+- [Multimodal recordings](exp/README.md)
 - [Visual stimulation](visual_stim/README.md)
 - [Assembling pipeline](assembling/README.md)
 - [Electrophysiology](electrophy/README.md)
