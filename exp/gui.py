@@ -41,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         
         self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
-        self.setGeometry(50, 50, 550, 500)
+        self.setGeometry(50, 50, 550, 370)
 
         self.metadata = default_settings # set a load/save interface
         self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
@@ -146,10 +146,12 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QLabel("Mouse ID: ", self).move(40, 210)
         self.qmID = QtWidgets.QComboBox(self)
         self.qmID.addItems(['1'])
+        self.qmID.setMaximumWidth(70)
         self.qmID.move(140, 210)
-        self.addID = QtWidgets.QPushButton('Add new mouse')
-        self.addID.move(250, 210)
-
+        self.addID = QtWidgets.QPushButton('Add new mouse', self)
+        self.addID.move(300, 210)
+        self.addID.setMinimumWidth(120)
+        
         QtWidgets.QLabel("Notes: ", self).move(60, 260)
         self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
         self.qmNotes.move(130, 260)

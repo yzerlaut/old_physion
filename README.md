@@ -1,16 +1,18 @@
+
 # Tools and pipelines for cortical physiology
 
 *Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortices*
 
 ## Modules
 
+- [Experimental protocols](exp/README.md)
 - [Visual stimulation](visual_stim/README.md)
+- [Assembling pipeline](assembling/README.md)
 - [Electrophysiology](electrophy/README.md)
 - [Calcium imaging](Ca_imaging/README.md)
 - [Pupil tracking](pupil/README.md)
-- [Behavioral monitoring](behavioral_monitoring/README.md)
+- [behavioral monitoring](behavioral_monitoring/README.md)
 - [Hardware control](hardware_control/README.md)
-- [Assembling pipeline](assembling/README.md)
 - [Analysis](analysis/README.md)
 
 ## How do I get set up ?
@@ -33,7 +35,7 @@ Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the depend
 pip install -r requirements.txt
 ```
 
-The installation instructions for the experimental setup are described in a dedicated README
+The installation instructions for the experimental setup are described in a dedicated [README](./exp/README.md)
 
 `pyinstaller main.py --windowed`
 
