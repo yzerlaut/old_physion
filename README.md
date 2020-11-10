@@ -24,7 +24,8 @@ Install a python distribution for scientific analysis, [get the latest Miniconda
 #### 2) Download this repository
 
 Either:
-- For `git` users & contributors (requires a github account). Fork this repository and clone your own fork.
+- For contributors (requires a github account). Fork this repository and clone your own fork.
+- For `git` users, clone the repository with `git clone https://github.com/yzerlaut/cortical-physio-icm`
 - For others, download the [zip archive](https://github.com/yzerlaut/cortical-physio-icm/archive/master.zip)
 
 #### 3) Install dependencies

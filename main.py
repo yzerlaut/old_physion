@@ -28,18 +28,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) [S]timulus design",
-                  "o) [O]rganize and preprocess data",
+                  "o) Assemble and [O]rganize data",
                   "t) [T]ransfer data",
-                  "p) [P]upil processing",
-                  "w) [W]hisking processing",
-                  "i) [I]maging processing",
-                  "e) [E]lectrophy processing",
+                  "p) [P]upil preprocessing",
+                  "w) [W]hisking preprocessing",
+                  "i) [I]maging preprocessing",
+                  "e) [E]lectrophy preprocessing",
                   "v) [V]isualize data",
                   "a) [A]nalyze data",
                   "n) lab [N]otebook ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
-        # LABELS = [l.replace(') ', ') '+(lmax-int(len(l)/2))*' ') for l in LABELS]
+
         FUNCTIONS = [self.launch_exp,
                      self.launch_visual_stim,
                      self.launch_organize,
