@@ -31,6 +31,7 @@ Either:
 #### 3) Install dependencies
 
 Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the dependencies:
+
 ```
 pip install -r requirements.txt
 ```

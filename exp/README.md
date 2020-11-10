@@ -8,7 +8,7 @@ The interface is minimal:
   <img src="../doc/exp.png"/>
 </p>
 
-- It loads the `VisualStim` protocols stored in [/exp/protocols](b)
+- It loads the `VisualStim` protocols stored in [/exp/protocols]()
 Select the desired modalities and "init" and "launch" recordings.
 
 

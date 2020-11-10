@@ -81,7 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = run(self.app)
         
     def launch_whisking(self):
-        p = subprocess.Popen('conda activate facemap; python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen('python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
     def launch_visual_stim(self):
         from visual_stim.gui import run as RunVisualStim
