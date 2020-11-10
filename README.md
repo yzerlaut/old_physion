@@ -1,26 +1,25 @@
+# Physiology of visual circuits
 
-# Tools and pipelines for cortical physiology
-
-*Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortices*
+> *Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortex*
 
 ## Modules
 
-- [Experimental protocols](exp/README.md)
+- [Experimental characterization (multimodal)](exp/README.md)
 - [Visual stimulation](visual_stim/README.md)
 - [Assembling pipeline](assembling/README.md)
 - [Electrophysiology](electrophy/README.md)
-- [Calcium imaging](Ca_imaging/README.md)
+- [Calcium imaging](Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
 - [Pupil tracking](pupil/README.md)
-- [behavioral monitoring](behavioral_monitoring/README.md)
+- [Behavioral monitoring](behavioral_monitoring/README.md) -- forked from [FaceMap](https://github.com/MouseLand/facemap)
 - [Hardware control](hardware_control/README.md)
-- [Analysis](analysis/README.md)
+- [Analysis and Visualization](analysis/README.md)
 
 ## How do I get set up ?
 
 
 #### 1) Get a scientific python distribution
 
-Install a python distribution for scientific analysis, get [the latest Anaconda distribution](https://www.anaconda.com/products/individual)
+Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
 
 #### 2) Download this repository
 
@@ -39,11 +38,11 @@ The installation instructions for the experimental setup are described in a dedi
 
 `pyinstaller main.py --windowed`
 
-## Running experiments
+## Running the program
 
 The master program for experiments is launched with:
 ```
-python master\exp.py
+python main.py
 ```
 
 <p align="center">
