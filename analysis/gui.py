@@ -17,7 +17,7 @@ settings = {
               'Whisking':(255,255,255,255),#'white',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
-              'Calcium':(0,255,0,255)},#'green'},
+              'CaImaging':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':400}
 
@@ -67,12 +67,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showwindow()
 
 
-        """
         # ----------------------------------
         # ========= for debugging ==========
         # ----------------------------------
-        # self.datafolder = '/home/yann/DATA/2020_10_07/16-00-00/'
-        date = datetime.date(2020, 10, 7)
+        self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
+        date = datetime.date(2020, 11, 4)
         date = self.cal.setSelectedDate(date)
         self.pick_date()
         # self.preload_datafolder(self.datafolder)
@@ -80,7 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pick_datafolder()
         self.pbox.setCurrentIndex(1)
         self.display_quantities()
-        """
 
         
     def check_data_folder(self):
@@ -170,6 +168,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.pbox.addItem('...       (select a visualization/analysis)')
                 self.pbox.addItem('-> Show Raw Data')
+                self.pbox.addItem('-> Trial-average')
                 self.load_data()
             
         else:
@@ -196,11 +195,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # IMPLEMENT OTHER ANALYSIS HERE
         """
+        print(self.pbox.currentIndex())
         if self.pbox.currentIndex()==1 or force:
             plots.raw_data_plot(self, self.tzoom,
                                 plot_update=plot_update,
                                 with_images=with_images,
                                 with_scatter=with_scatter)
+        elif self.pbox.currentIndex()==2:
+            guiparts.load_config2(self)
+            
 
     def back_to_initial_view(self):
         self.plot.clear()

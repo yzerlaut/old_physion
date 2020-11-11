@@ -131,7 +131,7 @@ def raw_data_plot(self, tzoom,
     if self.CaImaging is not None:
         self.pCaimg.setImage(self.CaImaging.meanImg)
         
-    pen = pg.mkPen(color=self.settings['colors']['Calcium'])
+    pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
     if self.CaImaging is not None:
         cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
         isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])

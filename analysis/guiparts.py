@@ -1,4 +1,4 @@
-import datetime, numpy, os
+import datetime, numpy, os, sys
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
@@ -142,7 +142,6 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
 
     self.cwidget = QtGui.QWidget(self)
     self.setCentralWidget(self.cwidget)
-    self.PupilROI = None
     
     mainLayout = QtWidgets.QVBoxLayout()
 
@@ -237,14 +236,98 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     <span style='color: green'> <b> Ca-Imaging </b> </span>"""
     label.setText(txt)
     self.win2.addItem(label)
+
+class NewWindow(QtWidgets.QMainWindow):
     
-def load_config2(self, win1_Wmax=800, win1_Hmax=300):
+    def __init__(self,
+                 parent=None,
+                 title='New Window'):
 
-    self.cwidget = QtGui.QWidget(self)
-    self.setCentralWidget(self.cwidget)
+        super(NewWindow, self).__init__()
 
-    mainLayout = QtWidgets.QVBoxLayout()
+        self.setGeometry(100, 100, 800, 500)
+        
+        # adding a "quit" keyboard shortcut
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+        self.quitSc.activated.connect(self.quit)
+        self.closeW = QtWidgets.QShortcut(QtGui.QKeySequence('C'), self) # or 'Ctrl+Q'
+        self.closeW.activated.connect(self.close)
+        # adding a refresh shortcut
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+        self.refreshSc.activated.connect(self.refresh)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+        self.maxSc.activated.connect(self.showwindow)
 
-    Layout1 = QtWidgets.QVBoxLayout()
-    mainLayout.addLayout(Layout1)
+        self.setWindowTitle(title)
+        self.minView = False
+
+        self.cwidget = QtGui.QWidget(self)
+        self.setCentralWidget(self.cwidget)
+        
+        self.showwindow()
+
+    def quit(self):
+        sys.exit()
+        
+    def refresh(self):
+        pass # to be implemented in the child class !
+
+    def showwindow(self):
+        if self.minView:
+            self.minView = self.maxview()
+        else:
+            self.minView = self.minview()
+    def maxview(self):
+        self.showFullScreen()
+        return False
+    def minview(self):
+        self.showNormal()
+        return True
     
+
+    # Layout11 = QtWidgets.QVBoxLayout()
+    # Layout1.addLayout(Layout11)
+    # create_calendar(self, Layout11)
+    # self.notes = QtWidgets.QLabel(63*'-'+5*'\n', self)
+    # self.notes.setMinimumHeight(70)
+    # self.notes.setMaximumHeight(70)
+    # Layout11.addWidget(self.notes)
+
+    # self.pbox = QtWidgets.QComboBox(self)
+    # self.pbox.activated.connect(self.display_quantities)
+    # self.pbox.setMaximumHeight(selector_height)
+    # if self.raw_data_visualization:
+    #     self.pbox.addItem('')
+    #     self.pbox.addItem('-> Show Raw Data')
+    #     self.pbox.setCurrentIndex(1)
+    
+    
+#     def __init__(self, parent=None,
+#                  fullscreen=False):
+
+#         super(TrialAverageWindow, self).__init__()
+
+#         # adding a "quit" keyboard shortcut
+#         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+#         self.quitSc.activated.connect(self.close)
+#         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+#         self.refreshSc.activated.connect(self.refresh)
+#         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+#         self.maxSc.activated.connect(self.showwindow)
+
+#         ####################################################
+#         # BASIC style config
+#         self.setWindowTitle('Analysis Program -- Physiology of Visual Circuits')
+
+#     def close(self):
+#         pass
+
+    
+    
+if __name__=='__main__':
+
+    app = QtWidgets.QApplication(sys.argv)
+    build_dark_palette(app)
+    window = TrialAverageWindow(app)
+    # window.show()
+    sys.exit(app.exec_())

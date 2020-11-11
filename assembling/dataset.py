@@ -355,23 +355,32 @@ class CaImagingData(ImageTimeSeries):
     def __init__(self, datafolder, metadata,
                  dt=None, times=None, t0=0,
                  lazy_loading=True,
+                 with_CaImaging_stat=True,
                  compressed_version=True):
 
         try:
             self.t = np.load(os.path.join(datafolder, 'times.npy'))
             print('Tstart CaImaging is:', self.t[0])
-            self.t -= self.t[0] # to be replaced !
+            # -------------------------------------------------
+            self.t -= self.t[0] # TO BE REPLACE BY Tstart !!!!
+            # -------------------------------------------------
             iscell=np.load(os.path.join(datafolder,'iscell.npy'))
             spks = np.load(os.path.join(datafolder,'spks.npy'))
             F = np.load(os.path.join(datafolder,'F.npy'))
             Fneu = np.load(os.path.join(datafolder,'Fneu.npy'))
             self.Firing = spks[iscell[:,0]==1,:]
-            self.Fluo = F[iscell[:,0]==1,:]-0.7*Fneu[iscell[:,0]==1,:]
-            stat = np.load(os.path.join(datafolder,'ops.npy'), allow_pickle=True).item()
-            self.meanImg = stat['max_proj']
+            self.F = F[iscell[:,0]==1,:]
+            self.Fneu = Fneu[iscell[:,0]==1,:]
+            self.dF = F[iscell[:,0]==1,:]-0.7*Fneu[iscell[:,0]==1,:]
+            if with_CaImaging_stat:
+                stat = np.load(os.path.join(datafolder,'ops.npy'), allow_pickle=True).item()
+                self.meanImg = stat['max_proj']
+            else:
+                self.meanImg = np.zeros((2,2))
         except FileNotFoundError:
             self.t=np.array([0,metadata['true_tstop']-metadata['true_tstart']])
-            self.Firing, self.Fluo = np.zeros((2,2)), np.zeros((2,2))
+            self.Firing, self.dF, self.F, self.Fneu = np.zeros((2,2)),\
+                np.zeros((2,2)), np.zeros((2,2)), np.zeros((2,2))
             self.meanImg = np.zeros((4,4))
             
 
@@ -390,6 +399,7 @@ class Dataset:
                  compressed_version=True,
                  lazy_loading=True,
                  FaceCamera_frame_rate=None,
+                 with_CaImaging_stat=True,
                  speed_smoothing=10, # ms
                  modalities=MODALITIES):
         """
@@ -401,6 +411,7 @@ class Dataset:
             
         self.datafolder = datafolder
         self.metadata = check_datafolder(self.datafolder, modalities)
+        self.metadata['day'], self.metadata['time'] = datafolder.split(os.path.sep)[-2:]
         
         try:
             data = np.load(os.path.join(self.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
@@ -466,6 +477,7 @@ class Dataset:
             self.CaImaging = CaImagingData(cafolder,
                                            self.metadata,
                                            t0 = (int(100*self.NIdaq_Tstart)%(100*24*60*60))/100,
+                                           with_CaImaging_stat=with_CaImaging_stat,
                                            lazy_loading=lazy_loading)
         elif 'CaImaging' in modalities:
             print('[X] Ca-Imaging data not found !')
