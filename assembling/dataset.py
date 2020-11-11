@@ -411,6 +411,12 @@ class Dataset:
             self.NIdaq_Tstart = 0
 
         # Screen and visual stim
+        if self.metadata['VisualStim']:
+            if os.path.isfile(os.path.join(self.datafolder, 'visual-stim.npy')):
+                self.VisualStim = np.load(os.path.join(self.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
+            else:
+                self.VisualStim = None
+                print('[X] Visual-Stim metadata not found !')
         if self.metadata['VisualStim'] and ('Screen' in modalities):
             self.Screen = ScreenData(self.datafolder, self.metadata,
                                      NIdaq_trace=data['analog'][Photodiode_NIdaqChannel,:])
