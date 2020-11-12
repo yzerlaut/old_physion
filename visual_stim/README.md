@@ -6,7 +6,7 @@ Go through the steps of the [README](../README.md) of the repository.
 
 First install a python distribution from: https://www.anaconda.com/products/individual
 
-The stimulus presentation relies on the [PsychoPy module](https://www.psychopy.org).  The custom code for the GUI and the set of stimulus lies in the present repository: ["psychopy_code" folder](./psychopy_code/) and ["gui" folder](./gui/).
+The stimulus presentation relies on the [PsychoPy module](https://www.psychopy.org).  The custom code for the GUI and the set of stimulus lies in the present reinpository: ["psychopy_code" folder](./psychopy_code/) and ["gui" folder](./gui/).
 
 A few examples, that were used to design and calibrate the stimuli, can be found in the [psychopy_code/demo_stim.py](./psychopy_code/demo_stim.py)
 
