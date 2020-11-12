@@ -1,4 +1,3 @@
-
 # Visual stimulation
 
 ## Configuration/Installation
@@ -96,7 +95,13 @@ The set of stimuli implemented can be visualized in the GUI (with the parameters
 
 They are documented in the [file of default parameter](./default_params.py).
 
-## Realign physiological recordings
+## Tracking stimulus presentation with a photodiode
 
-see the [Assembling module](../assembling/README.md)
+The onset timing of the stimulus presentation is very hard to precisely control from the computer. So, to have the ability to realign stimulus presentation to the physiological recordings (see the [Assembling module](../assembling/README.md), we monitor the presentation of the stimuli on the screen with a photodiode.
+We add a blinking square on the left-bottom corner of the screen
+
+   
+)
+Realign physiological recordings thanks to a photodiode signal
+
 
