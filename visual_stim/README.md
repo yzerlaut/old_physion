@@ -1,3 +1,4 @@
+
 # Visual stimulation
 
 ## Configuration/Installation
@@ -24,6 +25,13 @@ There is a `"demo"` mode to adjust and build the protocols.
   <img src="../doc/gui-visual-stim.png"/>
 </p>
 
+## Mouse visual field and screen position
+
+The setup corresponds to the following setting:
+
+<p align="center">
+  <img src="../doc/visual-field.png"/>
+</p>
 
 ## Screen settings
 
