@@ -20,38 +20,29 @@ All elements send signals to the NI-daq ! We launch a (clocked !) continuous rec
 The NI-daq receives:
 
 1. The photodiode signal form the screen (taken from from the right-bottom corner of the screen)
+2. The rotoencoder input
+
+For the two-photon microscope
+
 2. The aperture time of the FLIR-camera (TO BE DONE, for now, using computer timestamps)
 3. The aperture time of the two-photon microscope
-4. The rotoencoder input
 
-N.B. The alignement of the webcam data (and for now FLIR-camera) are made thanks to computer timestamps in-between every frame grabbed from the camera. They are re-aligned to the recording thanks to a computer time-stamp of the NIdaq start.
+N.B. The alignement of the webcam data (and for now FLIR-camera) are made thanks to computer timestamps in-between every frame grabbed from the camera. They are re-aligned to the recording thanks to a computer time-stamp of the NIdaq start (see `NIdaq.Tstart.npy` file in the data).
 
-## Data
-
-A data folder corresponding to one protocol is stored within the root data folder (e.g. `C:\\Users\yann.zerlaut\DATA\`) with as a date-time folder structure, i.e. as `C:\\Users\yann.zerlaut\DATA\2020-04-24\14_51_08\`
-
-By running:
-```
-dir C:\\Users\yann.zerlaut\DATA\2020-04-24\14_51_08\
-```
-One can see that is made of the following elements:
-
-```
-...
-```
-
-## Code
-
-### Finding visual-stimulation onset
+## Tracking visual-stimulation onset from the photodiode signal
 
 Base on the photodiode signal (that is a bit noisy), we integrate it over time (after having substracted the baseline defined by the peak of the signal distribution) for each episode. We determine the onset when the integral passes a threshold. This threshold in the integral corresponds to the signal settling at the maximum for 5ms. The onset is then the time of the crossing minus those 5 seconds.
 ```
 python assembling/fetching.py
 ```
 
-### Other assembling procedures
+## Resampling realigned data after onset-tracking
 
-The scripts doing the assembling is in the file [fetching.py](./fetching.py).
+Because the time onset is not fixed from trial to trial (it it determined by the onset-tracking procedure above),there is the need to resample the data to make them comparable from trial-to-trial (e.g. to compute a trial-average).
+This is performs as follows (see the implementation in (../analysis/trial_averaging.py)[../analysis/trial_averaging.py]):
+We build a fixed time vector (e.g. `t = np.linspace(-1, 6, 1e3)` for a stimulus of duration 5s) and we want to interpolate the single-trial response on this time vector by looping over the onsets of the full experiment. We used the function `interp1d` of the `interpolate` module of `scipy` to build a linear interpolation of each single-trial response.
+The time step of the re-sampling depended on the recording modality, we use 33ms for the Calcium-Imaging data and 10 ms for the Electrophysiological data.
+
 
 
 

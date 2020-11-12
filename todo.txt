@@ -1,4 +1,4 @@
-- add a picture of the face on the Desktop to be able to monitor the field of view
 - add the written metadata of the exp GUI in the metadata file
-- Suite2P workflow
+- write the documentation for the 
+- improve Suite2P workflow
 - Perform the characterization of the reliability of the Virtual-Scene-Exploration: use the photodiode, remove the monitoring signal (put it on top) and study the reliabilty of the transitions. Also remove the mask if there is one.
