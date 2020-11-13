@@ -385,7 +385,7 @@ class CaImagingData(ImageTimeSeries):
             
 
 ##############################################
-###         Multimodal dataset             ###
+###          Multimodal dataset            ###
 ##############################################
 
 MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','CaImaging']

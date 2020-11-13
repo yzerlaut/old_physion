@@ -6,6 +6,7 @@ from assembling.saving import day_folder
 from assembling.dataset import Dataset, MODALITIES
 from guiparts import NewWindow, build_dark_palette
 from scipy.interpolate import interp1d
+from misc import colors
 
 class TrialAverageWindow(NewWindow):
 
@@ -87,21 +88,21 @@ class TrialAverageWindow(NewWindow):
         
         self.show()
 
-    def refresh(self):
+    def plot_row_column_of_quantity(self, quantity):
 
-        self.plots.clear()
-        self.quantity = self.qbox.currentText()
-        if (self.EPISODES is None) or\
-           (self.quantity!=self.EPISODES['quantity'])or\
-           (self.samplingBox.value()!=self.EPISODES['dt_sampling']):
-            self.EPISODES = build_episodes(self.dataset,
-                           quantity=self.quantity,
-                           dt_sampling=self.samplingBox.value())
-
-            
+        
         COL_CONDS = self.build_column_conditions()
         ROW_CONDS = self.build_row_conditions()
+        COLOR_CONDS = self.build_color_conditions()
+        
+        if len(COLOR_CONDS)>1:
+            print(np.arange(len(COLOR_CONDS)))
+            COLORS = colors.build_colors_from_array(np.arange(len(COLOR_CONDS)))
+        else:
+            COLORS = [(255,255,255,255)]
 
+        print(COLORS)
+        
         l = self.plots.addLayout(rowspan=len(ROW_CONDS),
                                  colspan=len(COL_CONDS),
                                  border=(0,0,0))
@@ -113,9 +114,21 @@ class TrialAverageWindow(NewWindow):
             AX.append([])
             for icol, col_cond in enumerate(COL_CONDS):
                 AX[irow].append(l.addPlot())
-                cond = col_cond & row_cond
-                AX[irow][icol].plot(self.EPISODES['t'],
-                    np.array(self.EPISODES[self.quantity])[cond,:].mean(axis=0))
+                for icolor, color_cond in enumerate(COLOR_CONDS):
+                    cond = col_cond & row_cond & color_cond
+                    pen = pg.mkPen(color=COLORS[icolor], width=2)
+                    my = np.array(self.EPISODES[quantity])[cond,:].mean(axis=0)
+                    if np.sum(cond)>1:
+                        spen = pg.mkPen(color=(0,0,0,0), width=0)
+                        spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
+                        sy = np.array(self.EPISODES[quantity])[cond,:].std(axis=0)
+                        phigh = pg.PlotCurveItem(self.EPISODES['t'], my+sy, pen = spen)           
+                        plow = pg.PlotCurveItem(self.EPISODES['t'], my-sy, pen = spen)                  
+                        pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)
+                        AX[irow][icol].addItem(phigh)
+                        AX[irow][icol].addItem(plow)
+                        AX[irow][icol].addItem(pfill)                    
+                    AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
                 if icol>0:
                     AX[irow][icol].hideAxis('left')
                     AX[irow][icol].setYLink(AX[irow][0])
@@ -125,8 +138,27 @@ class TrialAverageWindow(NewWindow):
                 if irow<(len(ROW_CONDS)-1):
                     AX[irow][icol].hideAxis('bottom')
                     AX[irow][icol].setXLink(AX[-1][icol])
+        
+    def refresh(self):
 
+        self.plots.clear()
+        self.quantity = self.qbox.currentText()
+        if (self.EPISODES is None) or\
+           (self.quantity!=self.EPISODES['quantity'])or\
+           (self.samplingBox.value()!=self.EPISODES['dt_sampling']):
+            self.EPISODES = build_episodes(self.dataset,
+                           quantity=self.quantity,
+                           dt_sampling=self.samplingBox.value())
 
+        if self.quantity=='CaImaging':
+            for k in ['Firing', 'F', 'Fneu', 'dF']:
+                if k in self.pbox.currentText():
+                    self.quantity = k
+            
+            if 'ROI' in self.sqbox.currentText():
+                self.quantity = '%s-%i' % (self.quantity, int(self.sqbox.currentText().split('-')[1])-1)
+        
+        self.plot_row_column_of_quantity(self.quantity)
         
     def build_conditions(self, X, K):
         if len(K)>0:
@@ -160,12 +192,22 @@ class TrialAverageWindow(NewWindow):
                 K.append(key)
         return self.build_conditions(X, K)
 
+    def build_color_conditions(self):
+        X, K = [], []
+        for key in self.keys:
+            if len(getattr(self, "c"+key).currentText().split('color'))>1:
+                X.append(np.sort(np.unique(self.dataset.metadata[key])))
+                K.append(key)
+        return self.build_conditions(X, K)
+
     
     def update_quantity(self):
         self.sqbox.clear()
         self.pbox.clear()
         if self.qbox.currentText()=='CaImaging':
             self.sqbox.addItem('[sum]')
+            self.sqbox.addItem('[all] (row)')
+            self.sqbox.addItem('[all] (color-code)')
             for i in range(self.dataset.CaImaging.F.shape[0]):
                 self.sqbox.addItem('ROI-%i' % (i+1))
             for k in ['Firing', 'F', 'Fneu', 'dF (F-0.7*Fneu)']:
@@ -224,18 +266,20 @@ def build_episodes(dataset,
 
     # new sampling
     interstim = dataset.metadata['presentation-interstim-period']
-    ipre = int(interstim/dt_sampling/1e-3/2.)
+    ipre = int(interstim/dt_sampling/1e-3*3./4.) # 3/4 of prestim
     idur = int(dataset.metadata['presentation-duration']/dt_sampling/1e-3)
-    EPISODES['t'] = np.arange(-ipre+1, idur+2*ipre-1)*dt_sampling*1e-3
+    EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     EPISODES[quantity] = []
     if quantity=='Photodiode':
         tfull = dataset.Screen.photodiode.t
         valfull = dataset.Screen.photodiode.val
     elif quantity=='CaImaging':
         tfull = dataset.CaImaging.t
-        valfull =dataset.CaImaging.dF.mean(axis=0)
-        for n in range(dataset.CaImaging.Firing.shape[0]):
-            for k in ['Firing', 'F', 'Fneu', 'dF']:
+        VALFULLS = []
+        for k in ['Firing', 'F', 'Fneu', 'dF']:
+            VALFULLS.append(getattr(dataset.CaImaging, k).mean(axis=0))
+            EPISODES[k] = []
+            for n in range(dataset.CaImaging.Firing.shape[0]):
                 EPISODES['%s-%i' % (k, n+1)] = []
     else:
         tfull = getattr(dataset, quantity).t
@@ -244,15 +288,21 @@ def build_episodes(dataset,
     for tstart, tstop in zip(dataset.metadata['time_start_realigned'],\
                              dataset.metadata['time_stop_realigned']):
 
-        cond = (tfull>=(tstart-interstim/2.)) & (tfull<(tstop+interstim))
-        func = interp1d(tfull[cond]-tstart, valfull[cond],
-                        kind=interpolation)
-        EPISODES[quantity].append(func(EPISODES['t']))
+        cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
+        if quantity=='CaImaging':
+            for i, k in enumerate(['Firing', 'F', 'Fneu', 'dF']):
+                func = interp1d(tfull[cond]-tstart, VALFULLS[i][cond],
+                                kind=interpolation)
+                EPISODES[k].append(func(EPISODES['t']))
+        else:
+            func = interp1d(tfull[cond]-tstart, valfull[cond],
+                            kind=interpolation)
+            EPISODES[quantity].append(func(EPISODES['t']))
         
     if quantity=='CaImaging':
         for tstart, tstop in zip(dataset.metadata['time_start_realigned'],\
                                  dataset.metadata['time_stop_realigned']):
-            cond = (tfull>=(tstart-interstim/2.)) & (tfull<(tstop+interstim))
+            cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
             for n in range(dataset.CaImaging.Firing.shape[0]):
                 for k in ['Firing', 'F', 'Fneu', 'dF']:
                     func = interp1d(tfull[cond]-tstart, getattr(dataset.CaImaging, k)[n,cond],
