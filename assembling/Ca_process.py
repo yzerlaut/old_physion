@@ -69,7 +69,7 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
                 for ica in range(len(CA_FILES['StartTime'])):
                     times2 = np.arange(int(CA_FILES['StartTime'][ica]), int(CA_FILES['EndTime'][ica]))
 
-                    if (len(np.intersect1d(times, times2))>min_protocol_duration):
+                    if (len(np.intersect1d(times, times2))>min_protocol_duration) and verbose:
                         print('------------')
                         print(times[0], times[-1])
                         print(times2[0], times2[-1])
@@ -107,10 +107,24 @@ def transfer_analyzed_data(CA_FILES):
 
 if __name__=='__main__':
 
-    folder = '/home/yann/DATA/2020_11_03'
+    import argparse, os
+    parser=argparse.ArgumentParser(description="transfer interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-d', "--day", type=str,
+                        default='2020_11_03')
+    parser.add_argument('-wt', "--with_transfer", action="store_true")
+    parser.add_argument('-v', "--verbose", action="store_true")
+    args = parser.parse_args()
+
+
+    folder = os.path.join(args.root_datafolder, args.day)
     CA_FILES = build_Ca_filelist(folder)
     PROTOCOL_LIST = list_dayfolder(folder)
 
-    CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES)
+    CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES,
+                                  verbose=args.verbose)
 
-    # transfer_analyzed_data(CA_FILES)
+    if args.with_transfer:
+        transfer_analyzed_data(CA_FILES)
