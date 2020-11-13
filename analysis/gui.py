@@ -6,6 +6,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
 from analysis import guiparts, plots
+from analysis.trial_averaging import TrialAverageWindow
 
 settings = {
     'window_size':(1000,600),
@@ -24,10 +25,13 @@ settings = {
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, parent=None,
+    def __init__(self, app,
+                 args=None,
+                 parent=None,
                  raw_data_visualization=False,
                  fullscreen=False):
 
+        self.app = app
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
 
@@ -55,7 +59,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
         guiparts.load_config1(self)
 
-        self.data_folder = os.path.join(os.path.expanduser('~'), 'DATA')
+        if args is not None:
+            self.root_datafolder = args.root_datafolder
+        else:
+            self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
+        print(self.root_datafolder)
         for mod in MODALITIES:
             setattr(self, mod, None)
             
@@ -67,18 +75,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showwindow()
 
 
-        # ----------------------------------
-        # ========= for debugging ==========
-        # ----------------------------------
-        self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
-        date = datetime.date(2020, 11, 4)
-        date = self.cal.setSelectedDate(date)
-        self.pick_date()
-        # self.preload_datafolder(self.datafolder)
-        self.dbox.setCurrentIndex(1)
-        self.pick_datafolder()
-        self.pbox.setCurrentIndex(1)
-        self.display_quantities()
+        # # ----------------------------------
+        # # ========= for debugging ==========
+        # # ----------------------------------
+        # self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
+        # date = datetime.date(2020, 11, 4)
+        # date = self.cal.setSelectedDate(date)
+        # self.pick_date()
+        # # self.preload_datafolder(self.datafolder)
+        # self.dbox.setCurrentIndex(1)
+        # self.pick_datafolder()
+        # self.pbox.setCurrentIndex(1)
+        # self.display_quantities()
 
         
     def check_data_folder(self):
@@ -91,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         date = datetime.date(2020, 9, 1)
         while date!=(datetime.date.today()+datetime.timedelta(30)):
-            if os.path.isdir(os.path.join(self.data_folder, date.strftime("%Y_%m_%d"))):
+            if os.path.isdir(os.path.join(self.root_datafolder, date.strftime("%Y_%m_%d"))):
                 self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
             date = date+datetime.timedelta(1)
         date = self.cal.setSelectedDate(date+datetime.timedelta(1))
@@ -101,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.day = '%s_%02d_%02d' % (date.year(), date.month(), date.day())
         for i in string.digits:
             self.day = self.day.replace('_%s_' % i, '_0%s_' % i)
-        self.day_folder = os.path.join(self.data_folder,self.day)
+        self.day_folder = os.path.join(self.root_datafolder,self.day)
         if os.path.isdir(self.day_folder):
             self.list_protocol_per_day = list_dayfolder(self.day_folder)
         else:
@@ -140,7 +148,7 @@ class MainWindow(QtWidgets.QMainWindow):
          # see assembling/dataset.py
         dataset = Dataset(self.datafolder,
                           modalities=MODALITIES)
-        
+        self.dataset = dataset
         for key in MODALITIES:
             setattr(self, key, getattr(dataset, key))
         setattr(self, 'metadata', dataset.metadata)
@@ -195,14 +203,20 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # IMPLEMENT OTHER ANALYSIS HERE
         """
-        print(self.pbox.currentIndex())
-        if self.pbox.currentIndex()==1 or force:
+
+        print(self.pbox.currentText())
+        if self.pbox.currentText()=='-> Trial-average':
+            print(self.pbox.currentText())
+            self.window2 = TrialAverageWindow(self.app,
+                                        dataset=self.dataset)
+            self.window2.show()
+        elif (self.pbox.currentText()=='-> Show Raw Data') or force:
             plots.raw_data_plot(self, self.tzoom,
                                 plot_update=plot_update,
                                 with_images=with_images,
                                 with_scatter=with_scatter)
-        elif self.pbox.currentIndex()==2:
-            guiparts.load_config2(self)
+
+
             
 
     def back_to_initial_view(self):
@@ -265,19 +279,26 @@ class MainWindow(QtWidgets.QMainWindow):
     def quit(self):
         sys.exit()
 
-
-def run(app, parent=None,
+def run(app, args=None, parent=None,
         raw_data_visualization=False):
-    guiparts.build_dark_palette(app)
     return MainWindow(app,
-                      raw_data_visualization=raw_data_visualization)
+                      args=args,
+                      raw_data_visualization=raw_data_visualization,
+                      parent=parent)
     
 if __name__=='__main__':
-
-    raw_data_visualization = False
-    if len(sys.argv)>1:
-        raw_data_visualization = True
-       
+    from misc.colors import build_dark_palette
+    import tempfile, argparse, os
+    parser=argparse.ArgumentParser(description="Experiment interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-v', "--visualization", action="store_true")
+    args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app,raw_data_visualization=raw_data_visualization)
+    build_dark_palette(app)
+    main = MainWindow(app,
+                      args=args,
+                      raw_data_visualization=args.visualization)
     sys.exit(app.exec_())
+

@@ -9,6 +9,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 
 sys.path.append(str(pathlib.Path(__file__).resolve()))
 from misc.style import set_dark_style, set_app_icon
+from misc.colors import build_dark_palette
 
 if not sys.argv[-1]=='no-stim':
     from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
@@ -18,9 +19,11 @@ else:
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
+                 args=None,
                  button_height = 20):
 
         self.app = app
+        self.args = args
         set_app_icon(app)
         super(MainWindow, self).__init__()
         self.setWindowTitle('Physiology of Visual Circuits    ')
@@ -77,19 +80,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def launch_exp(self):
-        from exp.gui import run
-        self.child = run(self.app)
+        from exp.gui import run as RunExp
+        self.child = RunExp(self.app, self.args)
         
     def launch_whisking(self):
         p = subprocess.Popen('python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
-    def launch_visual_stim(self):
+    def launch_visual_stim(self, args):
         from visual_stim.gui import run as RunVisualStim
-        self.child = RunVisualStim(self.app)
+        self.child = RunVisualStim(self.app, self.args)
         
-    def launch_organize(self):
+    def launch_organize(self, args):
         from assemble.gui import run as RunOrganize
-        self.child = RunOrganize(self.app)
+        self.child = RunOrganize(self.app, args)
         
     def launch_transfer(self):
         self.statusBar.showMessage('Transfer module not implemented yet')
@@ -97,7 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_pupil(self):
         self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
         from pupil.gui import run as RunPupilGui
-        self.child = RunPupilGui(self.app)
+        self.child = RunPupilGui(self.app, args)
         
     def launch_caimaging(self):
         p = subprocess.Popen('conda activate suite2p; python -m suite2p', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -108,11 +111,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_visualization(self):
         self.statusBar.showMessage('Loading Visualization Module [...]')
         from analysis.gui import run as RunAnalysisGui
-        self.child = RunAnalysisGui(self.app,
+        self.child = RunAnalysisGui(self.app, args,
                                     raw_data_visualization=True)
     def launch_analysis(self):
         from analysis.gui import run as RunAnalysisGui
-        self.child = RunAnalysisGui(self.app)
+        self.child = RunAnalysisGui(self.app, args)
         
     def launch_notebook(self):
         self.statusBar.showMessage('Notebook module not implemented yet')
@@ -120,15 +123,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def quit(self):
         QtWidgets.QApplication.quit()
         
-def run():
+def run(args):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
-    # set_dark_style(app)
+    build_dark_palette(app)
+    set_dark_style(app)
     set_app_icon(app)
-    GUI = MainWindow(app)
-    ret = app.exec_()
-    sys.exit(ret)
+    GUI = MainWindow(app, args)
+    sys.exit(app.exec_())
 
 if __name__=='__main__':
-    run()
 
+    import argparse, os
+    parser=argparse.ArgumentParser(description="Main script",
+                                   formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    args = parser.parse_args()
+    run(args)

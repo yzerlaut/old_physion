@@ -1,4 +1,4 @@
-import sys, time, tempfile
+import sys, time
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 
@@ -15,7 +15,7 @@ from guiparts import *
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app, parent=None):
+    def __init__(self, app, args=None, parent=None):
         
         super(MainWindow, self).__init__(parent)
         
@@ -26,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
                                             'protocols')
 
-        self.root_datafolder = tempfile.gettempdir()
+        self.root_datafolder = args.root_datafolder
         self.datafolder = ''
         
         # buttons and functions
@@ -221,10 +221,18 @@ class MainWindow(QtWidgets.QMainWindow):
     #         self.statusBar.showMessage('Need to perform analysis first...')
     
         
-def run(app, parent=None):
-    return MainWindow(app)
+def run(app, args=None, parent=None):
+    return MainWindow(app, args=args, parent=parent)
     
 if __name__=='__main__':
+    import tempfile
+
+    import argparse, os
+    parser=argparse.ArgumentParser(description="Experiment interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=tempfile.gettempdir())
+    args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app)
+    main = MainWindow(app, args=args)
     sys.exit(app.exec_())

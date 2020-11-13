@@ -34,19 +34,22 @@ default_settings = {'NIdaq-acquisition-frequency':10000.,
 
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, app):
+    def __init__(self, app, args=None):
         """
         """
-        
         super(MainWindow, self).__init__()
         
         self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 550, 370)
 
         self.metadata = default_settings # set a load/save interface
-        self.protocol, self.protocol_folder = None, self.metadata['protocol_folder']
+        self.protocol, self.protocol_folder = None,\
+            self.metadata['protocol_folder']
 
-        self.root_datafolder = self.metadata['root_datafolder']
+        if args is not None:
+            self.root_datafolder = args.root_datafolder
+            self.metadata['root_datafolder'] = args.root_datafolder
+        
         self.datafolder = None
             
         self.get_protocol_list()
@@ -413,8 +416,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.get_config_list()
             self.cbp.addItems([f.replace('.json', '') for f in self.config_list])
         
-def run(app):
-    return MainWindow(app)
+def run(app, args=None):
+    print(args)
+    return MainWindow(app, args)
     
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)

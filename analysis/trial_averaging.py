@@ -1,12 +1,12 @@
 import sys, time, tempfile, os, pathlib, json, datetime, string
+from PyQt5 import QtGui, QtWidgets, QtCore
 import numpy as np
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from assembling.dataset import Dataset, MODALITIES
-from guiparts import NewWindow, build_dark_palette
+from guiparts import NewWindow
 from scipy.interpolate import interp1d
-from misc import colors
 
 class TrialAverageWindow(NewWindow):
 
@@ -322,15 +322,8 @@ if __name__=='__main__':
                       with_CaImaging_stat=False,
                       modalities=['Screen', 'Locomotion', 'CaImaging'])
     
-    from PyQt5 import QtGui, QtWidgets, QtCore
     app = QtWidgets.QApplication(sys.argv)
+    from misc.colors import build_dark_palette
     build_dark_palette(app)
     window = TrialAverageWindow(app, dataset=dataset)
     sys.exit(app.exec_())
-    
-    # app = QtWidgets.QApplication(sys.argv)
-    # main = run(app,raw_data_visualization=raw_data_visualization)
-    # sys.exit(app.exec_())
-    
-    # print(print_summary(dataset))
-    # build_episodes(dataset)

@@ -2,38 +2,8 @@ import datetime, numpy, os, sys
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
-
 df_width = 600
 selector_height = 40
-
-
-def build_dark_palette(app):
-
-    app.setStyle("Fusion")
-
-    # Now use a palette to switch to dark colors:
-    palette = QtGui.QPalette()
-    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-    # palette.setColor(QtGui.QPalette.Background, QtGui.QColor(53, 53, 53))
-    # palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
-    # palette.setColor(QtGui.QPalette.Foreground, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
-    palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.black)
-    palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
-    # palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.Button, QtCore.Qt.black)
-    palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    # palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-    # palette.setColor(QtGui.QPalette.Link, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.Link, QtGui.QColor(200, 200, 200))
-    # palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(150, 150, 150))
-    palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
-    app.setPalette(palette)
 
 def remove_size_props(o, fcol=False, button=False, image=False):
     o.setMinimumHeight(0)
@@ -326,8 +296,9 @@ class NewWindow(QtWidgets.QMainWindow):
     
 if __name__=='__main__':
 
-    app = QtWidgets.QApplication(sys.argv)
-    build_dark_palette(app)
-    window = TrialAverageWindow(app)
-    # window.show()
-    sys.exit(app.exec_())
+    pass
+    # app = QtWidgets.QApplication(sys.argv)
+    # # build_dark_palette(app)
+    # # window = TrialAverageWindow(app)
+    # # window.show()
+    # sys.exit(app.exec_())
