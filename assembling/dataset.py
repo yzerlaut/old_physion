@@ -361,7 +361,8 @@ class CaImagingData(ImageTimeSeries):
             self.t = np.load(os.path.join(datafolder, 'times.npy'))
             print('Tstart CaImaging is:', self.t[0])
             # -------------------------------------------------
-            self.t -= self.t[0] # TO BE REPLACE BY Tstart !!!!
+            self.t -= self.t[0] # TO BE MODIFIED !
+            # self.t -= metadata['true_tstart'] # THIS IS THE TEMPORAL ALIGNEMENT !!
             # -------------------------------------------------
             iscell=np.load(os.path.join(datafolder,'iscell.npy'))
             spks = np.load(os.path.join(datafolder,'spks.npy'))

@@ -1,4 +1,4 @@
-import os, sys, pathlib, shutil
+import os, sys, pathlib, shutil, time
 import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from hardware_control.Bruker.xml_parser import bruker_xml_parser
@@ -42,16 +42,22 @@ def build_Ca_filelist(folder):
                 'StartTime':[], 'EndTime':[], 'absoluteTime':[]}
     for bdf in list_TSeries_folder(folder):
         fn = get_files_with_extension(bdf, extension='.xml')[0]
-        xml = bruker_xml_parser(fn)
-        if len(xml['Ch1']['relativeTime'])>0:
-            CA_FILES['date'].append(stringdatetime_to_date(xml['date']))
-            CA_FILES['Bruker_folder'].append(bdf)
-            CA_FILES['Bruker_file'].append(fn)
-            start = StartTime_to_day_seconds(xml['StartTime'])
-            CA_FILES['StartTime'].append(start+xml['Ch1']['relativeTime'][0])
-            CA_FILES['EndTime'].append(start+xml['Ch1']['relativeTime'][-1])
-            CA_FILES['absoluteTime'].append(start+xml['Ch1']['absoluteTime'])
-            CA_FILES['protocol'].append('')
+        try:
+            xml = bruker_xml_parser(fn)
+            if len(xml['Ch1']['relativeTime'])>0:
+                CA_FILES['date'].append(stringdatetime_to_date(xml['date']))
+                CA_FILES['Bruker_folder'].append(bdf)
+                CA_FILES['Bruker_file'].append(fn)
+                start = StartTime_to_day_seconds(xml['StartTime'])
+                CA_FILES['StartTime'].append(start+xml['Ch1']['relativeTime'][0])
+                CA_FILES['EndTime'].append(start+xml['Ch1']['relativeTime'][-1])
+                CA_FILES['absoluteTime'].append(start+xml['Ch1']['absoluteTime'])
+                CA_FILES['protocol'].append('')
+        except BaseException as e:
+            print(e)
+            print(100*'-')
+            print('Problem with file: "%s"' % fn)
+            print(100*'-')
 
     return CA_FILES
 
@@ -62,21 +68,24 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
 
     for pfolder in PROTOCOL_LIST:
         metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True).item()
-        if 'true_tstart' in metadata:
-            times = np.arange(int(metadata['true_tstart']), int(metadata['true_tstop']))
-            if len(times)>min_protocol_duration:
-                # then we loop over Ca-imaging files to find the overlap
-                for ica in range(len(CA_FILES['StartTime'])):
-                    times2 = np.arange(int(CA_FILES['StartTime'][ica]), int(CA_FILES['EndTime'][ica]))
+        if not 'true_tstart' in metadata:
+            check_datafolder(pfolder)
+            metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True).item()
+        
+        times = np.arange(int(metadata['true_tstart']), int(metadata['true_tstop']))
+        if len(times)>min_protocol_duration:
+            # then we loop over Ca-imaging files to find the overlap
+            for ica in range(len(CA_FILES['StartTime'])):
+                times2 = np.arange(int(CA_FILES['StartTime'][ica]), int(CA_FILES['EndTime'][ica]))
 
-                    if (len(np.intersect1d(times, times2))>min_protocol_duration) and verbose:
-                        print('------------')
-                        print(times[0], times[-1])
-                        print(times2[0], times2[-1])
-                        print(pfolder)
-                        print(CA_FILES['absoluteTime'][ica][0])
-                        print(CA_FILES['Bruker_folder'][ica])
-                        CA_FILES['protocol'][ica] = pfolder
+                if (len(np.intersect1d(times, times2))>min_protocol_duration) and verbose:
+                    print('------------')
+                    print(times[0], times[-1])
+                    print(times2[0], times2[-1])
+                    print(pfolder)
+                    print(CA_FILES['absoluteTime'][ica][0])
+                    print(CA_FILES['Bruker_folder'][ica])
+                    CA_FILES['protocol'][ica] = pfolder
 
 
     return CA_FILES
@@ -117,7 +126,6 @@ if __name__=='__main__':
     parser.add_argument('-wt', "--with_transfer", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
-
 
     folder = os.path.join(args.root_datafolder, args.day)
     CA_FILES = build_Ca_filelist(folder)

@@ -133,6 +133,8 @@ def raw_data_plot(self, tzoom,
         
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
     if self.CaImaging is not None:
+        print(len(self.CaImaging.t))
+        print(self.CaImaging.Firing.shape)
         cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
         isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])
         for n in range(self.CaImaging.Firing.shape[0]):

@@ -44,7 +44,7 @@ def generate_filename_path(root_folder,
     return os.path.join(Second_folder, filename+extension)
 
 def list_dayfolder(day_folder):
-    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)))]
+    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)) and os.path.isfile(os.path.join(day_folder, d, 'metadata.npy')))]
     return folders
     
 def last_datafolder_in_dayfolder(day_folder):
@@ -122,7 +122,7 @@ def computerTimestamp_to_daySeconds(t):
     return 60*60*Hour+60*Min+Seconds
     
 
-def dealWithVariableTimestamps(folder, tstart):
+def dealWithVariableTimestamps(folder, tstart, verbose=False):
     """
     ideally we should deal with day shift as well in here...
     """
@@ -137,6 +137,10 @@ def dealWithVariableTimestamps(folder, tstart):
         print('We shift the computer time stamp by one hour...')
         tstart += 60*60
 
+    if verbose:
+        print('Tstart from interface= %.1fs (i.e. folder), Tstart from CaImaging= %.1fs ' %\
+              (tfolder, tstart))
+        
     return tstart
 
     
@@ -149,6 +153,7 @@ def check_datafolder(df,
         print('---> Checking the integrity of the datafolder [...] ')
         
     # should always be there
+    print(os.path.join(df,'metadata.npy'))
     if os.path.isfile(os.path.join(df,'metadata.npy')):
         metadata = np.load(os.path.join(df,'metadata.npy'),
                            allow_pickle=True).item()
@@ -181,6 +186,7 @@ def check_datafolder(df,
                     print('e')
                     print('\n'+100*'-'+'True start/stop undertermined for', df)
             else:
+                dealWithVariableTimestamps(df, metadata['true_tstart'], verbose=verbose)
                 print('True tstop= %.1fs' % metadata['true_tstop'])
                     
         else:
@@ -295,7 +301,7 @@ def load_dict(filename):
 
 if __name__=='__main__':
 
-    print(list_dayfolder('/home/yann/DATA/2020_11_03'))
+    # print(list_dayfolder('/home/yann/DATA/2020_11_03'))
     # import tempfile
     # data_folder = tempfile.gettempdir()
     # print(last_datafolder_in_dayfolder(day_folder(data_folder)))
@@ -304,3 +310,18 @@ if __name__=='__main__':
     
     # fn = generate_filename_path('/home/yann/DATA/', 'visual-stim.npz')
     # print(fn)
+    
+    import argparse, os
+    parser=argparse.ArgumentParser(description="transfer interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-d', "--day", type=str,
+                        default='2020_11_03')
+    parser.add_argument('-wt', "--with_transfer", action="store_true")
+    parser.add_argument('-v', "--verbose", action="store_true")
+    args = parser.parse_args()
+
+    for pfolder in list_dayfolder(os.path.join(args.root_datafolder, args.day)):
+        check_datafolder(pfolder)
+        

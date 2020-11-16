@@ -7,6 +7,7 @@ from assembling.saving import day_folder
 from assembling.dataset import Dataset, MODALITIES
 from guiparts import NewWindow
 from scipy.interpolate import interp1d
+from misc.colors import build_colors_from_array
 
 class TrialAverageWindow(NewWindow):
 
@@ -97,7 +98,7 @@ class TrialAverageWindow(NewWindow):
         
         if len(COLOR_CONDS)>1:
             print(np.arange(len(COLOR_CONDS)))
-            COLORS = colors.build_colors_from_array(np.arange(len(COLOR_CONDS)))
+            COLORS = build_colors_from_array(np.arange(len(COLOR_CONDS)))
         else:
             COLORS = [(255,255,255,255)]
 
