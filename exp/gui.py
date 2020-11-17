@@ -27,13 +27,13 @@ except ModuleNotFoundError:
 
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
-default_settings = {'NIdaq-acquisition-frequency':2000.,
-                    'NIdaq-analog-input-channels': 1,
-                    'NIdaq-digital-input-channels': 3,
+default_settings = {'NIdaq-acquisition-frequency':10000.,
+                    'NIdaq-analog-input-channels': 2,
+                    'NIdaq-digital-input-channels': 2,
                     'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
                     # 'config' : CONFIG_LIST[0],
-                    'FaceCamera-frame-rate': 30}
+                    'FaceCamera-frame-rate': 20}
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -198,18 +198,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.show()
         
-    def facecamera_init(self):
-        # if self.FaceCamera_process is None:
-        #     self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-        #                                 args=(self.run_event , self.quit_event,
-        #                                       self.root_datafolder,
-        #                             {'frame_rate':default_settings['FaceCamera-frame-rate']}))
-        #     self.FaceCamera_process.start()
-        #     print('  starting FaceCamera stream [...] ')
-        #     time.sleep(6)
-        #     print('[ok] FaceCamera ready ! ')
-        # else:
-        print('[ok] FaceCamera already initialized ')
+    def init_FaceCamera(self):
+        if self.FaceCamera_process is None:
+            self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+                                        args=(self.run_event , self.quit_event,
+                                              self.root_datafolder,
+                                    {'frame_rate':default_settings['FaceCamera-frame-rate']}))
+            self.FaceCamera_process.start()
+            print('  starting FaceCamera stream [...] ')
+            time.sleep(6)
+            print('[ok] FaceCamera ready ! ')
+        else:
+            print('[ok] FaceCamera already initialized ')
             
         return True
             
@@ -264,9 +264,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = {}
                     
         # init facecamera
-        # if self.metadata['FaceCamera']:
-        #     self.statusBar.showMessage('Initializing Camera stream [...]')
-        #     self.facecamera_init()
+        if self.metadata['FaceCamera']:
+            self.statusBar.showMessage('Initializing Camera stream [...]')
+            self.init_FaceCamera()
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
@@ -286,10 +286,6 @@ class MainWindow(QtWidgets.QMainWindow):
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(STEP_FOR_CA_IMAGING)
-        if self.metadata['FaceCamera']:
-            if not self.metadata['CaImaging']:
-                output_steps.append(STEP_FOR_CA_IMAGING) # we add anyway the step for Ca Imaging to create the output analog
-            output_steps = output_steps+STEPS_FOR_CAMERA_FRAME_TRIGGER
 
         # --------------- #
         ### NI daq init ###
