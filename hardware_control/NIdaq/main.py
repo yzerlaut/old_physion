@@ -46,14 +46,15 @@ class Acquisition:
         self.digital_data = np.zeros((1, 1), dtype=np.uint32)
         if self.Nchannel_digital_in>0:
             self.digital_input_channels = get_digital_input_channels(self.device)[:Nchannel_digital_in]
-        
+
         # preparing output channels
         if outputs is not None: # used as a flag for output or not
             self.output_channels = get_analog_output_channels(self.device)[:outputs.shape[0]]
         elif len(output_steps)>0:
+            Nchannel = max([d['channel'] for d in output_steps])+1
             # have to be elements 
             t = np.arange(int(self.max_time/self.dt))*self.dt
-            outputs = np.zeros((1,len(t)))
+            outputs = np.zeros((Nchannel,len(t)))
             # add as many channels as necessary
             for step in output_steps:
                 if step['channel']>outputs.shape[0]:
@@ -62,8 +63,7 @@ class Acquisition:
                 cond = (t>step['onset']) & (t<=step['onset']+step['duration'])
                 outputs[step['channel']][cond] = step['value']
             self.output_channels = get_analog_output_channels(self.device)[:outputs.shape[0]]
-        self.outputs = outputs
-                
+        self.outputs = outputs      
             
     def launch(self):
 

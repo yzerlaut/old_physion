@@ -1,35 +1,19 @@
 # basic scientific python modules
-numpy
-scipy
-scikit-learn
-scikit-image
-scikit-video
-numba
+numpy scipy scikit-learn scikit-image scikit-video numba av
 mkl # also need to conda install mkl_fft
-av
 # visual-stimulation
 psychopy
 # gui modules
-pyqt5
-pyqtgraph
+pyqt5 pyqtgraph
 # API to deal with images
-imageio
-opencv-python
-scanimage-tiff-reader>=1.4.1
-opencv_python_headless
-# APIs for hardware control
+imageio opencv-python scanimage-tiff-reader>=1.4.1 opencv_python_headless
+# # APIs for hardware control
 nidaqmx
 git+https://github.com/yzerlaut/simple_pyspin # forked from https://github.com/klecknerlab/simple_pyspin
-# other
-xmltodict
-importlib_metadata
-natsort
-paramiko
-rastermap>0.1.0
-git+https://github.com/yzerlaut/datavyz
-git+https://github.com/yzerlaut/analyz
-# facemap, forked from MouseLand
+# # other
+xmltodict importlib_metadata natsort paramiko rastermap>0.1.0
+# # facemap, forked from MouseLand
 git+https://github.com/yzerlaut/facemap
-# suite2p, forked from MouseLand
+# # suite2p, forked from MouseLand
 git+https://github.com/yzerlaut/suite2p
 

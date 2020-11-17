@@ -6,8 +6,11 @@ import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
-from visual_stim.psychopy_code.stimuli import build_stim
-from visual_stim.default_params import SETUP
+if not sys.argv[-1]=='no-stim':
+    from visual_stim.psychopy_code.stimuli import build_stim
+    from visual_stim.default_params import SETUP
+else:
+    SETUP = [None]
 
 from misc.style import set_app_icon, set_dark_style
 try:
@@ -23,14 +26,17 @@ except ModuleNotFoundError:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
 STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
+DT_frame, max_recording_time = 0.0333, 500 # seconds
+STEPS_FOR_CAMERA_FRAME_TRIGGER = [{"channel":1, "onset": t+0.005, "duration": .01, "value":3.3}\
+                                  for t in np.arange(int(max_recording_time/DT_frame))*DT_frame]
 
-default_settings = {'NIdaq-acquisition-frequency':10000.,
-                    'NIdaq-analog-input-channels': 2,
-                    'NIdaq-digital-input-channels': 2,
+default_settings = {'NIdaq-acquisition-frequency':2000.,
+                    'NIdaq-analog-input-channels': 1,
+                    'NIdaq-digital-input-channels': 3,
                     'protocol_folder':os.path.join('exp', 'protocols'),
                     'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
                     # 'config' : CONFIG_LIST[0],
-                    'FaceCamera-frame-rate': 20}
+                    'FaceCamera-frame-rate': 30}
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -49,9 +55,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if args is not None:
             self.root_datafolder = args.root_datafolder
             self.metadata['root_datafolder'] = args.root_datafolder
+<<<<<<< HEAD
         
+=======
+        else:
+            self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
+>>>>>>> 787f057010ac86ddda7dab16551dd3faf3c5a86f
         self.datafolder = None
-            
+	    
         self.get_protocol_list()
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
@@ -78,7 +89,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.CaImagingButton.move(430, 40)
         for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
-        for button in [self.VisualStimButton, self.LocomotionButton]:
+        for button in [self.LocomotionButton, self.FaceCameraButton, self.CaImagingButton]:
             button.setChecked(True)
 
         # protocol choice
@@ -194,17 +205,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         
     def facecamera_init(self):
-        if self.FaceCamera_process is None:
-            self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-                                        args=(self.run_event , self.quit_event,
-                                              self.root_datafolder,
-                                    {'frame_rate':default_settings['FaceCamera-frame-rate']}))
-            self.FaceCamera_process.start()
-            print('  starting FaceCamera stream [...] ')
-            time.sleep(6)
-            print('[ok] FaceCamera ready ! ')
-        else:
-            print('[ok] FaceCamera already initialized ')
+        # if self.FaceCamera_process is None:
+        #     self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+        #                                 args=(self.run_event , self.quit_event,
+        #                                       self.root_datafolder,
+        #                             {'frame_rate':default_settings['FaceCamera-frame-rate']}))
+        #     self.FaceCamera_process.start()
+        #     print('  starting FaceCamera stream [...] ')
+        #     time.sleep(6)
+        #     print('[ok] FaceCamera ready ! ')
+        # else:
+        print('[ok] FaceCamera already initialized ')
             
         return True
             
@@ -259,9 +270,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = {}
                     
         # init facecamera
-        if self.metadata['FaceCamera']:
-            self.statusBar.showMessage('Initializing Camera stream [...]')
-            self.facecamera_init()
+        # if self.metadata['FaceCamera']:
+        #     self.statusBar.showMessage('Initializing Camera stream [...]')
+        #     self.facecamera_init()
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
@@ -281,6 +292,10 @@ class MainWindow(QtWidgets.QMainWindow):
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(STEP_FOR_CA_IMAGING)
+        if self.metadata['FaceCamera']:
+            if not self.metadata['CaImaging']:
+                output_steps.append(STEP_FOR_CA_IMAGING) # we add anyway the step for Ca Imaging to create the output analog
+            output_steps = output_steps+STEPS_FOR_CAMERA_FRAME_TRIGGER
 
         # --------------- #
         ### NI daq init ###
