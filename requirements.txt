@@ -16,4 +16,6 @@ xmltodict importlib_metadata natsort paramiko rastermap>0.1.0
 git+https://github.com/yzerlaut/facemap
 # # suite2p, forked from MouseLand
 git+https://github.com/yzerlaut/suite2p
+# my data vizualization module that has a few handy tools
+git+https://github.com/yzerlaut/datavyz
 

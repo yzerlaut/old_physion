@@ -126,8 +126,8 @@ class MainWindow(QtWidgets.QMainWindow):
 def run(args):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
-    build_dark_palette(app)
-    set_dark_style(app)
+    # build_dark_palette(app)
+    # set_dark_style(app)
     set_app_icon(app)
     GUI = MainWindow(app, args)
     sys.exit(app.exec_())
