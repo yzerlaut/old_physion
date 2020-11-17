@@ -1,4 +1,3 @@
-
 import numpy as np
 
 PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
@@ -50,9 +49,9 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'radius-1':0, 'radius-2':150., 'N-radius':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -65,9 +64,9 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'radius-1':0, 'radius-2':150., 'N-radius':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -81,10 +80,10 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
+        'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -111,9 +110,9 @@ STIMULI = {
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'radius-1':2, 'radius-2':15., 'N-radius':0,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'radius-1':0, 'radius-2':150., 'N-radius':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -127,10 +126,10 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-1':2, 'radius-2':15., 'N-radius':0,
+        'radius-1':0, 'radius-2':150., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -145,11 +144,11 @@ STIMULI = {
         # range
         'angle-1':0, 'angle-2':150., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'radius-start-1':2., 'radius-start-2':8., 'N-radius-start':0,
+        'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-15, 'x-center-2':15., 'N-x-center':0,
-        'y-center-1':-10., 'y-center-2':10., 'N-y-center':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     

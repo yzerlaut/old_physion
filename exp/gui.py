@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.CaImagingButton.move(430, 40)
         for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
-        for button in [self.LocomotionButton, self.FaceCameraButton, self.CaImagingButton]:
+        for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
 
         # protocol choice
