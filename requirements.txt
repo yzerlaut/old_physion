@@ -6,7 +6,7 @@ psychopy
 # gui modules
 pyqt5 pyqtgraph
 # API to deal with images
-imageio opencv-python scanimage-tiff-reader>=1.4.1 opencv_python_headless
+imageio opencv-python scanimage-tiff-reader>=1.4.1 opencv_python_headless tifffile
 # # APIs for hardware control
 nidaqmx
 git+https://github.com/yzerlaut/simple_pyspin # forked from https://github.com/klecknerlab/simple_pyspin
