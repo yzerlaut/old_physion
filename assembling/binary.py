@@ -1,3 +1,6 @@
+"""
+taken from: https://github.com/MouseLand/suite2p
+"""
 from typing import Optional, Tuple, Sequence
 from contextlib import contextmanager
 
