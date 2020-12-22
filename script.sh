@@ -4,4 +4,5 @@ run_preprocessing() {
 }
 
 
-run_preprocessing /media/yann/Yann/2020_11_10/TSeries-11102020-1605-016
+run_preprocessing /home/yann/DATA/2020_11_12/TSeries-11122020-1633-009
+

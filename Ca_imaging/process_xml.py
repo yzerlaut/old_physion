@@ -1,4 +1,5 @@
 import sys, os, pathlib, shutil, glob, time
+import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from hardware_control.Bruker.xml_parser import bruker_xml_parser
@@ -8,6 +9,10 @@ from assembling.saving import from_folder_to_datetime, check_datafolder, get_fil
 
 # fn = get_files_with_given_exts(dir=folder, EXTS=['xml'])[0]
 
+"""
+From the documentatoin for the suite2p processing options:
+https://suite2p.readthedocs.io/en/latest/settings.html
+"""
 ops0 = {
     # -------------
     # Main settings
@@ -37,16 +42,16 @@ ops0 = {
     'combined': 1.0, # (bool, default: True) combine results across planes in separate folder 'combined' at end of processing. This folder will allow all planes to be loaded into the GUI simultaneously.
     'aspect': 1.0, # (float, default: 1.0) (**new*) ratio of um/pixels in X to um/pixels in Y (ONLY for correct aspect ratio in GUI, not used for other processing)
     # -------------
-    # Registration
+    # Frame Registration
     # -------------
-    'do_registration': 1,
-    'nonrigid': False, #  (bool, default: True) whether or not to perform non-rigid registration, which splits the field of view into blocks and computes registration offsets in each block separately.
+    'do_registration': 0,
+    'nonrigid': False, #  (bool, default: True) whether or not to perform non-rigid registration, which splits the field of view into blocks and computes registration offsets in each block separately. MOSTLY USEFUL FOR SLOW MULTIPLACE RECORDINGS !!
     'align_by_chan': 1, # (int, default: 1) which channel to use for alignment (1-based, so 1 means 1st channel and 2 means 2nd channel). If you have a non-functional channel with something like td-Tomato expression, you may want to use this channel for alignment rather than the functional channel.
     'nimg_init': 500, # (int, default: 200) how many frames to use to compute reference image for registration
     'batch_size': 1000, # (int, default: 200) how many frames to register simultaneously in each batch. This depends on memory constraints - it will be faster to run if the batch is larger, but it will require more RAM.
     'two_step_registration': False, # (bool, default: False) whether or not to run registration twice (for low SNR data). keep_movie_raw must be True for this to work.
-    'keep_movie_raw': False,
-    'maxregshift': 0.1,
+    'keep_movie_raw': True,
+    'maxregshift': 0.1, # (float, default: 0.1) the maximum shift as a fraction of the frame size. If the frame is Ly pixels x Lx pixels, then the maximum pixel shift in pixels will be max(Ly,Lx) * ops['maxregshift'].
     'reg_tif': False, # (bool, default: False) whether or not to write the registered binary to tiff files
     'reg_tif_chan2': False, # (bool, default: False) whether or not to write the registered binary of the non-functional channel to tiff files
     'subpixel': 10,
@@ -54,7 +59,7 @@ ops0 = {
     'smooth_sigma': 4.0,
     'th_badframes': 1.0,
     'pad_fft': False,
-    'block_size': [128, 128], # (two ints, default: [128,128]) size of blocks for non-rigid registration, in pixels. HIGHLY recommend keeping this a power of 2 and/or 3 (e.g. 128, 256, 384, etc) for efficient fft
+    'block_size': [256, 256], # (two ints, default: [128,128]) size of blocks for non-rigid registration, in pixels. HIGHLY recommend keeping this a power of 2 and/or 3 (e.g. 128, 256, 384, etc) for efficient fft
     'snr_thresh': 1.2,
     'maxregshiftNR': 8.0,
     '1Preg': True,
@@ -63,11 +68,14 @@ ops0 = {
     'spatial_hp_detect': 25,
     'pre_smooth': 0.0,
     'spatial_taper': 40.0,
+    # -------------
+    # ROI detection
+    # -------------
     'roidetect': True,
-    'spikedetect': True,
+    'spikedetect': True, # (bool, default: False) whether or not to use sparse_mode cell detection
     'sparse_mode': True,
     'diameter': 12,
-    'spatial_scale': 0,
+    'spatial_scale': 0, # (int, default: 0), what the optimal scale of the recording is in pixels. if set to 0, then the algorithm determines it automatically (recommend this on the first try). If it seems off, set it yourself to the following values: 1 (=6 pixels), 2 (=12 pixels), 3 (=24 pixels), or 4 (=48 pixels).
     'connected': True,
     'nbinned': 5000,
     'max_iterations': 20,
@@ -90,7 +98,7 @@ def build_db(folder):
           'subfolders': [],
           'save_path0': folder,
           'fast_disk': folder,
-          'input_format': 'bruker'}
+          'input_format': 'sbx'}
     return db
 
 def build_ops(folder):
@@ -117,13 +125,10 @@ def build_command(folder):
     np.save(os.path.join(folder,'db.npy'), db)
     np.save(os.path.join(folder,'ops.npy'), ops)
 
-
-
-    
     
 if __name__=='__main__':
     
-    # folder = '/media/yann/Yann/2020_11_10/TSeries-11102020-1605-016'
+    folder = sys.argv[-1] # '/media/yann/Yann/2020_11_10/TSeries-11102020-1605-016'
     
     xml_file = os.path.join(folder, os.path.join(folder.split('/')[-1]+'.xml'))
     
