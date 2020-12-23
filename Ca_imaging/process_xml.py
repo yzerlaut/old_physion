@@ -26,7 +26,7 @@ ops0 = {
     'nplanes': 1, # (int, default: 1) each tiff has this many planes in sequence
     'nchannels': 1, # (int, default: 1) each tiff has this many channels per plane
     'functional_chan': 1, #  (int, default: 1) this channel is used to extract functional ROIs (1-based, so 1 means first channel, and 2 means second channel)
-    'tau': 1.0, # (float, default: 1.0) The timescale of the sensor (in seconds), used for deconvolution kernel. The kernel is fixed to have this decay and is not fit to the data. We recommend: 0.7 for GCaMP6f, 1.0 for GCaMP6m, 1.25-1.5 for GCaMP6s
+    'tau': 0.7, # (float, default: 1.0) The timescale of the sensor (in seconds), used for deconvolution kernel. The kernel is fixed to have this decay and is not fit to the data. We recommend: 0.7 for GCaMP6f, 1.0 for GCaMP6m, 1.25-1.5 for GCaMP6s
     'frames_include': -1, # (int, default: -1) if greater than zero, only frames_include frames are processed. useful for testing parameters on a subset of data.
     'do_bidiphase': False, # (bool, default: False) whether or not to compute bidirectional phase offset from misaligned line scanning experiment (applies to 2P recordings only). suite2p will estimate the bidirectional phase offset from ops['nimg_init'] frames if this is set to 1 (and ops['bidiphase']=0), and then apply this computed offset to all frames.
     'bidiphase': 0.0, # (int, default: 0) bidirectional phase offset from line scanning (set by user). If set to any value besides 0, then this offset is used and applied to all frames in the recording.
@@ -44,7 +44,7 @@ ops0 = {
     # -------------
     # Frame Registration
     # -------------
-    'do_registration': 0,
+    'do_registration': 1,
     'nonrigid': False, #  (bool, default: True) whether or not to perform non-rigid registration, which splits the field of view into blocks and computes registration offsets in each block separately. MOSTLY USEFUL FOR SLOW MULTIPLACE RECORDINGS !!
     'align_by_chan': 1, # (int, default: 1) which channel to use for alignment (1-based, so 1 means 1st channel and 2 means 2nd channel). If you have a non-functional channel with something like td-Tomato expression, you may want to use this channel for alignment rather than the functional channel.
     'nimg_init': 500, # (int, default: 200) how many frames to use to compute reference image for registration
@@ -98,24 +98,26 @@ def build_db(folder):
           'subfolders': [],
           'save_path0': folder,
           'fast_disk': folder,
-          'input_format': 'sbx'}
+          'input_format': 'bruker'}
     return db
 
 def build_ops(folder):
     return ops
 
-def build_command(folder):
+def build_suite2p_options(folder):
 
     xml_file = os.path.join(folder, os.path.join(folder.split('/')[-1]+'.xml'))
     
     bruker_data = bruker_xml_parser(xml_file)
-    print(bruker_data)
     ops = ops0.copy()
-    
+
     # acquisition frequency
     ops['fs'] = 1./float(bruker_data['settings']['framePeriod'])
-    # zoom
-    zoom = bruker_data['settings']['opticalZoom']
+    # hint for spatial scale of ROI
+    um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])    
+    ops['diameter'] = int(10/um_per_pixel) # in pixels
+    ops['spatial_scale'] = int(10/6/um_per_pixel)
+    print(ops['spatial_scale'],ops['diameter'])
     
     db = build_db(folder)
     for key in ['data_path', 'subfolders', 'save_path0',
@@ -135,4 +137,4 @@ if __name__=='__main__':
     bruker_data = bruker_xml_parser(xml_file)
     # print(freq)
     # print(fn.split(os.path.sep))
-    build_command(folder)
+
