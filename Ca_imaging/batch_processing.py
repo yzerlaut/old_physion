@@ -11,10 +11,11 @@ folder = sys.argv[-1]
 
 if os.path.isdir(folder):
     for f in get_TSeries_folders(folder):
-        build_suite2p_options(f)
-        shutil.rmtree(os.path.join(f, 'suite2p'))
-        cmd = 'suite2p --db %s/db.npy --ops %s/ops.npy &' % (f, f)
-        subprocess.run(cmd, shell=True)
+        print(f)
+        # build_suite2p_options(f)
+        # shutil.rmtree(os.path.join(f, 'suite2p'))
+        # cmd = 'suite2p --db %s/db.npy --ops %s/ops.npy &' % (f, f)
+        # subprocess.run(cmd, shell=True)
 else:
     print('/!\ Need to provide a valid folder /!\ ')
         
