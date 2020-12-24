@@ -1,11 +1,11 @@
 #!/bin/bash
-script="get_files"
+script="move_files"
 #Declare the number of mandatory args
 margs=2
 
 # Common functions - BEGIN
 function example {
-    echo -e "example: $script -m0 VAL -m1 VAL -o1 -o2 VAL"
+    echo -e "example: $script -s VAL -d VAL"
 }
 
 function usage {
@@ -15,13 +15,16 @@ function usage {
 function help {
     usage
     echo -e "MANDATORY:"
-    echo -e "  -s, --source  VAL  The source computer"
+    echo -e "  -s, --source  VAL  The source location:"
+    echo -e "                          -> can be: laptop, desktop_drive, desktop  "
     echo -e "  -d, --destination  VAL  The destination computer"
-    echo -e "  -sp, --source_path  VAL  The path on the source computer"
-    echo -e "  -dp, --destination_path  VAL  The path on the destination computer"
+    echo -e "                          -> can be: laptop, desktop_drive, desktop  "
     echo -e "OPTION:"
-    echo -e "  -o0, --optional1        The desc of the optional0 boolean parameter"
-    echo -e "  -o1, --optional2   VAL  The desc of the optional1 String  parameter"
+    echo -e "  --raw_Calcium                   the raw Calcium signals"
+    echo -e " -pc,  --processed_Calcium        the processed Calcium signals"
+    echo -e "  --raw_FaceCamera                the raw FaceCamera movies"
+    echo -e " -pf,  --processed_FaceCamera     the processed Calcium signals"
+    echo -e " -a,  --all                       [MOVE ALL]"
     echo -e "  -h,  --help             Prints this help\n"
     example
 }
@@ -59,10 +62,10 @@ function margs_check {
 # Main
 margs_precheck $# $1
 
-source=
-destination=
-source_path=
-destination_path=
+source='desktop_drive'
+destination='laptop'
+source_path='/media/yann/DATATDRIVE1/'
+destination_path='/home/yann/DATA/'
 
 # Args while-loop
 while [ "$1" != "" ];

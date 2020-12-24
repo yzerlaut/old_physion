@@ -2,11 +2,7 @@ import os, sys, pathlib, shutil, time
 import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from hardware_control.Bruker.xml_parser import bruker_xml_parser
-from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder
-
-def list_TSeries_folder(folder):
-    folders = [os.path.join(folder, d) for d in sorted(os.listdir(folder)) if ((d[:7]=='TSeries') and os.path.isdir(os.path.join(folder, d)))]
-    return folders
+from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 
 def stringdatetime_to_date(s):
 
@@ -40,7 +36,7 @@ def build_Ca_filelist(folder):
     CA_FILES = {'Bruker_folder':[], 'Bruker_file':[],
                 'date':[], 'protocol':[],
                 'StartTime':[], 'EndTime':[], 'absoluteTime':[]}
-    for bdf in list_TSeries_folder(folder):
+    for bdf in get_TSeries_folders(folder):
         fn = get_files_with_extension(bdf, extension='.xml')[0]
         try:
             xml = bruker_xml_parser(fn)
@@ -71,11 +67,14 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
         if not 'true_tstart' in metadata:
             check_datafolder(pfolder)
             metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True).item()
-        
+        # time array for comparison
         times = np.arange(int(metadata['true_tstart']), int(metadata['true_tstop']))
-        if len(times)>min_protocol_duration:
+        # insuring the good day
+        day = pfolder.split(os.path.sep)[-2]
+        day_cond = (np.array(CA_FILES['date'])==day)
+        if len(times)>min_protocol_duration and (np.sum(day_cond)>0):
             # then we loop over Ca-imaging files to find the overlap
-            for ica in range(len(CA_FILES['StartTime'])):
+            for ica in np.arange(len(CA_FILES['StartTime']))[day_cond]:
                 times2 = np.arange(int(CA_FILES['StartTime'][ica]), int(CA_FILES['EndTime'][ica]))
 
                 if (len(np.intersect1d(times, times2))>min_protocol_duration) and verbose:
@@ -91,7 +90,12 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
     return CA_FILES
 
 
-SUITE2P_FILES = ['Fneu.npy',  'F.npy', 'iscell.npy', 'ops.npy', 'spks.npy', 'stat.npy']
+SUITE2P_FILES = ['Fneu.npy',
+                 'F.npy',
+                 'iscell.npy',
+                 'ops.npy',
+                 'spks.npy',
+                 'stat.npy']
 
 def transfer_analyzed_data(CA_FILES):
 
@@ -119,20 +123,34 @@ if __name__=='__main__':
     import argparse, os
     parser=argparse.ArgumentParser(description="transfer interface",
                        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-rf', "--root_datafolder", type=str,
+    parser.add_argument('-rfCa', "--root_datafolder_Calcium", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-rfVis', "--root_datafolder_Visual", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-d', "--day", type=str,
-                        default='2020_11_03')
+                        default='')
     parser.add_argument('-wt', "--with_transfer", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
-    folder = os.path.join(args.root_datafolder, args.day)
-    CA_FILES = build_Ca_filelist(folder)
-    PROTOCOL_LIST = list_dayfolder(folder)
-
+    if args.day!='':
+        ca_folder = os.path.join(args.root_datafolder_Calcium, args.day)
+        vis_folder = os.path.join(args.root_datafolder_Visual, args.day)
+    else:
+        ca_folder = args.root_datafolder_Calcium
+        vis_folder = args.root_datafolder_Visual
+        
+    CA_FILES = build_Ca_filelist(ca_folder)
+    
+    if args.day!='':
+        PROTOCOL_LIST = list_dayfolder(os.path.join(vis_folder, args.day))
+    else: # loop over days
+        PROTOCOL_LIST = []
+        for day in os.listdir(vis_folder):
+            PROTOCOL_LIST += list_dayfolder(os.path.join(vis_folder, day))
+        print(PROTOCOL_LIST)
     CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES,
                                   verbose=args.verbose)
 
-    if args.with_transfer:
-        transfer_analyzed_data(CA_FILES)
+    # if args.with_transfer:
+    #     transfer_analyzed_data(CA_FILES)
