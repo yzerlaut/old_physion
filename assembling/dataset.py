@@ -8,7 +8,6 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, create_day_folder, generate_filename_path,\
     check_datafolder, get_files_with_extension
 
-from behavioral_monitoring.locomotion import compute_position_from_binary_signals
 
 ##############################################
 ###      Some general signal types         ###

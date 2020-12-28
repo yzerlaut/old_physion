@@ -1,17 +1,77 @@
 import os, sys, pathlib, shutil, time, datetime
 import numpy as np
-from pynwb import NWBFile
+import pynwb
+from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 
-start_time = datetime.datetime(2017, 4, 3, 9, 8, 7)
-create_date = datetime.datetime(2017, 4, 15, 9, 8, 7)
+from behavioral_monitoring.locomotion import compute_position_from_binary_signals
 
-nwbfile = NWBFile(session_description='demonstrate NWBFile basics',  # required
-                                    identifier='NWB123',  # required
-                                    session_start_time=start_time,  # required
-                                    file_create_date=create_date)  # optional
+
+
+def compute_locomotion(binary_signal, acq_freq=1e4,
+                       speed_smoothing=10e-3, # s
+                       t0=0):
+
+    A = binary_signal%2
+    B = np.round(binary_signal/2, 0)
+
+    return compute_position_from_binary_signals(A, B,
+                                                smoothing=int(speed_smoothing*acq_freq))
+
+
+def build_NWB(datafolder):
+    
+    metadata = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
+    day = datafolder.split(os.path.sep)[-2].split('_')
+    time = datafolder.split(os.path.sep)[-1].split('-')
+    start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]), int(time[0]),int(time[1]),int(time[2]),tzinfo=tzlocal())
+
+    nwbfile = pynwb.NWBFile(session_description=metadata['protocol'],
+                            identifier='NWB123',  # required
+                            experimenter='Yann Zerlaut',
+                            lab='Rebola and Bacci labs',
+                            institution='Institut du Cerveau et de la Moelle, Paris',
+                            session_start_time=start_time)  # optional
+    
+
+    #################################################
+    ####         IMPORTING NI-DAQ data        #######
+    #################################################
+    try:
+        NIdaq_data = np.load(os.path.join(datafolder, 'NIdaq.npy'), allow_pickle=True).item()
+        NIdaq_Tstart = np.load(os.path.join(datafolder, 'NIdaq.start.npy'))[0]
+    except FileNotFoundError:
+        NIdaq_data, NIdaq_Tstart = None, None
+
+    
+    #################################################
+    ####         Locomotion data              #######
+    #################################################
+    if metadata['Locomotion'] and (NIdaq_data is not None) and (NIdaq_Tstart is not None):
+        # compute running speed from binary NI-daq signal
+        running = pynwb.TimeSeries(name='Running-Speed',
+                                   data = compute_locomotion(NIdaq_data['digital'][0],
+                                                             acq_freq=metadata['NIdaq-acquisition-frequency']),
+                                   unit='second', rate=metadata['NIdaq-acquisition-frequency'])
+        nwbfile.add_acquisition(running)
+    elif metadata['Locomotion']:
+        print('\n /!\  NO NI-DAQ data found /!\ ')
+
+        
+    #################################################
+    ####         Visual Stimulation           #######
+    #################################################
+
+    ## ---> Realignement
+
+
+    filename = 
+    io = pynwb.NWBHDF5IO(os.path.join(datafolder, 'full.nwb'), mode='w')
+    io.write(nwbfile)
+    io.close()
+        
 
 if __name__=='__main__':
 
@@ -21,7 +81,7 @@ if __name__=='__main__':
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-d', "--day", type=str,
-                        default='')
+                        default='2020_12_09')
     parser.add_argument('-wt', "--with_transfer", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
@@ -31,9 +91,11 @@ if __name__=='__main__':
     else:
         folder = args.root_datafolder
 
-    print(folder)
+    PROTOCOL_LIST = list_dayfolder(folder)
+    
+    build_NWB(PROTOCOL_LIST[0])
+    
     # if args.day!='':
-    #     PROTOCOL_LIST = list_dayfolder(os.path.join(vis_folder, args.day))
     # else: # loop over days
     #     PROTOCOL_LIST = []
     #     for day in os.listdir(vis_folder):
