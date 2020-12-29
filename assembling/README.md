@@ -51,8 +51,12 @@ In absence of Calcium Imaging, one can jump directly to step 4.
 3. We manually check the Calcium data 
 
 4. We build a multimodal `NWB` file for each recording.
+   For a given recording:
    ```
-   python assembling/build_NWB.py /media/yann/DATADRIVE/ FULL
+   python assembling/build_NWB.py /media/yann/DATADRIVE/2020_12_11/ FULL --recursive
+   ```
+   ```
+   python assembling/build_NWB.py /media/yann/DATADRIVE/2020_12_11 FULL --recursive
    ```
 
 Note that steps 1. and 2. are interchangeable as the analysis files will be move together with the raw datafiles.
@@ -62,9 +66,20 @@ Note that steps 1. and 2. are interchangeable as the analysis files will be move
 ## Tracking visual-stimulation onset from the photodiode signal
 
 Base on the photodiode signal (that is a bit noisy), we integrate it over time (after having substracted the baseline defined by the peak of the signal distribution) for each episode. We determine the onset when the integral passes a threshold. This threshold in the integral corresponds to the signal settling at the maximum for 5ms. The onset is then the time of the crossing minus those 5 seconds.
+
+The [script performing the realignement](./realign_from_photodiode.py) can be test with:
 ```
-python assembling/fetching.py
+python assembling/realign_from_photodiode.py EXAMPLE_DATAFOLDER
 ```
+it shows up a few of the episodes with the quantities used for the realignement, such as:
+
+<p align="center">
+  <img src="../doc/realignement-from-photodiode.png"/>
+</p>
+
+
+This was obtained with: `python assembling/realign_from_photodiode.py /media/yann/Yann/2020_11_10/16-59-49/`
+
 
 ## Resampling realigned data after onset-tracking
 

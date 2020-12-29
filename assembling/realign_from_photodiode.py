@@ -81,8 +81,9 @@ def normalize_signal(x):
 if __name__=='__main__':
 
     import matplotlib.pylab as plt
-    
-    fn = '/media/yann/Yann/2020_11_10/16-59-49/'
+
+    fn = sys.argv[-1]
+    # fn = '/media/yann/Yann/2020_11_10/16-59-49/'
     
     data = np.load(os.path.join(fn, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
     metadata = np.load(os.path.join(fn, 'metadata.npy'), allow_pickle=True).item()
@@ -92,42 +93,3 @@ if __name__=='__main__':
 
     realign_from_photodiode(data, metadata, debug=True)
     
-    # print(data)
-    # H, bins = np.histogram(data[:10000], bins=50)
-    # baseline = bins[np.argmax(H)]
-    # plt.figure()
-    # plt.hist(data[:10000], bins=50)
-    # plt.figure()
-    # plt.plot(np.cumsum(data[:10000]-baseline))
-    # plt.figure()
-    # plt.plot(data[:10000])
-    # plt.plot(data[:10000]*0+baseline)
-    # # plt.plot(data['NIdaq'][0][:10000])
-    # plt.show()
-    # else:
-    #     dataset = Dataset(fn,
-    #                       compressed_version=False,
-    #                       modalities=['Face', 'Pupil'])
-
-    #     # print(dataset.Pupil.t)
-    #     print(len(dataset.Pupil.t), len(dataset.Pupil.iframes), len(dataset.Pupil.index_frame_map))
-    #     # frame = dataset.Pupil.grab_frame(30, verbose=True)
-        
-    #     # from datavyz import ges
-    #     # ges.image(frame)
-    #     # ges.show()
-        
-    #     # import json
-    #     # DFFN = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'master', 'data-folder.json') # DATA-FOLDER-FILENAME
-    #     # with open(DFFN, 'r') as fp:
-    #     #     df = json.load(fp)['folder']
-    #     # data = get_multimodal_dataset(last_datafile(df))
-    #     # transform_into_realigned_episodes(data, debug=True)
-        
-    #     # transform_into_realigned_episodes(data)
-    #     # print(len(data['time_start_realigned']), len(data['NIdaq_realigned']))
-
-    #     # print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(data['FaceCamera-times']))))
-    #     # import matplotlib.pylab as plt
-    #     # plt.hist(1e3*np.diff(data['FaceCamera-times']))
-    #     # plt.show()
