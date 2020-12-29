@@ -11,7 +11,7 @@ imageio opencv-python scanimage-tiff-reader>=1.4.1 opencv_python_headless tifffi
 nidaqmx
 git+https://github.com/yzerlaut/simple_pyspin # forked from https://github.com/klecknerlab/simple_pyspin
 # # other
-xmltodict importlib_metadata natsort paramiko rastermap>0.1.0
+xmltodict importlib_metadata natsort paramiko rastermap>0.1.0 tempfile
 # # facemap, forked from MouseLand
 git+https://github.com/yzerlaut/facemap
 # # suite2p, forked from MouseLand

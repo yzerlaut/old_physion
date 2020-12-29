@@ -16,11 +16,9 @@ def stringdatetime_to_date(s):
     return '%s_%s_%s' % (Year, Month, Day)
 
 def stringdatetime_to_time(s):
-
     Hour, Min, Seconds = int(s.split(':')[0][-2:]), int(s.split(':')[1]), int(s.split(':')[2][:2])
     if 'PM' in s:
         Hour += 12
-    
     return '%s-%s-%s' % (Hour, Min, Seconds)
 
 def StartTime_to_day_seconds(StartTime):
@@ -28,7 +26,7 @@ def StartTime_to_day_seconds(StartTime):
     Hour = int(StartTime[0:2])
     Min = int(StartTime[3:5])
     Seconds = float(StartTime[6:])
-
+    print(Hour, Min, Seconds)
     return 60*60*Hour+60*Min+Seconds
 
 def build_Ca_filelist(folder):

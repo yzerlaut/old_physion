@@ -1,13 +1,16 @@
-import os, sys, pathlib, shutil, time, datetime
+import os, sys, pathlib, shutil, time, datetime, tempfile
 import numpy as np
 import pynwb
 from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
+from assembling.move_CaImaging_folders import StartTime_to_day_seconds
+from assembling.realign_from_photodiode import realign_from_photodiode
 from assembling.IO.binary import BinaryFile
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from behavioral_monitoring.locomotion import compute_position_from_binary_signals
+from exp.gui import STEP_FOR_CA_IMAGING
 
 def compute_locomotion(binary_signal, acq_freq=1e4,
                        speed_smoothing=10e-3, # s
@@ -50,8 +53,12 @@ def build_NWB(args,
     except FileNotFoundError:
         print(' /!\ No NI-DAQ data found /!\ ')
         print('   -----> Not able to build NWB file')
-        break
+        raise BaseException
 
+
+    true_tstart0 = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
+    st = datetime.datetime.fromtimestamp(true_tstart0).strftime('%H:%M:%S.%f')
+    true_tstart = StartTime_to_day_seconds(st)
     
     #################################################
     ####         Locomotion                   #######
@@ -73,14 +80,26 @@ def build_NWB(args,
         if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
             print(' /!\ No VisualStim metadata found /!\ ')
             print('   -----> Not able to build NWB file')
-            break
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
+
+        # using the photodiod signal for the realignement
+        for key in ['time_start', 'time_stop']:
+            metadata[key] = VisualStim[key]
+        success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
+                                                    verbose=args.verbose)
+        if success:
+            timestamps = metadata['time_start_realigned']
+            if args.verbose:
+                print('Realignement form photodiode successful')
+        else:
+            print(' /!\ Realignement unsuccessful /!\ ')
+            
         for key in VisualStim:
             VisualStimProp = pynwb.TimeSeries(name=key,
                                               data = VisualStim[key],
                                               unit='NA',
-                                              timestamps=np.arange(len(VisualStim[key])))
+                                              timestamps=timestamps)
             nwbfile.add_stimulus(VisualStimProp)
             
         # storing photodiode signal
@@ -91,11 +110,6 @@ def build_NWB(args,
                                       rate=metadata['NIdaq-acquisition-frequency'])
         nwbfile.add_acquisition(photodiode)
 
-        # using the photodiod signal for the realignement
-        for key in ['time_start', 'time_stop']:
-            metadata[key] = VisualStim[key]
-        success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
-                                                    verbose=args.verbose)
 
         
     #################################################
@@ -114,14 +128,20 @@ def build_NWB(args,
     #################################################
     ####         Calcium Imaging              #######
     #################################################
-    try:
-        Ca_subfolder = get_TSeries_folders(args.datafolder)[0] # get Tseries folder
-        CaFn = get_files_with_extension(Ca_subfolder, extension='.xml')[0] # get Tseries metadata
-    except BaseException as be:
-        Ca_subfolder, CaFn = None, None
+    if metadata['CaImaging']:
+        try:
+            Ca_subfolder = get_TSeries_folders(args.datafolder)[0] # get Tseries folder
+            CaFn = get_files_with_extension(Ca_subfolder, extension='.xml')[0] # get Tseries metadata
+        except BaseException as be:
+            print(be)
+            print('\n /!\  Problem with the CA-IMAGING data in %s  /!\ ' % args.datafolder)
+            raise Exception
         
-    if metadata['CaImaging'] and (Ca_subfolder is not None) and (CaFn is not None) and (export=='FULL'):
         xml = bruker_xml_parser(CaFn) # metadata
+        CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
+            float(xml['settings']['framePeriod']/2. # in the middle in-between two time stamps
+        
+    if metadata['CaImaging'] and (args.export=='FULL'):
         Ca_data = BinaryFile(Ly=int(xml['settings']['linesPerFrame']),
                              Lx=int(xml['settings']['pixelsPerLine']),
                              read_filename=os.path.join(Ca_subfolder, 'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
@@ -148,36 +168,34 @@ def build_NWB(args,
                                                    data = Ca_data.data[:],
                                                    imaging_plane=imaging_plane,
                                                    unit='s',
-                                                   rate=1./float(xml['settings']['framePeriod']),
-                                                   starting_time=0.0)
+                                                   timestamps = CaImaging_timestamps)
         nwbfile.add_acquisition(image_series)
     
-    elif metadata['CaImaging']:
-        print('\n /!\  No CA-IMAGING data found in %s  /!\ ' % args.datafolder)
-        
     
     #################################################
     ####         Writing NWB file             #######
     #################################################
 
-    if export=='FULL':
+    if args.export=='FULL':
         filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                 args.datafolder.split(os.path.sep)[-1]))
     else:
         filename = os.path.join(args.datafolder, '%s-%s.PROCESSED-ONLY.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                           args.datafolder.split(os.path.sep)[-1]))
+
+    if os.path.isfile(filename):
+        temp = str(tempfile.NamedTemporaryFile().name)+'.nwb'
+        print("""
+        "%s" already exists
+        ---> moved the temporary file directory as: "%s"
+        """ % (filename, temp))
+        # shutil.move(filename, temp)
         
     io = pynwb.NWBHDF5IO(filename, mode='w')
     io.write(nwbfile)
     io.close()
 
     return filename
-
-    # io = pynwb.NWBHDF5IO(os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb'), mode='w')
-    # pynwb.NWBHDF5IO.copy_file(filename,
-    #                           os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb'),
-    #                           expand_external=True)
-
     
 
 def load(filename):
