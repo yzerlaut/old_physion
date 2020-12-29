@@ -2,7 +2,6 @@ import sys, os, pathlib, shutil, glob, time
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from hardware_control.Bruker.xml_parser import bruker_xml_parser
 from assembling.saving import get_TSeries_folders
 from Ca_imaging.process_xml import build_suite2p_options
 import subprocess

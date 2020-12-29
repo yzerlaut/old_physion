@@ -20,8 +20,8 @@ def compute_locomotion(binary_signal, acq_freq=1e4,
                                                 smoothing=int(speed_smoothing*acq_freq))
 
 
-def build_NWB(datafolder,
-              Ca_Imaging_options={'Suite2P-binary-filename':'data.bin',
+def build_NWB(datafolder, export='FULL',
+              Ca_Imaging_options={'Suite2P-binary-filename':'data_raw.bin',
                                   'plane':0}):
     
     #################################################
@@ -48,14 +48,15 @@ def build_NWB(datafolder,
         NIdaq_data = np.load(os.path.join(datafolder, 'NIdaq.npy'), allow_pickle=True).item()
         NIdaq_Tstart = np.load(os.path.join(datafolder, 'NIdaq.start.npy'))[0]
     except FileNotFoundError:
-        # print(' /!\ No NI-DAQ data found .... /!\ ')
-        NIdaq_data, NIdaq_Tstart = None, None
+        print(' /!\ No NI-DAQ data found /!\ ')
+        print('   -----> Not able to build NWB file')
+        break
 
     
     #################################################
     ####         Locomotion                   #######
     #################################################
-    if metadata['Locomotion'] and (NIdaq_data is not None) and (NIdaq_Tstart is not None):
+    if metadata['Locomotion']:
         # compute running speed from binary NI-daq signal
         running = pynwb.TimeSeries(name='Running-Speed',
                                    data = compute_locomotion(NIdaq_data['digital'][0],
@@ -63,25 +64,40 @@ def build_NWB(datafolder,
                                    starting_time=0.,
                                    unit='cm/s', rate=metadata['NIdaq-acquisition-frequency'])
         nwbfile.add_acquisition(running)
-    elif metadata['Locomotion']:
-        print('\n /!\  NO NI-DAQ data found to fill the Locomotion data in %s  /!\ ' % datafolder)
 
         
     #################################################
     ####         Visual Stimulation           #######
     #################################################
-    if os.path.isfile(os.path.join(datafolder, 'visual-stim.npy')):
+    if metadata['VisualStim']:
+        # compute running speed from binary NI-daq signal
+        photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
+                                   data = NIdaq_data['analog'][0],
+                                   starting_time=0.,
+                                   unit='[current]',
+                                    rate=metadata['NIdaq-acquisition-frequency'])
+        nwbfile.add_acquisition(photodiode)
+        if not os.path.isfile(os.path.join(datafolder, 'visual-stim.npy')):
+            print(' /!\ No VisualStim metadata found /!\ ')
+            print('   -----> Not able to build NWB file')
+            break
         VisualStim = np.load(os.path.join(datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
+        for key in VisualStim:
+            VisualStimProp = pynwb.TimeSeries(name=key,
+                                              data = VisualStim[key],
+                                              unit='NA',
+                                              timestamps=np.arange(len(VisualStim[key])))
+            nwbfile.add_stimulus(VisualStimProp)
     else:
         VisualStim = None
         print('[X] Visual-Stim metadata not found !')
 
     if metadata['VisualStim'] and VisualStim is not None:
         ATTRIBUTES = []
-        for key in VisualStim:
-            ATTRIBUTES.append()
-            
+        # for key in VisualStim:
+        #     ATTRIBUTES.append()
+        
     elif metadata['VisualStim']:
         print('\n /!\  No VisualStim metadata found for %s  /!\ ' % datafolder)
         
@@ -98,19 +114,16 @@ def build_NWB(datafolder,
     if True:
         pass
 
-    
-
     #################################################
     ####         Calcium Imaging              #######
     #################################################
     try:
-        
         Ca_subfolder = get_TSeries_folders(datafolder)[0] # get Tseries folder
         CaFn = get_files_with_extension(Ca_subfolder, extension='.xml')[0] # get Tseries metadata
     except BaseException as be:
         Ca_subfolder, CaFn = None, None
         
-    if metadata['CaImaging'] and Ca_subfolder is not None and CaFn is not None:
+    if metadata['CaImaging'] and (Ca_subfolder is not None) and (CaFn is not None) and (export=='FULL'):
         xml = bruker_xml_parser(CaFn) # metadata
         Ca_data = BinaryFile(Ly=int(xml['settings']['linesPerFrame']),
                              Lx=int(xml['settings']['pixelsPerLine']),
@@ -149,8 +162,14 @@ def build_NWB(datafolder,
     #################################################
     ####         Writing NWB file             #######
     #################################################
-    
-    filename = os.path.join(datafolder, '%s-%s-%s.nwb' % (datafolder.split(os.path.sep)[-2], datafolder.split(os.path.sep)[-1], metadata['protocol']))
+
+    if export=='FULL':
+        filename = os.path.join(datafolder, '%s-%s.FULL.nwb' % (datafolder.split(os.path.sep)[-2],
+                                                                datafolder.split(os.path.sep)[-1]))
+    else:
+        filename = os.path.join(datafolder, '%s-%s.PROCESSED-ONLY.nwb' % (datafolder.split(os.path.sep)[-2],
+                                                                          datafolder.split(os.path.sep)[-1]))
+        
     io = pynwb.NWBHDF5IO(filename, mode='w')
     io.write(nwbfile)
     io.close()
@@ -179,25 +198,30 @@ def load(filename):
 if __name__=='__main__':
 
     import argparse, os
-    parser=argparse.ArgumentParser(description="transfer interface",
-                        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-rf', "--root_datafolder", type=str,
-                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
-    parser.add_argument('-d', "--day", type=str,
-                        default='2020_12_09')
-    parser.add_argument('-wt', "--with_transfer", action="store_true")
+    parser=argparse.ArgumentParser(description="""
+    Building NWB file from mutlimodal experimental recordings
+    """,formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-df', "--datafolder", type=str, default='')
+    parser.add_argument('-rf', "--root_datafolder", type=str, default='')
+    parser.add_argument('-d', "--day", type=str, default='2020_12_09')
+    parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
-    if args.day!='':
-        folder = os.path.join(args.root_datafolder, args.day)
-    else:
-        folder = args.root_datafolder
+    if args.datafolder!='':
+        if os.path.isdir(args.datafolder):
+            build_NWB(args.datafolder)
+        else:
+            print('"%s" not a valid datafolder' % args.datafolder)
 
-    PROTOCOL_LIST = list_dayfolder(folder)
+    # if args.day!='':
+    #     folder = os.path.join(args.root_datafolder, args.day)
+    # else:
+    #     folder = args.root_datafolder
+
+    # PROTOCOL_LIST = list_dayfolder(folder)
     
-    fn = build_NWB(PROTOCOL_LIST[0])
-    load(fn)
+    # load(fn)
     
     # if args.day!='':
     # else: # loop over days

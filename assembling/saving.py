@@ -135,7 +135,7 @@ def computerTimestamp_to_daySeconds(t):
     
 
 def check_datafolder(df,
-                     modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil','Calcium'],
+                     modalities=['Screen', 'Locomotion', 'Electrophy', 'Pupil', 'Calcium'],
                      verbose=True):
 
     if verbose:

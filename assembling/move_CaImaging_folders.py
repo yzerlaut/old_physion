@@ -111,47 +111,45 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
                                                                  PAIRS['percent_overlap'][i0[0]]))
                 print(PAIRS['DataTime'][i0[0]])
                 print(PAIRS['ImagingTime'][i0[0]])
-            # if ca_folder in PAIRS['ImagingFolder']:
-            # else:
-            #     print(CA_FILES['protocol'][ica], 'not matched !')
-            #     print(CA_FILES['absoluteTime'][ica][0])
-            #     print(CA_FILES['Bruker_folder'][ica])
-            #     # CA_FILES['protocol'][ica] = pfolder
     return PAIRS
 
 
-SUITE2P_FILES = ['Fneu.npy',
-                 'F.npy',
-                 'iscell.npy',
-                 'ops.npy',
-                 'spks.npy',
-                 'stat.npy']
+def move_CaImaging_files(PAIRS, CA_FILES):
 
-def transfer_analyzed_data(CA_FILES):
-
-    for ica in range(len(CA_FILES['StartTime'])):
-        if CA_FILES['protocol'][ica]!='':
-            new_folder = os.path.join(CA_FILES['protocol'][ica], 'Ca-imaging')
-            pathlib.Path(new_folder).mkdir(parents=True, exist_ok=True)
-            i=0
-            folder = os.path.join(CA_FILES['Bruker_folder'][ica], 'suite2p', 'plane%i' % i)
-            while os.path.isdir(folder):
-                for f in SUITE2P_FILES:
-                    if os.path.isfile(os.path.join(folder,f)):
-                        shutil.copyfile(os.path.join(folder,f), os.path.join(new_folder, f))
-                print('succesfully copied: %s to %s' % (os.path.join(folder,f), os.path.join(new_folder,f)))
-                # adding the time array
-                np.save(os.path.join(new_folder,'times.npy'), np.array(CA_FILES['absoluteTime'][ica]))
-                # loop increment
-                i+=1
-                folder = os.path.join(CA_FILES['Bruker_folder'][ica], 'suite2p', 'plane%i' % i)
-                
-
+    for ica, ca_folder in enumerate(CA_FILES['Bruker_folder']):
+        i0 = np.argwhere(PAIRS['ImagingFolder']==ca_folder).flatten()
+        print(100*'-')
+        print('Dealing with: "%s"' % ca_folder)
+        print("""
+        - Date: %s
+        - Start: %s
+        - Duration: %.1f minutes""" % (CA_FILES['date'][ica], CA_FILES['StartTimeString'][ica],
+               (CA_FILES['EndTime'][ica]-CA_FILES['StartTime'][ica])/60.))
+        if len(i0)==0:
+            print('      ====> /!\ not matched !')
+            resp = input('Need to deal with this datafile [press Enter to continue]\n')
+        elif len(i0)>1:
+            print('      ====> /!\ has duplicate matches !!!')
+            print('The duplicates are: ')
+            for ii in i0:
+                print(PAIRS['DataFolder'][ii])
+            resp = input('Need to deal with this datafile [press Enter to continue]\n')
+        elif len(i0)==1:
+            print('      ====> matched to %s with %.1f %% overlap' % (PAIRS['DataFolder'][i0[0]],
+                                                                      PAIRS['percent_overlap'][i0[0]]))
+            print('\n')
+            resp = input('Move the Calcium Imaging data to the main folder ? [no]/yes\n')
+            if resp in ['y', 'yes']:
+                target_folder = os.path.join(PAIRS['DataFolder'][i0[0]], ca_folder.split(os.path.sep)[-1])
+                print('moving folder to "%s" [...]' % target_folder)
+                shutil.move(ca_folder, target_folder)
+                print('done !')
+                                             
 
 if __name__=='__main__':
 
     import argparse, os
-    parser=argparse.ArgumentParser(description="transfer interface",
+    parser=argparse.ArgumentParser(description="transfer interface for Ca-Imaging files",
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rfCa', "--root_datafolder_Calcium", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
@@ -181,8 +179,8 @@ if __name__=='__main__':
             print(os.listdir(os.path.join(args.root_datafolder_Visual, day)))
             PROTOCOL_LIST += list_dayfolder(os.path.join(args.root_datafolder_Visual, day))
         print(PROTOCOL_LIST)
-    CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES,
-                                  verbose=args.verbose)
+    PAIRS = find_matching_data(PROTOCOL_LIST, CA_FILES,
+                               verbose=args.verbose)
 
     if args.with_transfer:
-        transfer_analyzed_data(CA_FILES)
+        move_CaImaging_files(PAIRS, CA_FILES)

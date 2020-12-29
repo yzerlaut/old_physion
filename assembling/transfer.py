@@ -10,6 +10,15 @@ from assembling.analysis import quick_data_view, analyze_data, last_datafile
 init_date = QtCore.QDate(2020, 8, 1) # experiments started after 1st of August 2020
 init_date = datetime.date(2020, 8, 1) # experiments started after 1st of August 2020
 
+SUITE2P_FILES = ['Fneu.npy',
+                 'F.npy',
+                 'iscell.npy',
+                 'ops.npy',
+                 'spks.npy',
+                 'stat.npy']
+
+
+
 class MasterWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
