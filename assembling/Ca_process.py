@@ -1,7 +1,7 @@
-import os, sys, pathlib, shutil, time
+import os, sys, pathlib, shutil, time, datetime
 import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from hardware_control.Bruker.xml_parser import bruker_xml_parser
+from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 
 def stringdatetime_to_date(s):
@@ -34,8 +34,9 @@ def StartTime_to_day_seconds(StartTime):
 def build_Ca_filelist(folder):
     
     CA_FILES = {'Bruker_folder':[], 'Bruker_file':[],
-                'date':[], 'protocol':[],
+                'date':[], 'protocol':[],'StartTimeString':[],
                 'StartTime':[], 'EndTime':[], 'absoluteTime':[]}
+    
     for bdf in get_TSeries_folders(folder):
         fn = get_files_with_extension(bdf, extension='.xml')[0]
         try:
@@ -44,10 +45,10 @@ def build_Ca_filelist(folder):
                 CA_FILES['date'].append(stringdatetime_to_date(xml['date']))
                 CA_FILES['Bruker_folder'].append(bdf)
                 CA_FILES['Bruker_file'].append(fn)
+                CA_FILES['StartTimeString'].append(xml['StartTime'])
                 start = StartTime_to_day_seconds(xml['StartTime'])
-                CA_FILES['StartTime'].append(start+xml['Ch1']['relativeTime'][0])
-                CA_FILES['EndTime'].append(start+xml['Ch1']['relativeTime'][-1])
-                CA_FILES['absoluteTime'].append(start+xml['Ch1']['absoluteTime'])
+                CA_FILES['StartTime'].append(start+xml['Ch1']['absoluteTime'][0])
+                CA_FILES['EndTime'].append(start+xml['Ch1']['absoluteTime'][-1])
                 CA_FILES['protocol'].append('')
         except BaseException as e:
             print(e)
@@ -62,13 +63,23 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
                        min_protocol_duration=10, # seconds
                        verbose=True):
 
+    PAIRS ={'DataFolder':[],
+            'DataTime':[],
+            'ImagingFolder':[],
+            'ImagingTime':[],
+            'percent_overlap':[]}
+    
     for pfolder in PROTOCOL_LIST:
         metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True).item()
-        if not 'true_tstart' in metadata:
-            check_datafolder(pfolder)
-            metadata = np.load(os.path.join(pfolder, 'metadata.npy'), allow_pickle=True).item()
-        # time array for comparison
-        times = np.arange(int(metadata['true_tstart']), int(metadata['true_tstop']))
+        true_tstart1 = np.load(os.path.join(pfolder, 'NIdaq.start.npy'))[0]
+        st = datetime.datetime.fromtimestamp(true_tstart1).strftime('%H:%M:%S.%f')
+        true_tstart = StartTime_to_day_seconds(st)
+        # true_tstart2 = dealWithVariableTimestamps(pfolder, true_tstart1)
+        # true_tstart = true_tstart2
+        data = np.load(os.path.join(pfolder, 'NIdaq.npy'), allow_pickle=True).item()
+        true_duration = len(data['analog'][0,:])/metadata['NIdaq-acquisition-frequency']
+        true_tstop = true_tstart+true_duration
+        times = np.arange(int(true_tstart), int(true_tstop))
         # insuring the good day
         day = pfolder.split(os.path.sep)[-2]
         day_cond = (np.array(CA_FILES['date'])==day)
@@ -77,17 +88,36 @@ def find_matching_data(PROTOCOL_LIST, CA_FILES,
             for ica in np.arange(len(CA_FILES['StartTime']))[day_cond]:
                 times2 = np.arange(int(CA_FILES['StartTime'][ica]), int(CA_FILES['EndTime'][ica]))
 
-                if (len(np.intersect1d(times, times2))>min_protocol_duration) and verbose:
-                    print('------------')
-                    print(times[0], times[-1])
-                    print(times2[0], times2[-1])
-                    print(pfolder)
-                    print(CA_FILES['absoluteTime'][ica][0])
-                    print(CA_FILES['Bruker_folder'][ica])
-                    CA_FILES['protocol'][ica] = pfolder
+                if (len(np.intersect1d(times, times2))>min_protocol_duration):
+                    PAIRS['DataFolder'].append(pfolder)
+                    st = datetime.datetime.fromtimestamp(true_tstart1).strftime('%Y-%m-%d %H:%M:%S.%f')
+                    PAIRS['DataTime'].append(st)
+                    PAIRS['ImagingFolder'].append(CA_FILES['Bruker_folder'][ica])
+                    PAIRS['ImagingTime'].append(CA_FILES['StartTimeString'][ica])
+                    PAIRS['percent_overlap'].append(100.*len(np.intersect1d(times, times2))/len(times))
+    for key in PAIRS:
+        PAIRS[key] = np.array(PAIRS[key])
 
-
-    return CA_FILES
+    if verbose:
+        for ica, ca_folder in enumerate(CA_FILES['Bruker_folder']):
+            i0 = np.argwhere(PAIRS['ImagingFolder']==ca_folder).flatten()
+            if len(i0)==0:
+                print(ca_folder, 'not matched !')
+            elif len(i0)>1:
+                print(ca_folder, 'has duplicate match !!!')
+            elif len(i0)==1:
+                print('%s matched to %s with %.1f %% overlap' % (ca_folder,
+                                                                 PAIRS['DataFolder'][i0[0]],
+                                                                 PAIRS['percent_overlap'][i0[0]]))
+                print(PAIRS['DataTime'][i0[0]])
+                print(PAIRS['ImagingTime'][i0[0]])
+            # if ca_folder in PAIRS['ImagingFolder']:
+            # else:
+            #     print(CA_FILES['protocol'][ica], 'not matched !')
+            #     print(CA_FILES['absoluteTime'][ica][0])
+            #     print(CA_FILES['Bruker_folder'][ica])
+            #     # CA_FILES['protocol'][ica] = pfolder
+    return PAIRS
 
 
 SUITE2P_FILES = ['Fneu.npy',
@@ -141,16 +171,18 @@ if __name__=='__main__':
         vis_folder = args.root_datafolder_Visual
         
     CA_FILES = build_Ca_filelist(ca_folder)
+
     
     if args.day!='':
-        PROTOCOL_LIST = list_dayfolder(os.path.join(vis_folder, args.day))
+        PROTOCOL_LIST = list_dayfolder(os.path.join(args.root_datafolder_Visual, args.day))
     else: # loop over days
         PROTOCOL_LIST = []
-        for day in os.listdir(vis_folder):
-            PROTOCOL_LIST += list_dayfolder(os.path.join(vis_folder, day))
+        for day in os.listdir(args.root_datafolder_Visual):
+            print(os.listdir(os.path.join(args.root_datafolder_Visual, day)))
+            PROTOCOL_LIST += list_dayfolder(os.path.join(args.root_datafolder_Visual, day))
         print(PROTOCOL_LIST)
     CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES,
                                   verbose=args.verbose)
 
-    # if args.with_transfer:
-    #     transfer_analyzed_data(CA_FILES)
+    if args.with_transfer:
+        transfer_analyzed_data(CA_FILES)

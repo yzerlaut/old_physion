@@ -44,7 +44,7 @@ def generate_filename_path(root_folder,
     return os.path.join(Second_folder, filename+extension)
 
 def list_dayfolder(day_folder):
-    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)) and os.path.isfile(os.path.join(day_folder, d, 'metadata.npy')))]
+    folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)) and os.path.isfile(os.path.join(day_folder, d, 'metadata.npy')) and os.path.isfile(os.path.join(day_folder, d, 'NIdaq.npy')) and os.path.isfile(os.path.join(day_folder, d, 'NIdaq.start.npy')))]
     return folders
     
 def last_datafolder_in_dayfolder(day_folder):
@@ -132,29 +132,6 @@ def computerTimestamp_to_daySeconds(t):
     Seconds = float(s.split(':')[2])
     
     return 60*60*Hour+60*Min+Seconds
-    
-
-def dealWithVariableTimestamps(folder, tstart, verbose=False):
-    """
-    ideally we should deal with day shift as well in here...
-    """
-
-    tfolder = folderName_to_daySeconds(folder)
-    tstart = computerTimestamp_to_daySeconds(tstart)
-    
-    if (tfolder-tstart)>90*60: # more than 1h30
-        print('We shift the computer time stamp by two hours...')
-        tstart += 2*60*60
-    elif (tfolder-tstart)>30*60: # more than 30m
-        print('We shift the computer time stamp by one hour...')
-        tstart += 60*60
-
-    if verbose:
-        print('Tstart from interface= %.1fs (i.e. folder), Tstart from CaImaging= %.1fs ' %\
-              (tfolder, tstart))
-        
-    return tstart
-
     
 
 def check_datafolder(df,

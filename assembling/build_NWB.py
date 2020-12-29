@@ -6,13 +6,8 @@ from dateutil.tz import tzlocal
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 from assembling.IO.binary import BinaryFile
-
-from hardware_control.Bruker.xml_parser import bruker_xml_parser
-
-
+from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from behavioral_monitoring.locomotion import compute_position_from_binary_signals
-
-
 
 def compute_locomotion(binary_signal, acq_freq=1e4,
                        speed_smoothing=10e-3, # s
