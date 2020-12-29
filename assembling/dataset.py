@@ -172,7 +172,7 @@ class ScreenData(ImageTimeSeries):
         
         if NIdaq_trace is not None:
             self.photodiode = SingleValueTimeSerie(NIdaq_trace,
-                                                   dt = 1./metadata['NIdaq-acquisition-frequency'])
+                            dt = 1./metadata['NIdaq-acquisition-frequency'])
         else:
             self.photodiode = None #
 
@@ -387,7 +387,9 @@ class CaImagingData(ImageTimeSeries):
 ###          Multimodal dataset            ###
 ##############################################
 
-MODALITIES = ['Screen', 'Locomotion', 'Electrophy', 'Face', 'Pupil','CaImaging']
+MODALITIES = ['Screen', 'Locomotion',
+              'Electrophy', 'Face',
+              'Pupil','CaImaging']
 
 class Dataset:
     
@@ -403,8 +405,17 @@ class Dataset:
                  modalities=MODALITIES):
         """
 
+
         by default we take all modalities, you can restrict them using "modalities"
         """
+
+
+        # io = pynwb.NWBHDF5IO(os.path.join(datafolder, 'full.nwb'), 'r')
+        # t0 = time.time()
+        # nwbfile_in = io.read()
+        # print(nwbfile_in.acquisition['Running-Speed'].data)
+
+
         for key in MODALITIES:
             setattr(self, key, None) # all modalities to None by default
             
