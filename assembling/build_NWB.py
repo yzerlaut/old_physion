@@ -193,12 +193,17 @@ def build_NWB(args,
         temp = str(tempfile.NamedTemporaryFile().name)+'.nwb'
         print("""
         "%s" already exists
-        ---> moved to the temporary file directory as: "%s"
+        ---> moving the file to the temporary file directory as: "%s" [...]
         """ % (filename, temp))
         shutil.move(filename, temp)
+        print('---> done !')
         
     io = pynwb.NWBHDF5IO(filename, mode='w')
+    print("""
+    ---> Creating the NWB file: "%s"
+    """ % filename)
     io.write(nwbfile)
+    print('---> done !')
     io.close()
 
     return filename
