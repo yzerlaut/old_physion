@@ -145,7 +145,7 @@ def build_NWB(args,
         
         xml = bruker_xml_parser(CaFn) # metadata
         CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
-            float(xml['settings']['framePeriod']/2.) # in the middle in-between two time stamps
+            float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
         
     if metadata['CaImaging'] and (args.export=='FULL'):
         Ca_data = BinaryFile(Ly=int(xml['settings']['linesPerFrame']),
