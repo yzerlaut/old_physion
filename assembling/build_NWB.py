@@ -95,6 +95,12 @@ def build_NWB(args,
         else:
             print(' /!\ Realignement unsuccessful /!\ ')
             
+        for key in ['time_start_realigned', 'time_stop_realigned']:
+            VisualStimProp = pynwb.TimeSeries(name=key,
+                                              data = metadata[key],
+                                              unit='seconds',
+                                              timestamps=timestamps)
+            nwbfile.add_stimulus(VisualStimProp)
         for key in VisualStim:
             VisualStimProp = pynwb.TimeSeries(name=key,
                                               data = VisualStim[key],
@@ -196,18 +202,6 @@ def build_NWB(args,
     io.close()
 
     return filename
-    
-
-def load(filename):
-
-    # reading nwb
-    io = pynwb.NWBHDF5IO(filename, 'r')
-    t0 = time.time()
-    nwbfile_in = io.read()
-    print(nwbfile_in.acquisition['Running-Speed'].data)
-    print(nwbfile_in.acquisition['Running-Speed'].timestamps)
-    print(time.time()-t0)
-
     
         
 if __name__=='__main__':

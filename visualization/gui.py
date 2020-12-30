@@ -1,11 +1,11 @@
-import sys, time, tempfile, os, pathlib, json, subprocess, datetime, string
+import sys, time, tempfile, os, pathlib, datetime, string, pynwb
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
-from analysis import guiparts, plots
+from visualization import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
 
 settings = {
@@ -38,6 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         # adding a "quit" keyboard shortcut
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self) # or 'Ctrl+Q'
+        self.openSc.activated.connect(self.open_file)
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
@@ -47,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         ####################################################
         # BASIC style config
-        self.setWindowTitle('Analysis Program -- Physiology of Visual Circuits')
+        self.setWindowTitle('Data Visualization -- Physiology of Visual Circuits')
         pg.setConfigOptions(imageAxisOrder='row-major')
 
         # default (small) geometry
@@ -63,7 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.root_datafolder = args.root_datafolder
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
-        print(self.root_datafolder)
+
         for mod in MODALITIES:
             setattr(self, mod, None)
             
@@ -74,20 +76,35 @@ class MainWindow(QtWidgets.QMainWindow):
         self.minView = False
         self.showwindow()
 
-
-        # # ----------------------------------
-        # # ========= for debugging ==========
-        # # ----------------------------------
+        # ----------------------------------
+        # ========= for debugging ==========
+        # ----------------------------------
         # self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
         # date = datetime.date(2020, 11, 4)
         # date = self.cal.setSelectedDate(date)
         # self.pick_date()
-        # # self.preload_datafolder(self.datafolder)
+        # self.preload_datafolder(self.datafolder)
         # self.dbox.setCurrentIndex(1)
         # self.pick_datafolder()
-        # self.pbox.setCurrentIndex(1)
+        self.pbox.addItem('-> Show Raw Data')
+        self.pbox.setCurrentIndex(0)
         # self.display_quantities()
+        
+        self.open_file()
+        self.tzoom = [0,100]
+        print(self.nwbfile.acquisition['Photodiode-Signal'].data.shape)
+        plots.raw_data_plot(self, self.tzoom)
 
+    def open_file(self):
+
+        filename = os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb')
+        self.io = pynwb.NWBHDF5IO(filename, 'r')
+        t0 = time.time()
+        self.nwbfile = self.io.read()
+        print(self.nwbfile.acquisition['Photodiode-Signal'].data.shape)
+        print(self.nwbfile.acquisition)
+        print(time.time()-t0)
+        
         
     def check_data_folder(self):
         
@@ -204,7 +221,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # IMPLEMENT OTHER ANALYSIS HERE
         """
 
-        print(self.pbox.currentText())
         if self.pbox.currentText()=='-> Trial-average':
             print(self.pbox.currentText())
             self.window2 = TrialAverageWindow(self.app,
@@ -277,6 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pass
     
     def quit(self):
+        self.io.close()
         sys.exit()
 
 def run(app, args=None, parent=None,
