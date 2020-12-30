@@ -82,12 +82,16 @@ if __name__=='__main__':
 
     import matplotlib.pylab as plt
 
-    fn = sys.argv[-1]
-    # fn = '/media/yann/Yann/2020_11_10/16-59-49/'
-    
-    data = np.load(os.path.join(fn, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
-    metadata = np.load(os.path.join(fn, 'metadata.npy'), allow_pickle=True).item()
-    VisualStim = np.load(os.path.join(fn, 'visual-stim.npy'), allow_pickle=True).item()
+    import argparse, os
+    parser=argparse.ArgumentParser(description="""
+    Realigning from Photodiod
+    """,formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-df', "--datafolder", type=str, default='')
+    args = parser.parse_args()
+
+    data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
+    metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
+    VisualStim = np.load(os.path.join(args.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
     for key in ['time_start', 'time_stop']:
         metadata[key] = VisualStim[key]
 

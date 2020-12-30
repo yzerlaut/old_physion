@@ -95,6 +95,12 @@ def build_NWB(args,
         else:
             print(' /!\ Realignement unsuccessful /!\ ')
             
+        for key in ['time_start_realigned', 'time_stop_realigned']:
+            VisualStimProp = pynwb.TimeSeries(name=key,
+                                              data = metadata[key],
+                                              unit='seconds',
+                                              timestamps=timestamps)
+            nwbfile.add_stimulus(VisualStimProp)
         for key in VisualStim:
             VisualStimProp = pynwb.TimeSeries(name=key,
                                               data = VisualStim[key],
@@ -187,27 +193,15 @@ def build_NWB(args,
         temp = str(tempfile.NamedTemporaryFile().name)+'.nwb'
         print("""
         "%s" already exists
-        ---> moved the temporary file directory as: "%s"
+        ---> moved to the temporary file directory as: "%s"
         """ % (filename, temp))
-        # shutil.move(filename, temp)
+        shutil.move(filename, temp)
         
     io = pynwb.NWBHDF5IO(filename, mode='w')
     io.write(nwbfile)
     io.close()
 
     return filename
-    
-
-def load(filename):
-
-    # reading nwb
-    io = pynwb.NWBHDF5IO(filename, 'r')
-    t0 = time.time()
-    nwbfile_in = io.read()
-    print(nwbfile_in.acquisition['Running-Speed'].data)
-    print(nwbfile_in.acquisition['Running-Speed'].timestamps)
-    print(time.time()-t0)
-
     
         
 if __name__=='__main__':
@@ -229,24 +223,3 @@ if __name__=='__main__':
             build_NWB(args)
         else:
             print('"%s" not a valid datafolder' % args.datafolder)
-
-    # if args.day!='':
-    #     folder = os.path.join(args.root_datafolder, args.day)
-    # else:
-    #     folder = args.root_datafolder
-
-    # PROTOCOL_LIST = list_dayfolder(folder)
-    
-    # load(fn)
-    
-    # if args.day!='':
-    # else: # loop over days
-    #     PROTOCOL_LIST = []
-    #     for day in os.listdir(vis_folder):
-    #         PROTOCOL_LIST += list_dayfolder(os.path.join(vis_folder, day))
-    #     print(PROTOCOL_LIST)
-    # CA_FILES = find_matching_data(PROTOCOL_LIST, CA_FILES,
-    #                               verbose=args.verbose)
-
-    # if args.with_transfer:
-    #     transfer_analyzed_data(CA_FILES)
