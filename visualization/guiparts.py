@@ -24,8 +24,10 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     self.cal = QtWidgets.QCalendarWidget(self)
     self.cal.setMinimumHeight(160)
     self.cal.setMaximumHeight(160)
-    self.cal.setMinimumWidth(265)
-    self.cal.setMaximumWidth(265)
+    # self.cal.setMinimumWidth(265)
+    # self.cal.setMaximumWidth(265)
+    self.cal.setMinimumWidth(350)
+    self.cal.setMaximumWidth(350)
     self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
     self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
     self.cal.clicked.connect(self.pick_date)
@@ -196,16 +198,16 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     self.scatter = pg.ScatterPlotItem()
     self.plot.addItem(self.scatter)
 
-    label = pg.LabelItem()
-    txt = """
-    <span style='font-size: 12pt'>
-    <span style='color: grey'> <b>Screen</b> </span> <br/>
-    <span style='color: white'> <b>Locomotion</b> </span> <br/>
-    <span style='color: red'> <b>Pupil</b> </span> <br/>
-    <span style='color: blue'> <b>Electrophy</b> </span> <br/>
-    <span style='color: green'> <b> Ca-Imaging </b> </span>"""
-    label.setText(txt)
-    self.win2.addItem(label)
+    # label = pg.LabelItem()
+    # txt = """
+    # <span style='font-size: 12pt'>
+    # <span style='color: grey'> <b>Screen</b> </span> <br/>
+    # <span style='color: white'> <b>Locomotion</b> </span> <br/>
+    # <span style='color: red'> <b>Pupil</b> </span> <br/>
+    # <span style='color: blue'> <b>Electrophy</b> </span> <br/>
+    # <span style='color: green'> <b> Ca-Imaging </b> </span>"""
+    # label.setText(txt)
+    # self.win2.addItem(label)
 
 class NewWindow(QtWidgets.QMainWindow):
     
