@@ -404,8 +404,6 @@ class Dataset:
                  speed_smoothing=10, # ms
                  modalities=MODALITIES):
         """
-
-
         by default we take all modalities, you can restrict them using "modalities"
         """
 
