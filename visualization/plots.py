@@ -57,25 +57,14 @@ def raw_data_plot(self, tzoom,
         iplot+=1
         if plot_update:
             self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y, pen=pen)
-            
-        if with_images:
-            pass
+
+    if 'visual-stimuli' in self.nwbfile.stimulus:
         
-    #         tt, im = self.Screen.grab_frame(self.time,
-    #                                         with_time=True,
-    #                                         force_previous_time=True)
-    #         self.pScreenimg.setImage(im)
-    #         scatter.append((tt, 0))
-            
-    #     if with_scatter:
-    #         itime = np.argmin((self.Screen.photodiode.t[cond]-\
-    #                            self.time)**2)
-    #         val = scale_and_position(self, y,
-    #                 value=self.Screen.photodiode.val[cond][itime], i=0)
-    #         scatter.append((self.Screen.photodiode.t[cond][itime], val))
-    # else:
-    #     y = shift(self,0)+np.zeros(2)
-    #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
+        i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
+        self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
+        if hasattr(self, 'ScreenFrameLevel'):
+            self.plot.removeItem(self.ScreenFrameLevel)
+        self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
 
 
     # ## -------- Locomotion --------- ##
@@ -157,12 +146,12 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
-    if 'Ca[2+] imaging time series' in self.nwbfile.acquisition:
-        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Ca[2+] imaging time series'])
-        self.pCaimg.setImage(self.nwbfile.acquisition['Ca[2+] imaging time series'].data[i0])
+    if 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['CaImaging-TimeSeries'])
+        self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0])
         if hasattr(self, 'CaFrameLevel'):
             self.plot.removeItem(self.CaFrameLevel)
-        self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['Ca[2+] imaging time series'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
+        self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
         
     # if self.CaImaging is not None:
     #     print(len(self.CaImaging.t))
