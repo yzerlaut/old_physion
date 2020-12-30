@@ -2,9 +2,6 @@ import datetime, numpy, os, sys
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
-df_width = 600
-selector_height = 40
-
 def remove_size_props(o, fcol=False, button=False, image=False):
     o.setMinimumHeight(0)
     o.setMinimumWidth(0)
@@ -22,28 +19,29 @@ def remove_size_props(o, fcol=False, button=False, image=False):
 def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     
     self.cal = QtWidgets.QCalendarWidget(self)
+    font = QtGui.QFont()
+    font.setPointSize(5)
+    self.cal.setFont(font)
     self.cal.setMinimumHeight(160)
     self.cal.setMaximumHeight(160)
-    # self.cal.setMinimumWidth(265)
-    # self.cal.setMaximumWidth(265)
-    self.cal.setMinimumWidth(350)
-    self.cal.setMaximumWidth(350)
+    self.cal.setMinimumWidth(265)
+    self.cal.setMaximumWidth(265)
     self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
     self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
+    self.cal.adjustSize()
     self.cal.clicked.connect(self.pick_date)
     Layout.addWidget(self.cal)
 
 def add_buttons(self, Layout):
 
-    # self.setStyleSheet("QMainWindow {background: 'black';}")
     self.styleUnpressed = ("QPushButton {Text-align: left; "
-                           "background-color: rgb(50,50,50); "
+                           "background-color: rgb(200, 200, 200); "
                            "color:white;}")
     self.stylePressed = ("QPushButton {Text-align: left; "
                          "background-color: rgb(100,50,100); "
                          "color:white;}")
     self.styleInactive = ("QPushButton {Text-align: left; "
-                          "background-color: rgb(50,50,50); "
+                          "background-color: rgb(200, 200, 200); "
                           "color:gray;}")
 
     iconSize = QtCore.QSize(20, 20)
@@ -51,22 +49,33 @@ def add_buttons(self, Layout):
     self.playButton = QtGui.QToolButton()
     self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
     self.playButton.setIconSize(iconSize)
-    self.playButton.setToolTip("Play")
+    self.playButton.setToolTip("Play   -> [Space]")
     self.playButton.setCheckable(True)
+    self.playButton.setEnabled(True)
     self.playButton.clicked.connect(self.play)
 
     self.pauseButton = QtGui.QToolButton()
     self.pauseButton.setCheckable(True)
     self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
     self.pauseButton.setIconSize(iconSize)
-    self.pauseButton.setToolTip("Pause")
+    self.pauseButton.setToolTip("Pause   -> [Space]")
     self.pauseButton.clicked.connect(self.pause)
 
+    btns = QtGui.QButtonGroup(self)
+    btns.addButton(self.playButton,0)
+    btns.addButton(self.pauseButton,1)
+    btns.setExclusive(True)
+
+    self.playButton.setEnabled(False)
+    self.pauseButton.setEnabled(True)
+    self.pauseButton.setChecked(True)
+
+    
     self.refreshButton = QtGui.QToolButton()
     self.refreshButton.setCheckable(True)
     self.refreshButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
     self.refreshButton.setIconSize(iconSize)
-    self.refreshButton.setToolTip("Refresh")
+    self.refreshButton.setToolTip("Refresh   -> [r]")
     self.refreshButton.clicked.connect(self.refresh)
 
     self.quitButton = QtGui.QToolButton()
@@ -80,7 +89,7 @@ def add_buttons(self, Layout):
     # self.backButton.setCheckable(True)
     self.backButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogBack))
     self.backButton.setIconSize(iconSize)
-    self.backButton.setToolTip("Back to initial view")
+    self.backButton.setToolTip("Back to initial view   -> [i]")
     self.backButton.clicked.connect(self.back_to_initial_view)
 
     self.settingsButton = QtGui.QToolButton()
@@ -110,7 +119,11 @@ def build_slider(self, Layout):
     Layout.addWidget(self.frameSlider)
 
         
-def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
+def load_config1(self,
+                 df_width = 600,
+                 selector_height = 40,
+                 win1_Wmax=1200, win1_Wmin=300,
+                 win1_Hmax=500, win2_Wmax=500):
 
     self.cwidget = QtGui.QWidget(self)
     self.setCentralWidget(self.cwidget)
@@ -123,7 +136,7 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     Layout11 = QtWidgets.QVBoxLayout()
     Layout1.addLayout(Layout11)
     create_calendar(self, Layout11)
-    self.notes = QtWidgets.QLabel(63*'-'+5*'\n', self)
+    self.notes = QtWidgets.QLabel(20*'-'+5*'\n', self)
     self.notes.setMinimumHeight(70)
     self.notes.setMaximumHeight(70)
     Layout11.addWidget(self.notes)
@@ -160,6 +173,7 @@ def load_config1(self, win1_Wmax=800, win1_Wmin=300, win1_Hmax=300):
     Layout12.addWidget(self.win1)
 
     self.win2 = pg.GraphicsLayoutWidget()
+    self.win2.setMaximumWidth(win2_Wmax)
     self.win2.setMaximumHeight(win1_Hmax)
     Layout1.addWidget(self.win2)
 

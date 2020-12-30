@@ -34,12 +34,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app = app
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
-
+        
         super(MainWindow, self).__init__()
 
         # adding a "quit" keyboard shortcut
         self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self) # or 'Ctrl+Q'
         self.openSc.activated.connect(self.open_file)
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Space'), self)
+        self.openSc.activated.connect(self.hitting_space)
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
@@ -55,6 +57,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # default (small) geometry
         self.setGeometry(100,100,*self.settings['window_size'])
 
+        # play button
+        self.updateTimer = QtCore.QTimer()
+        self.updateTimer.timeout.connect(self.next_frame)
+        
         self.statusBar = QtWidgets.QStatusBar()
         # self.setStatusBar(self.statusBar)
         # self.statusBar.showMessage('Pick a date, a data-folder and a visualization/analysis')
@@ -70,7 +76,6 @@ class MainWindow(QtWidgets.QMainWindow):
             setattr(self, mod, None)
             
         self.time = 0
-        self.tzoom = [0, 10]
         self.check_data_folder()
         
         self.minView = False
@@ -91,20 +96,35 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.display_quantities()
         
         self.open_file()
-        self.tzoom = [0,100]
-        print(self.nwbfile.acquisition['Photodiode-Signal'].data.shape)
         plots.raw_data_plot(self, self.tzoom)
 
     def open_file(self):
+        
+        # filename = QtGui.QFileDialog.getOpenFileName(self,
+        #                     "Open Multimodal Experimental Recording (NWB file) ",filter="*.nwb")
 
+        # if filename[0]=='':
+        #     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb')
+        # else:
+        #     filename = filename[0]
+            
         filename = os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb')
         self.io = pynwb.NWBHDF5IO(filename, 'r')
         t0 = time.time()
         self.nwbfile = self.io.read()
-        print(self.nwbfile.acquisition['Photodiode-Signal'].data.shape)
-        print(self.nwbfile.acquisition)
-        print(time.time()-t0)
         
+        self.tlim, safety_counter = None, 0
+        while (self.tlim is None) and (safety_counter<10):
+            for key in self.nwbfile.acquisition:
+                try:
+                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
+                                  self.nwbfile.acquisition[key].starting_time+self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                except BaseException as be:
+                    pass
+        if self.tlim is None:
+            self.tlim = [0, 50] # bad for movies
+        self.tzoom = self.tlim
+            
         
     def check_data_folder(self):
         
@@ -198,10 +218,10 @@ class MainWindow(QtWidgets.QMainWindow):
             
         else:
             self.metadata = None
-            self.notes.setText(63*'-'+5*'\n')
+            self.notes.setText(20*'-'+5*'\n')
 
     def add_datafolder_annotation(self):
-        info = 63*'-'+'\n'
+        info = 20*'-'+'\n'
 
         if self.metadata['protocol']=='None':
             self.notes.setText('\nNo visual stimulation')
@@ -222,33 +242,61 @@ class MainWindow(QtWidgets.QMainWindow):
         """
 
         if self.pbox.currentText()=='-> Trial-average':
-            print(self.pbox.currentText())
             self.window2 = TrialAverageWindow(self.app,
                                         dataset=self.dataset)
             self.window2.show()
         elif (self.pbox.currentText()=='-> Show Raw Data') or force:
+            self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
                                 plot_update=plot_update,
                                 with_images=with_images,
                                 with_scatter=with_scatter)
 
 
-            
-
     def back_to_initial_view(self):
-        self.plot.clear()
-        for mod in MODALITIES:
-            if getattr(self, mod) is not None:
-                self.tzoom = [getattr(self, mod).t[0],
-                              getattr(self, mod).t[-2]]
-                break
+        self.tzoom = self.tlim
         self.display_quantities(force=True)
-        
-    def play(self):
-        pass
 
+    def hitting_space(self):
+        if self.pauseButton.isEnabled():
+            self.pause()
+        else:
+            self.play()
+
+    def launch_movie(self,
+                     movie_refresh_time=0.2, # all in seconds
+                     time_for_full_window=25):
+
+        self.tzoom = self.plot.getAxis('bottom').range
+        self.view = (self.tzoom[1]-self.tzoom[0])/2.*np.array([-1,1])
+        # forcing time at 10% of the window
+        self.time = self.tzoom[0]+.1*(self.tzoom[1]-self.tzoom[0])
+        self.display_quantities()
+        # then preparing the update rule
+        N_updates = int(time_for_full_window/movie_refresh_time)+1
+        self.dt_movie = (self.tzoom[1]-self.tzoom[0])/N_updates
+        self.updateTimer.start(int(1e3*movie_refresh_time))
+
+    def play(self):
+        print('playing')
+        self.pauseButton.setEnabled(True)
+        self.playButton.setEnabled(False)
+        self.playButton.setChecked(True)
+        self.launch_movie()
+
+    def next_frame(self):
+        print(self.time, self.dt_movie)
+        self.time = self.time+self.dt_movie
+        if self.time>self.tzoom[0]+.8*(self.tzoom[1]-self.tzoom[0]):
+            print('block')
+            self.tzoom = [self.view[0]+self.time, self.view[1]+self.time]
+        self.display_quantities()
+    
     def pause(self):
-        pass
+        self.updateTimer.stop()
+        self.playButton.setEnabled(True)
+        self.pauseButton.setEnabled(False)
+        self.pauseButton.setChecked(True)
 
     def refresh(self):
         self.plot.clear()
@@ -259,10 +307,10 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def update_frame(self, from_slider=True):
         
+        self.tzoom = self.plot.getAxis('bottom').range
         if from_slider:
             # update time based on slider
-            t1, t2 = self.xaxis.range
-            self.time = t1+(t2-t1)*\
+            self.time = self.tzoom[0]+(self.tzoom[1]-self.tzoom[0])*\
                 float(self.frameSlider.value())/self.settings['Npoints']
         else:
             self.time = self.xaxis.range[0]

@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 
 def set_dark_style(win):
 
-    win.setStyleSheet("QMainWindow {background: 'black';}")
+    win.setStyleSheet("QMainWindow {background: 'grey';}")
     win.styleUnpressed = ("QPushButton {Text-align: left; "
                                "background-color: rgb(50,50,50); "
                                "color:white;}")

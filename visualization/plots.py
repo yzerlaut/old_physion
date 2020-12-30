@@ -23,11 +23,15 @@ def shift(self, i):
         np.sum(np.power(self.settings['increase-factor'], np.arange(i)))
 
 def convert_time_to_index(time, nwb_quantity):
-    t = time-nwb_quantity.starting_time
-    dt = 1./nwb_quantity.rate
-    print(nwb_quantity)
-    imax = nwb_quantity.data.shape[0]-1 # maybe shift to -1 to handle images
-    return max([1, min([int(t/dt), imax-1])]) # then we add +1 / -1 in the visualization
+    if nwb_quantity.timestamps is not None:
+        return np.arange(nwb_quantity.timestamps.shape[0])[nwb_quantity.timestamps[:]>=time][0]
+    elif nwb_quantity.starting_time is not None:
+        t = time-nwb_quantity.starting_time
+        dt = 1./nwb_quantity.rate
+        imax = nwb_quantity.data.shape[0]-1 # maybe shift to -1 to handle images
+        return max([1, min([int(t/dt), imax-1])]) # then we add +1 / -1 in the visualization
+    else:
+        return 0
 
 def convert_index_to_time(index, nwb_quantity):
     """ index can be an array """
@@ -152,10 +156,14 @@ def raw_data_plot(self, tzoom,
     #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
     # ## -------- Calcium --------- ##
-    # if self.CaImaging is not None:
-    #     self.pCaimg.setImage(self.CaImaging.meanImg)
+    pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
+    if 'Ca[2+] imaging time series' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Ca[2+] imaging time series'])
+        self.pCaimg.setImage(self.nwbfile.acquisition['Ca[2+] imaging time series'].data[i0])
+        if hasattr(self, 'CaFrameLevel'):
+            self.plot.removeItem(self.CaFrameLevel)
+        self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['Ca[2+] imaging time series'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
         
-    # pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
     # if self.CaImaging is not None:
     #     print(len(self.CaImaging.t))
     #     print(self.CaImaging.Firing.shape)
@@ -176,10 +184,11 @@ def raw_data_plot(self, tzoom,
     #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
             
 
-    if ('time_start' in self.nwbfile.stimulus) and ('time_stop' in self.nwbfile.stimulus):
+    if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
+        
         # if visual-stim we highlight the stim periods
-        icond = np.argwhere((self.nwbfile.stimulus['time_start'].data[:]>tzoom[0]) & \
-                            (self.nwbfile.stimulus['time_stop'].data[:]<tzoom[1])).flatten()
+        icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
+                            (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()
 
         if hasattr(self, 'StimFill') and self.StimFill is not None:
             for x in self.StimFill:
@@ -188,11 +197,11 @@ def raw_data_plot(self, tzoom,
         X, Y = [], []
         if len(icond)>0:
             self.StimFill = []
-            for i in range(max([0,icond[0]-1]),
-                           min([icond[-1]+1,self.nwbfile.stimulus['time_stop'].data.shape[0]-1])):
             # for i in icond:
-                t0 = self.nwbfile.stimulus['time_start'].data[i]
-                t1 = self.nwbfile.stimulus['time_stop'].data[i]
+            for i in range(max([0,icond[0]-1]),
+                           min([icond[-1]+1,self.nwbfile.stimulus['time_stop_realigned'].data.shape[0]-1])):
+                t0 = self.nwbfile.stimulus['time_start_realigned'].data[i]
+                t1 = self.nwbfile.stimulus['time_stop_realigned'].data[i]
                 self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
                                 fillLevel=y.max(), brush=(150,150,150,80)))
 
