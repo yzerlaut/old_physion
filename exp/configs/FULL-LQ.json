@@ -9,7 +9,7 @@
 				   "duration":0.3,
 				   "value":5.0},
     "root_datafolder":"DATA",
-    "sample_file":"mice_yann.json",
+    "subjects_file":"mice_yann.json",
     "experimenter":"Yann Zerlaut",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",

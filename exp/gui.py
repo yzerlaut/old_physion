@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
         # config choice
         # QtWidgets.QLabel(" ======= Config : ======", self).move(170, 90)
-        QtWidgets.QLabel("=> Config :", self).move(160, 90)
+        QtWidgets.QLabel("  => Config :", self).move(160, 90)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(270)
         self.cbc.move(250, 90)
@@ -117,11 +117,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fileMenu.addAction(action)
             
         QtWidgets.QLabel("Notes: ", self).move(40, 265)
-        self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
+        self.qmNotes = QtWidgets.QTextEdit('', self)
         self.qmNotes.move(90, 270)
         self.qmNotes.setMinimumWidth(250)
         self.qmNotes.setMinimumHeight(60)
-
+        
         btn = QtWidgets.QPushButton('Save\nSettings', self)
         btn.clicked.connect(self.save_settings)
         btn.setMinimumWidth(70)
@@ -210,7 +210,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.protocol['data-folder'] = self.root_datafolder
         
     def get_subject_list(self):
-        with open(os.path.join(base_path, 'subjects', self.config['subject_file'])) as f:
+        with open(os.path.join(base_path, 'subjects', self.config['subjects_file'])) as f:
             self.subjects = json.load(f)
         self.cbs.clear()
         self.cbs.addItems(self.subjects.keys())
@@ -248,8 +248,10 @@ class MainWindow(QtWidgets.QMainWindow):
         ### set up all metadata
         self.metadata = {'config':self.cbc.currentText(),
                          'protocol':self.cbp.currentText(),
+                         'notes':self.qmNotes.toPlainText(),
                          'subject_ID':self.cbs.currentText(),
                          'subject_props':self.subject} # re-initialize metadata
+
         for d in [self.config, self.protocol]:
             for key in d:
                 self.metadata[key] = d[key]

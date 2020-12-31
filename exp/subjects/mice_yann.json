@@ -1,20 +1,11 @@
 {
-    "Mouse-2":{"description":"",
-	       "sex":"Female",
-	       "genotype":"SST-Cre",
-	       "sex":"",
-	       "species":"",
-	       "subject_id":"",
-	       "weight":"",
-	       "date_of_birth":"",
-	       "birth_date":"2020_10_01"},
     "Mouse-1":{"description":"",
 	       "sex":"Female",
 	       "genotype":"SST-Cre",
-	       "sex":"",
 	       "species":"",
 	       "subject_id":"",
 	       "weight":"",
-	       "date_of_birth":"",
-	       "birth_date":"2020_10_01"}
+	       "virus":"",
+	       "surgery":"",
+	       "date_of_birth":"2020_10_01"}
 }

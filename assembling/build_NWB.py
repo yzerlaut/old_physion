@@ -28,6 +28,9 @@ def build_NWB(args,
               Ca_Imaging_options={'Suite2P-binary-filename':'data.bin',
                                   'plane':0}):
     
+    if args.verbose:
+        print('Initializing NWB file [...]')
+
     #################################################
     ####            BASIC metadata            #######
     #################################################
@@ -37,18 +40,29 @@ def build_NWB(args,
     start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]),
                 int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
 
-    if args.verbose:
-        print('Initializing NWB file [...]')
-    nwbfile = pynwb.NWBFile(session_description=metadata['protocol'],
-                    identifier='NWB123',  # required
-                    experimenter=metadata['config']['experimenter'],
-                    lab=metadata['config']['lab'],
-                    institution=metadata['config']['institution'],
-                    session_start_time=start_time,
-                    file_create_date=datetime.datetime.today())
-
     # subject info
-    subject = pynwb.file.Subject(age=metadata['subject'][''])
+    dob = metadata['subject_props']['date_of_birth'].split('_')
+    subject = pynwb.file.Subject(description=metadata['subject_props']['description'],
+                                 sex=metadata['subject_props']['sex'],
+	                         genotype=metadata['subject_props']['genotype'],
+                                 species=metadata['subject_props']['species'],
+	                         subject_id=metadata['subject_props']['subject_id'],
+	                         weight=metadata['subject_props']['weight'],
+	                         date_of_birth=datetime.datetime(int(dob[0]),int(dob[1]),int(dob[2])))
+        
+    nwbfile = pynwb.NWBFile(identifier='%s-%s' % (args.datafolder.split(os.path.sep)[-2],args.datafolder.split(os.path.sep)[-1]),
+                            session_description=str(metadata),
+                            experiment_description=metadata['protocol'],
+                            experimenter=metadata['experimenter'],
+                            lab=metadata['lab'],
+                            institution=metadata['institution'],
+                            notes=metadata['notes'],
+                            virus=metadata['subject_props']['virus'],
+                            surgery=metadata['subject_props']['surgery'],
+                            session_start_time=start_time,
+                            subject=subject,
+                            source_script_file_name=str(pathlib.Path(__file__).resolve()),
+                            file_create_date=datetime.datetime.today())
     
     #################################################
     ####         IMPORTING NI-DAQ data        #######
