@@ -45,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 550, 370)
 
+
         self.metadata = default_settings # set a load/save interface
         self.protocol, self.protocol_folder = None,\
             self.metadata['protocol_folder']
@@ -57,7 +58,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.datafolder = None
 	    
-        self.get_protocol_list()
         self.experiment = {} # storing the specifics of an experiment
         self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
@@ -86,14 +86,26 @@ class MainWindow(QtWidgets.QMainWindow):
         for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
 
-        # protocol choice
-        QtWidgets.QLabel("Visual Protocol :", self).move(30, 90)
-        self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.addItems(['None']+\
-                          [f.replace('.json', '') for f in self.protocol_list])
-        self.cbp.setMinimumWidth(350)
-        self.cbp.move(150, 90)
+        # config choice
+        QtWidgets.QLabel("Config :", self).move(170, 90)
+        self.cbc = QtWidgets.QComboBox(self)
+        self.cbc.setMinimumWidth(250)
+        self.cbc.move(250, 90)
+        self.cbc.activated.connect(self.update_config)
+
+        # sample choice
+        QtWidgets.QLabel("Sample :", self).move(110, 125)
+        self.cbs = QtWidgets.QComboBox(self)
+        self.cbs.setMinimumWidth(300)
+        self.cbs.move(200, 125)
         
+        # protocol choice
+        QtWidgets.QLabel("Visual Protocol :", self).move(30, 160)
+        self.cbp = QtWidgets.QComboBox(self)
+        self.cbp.setMinimumWidth(350)
+        self.cbp.move(150, 160)
+
+
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -106,97 +118,72 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar.showMessage('ready to select a protocol/config')
 
         for func, label, shift in zip(FUNCTIONS, LABELS,\
-                                      100*np.arange(len(LABELS))):
+                                      110*np.arange(len(LABELS))):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
-            btn.setMinimumWidth(100)
-            btn.move(50+shift, 140)
+            btn.setMinimumWidth(110)
+            btn.move(50+shift, 220)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        # self.dfl = QtWidgets.QLabel('Data-Folder (root): "%s"' % str(self.root_datafolder), self)
-        # self.dfl.setMinimumWidth(300)
-        # self.dfl.move(30, 160)
-        # dfb = QtWidgets.QPushButton('Set folder', self)
-        # dfb.clicked.connect(self.choose_data_folder)
-        # dfb.move(370, 160)
 
-        # naf = QtWidgets.QLabel("NI-daq Acquisition Freq. (kHz): ", self)
-        # naf.setMinimumWidth(300)
-        # naf.move(50, 210)
-        # self.NIdaqFreq = QtWidgets.QDoubleSpinBox(self)
-        # self.NIdaqFreq.move(300,210)
-        # self.NIdaqFreq.setValue(self.metadata['NIdaq-acquisition-frequency']/1e3)
-        
-        # narc = QtWidgets.QLabel("NI-daq analog recording channels (#): ", self)
-        # narc.setMinimumWidth(300)
-        # narc.move(50, 250)
-        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        # self.NIdaqNchannel.move(300,250)
-        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-analog-input-channels'])
-
-        # ndrc = QtWidgets.QLabel("NI-daq digital recording channels (#): ", self)
-        # ndrc.setMinimumWidth(300)
-        # ndrc.move(50, 290)
-        # self.NIdaqNchannel = QtWidgets.QSpinBox(self)
-        # self.NIdaqNchannel.move(300,290)
-        # self.NIdaqNchannel.setValue(self.metadata['NIdaq-digital-input-channels'])
-        
-        # ffr = QtWidgets.QLabel("FaceCamera frame rate (Hz): ", self)
-        # ffr.setMinimumWidth(300)
-        # ffr.move(50, 330)
-        # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
-        # self.FaceCameraFreq.move(300,330)
-        # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
-
-        QtWidgets.QLabel("Mouse ID: ", self).move(40, 210)
-        self.qmID = QtWidgets.QComboBox(self)
-        self.qmID.addItems(['1'])
-        self.qmID.setMaximumWidth(70)
-        self.qmID.move(140, 210)
-        self.addID = QtWidgets.QPushButton('Add new mouse', self)
-        self.addID.move(300, 210)
-        self.addID.setMinimumWidth(120)
-        
-        QtWidgets.QLabel("Notes: ", self).move(60, 260)
+        QtWidgets.QLabel("Notes: ", self).move(60, 270)
         self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
-        self.qmNotes.move(130, 260)
+        self.qmNotes.move(130, 270)
         self.qmNotes.setMinimumWidth(250)
-        self.qmNotes.setMinimumHeight(70)
-        
-        # ms = QtWidgets.QLabel("Mouse sex: ", self)
-        # ms.move(100, 420)
-        # self.qms = QtWidgets.QComboBox(self)
-        # self.qms.addItems(['N/A', 'Female', 'Male'])
-        # self.qms.move(250, 420)
-        # mg = QtWidgets.QLabel("Mouse genotype: ", self)
-        # mg.move(100, 460)
-        # self.qmg = QtWidgets.QLineEdit('wild type', self)
-        # self.qmg.move(250, 460)
-        # for m in [mID, ms, mg]:
-        #     m.setMinimumWidth(300)
-        
-        # self.FaceCameraFreq = QtWidgets.QDoubleSpinBox(self)
-        # self.FaceCameraFreq.move(250, 380)
-        # self.FaceCameraFreq.setValue(self.metadata['FaceCamera-frame-rate'])
+        self.qmNotes.setMinimumHeight(60)
 
-        # LABELS = ["Set protocol folder"]
-        # FUNCTIONS = [self.set_protocol_folder]
-        # for func, label, shift, size in zip(FUNCTIONS, LABELS,\
-        #                                     160*np.arange(len(LABELS)), [130, 130]):
-        #     btn = QtWidgets.QPushButton(label, self)
-        #     btn.clicked.connect(func)
-        #     btn.setMinimumWidth(size)
-        #     btn.move(shift+30, 350)
-        #     action = QtWidgets.QAction(label, self)
-        #     if len(label.split(')'))>0:
-        #         action.setShortcut(label.split(')')[0])
-        #         action.triggered.connect(func)
-        #         self.fileMenu.addAction(action)
-
+        self.get_config_list()
+        
         self.show()
+        
+    ### GUI FUNCTIONS ###
+    
+    def get_config_list(self):
+        files = os.listdir(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'configs'))
+        self.config_list = [f.replace('.json', '') for f in files if f.endswith('.json')]
+        self.cbc.addItems(self.config_list)
+        self.update_config()
+        
+    def update_config(self):
+        fn = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'configs', self.cbc.currentText()+'.json')
+        with open(fn) as f:
+            self.config = json.load(f)
+        self.get_protocol_list()
+        self.get_sample_list()
+
+    def get_protocol_list(self):
+        if self.config['protocols']=='all':
+            files = os.listdir(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocols'))
+            self.protocol_list = [f for f in files if f.endswith('.json')]
+        else:
+            self.protocol_list = []
+        self.cbp.clear()
+        self.cbp.addItems(['None']+self.protocol_list)
+
+    def get_sample_list(self):
+        with open(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'samples', self.config['sample_file'])) as f:
+            self.samples = json.load(f)
+        self.cbs.clear()
+        self.cbs.addItems(self.samples.keys())
+
+    def set_protocol_folder(self):
+        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                            "Select Protocol Folder", self.protocol_folder))
+        if fd!='':
+            fd = self.protocol_folder
+            self.get_protocol_list()
+            self.cbp.addItems([f.replace('.json', '') for f in self.protocol_list])
+
+    def set_config_folder(self):
+        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                            "Select Config Folder", self.config_folder))
+        if fd!='':
+            fd = self.config_folder
+            self.get_config_list()
+            self.cbp.addItems([f.replace('.json', '') for f in self.config_list])
         
     def init_FaceCamera(self):
         if self.FaceCamera_process is None:
@@ -397,29 +384,6 @@ class MainWindow(QtWidgets.QMainWindow):
         print('[ok] Metadata data saved as: %s ' % os.path.join(self.datafolder, 'metadata.npy'))
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(self.datafolder, 'metadata.npy'))
 
-    def get_protocol_list(self):
-        files = sorted(os.listdir(self.protocol_folder))
-        self.protocol_list = [f for f in files if f.endswith('.json')]
-        
-    def get_config_list(self):
-        files = os.listdir(self.config_folder)
-        self.config_list = [f for f in files if f.endswith('.json')]
-        
-    def set_protocol_folder(self):
-        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Protocol Folder", self.protocol_folder))
-        if fd!='':
-            fd = self.protocol_folder
-            self.get_protocol_list()
-            self.cbp.addItems([f.replace('.json', '') for f in self.protocol_list])
-
-    def set_config_folder(self):
-        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Config Folder", self.config_folder))
-        if fd!='':
-            fd = self.config_folder
-            self.get_config_list()
-            self.cbp.addItems([f.replace('.json', '') for f in self.config_list])
         
 def run(app, args=None):
     print(args)
