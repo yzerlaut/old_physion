@@ -1,8 +1,0 @@
-{
-    "with-VisualStim": "False",
-    "NIdaq-acquisition-frequency": 1000.0,
-    "NIdaq-input-channels": 5,
-    "NIdaq-output-step-1": {"channel":0, "onset": 0.5, "duration": 1.0, "value":5.0},
-    "with-FaceCamera": "False",
-    "with-RigView": "False"
-}
