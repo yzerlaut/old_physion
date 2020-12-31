@@ -1,8 +1,0 @@
-{
-    "Mouse-2":{"sex":"Female",
-	       "strain":"SST-Cre",
-	       "birth_date":"2020_10_01"},
-    "Mouse-1":{"sex":"Female",
-	       "strain":"SST-Cre",
-	       "birth_date":"2020_10_01"}
-}

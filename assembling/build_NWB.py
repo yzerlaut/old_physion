@@ -34,19 +34,22 @@ def build_NWB(args,
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
     day = args.datafolder.split(os.path.sep)[-2].split('_')
     Time = args.datafolder.split(os.path.sep)[-1].split('-')
-    start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]), int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
+    start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]),
+                int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
 
     if args.verbose:
         print('Initializing NWB file [...]')
     nwbfile = pynwb.NWBFile(session_description=metadata['protocol'],
-                            identifier='NWB123',  # required
-                            experimenter='Yann Zerlaut',
-                            lab='Rebola and Bacci labs',
-                            institution='Institut du Cerveau et de la Moelle, Paris',
-                            session_start_time=start_time,
-                            file_create_date=datetime.datetime.today())
-    
+                    identifier='NWB123',  # required
+                    experimenter=metadata['config']['experimenter'],
+                    lab=metadata['config']['lab'],
+                    institution=metadata['config']['institution'],
+                    session_start_time=start_time,
+                    file_create_date=datetime.datetime.today())
 
+    # subject info
+    subject = pynwb.file.Subject(age=metadata['subject'][''])
+    
     #################################################
     ####         IMPORTING NI-DAQ data        #######
     #################################################

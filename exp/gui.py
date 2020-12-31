@@ -25,15 +25,10 @@ except ModuleNotFoundError:
 ## NASTY workaround to the error:
 # ** OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized. **
 
-STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
+base_path = str(pathlib.Path(__file__).resolve().parents[0])
+settings_filename = os.path.join(base_path, 'settings.npy')
 
-default_settings = {'NIdaq-acquisition-frequency':10000.,
-                    'NIdaq-analog-input-channels': 2,
-                    'NIdaq-digital-input-channels': 2,
-                    'protocol_folder':os.path.join('exp', 'protocols'),
-                    'root_datafolder':os.path.join(os.path.expanduser('~'), 'DATA'),
-                    # 'config' : CONFIG_LIST[0],
-                    'FaceCamera-frame-rate': 20}
+STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -45,29 +40,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
         self.setGeometry(50, 50, 550, 370)
 
-
-        self.metadata = default_settings # set a load/save interface
-        self.protocol, self.protocol_folder = None,\
-            self.metadata['protocol_folder']
-
-        if args is not None:
-            self.root_datafolder = args.root_datafolder
-            self.metadata['root_datafolder'] = args.root_datafolder
-        else:
-            self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
-
-        self.datafolder = None
-	    
-        self.experiment = {} # storing the specifics of an experiment
+        ##########################################################
+        ##########################################################
+        ##########################################################
         self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
         # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
-
         self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
         self.FaceCamera_process = None
         self.RigView_process = None
         self.params_window = None
-        
+
+        ##########################################################
+        ##########################################################
+        ##########################################################
         rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
         rml.move(30, 5)
         rml.setMinimumWidth(500)
@@ -81,30 +67,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.FaceCameraButton.move(330, 40)
         self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
         self.CaImagingButton.move(430, 40)
-        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]:
+        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                       self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
         for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
-
+            
         # config choice
-        QtWidgets.QLabel("Config :", self).move(170, 90)
+        # QtWidgets.QLabel(" ======= Config : ======", self).move(170, 90)
+        QtWidgets.QLabel("=> Config :", self).move(160, 90)
         self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.setMinimumWidth(250)
+        self.cbc.setMinimumWidth(270)
         self.cbc.move(250, 90)
         self.cbc.activated.connect(self.update_config)
 
-        # sample choice
-        QtWidgets.QLabel("Sample :", self).move(110, 125)
+        # subject choice
+        QtWidgets.QLabel("-> Subject :", self).move(100, 125)
         self.cbs = QtWidgets.QComboBox(self)
-        self.cbs.setMinimumWidth(300)
-        self.cbs.move(200, 125)
+        self.cbs.setMinimumWidth(340)
+        self.cbs.move(180, 125)
+        self.cbs.activated.connect(self.update_subject)
         
         # protocol choice
-        QtWidgets.QLabel("Visual Protocol :", self).move(30, 160)
+        QtWidgets.QLabel(" Visual Protocol :", self).move(20, 160)
         self.cbp = QtWidgets.QComboBox(self)
-        self.cbp.setMinimumWidth(350)
-        self.cbp.move(150, 160)
-
+        self.cbp.setMinimumWidth(390)
+        self.cbp.move(130, 160)
+        self.cbp.activated.connect(self.update_protocol)
 
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -116,7 +105,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('ready to select a protocol/config')
-
         for func, label, shift in zip(FUNCTIONS, LABELS,\
                                       110*np.arange(len(LABELS))):
             btn = QtWidgets.QPushButton(label, self)
@@ -128,69 +116,114 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-
-        QtWidgets.QLabel("Notes: ", self).move(60, 270)
+        QtWidgets.QLabel("Notes: ", self).move(40, 265)
         self.qmNotes = QtWidgets.QTextEdit('...\n\n\n', self)
-        self.qmNotes.move(130, 270)
+        self.qmNotes.move(90, 270)
         self.qmNotes.setMinimumWidth(250)
         self.qmNotes.setMinimumHeight(60)
 
+        btn = QtWidgets.QPushButton('Save\nSettings', self)
+        btn.clicked.connect(self.save_settings)
+        btn.setMinimumWidth(70)
+        btn.setMinimumHeight(50)
+        btn.move(380,275)
+
+        ##########################################################
+        ##########################################################
+        ##########################################################
+        self.config, self.protocol, self.subject = None, None, None
+        
         self.get_config_list()
+        self.load_settings()
+        self.datafolder = None
+	    
+        self.experiment = {} # storing the specifics of an experiment
         
         self.show()
-        
+
     ### GUI FUNCTIONS ###
     
+    def save_settings(self):
+        settings = {'config':self.cbc.currentText(),
+                    'protocol':self.cbp.currentText(),
+                    'subject':self.cbs.currentText()}
+        for label, button in zip(['VisualStimButton', 'LocomotionButton', 'ElectrophyButton',
+                                  'FaceCameraButton', 'CaImagingButton'],
+                                 [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                                  self.FaceCameraButton, self.CaImagingButton]):
+            settings[label] = button.isChecked()
+        np.save(settings_filename, settings)
+        self.statusBar.showMessage('settings succesfully saved !')
+
+    def load_settings(self):
+        if os.path.isfile(settings_filename):
+            settings = np.load(settings_filename, allow_pickle=True).item()
+            if settings['config'] in self.config_list:
+                self.cbc.setCurrentText(settings['config'])
+                self.update_config()
+            if settings['protocol'] in self.protocol_list:
+                self.cbp.setCurrentText(settings['protocol'])
+                self.update_protocol()
+            if settings['subject'] in self.subjects:
+                self.cbs.setCurrentText(settings['subject'])
+                self.update_subject()
+            for label, button in zip(['VisualStimButton', 'LocomotionButton', 'ElectrophyButton',
+                                      'FaceCameraButton', 'CaImagingButton'],
+                                     [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                                      self.FaceCameraButton, self.CaImagingButton]):
+                button.setChecked(settings[label])
+        if (self.config is None) or (self.protocol is None) or (self.subject is None):
+            self.statusBar.showMessage(' /!\ Problem in loading settings /!\  ')
+    
     def get_config_list(self):
-        files = os.listdir(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'configs'))
+        files = os.listdir(os.path.join(base_path, 'configs'))
         self.config_list = [f.replace('.json', '') for f in files if f.endswith('.json')]
         self.cbc.addItems(self.config_list)
         self.update_config()
         
     def update_config(self):
-        fn = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'configs', self.cbc.currentText()+'.json')
+        fn = os.path.join(base_path, 'configs', self.cbc.currentText()+'.json')
         with open(fn) as f:
             self.config = json.load(f)
         self.get_protocol_list()
-        self.get_sample_list()
+        self.get_subject_list()
+        self.root_datafolder = os.path.join(os.path.expanduser('~'), self.config['root_datafolder'])
+        self.Setup = self.config['Setup']
 
     def get_protocol_list(self):
         if self.config['protocols']=='all':
-            files = os.listdir(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocols'))
-            self.protocol_list = [f for f in files if f.endswith('.json')]
+            files = os.listdir(os.path.join(base_path, 'protocols'))
+            self.protocol_list = [f.replace('.json', '') for f in files if f.endswith('.json')]
         else:
-            self.protocol_list = []
+            self.protocol_list = self.config['protocols']
         self.cbp.clear()
         self.cbp.addItems(['None']+self.protocol_list)
 
-    def get_sample_list(self):
-        with open(os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'samples', self.config['sample_file'])) as f:
-            self.samples = json.load(f)
+    def update_protocol(self):
+        if self.cbp.currentText()=='None':
+            self.protocol = {}
+        else:
+            fn = os.path.join(base_path, 'protocols', self.cbp.currentText()+'.json')
+            with open(fn) as f:
+                self.protocol = json.load(f)
+            self.protocol['Setup'] = self.config['Setup'] # override params
+            self.protocol['data-folder'] = self.root_datafolder
+        
+    def get_subject_list(self):
+        with open(os.path.join(base_path, 'subjects', self.config['subject_file'])) as f:
+            self.subjects = json.load(f)
         self.cbs.clear()
-        self.cbs.addItems(self.samples.keys())
-
-    def set_protocol_folder(self):
-        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Protocol Folder", self.protocol_folder))
-        if fd!='':
-            fd = self.protocol_folder
-            self.get_protocol_list()
-            self.cbp.addItems([f.replace('.json', '') for f in self.protocol_list])
-
-    def set_config_folder(self):
-        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Config Folder", self.config_folder))
-        if fd!='':
-            fd = self.config_folder
-            self.get_config_list()
-            self.cbp.addItems([f.replace('.json', '') for f in self.config_list])
+        self.cbs.addItems(self.subjects.keys())
+        
+    def update_subject(self):
+        self.subject = self.subjects[self.cbs.currentText()]
         
     def init_FaceCamera(self):
         if self.FaceCamera_process is None:
             self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
                                         args=(self.run_event , self.quit_event,
                                               self.root_datafolder,
-                                    {'frame_rate':default_settings['FaceCamera-frame-rate']}))
+                                              {'frame_rate':self.config['FaceCamera-frame-rate']}))
             self.FaceCamera_process.start()
             print('  starting FaceCamera stream [...] ')
             time.sleep(6)
@@ -199,17 +232,6 @@ class MainWindow(QtWidgets.QMainWindow):
             print('[ok] FaceCamera already initialized ')
             
         return True
-            
-    def choose_data_folder(self):
-        fd = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                            "Select Root Data Folder", self.root_datafolder))
-        if os.path.isdir(fd):
-            self.root_datafolder = fd
-            set_data_folder(fd)
-            self.dfl.setText('Data-Folder (root): "%s"' % str(self.datafolder))
-        else:
-            self.statusBar.showMessage('Invalid folder -> folder unchanged')
-
             
     def rigview(self):
         if self.RigView_process is not None:
@@ -223,19 +245,25 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def initialize(self):
 
+        ### set up all metadata
+        self.metadata = {'config':self.cbc.currentText(),
+                         'protocol':self.cbp.currentText(),
+                         'subject_ID':self.cbs.currentText(),
+                         'subject_props':self.subject} # re-initialize metadata
+        for d in [self.config, self.protocol]:
+            for key in d:
+                self.metadata[key] = d[key]
+        
         # Setup configuration
         for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
-                                    [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton, self.FaceCameraButton, self.CaImagingButton]):
+                                    [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                                     self.FaceCameraButton, self.CaImagingButton]):
             self.metadata[modality] = bool(button.isChecked())
-        # Protocol
-        self.metadata['protocol'] = self.cbp.currentText()
-            
 
         if self.cbp.currentText()=='None':
             self.statusBar.showMessage('[...] initializing acquisition')
         else:
             self.statusBar.showMessage('[...] initializing acquisition & stimulation')
-            
 
         self.filename = generate_filename_path(self.root_datafolder,
                                                filename='metadata', extension='.npy',
@@ -244,12 +272,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.datafolder = os.path.dirname(self.filename)
             
         if self.metadata['protocol']!='None':
-            with open(os.path.join(self.protocol_folder,
-                                   self.metadata['protocol']+'.json'), 'r') as fp:
+            with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
                 self.protocol = json.load(fp)
         else:
                 self.protocol = {}
-                    
+
         # init facecamera
         if self.metadata['FaceCamera']:
             self.statusBar.showMessage('Initializing Camera stream [...]')
@@ -272,25 +299,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
         output_steps = []
         if self.metadata['CaImaging']:
-            output_steps.append(STEP_FOR_CA_IMAGING)
+            output_steps.append(self.metadata['STEP_FOR_CA_IMAGING'])
 
         # --------------- #
-        ### NI daq init ###
+        ### NI daq init ###   ## we override parameters based on the chosen modalities if needed
         # --------------- #
-        if self.metadata['VisualStim']:
-            Nchannel_analog_in = 1
-        else:
-            Nchannel_analog_in = 0
-        if self.metadata['Electrophy']:
-            Nchannel_analog_in = 2
-        if self.metadata['Locomotion']:
-            Nchannel_digital_in = 2
-        else:
-            Nchannel_digital_in = 0
+        if self.metadata['VisualStim'] and (self.metadata['NIdaq-analog-input-channels']<1):
+            self.metadata['NIdaq-analog-input-channels'] = 1 # at least one
+        if self.metadata['Electrophy'] and (self.metadata['NIdaq-analog-input-channels']<2):
+            self.metadata['NIdaq-analog-input-channels'] = 2
+        if self.metadata['Locomotion'] and (self.metadata['NIdaq-digital-input-channels']<2):
+            self.metadata['NIdaq-digital-input-channels'] = 2
         try:
             self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                   Nchannel_analog_in=Nchannel_analog_in,
-                                   Nchannel_digital_in=Nchannel_digital_in,
+                                   Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
+                                   Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
                                    max_time=max_time,
                                    output_steps=output_steps,
                                    filename= self.filename.replace('metadata', 'NIdaq'))
@@ -379,14 +402,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         # SAVING THE METADATA FILES
-        self.metadata = {**self.metadata, **self.protocol} # joining dictionaries
         np.save(os.path.join(self.datafolder, 'metadata.npy'), self.metadata)
         print('[ok] Metadata data saved as: %s ' % os.path.join(self.datafolder, 'metadata.npy'))
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(self.datafolder, 'metadata.npy'))
 
         
 def run(app, args=None):
-    print(args)
     return MainWindow(app, args)
     
 if __name__=='__main__':
