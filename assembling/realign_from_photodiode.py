@@ -96,7 +96,7 @@ if __name__=='__main__':
         metadata[key] = VisualStim[key]
 
 
-    plt.plot(data[::100][:1000])
+    plt.plot(data[::1000][:1000])
     plt.title('photodiode-signal (subsampled/100)')
     plt.show()
     
