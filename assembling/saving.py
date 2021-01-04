@@ -115,6 +115,17 @@ def insure_ordered_frame_names(df):
                 os.rename(os.path.join(df,'screen-frames', fn),
                           os.path.join(df,'screen-frames', fn.replace('frame', 'frame'+'0'*(nmax-n0))))
 
+def insure_ordered_FaceCamera_picture_names(df):
+    # insuring nice order of screen frames
+    filenames = os.listdir(os.path.join(df,'FaceCamera-imgs'))
+    if len(filenames)>0:
+        nmax = np.max(np.array([len(fn) for fn in filenames]))
+        for fn in filenames:
+            n0 = len(fn)
+            if n0<nmax:
+                os.rename(os.path.join(df,'FaceCamera-imgs',fn),
+                          os.path.join(df,'FaceCamera-imgs','0'*(nmax-n0)+fn))
+                
 
 def from_folder_to_datetime(folder):
 

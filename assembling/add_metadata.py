@@ -54,6 +54,9 @@ def add_metadata(args):
             print(' /!\ update of "Subject" metadata failed /!\ ')
     
     # save new
+    if 'notes' not in metadata:
+        metadata['notes'] = ''
+        
     np.save(fn, metadata)
 
 

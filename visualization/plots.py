@@ -53,6 +53,8 @@ def raw_data_plot(self, tzoom,
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Photodiode-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Photodiode-Signal'])-1
         isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        print(isampling)
+        print(self.nwbfile.acquisition['Photodiode-Signal'].data[np.arange(10)])
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
         iplot+=1
         if plot_update:

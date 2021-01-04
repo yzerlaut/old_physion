@@ -5,7 +5,7 @@ import pynwb
 from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names
+from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names, insure_ordered_FaceCamera_picture_names
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
 from assembling.IO.binary import BinaryFile
@@ -61,6 +61,7 @@ def build_NWB(args,
                             surgery=metadata['subject_props']['surgery'],
                             session_start_time=start_time,
                             subject=subject,
+                            source_script=str(pathlib.Path(__file__).resolve()),
                             source_script_file_name=str(pathlib.Path(__file__).resolve()),
                             file_create_date=datetime.datetime.today())
     
@@ -93,7 +94,7 @@ def build_NWB(args,
                                    data = compute_locomotion(NIdaq_data['digital'][0],
                                                              acq_freq=metadata['NIdaq-acquisition-frequency']),
                                    starting_time=0.,
-                                   unit='cm/s', rate=metadata['NIdaq-acquisition-frequency'])
+                                   unit='cm/s', rate=float(metadata['NIdaq-acquisition-frequency']))
         nwbfile.add_acquisition(running)
 
         
@@ -118,21 +119,23 @@ def build_NWB(args,
             timestamps = metadata['time_start_realigned']
             if args.verbose:
                 print('Realignement form photodiode successful')
+            for key in ['time_start_realigned', 'time_stop_realigned']:
+                VisualStimProp = pynwb.TimeSeries(name=key,
+                                                  data = metadata[key],
+                                                  unit='seconds',
+                                                  timestamps=timestamps)
+                nwbfile.add_stimulus(VisualStimProp)
+            for key in VisualStim:
+                VisualStimProp = pynwb.TimeSeries(name=key,
+                                                  data = VisualStim[key],
+                                                  unit='NA',
+                                                  timestamps=timestamps)
+                nwbfile.add_stimulus(VisualStimProp)
         else:
+            # TEMPORARY FOR TROUBLESHOOTING !!
+            metadata['time_start_realigned'] = metadata['time_start']
+            metadata['time_stop_realigned'] = metadata['time_stop']
             print(' /!\ Realignement unsuccessful /!\ ')
-            
-        for key in ['time_start_realigned', 'time_stop_realigned']:
-            VisualStimProp = pynwb.TimeSeries(name=key,
-                                              data = metadata[key],
-                                              unit='seconds',
-                                              timestamps=timestamps)
-            nwbfile.add_stimulus(VisualStimProp)
-        for key in VisualStim:
-            VisualStimProp = pynwb.TimeSeries(name=key,
-                                              data = VisualStim[key],
-                                              unit='NA',
-                                              timestamps=timestamps)
-            nwbfile.add_stimulus(VisualStimProp)
 
         if args.verbose:
             print('=> Storing the photodiode signal [...]')
@@ -140,13 +143,13 @@ def build_NWB(args,
                                       data = NIdaq_data['analog'][0],
                                       starting_time=0.,
                                       unit='[current]',
-                                      rate=metadata['NIdaq-acquisition-frequency'])
+                                      rate=float(metadata['NIdaq-acquisition-frequency']))
         nwbfile.add_acquisition(photodiode)
 
         if args.verbose:
             print('=> Storing the recorded frames [...]')
         insure_ordered_frame_names(args.datafolder)
-        frames = os.listdir(os.path.join(args.datafolder,'screen-frames'))
+        frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
         MOVIE = []
         for fn in frames:
             MOVIE.append(np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1).astype(int)[::8,::8]) # subsampling !
@@ -155,10 +158,34 @@ def build_NWB(args,
             frame_timestamps.append(x1)
             frame_timestamps.append(x2)
         frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-                                                data=np.array(MOVIE).astype(int),
+                                                data=np.array(MOVIE).astype(np.uint16),
                                                 unit='NA',
                                                 timestamps=np.array(frame_timestamps)[:len(MOVIE)])
         nwbfile.add_stimulus(frame_stimuli)
+        
+    #################################################
+    ####         FaceCamera Recording         #######
+    #################################################
+    if metadata['FaceCamera']:
+        if args.verbose:
+            print('=> Storing FaceCamera acquisition [...]')
+        if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
+            print(' /!\ No FaceCamera metadata found /!\ ')
+            print('   -----> Not able to build NWB file')
+        FaceCamera_times = np.load(os.path.join(args.datafolder,
+                                      'FaceCamera-times.npy'))
+        insure_ordered_FaceCamera_picture_names(args.datafolder)
+        FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+        IMGS = []
+        for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
+            IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
+        print(len(IMGS), len(FaceCamera_times))
+        FaceCamera_frames = pynwb.image.ImageSeries(name='visual-stimuli',
+                                        data=np.array(IMGS).astype(np.uint16),
+                                        unit='NA',
+                                        timestamps=np.array(FaceCamera_times)[:len(IMGS)])
+        nwbfile.add_acquisition(FaceCamera_frames)
+
         
     #################################################
     ####    Electrophysiological Recording    #######
@@ -170,7 +197,7 @@ def build_NWB(args,
                                       data = NIdaq_data['analog'][1],
                                       starting_time=0.,
                                       unit='[voltage]',
-                                      rate=metadata['NIdaq-acquisition-frequency'])
+                                      rate=float(metadata['NIdaq-acquisition-frequency']))
         nwbfile.add_acquisition(electrophy)
 
 
@@ -197,7 +224,7 @@ def build_NWB(args,
                              Lx=int(xml['settings']['pixelsPerLine']),
                              read_filename=os.path.join(Ca_subfolder, 'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                         Ca_Imaging_options['Suite2P-binary-filename']))
-
+        
         device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
         nwbfile.add_device(device)
         optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
@@ -221,6 +248,7 @@ def build_NWB(args,
                                                    unit='s',
                                                    timestamps = CaImaging_timestamps)
         nwbfile.add_acquisition(image_series)
+        Ca_data.close()
     
     
     #################################################
@@ -266,10 +294,16 @@ if __name__=='__main__':
     parser.add_argument('-e', "--export", type=str, default='FULL', help='export option [FULL / PROCESSED-ONLY]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
+    parser.add_argument("--silent", action="store_true")
     args = parser.parse_args()
+
+    if not args.silent:
+        args.verbose = True
 
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):
+            if args.datafolder[-1]==os.path.sep:
+                args.datafolder = args.datafolder[:-1]
             build_NWB(args)
         else:
             print('"%s" not a valid datafolder' % args.datafolder)

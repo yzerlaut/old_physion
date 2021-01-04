@@ -95,5 +95,10 @@ if __name__=='__main__':
     for key in ['time_start', 'time_stop']:
         metadata[key] = VisualStim[key]
 
+
+    plt.plot(data[::100][:1000])
+    plt.title('photodiode-signal (subsampled/100)')
+    plt.show()
+    
     realign_from_photodiode(data, metadata, debug=True)
     
