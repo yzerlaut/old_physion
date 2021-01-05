@@ -126,7 +126,7 @@ def load_data(parent,
 def preprocess(cls, ellipse=None, img=None):
 
     if img is None:
-        img = cls.Pupil.grab_frame(cls.time).copy()
+        img = cls.FaceCamera.data[cls.cframe,:,:]
     else:
         img = img.copy()
 

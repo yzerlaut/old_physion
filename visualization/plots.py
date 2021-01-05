@@ -53,8 +53,6 @@ def raw_data_plot(self, tzoom,
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Photodiode-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Photodiode-Signal'])-1
         isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
-        print(isampling)
-        print(self.nwbfile.acquisition['Photodiode-Signal'].data[np.arange(10)])
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
         iplot+=1
         if plot_update:
@@ -80,29 +78,22 @@ def raw_data_plot(self, tzoom,
         if plot_update:
             self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y, pen=pen)
             
-    # if self.Locomotion is not None:
-    #     cond = (self.Locomotion.t>=tzoom[0]) & (self.Locomotion.t<=tzoom[1])
-    #     isampling = max([1, int(len(self.Locomotion.t[cond])/self.settings['Npoints'])])
-    #     y = scale_and_position(self, self.Locomotion.val[cond][::isampling], i=iplot)
-    #     iplot+=1
-    #     if plot_update:
-    #         self.plot.plot(self.Locomotion.t[cond][::isampling], y, pen=pen)
-    #     if with_scatter:
-    #         itime = np.argmin((self.Locomotion.t[cond]-self.time)**2)
-    #         val = scale_and_position(self, y, value=self.Locomotion.val[cond][itime], i=iplot)
-    #         scatter.append((self.Screen.photodiode.t[cond][itime], val))
-    # else:
-    #     y = shift(self,1)+np.zeros(2)
-    #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
 
-    # ## -------- Face --------- ##
+    ## -------- FaceCamera and Pupil-Size --------- ##
+    pen = pg.mkPen(color=self.settings['colors']['Pupil'])
+    if 'FaceCamera-acquisition' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera-acquisition'])
+        self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera-acquisition'].data[i0])
+        if hasattr(self, 'FaceCameraFrameLevel'):
+            self.plot.removeItem(self.FaceCameraFrameLevel)
+        self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera-acquisition'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
+
     # if self.Face is not None:
     #     im_face = self.Face.grab_frame(self.time)
     #     self.pFaceimg.setImage(im_face)
         
     
     # ## -------- Pupil --------- ##
-    # pen = pg.mkPen(color=self.settings['colors']['Pupil'])
     # if self.Pupil is not None and self.Pupil.processed is not None:
     #     # time-varying diameter
     #     pt = self.Pupil.processed['times']

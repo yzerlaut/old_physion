@@ -112,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.io = pynwb.NWBHDF5IO(filename, 'r')
         t0 = time.time()
         self.nwbfile = self.io.read()
-        
+        print(self.nwbfile)
         self.tlim, safety_counter = None, 0
         while (self.tlim is None) and (safety_counter<10):
             for key in self.nwbfile.acquisition:

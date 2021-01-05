@@ -1,4 +1,4 @@
-import sys, os, shutil, glob, time
+import sys, os, shutil, glob, time, pynwb
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
@@ -14,24 +14,30 @@ from pupil import guiparts, process, roi
 from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
+from visualization.plots import convert_index_to_time
+
 class MainWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, parent=None, savedir=None,
+    def __init__(self, app,
+                 args=None,
+                 parent=None,
                  sampling_rate=0.,
-                 gaussian_smoothing=2,
-                 compressed_version=False,
-                 slider_nframes=200):
+                 gaussian_smoothing=2):
         """
         sampling in Hz
         """
+        self.app = app
+        
         super(MainWindow, self).__init__()
-        self.setGeometry(80,80,1000,600)
+
+        
+        self.setGeometry(100,100,700,700)
         
         self.sampling_rate = sampling_rate
-        self.compressed_version=compressed_version
+        self.compressed_version=False
 
         # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self)
         self.quitSc.activated.connect(self.quit)
         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
         self.maxSc.activated.connect(self.showwindow)
@@ -40,10 +46,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil-size tracking software')
+        self.setWindowTitle('Pupil-size tracking software -- Physiology of Visual Circuits')
         
         self.gaussian_smoothing = gaussian_smoothing
-        self.slider_nframes = slider_nframes
         
         # menus.mainmenu(self)
         self.online_mode=False
@@ -134,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p1.hideAxis('left')
         self.scatter = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter)
-        self.p1.setLabel('bottom', 'time (s)')
+        self.p1.setLabel('bottom', 'time (frame #)')
         self.xaxis = self.p1.getAxis('bottom')
         # self.p1.autoRange(padding=0.01)
         
@@ -159,10 +164,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
-        
-        if savedir is not None:
-            self.save_path = savedir
-            self.savelabel.setText(savedir)
+
+        self.load_data()
 
     def showwindow(self):
         if self.minView:
@@ -195,7 +198,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if file_dialog.exec():
             paths = file_dialog.selectedFiles()
-
 
         self.folders = []
         for path in paths:
@@ -243,54 +245,57 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_data(self):
 
         self.batch = False
+        self.cframe = 0
         
-        # self.datafolder = '/home/yann/DATA/2020_10_08/16-02-19/'
-        self.datafolder = QtGui.QFileDialog.getExistingDirectory(self,
-                                                                 "Choose data folder",
-                                              os.path.join(os.path.expanduser('~'), 'DATA'))
-
-
-        process.load_data(self,
-                          # lazy_loading=True,
-                          compressed_version=self.compressed_version)
-
-        if self.Face is not None:
-            self.reset()
-
-            if self.Pupil.processed is not None:
-                self.data = self.Pupil.processed
-
-            self.sampling_rate = self.Face.sampling_rate
-            self.rateBox.setText(str(round(self.sampling_rate)))
-
-            self.nframes = len(self.times)
+        if args.datafile!='':
+            nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
+            self.FaceCamera = nwbfile.acquisition['FaceCamera']
+            self.nframes, self.Lx, self.Ly = self.FaceCamera.data.shape
             
-            # update time limits
-            self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
-            self.time = 0 # initialize to first available image
-            self.jump_to_frame()
-
             self.reset()
-            self.Lx, self.Ly = self.fullimg.shape
 
-            # self.movieLabel.setText(os.path.dirname(self.datafolder))
-            self.movieLabel.setText("%s => %s" % from_folder_to_datetime(self.datafolder))
-            if len(self.times)>0:
-                self.timeLabel.setEnabled(True)
-                self.frameSlider.setEnabled(True)
-                self.updateFrameSlider()
-                self.updateButtons()
-            self.loaded = True
-            self.processed = False
+            self.jump_to_frame()
+            
+            self.timeLabel.setEnabled(True)
+            self.frameSlider.setEnabled(True)
+            self.updateFrameSlider()
+            self.updateButtons()
+            self.currentTime.setValidator(\
+                QtGui.QDoubleValidator(0, self.nframes, 2))
+            self.p1.setRange(xRange=[0,self.nframes],
+                             yRange=[0,1], padding=0.0)
+            
+            
+        #     if self.Pupil.processed is not None:
+        #         self.data = self.Pupil.processed
 
-            if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
-                self.load_ROI()
+        #     self.sampling_rate = self.Face.sampling_rate
+        #     self.rateBox.setText(str(round(self.sampling_rate)))
 
-            self.show_fullframe()
-            self.plot_pupil_trace()
-            self.genscript.setEnabled(True)
-        else:
-            print("ERROR: provide a valid data folder !")
+        #     # update time limits
+        #     self.time = 0 # initialize to first available image
+
+        #     self.reset()
+        #     self.Lx, self.Ly = self.fullimg.shape
+
+        #     # self.movieLabel.setText(os.path.dirname(self.datafolder))
+        #     self.movieLabel.setText("%s => %s" % from_folder_to_datetime(self.datafolder))
+        #     if len(self.times)>0:
+        #         self.timeLabel.setEnabled(True)
+        #         self.frameSlider.setEnabled(True)
+        #         self.updateFrameSlider()
+        #         self.updateButtons()
+        #     self.loaded = True
+        #     self.processed = False
+
+        #     if os.path.isfile(os.path.join(self.datafolder, 'pupil-ROIs.npy')):
+        #         self.load_ROI()
+
+        #     self.show_fullframe()
+        #     self.plot_pupil_trace()
+        #     self.genscript.setEnabled(True)
+        # else:
+        #     print("ERROR: provide a valid data folder !")
 
             
     def make_buttons(self):
@@ -306,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.frameSlider.setMinimum(0)
-        self.frameSlider.setMaximum(self.slider_nframes)
+        self.frameSlider.setMaximum(200)
         self.frameSlider.setTickInterval(1)
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
@@ -496,10 +501,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def go_to_frame(self):
 
-        t1, t2 = self.xaxis.range
-        self.time = t1+(t2-t1)*\
-            float(self.frameSlider.value())/self.slider_nframes
-        print(self.time)
+        i1, i2 = self.xaxis.range
+        self.cframe = int(i1+(i2-i1)*float(self.frameSlider.value()/200.))
+        print(self.cframe)
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -519,35 +523,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def jump_to_frame(self):
 
-        self.time, self.fullimg = self.Pupil.grab_frame(self.time, with_time=True)
-        self.currentTime.setText('%.2f' % float(self.time))
+        self.fullimg = self.FaceCamera.data[self.cframe,:,:]
+
+        # self.currentTime.setText('%.2f' % convert_index_to_time(\
+        #                                 self.cframe, self.FaceCamera))
         
         self.pimg.setImage(self.fullimg)
-        self.currentTime.setText('%.2f' % float(self.time))
-        if self.ROI is not None:
-            self.ROI.plot(self)
-        if self.scatter is not None:
-            self.p1.removeItem(self.scatter)
-        if self.data is not None:
-            print(self.data)
-            i0 = np.argmin((self.data['times']-self.time)**2)
-            self.scatter.setData(self.data['times'][i0]*np.ones(1),
-                                 self.data['diameter'][i0]*np.ones(1),
-                                 size=10, brush=pg.mkBrush(255,255,255))
-            self.p1.addItem(self.scatter)
-            if self.fit is not None:
-                self.fit.remove(self)
-            coords = []
-            for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
-                coords.append(self.data[key1][i0]-self.data[key2])
-            for key in ['sx-corrected', 'sy-corrected']:
-                coords.append(self.data[key][i0])
-            self.fit = roi.pupilROI(moveable=True,
-                                    parent=self,
-                                    color=(0, 200, 0),
-                                    pos = roi.ellipse_props_to_ROI(coords))
-            self.p1.addItem(self.scatter)
-            self.p1.show()
+        # self.currentTime.setText('%.2f' % float(self.time))
+        # if self.ROI is not None:
+        #     self.ROI.plot(self)
+        # if self.scatter is not None:
+        #     self.p1.removeItem(self.scatter)
+        # if self.data is not None:
+        #     print(self.data)
+        #     i0 = np.argmin((self.data['times']-self.time)**2)
+        #     self.scatter.setData(self.data['times'][i0]*np.ones(1),
+        #                          self.data['diameter'][i0]*np.ones(1),
+        #                          size=10, brush=pg.mkBrush(255,255,255))
+        #     self.p1.addItem(self.scatter)
+        #     if self.fit is not None:
+        #         self.fit.remove(self)
+        #     coords = []
+        #     for key1, key2 in zip(['cx', 'cy'], ['xmin', 'ymin']):
+        #         coords.append(self.data[key1][i0]-self.data[key2])
+        #     for key in ['sx-corrected', 'sy-corrected']:
+        #         coords.append(self.data[key][i0])
+        #     self.fit = roi.pupilROI(moveable=True,
+        #                             parent=self,
+        #                             color=(0, 200, 0),
+        #                             pos = roi.ellipse_props_to_ROI(coords))
+        #     self.p1.addItem(self.scatter)
+        #     self.p1.show()
         self.win.show()
         self.show()
             
@@ -684,20 +690,23 @@ class MainWindow(QtWidgets.QMainWindow):
     def quit(self):
         QtWidgets.QApplication.quit()
 
-
-def run(app, parent=None, compressed_version=False):
-    set_dark_style(app)
-    set_app_icon(app)
+def run(app, args=None, parent=None):
     return MainWindow(app,
-                      compressed_version=compressed_version)
+                      args=args,
+                      parent=parent)
     
 if __name__=='__main__':
-    if sys.argv[-1]=='raw':
-        compressed_version = False
-    else:
-        compressed_version = True
+    from misc.colors import build_dark_palette
+    import tempfile, argparse, os
+    parser=argparse.ArgumentParser(description="Experiment interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-f', "--datafile", type=str,default='')
+    parser.add_argument('-rf', "--root_datafolder", type=str,
+                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-v', "--verbose", action="store_true")
+    args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app,
-               compressed_version=compressed_version)
+    build_dark_palette(app)
+    main = MainWindow(app,
+                      args=args)
     sys.exit(app.exec_())
-        
