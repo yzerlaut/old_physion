@@ -67,6 +67,17 @@ def build_NWB(args,
                             source_script_file_name=str(pathlib.Path(__file__).resolve()),
                             file_create_date=datetime.datetime.today())
     
+    # deriving filename
+    if args.export=='FULL':
+        filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(os.path.sep)[-2],
+                                                                     args.datafolder.split(os.path.sep)[-1]))
+    elif (args.export=='LIGHTWEIGHT'):
+        filename = os.path.join(args.datafolder, '%s-%s.LIGHTWEIGHT.nwb' % (args.datafolder.split(os.path.sep)[-2],
+                                                                            args.datafolder.split(os.path.sep)[-1]))
+    else:
+        raise BaseException(2*'\n'+10*' '+ '===> Export format not recognized !')
+    
+    
     manager = pynwb.get_manager() # we need a manager to link raw and processed data
     
     #################################################
@@ -87,122 +98,122 @@ def build_NWB(args,
     st = datetime.datetime.fromtimestamp(true_tstart0).strftime('%H:%M:%S.%f')
     true_tstart = StartTime_to_day_seconds(st)
     
-    # #################################################
-    # ####         Locomotion                   #######
-    # #################################################
-    # if metadata['Locomotion']:
-    #     # compute running speed from binary NI-daq signal
-    #     if args.verbose:
-    #         print('Computing and storing running-speed [...]')
-    #     running = pynwb.TimeSeries(name='Running-Speed',
-    #                                data = compute_locomotion(NIdaq_data['digital'][0],
-    #                                                          acq_freq=metadata['NIdaq-acquisition-frequency']),
-    #                                starting_time=0.,
-    #                                unit='cm/s', rate=float(metadata['NIdaq-acquisition-frequency']))
-    #     nwbfile.add_acquisition(running)
+    #################################################
+    ####         Locomotion                   #######
+    #################################################
+    if metadata['Locomotion']:
+        # compute running speed from binary NI-daq signal
+        if args.verbose:
+            print('Computing and storing running-speed [...]')
+        running = pynwb.TimeSeries(name='Running-Speed',
+                                   data = compute_locomotion(NIdaq_data['digital'][0],
+                                                             acq_freq=metadata['NIdaq-acquisition-frequency']),
+                                   starting_time=0.,
+                                   unit='cm/s', rate=float(metadata['NIdaq-acquisition-frequency']))
+        nwbfile.add_acquisition(running)
 
         
-    # #################################################
-    # ####         Visual Stimulation           #######
-    # #################################################
-    # if metadata['VisualStim']:
-    #     if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
-    #         print(' /!\ No VisualStim metadata found /!\ ')
-    #         print('   -----> Not able to build NWB file')
-    #     VisualStim = np.load(os.path.join(args.datafolder,
-    #                     'visual-stim.npy'), allow_pickle=True).item()
+    #################################################
+    ####         Visual Stimulation           #######
+    #################################################
+    if metadata['VisualStim']:
+        if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
+            print(' /!\ No VisualStim metadata found /!\ ')
+            print('   -----> Not able to build NWB file')
+        VisualStim = np.load(os.path.join(args.datafolder,
+                        'visual-stim.npy'), allow_pickle=True).item()
 
-    #     # using the photodiod signal for the realignement
-    #     if args.verbose:
-    #         print('=> Performing realignement from photodiode [...]')
-    #     for key in ['time_start', 'time_stop']:
-    #         metadata[key] = VisualStim[key]
-    #     success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
-    #                                                 verbose=args.verbose)
-    #     if success:
-    #         timestamps = metadata['time_start_realigned']
-    #         if args.verbose:
-    #             print('Realignement form photodiode successful')
-    #         for key in ['time_start_realigned', 'time_stop_realigned']:
-    #             VisualStimProp = pynwb.TimeSeries(name=key,
-    #                                               data = metadata[key],
-    #                                               unit='seconds',
-    #                                               timestamps=timestamps)
-    #             nwbfile.add_stimulus(VisualStimProp)
-    #         for key in VisualStim:
-    #             VisualStimProp = pynwb.TimeSeries(name=key,
-    #                                               data = VisualStim[key],
-    #                                               unit='NA',
-    #                                               timestamps=timestamps)
-    #             nwbfile.add_stimulus(VisualStimProp)
-    #     else:
-    #         # TEMPORARY FOR TROUBLESHOOTING !!
-    #         metadata['time_start_realigned'] = metadata['time_start']
-    #         metadata['time_stop_realigned'] = metadata['time_stop']
-    #         print(' /!\ Realignement unsuccessful /!\ ')
+        # using the photodiod signal for the realignement
+        if args.verbose:
+            print('=> Performing realignement from photodiode [...]')
+        for key in ['time_start', 'time_stop']:
+            metadata[key] = VisualStim[key]
+        success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
+                                                    verbose=args.verbose)
+        if success:
+            timestamps = metadata['time_start_realigned']
+            if args.verbose:
+                print('Realignement form photodiode successful')
+            for key in ['time_start_realigned', 'time_stop_realigned']:
+                VisualStimProp = pynwb.TimeSeries(name=key,
+                                                  data = metadata[key],
+                                                  unit='seconds',
+                                                  timestamps=timestamps)
+                nwbfile.add_stimulus(VisualStimProp)
+            for key in VisualStim:
+                VisualStimProp = pynwb.TimeSeries(name=key,
+                                                  data = VisualStim[key],
+                                                  unit='NA',
+                                                  timestamps=timestamps)
+                nwbfile.add_stimulus(VisualStimProp)
+        else:
+            # TEMPORARY FOR TROUBLESHOOTING !!
+            metadata['time_start_realigned'] = metadata['time_start']
+            metadata['time_stop_realigned'] = metadata['time_stop']
+            print(' /!\ Realignement unsuccessful /!\ ')
 
-    #     if args.verbose:
-    #         print('=> Storing the photodiode signal [...]')
-    #     photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
-    #                                   data = NIdaq_data['analog'][0],
-    #                                   starting_time=0.,
-    #                                   unit='[current]',
-    #                                   rate=float(metadata['NIdaq-acquisition-frequency']))
-    #     nwbfile.add_acquisition(photodiode)
+        if args.verbose:
+            print('=> Storing the photodiode signal [...]')
+        photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
+                                      data = NIdaq_data['analog'][0],
+                                      starting_time=0.,
+                                      unit='[current]',
+                                      rate=float(metadata['NIdaq-acquisition-frequency']))
+        nwbfile.add_acquisition(photodiode)
 
-    #     if args.verbose:
-    #         print('=> Storing the recorded frames [...]')
-    #     insure_ordered_frame_names(args.datafolder)
-    #     frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
-    #     MOVIE = []
-    #     for fn in frames:
-    #         im  = np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1)
-    #         MOVIE.append(im.astype(np.uint8)[::8,::8]) # subsampling !
-    #     frame_timestamps = [0]
-    #     for x1, x2 in zip(metadata['time_start_realigned'], metadata['time_stop_realigned']):
-    #         frame_timestamps.append(x1)
-    #         frame_timestamps.append(x2)
+        if args.verbose:
+            print('=> Storing the recorded frames [...]')
+        insure_ordered_frame_names(args.datafolder)
+        frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
+        MOVIE = []
+        for fn in frames:
+            im  = np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1)
+            MOVIE.append(im.astype(np.uint8)[::8,::8]) # subsampling !
+        frame_timestamps = [0]
+        for x1, x2 in zip(metadata['time_start_realigned'], metadata['time_stop_realigned']):
+            frame_timestamps.append(x1)
+            frame_timestamps.append(x2)
 
-    #     frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-    #                                             data=np.array(MOVIE).astype(np.uint8),
-    #                                             unit='NA',
-    #                                             timestamps=np.array(frame_timestamps)[:len(MOVIE)])
-    #     nwbfile.add_stimulus(frame_stimuli)
+        frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
+                                                data=np.array(MOVIE).astype(np.uint8),
+                                                unit='NA',
+                                                timestamps=np.array(frame_timestamps)[:len(MOVIE)])
+        nwbfile.add_stimulus(frame_stimuli)
         
-    # #################################################
-    # ####         FaceCamera Recording         #######
-    # #################################################
-    # if metadata['FaceCamera']:
-    #     if args.verbose:
-    #         print('=> Storing FaceCamera acquisition [...]')
-    #     if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
-    #         print(' /!\ No FaceCamera metadata found /!\ ')
-    #         print('   -----> Not able to build NWB file')
-    #     FaceCamera_times = np.load(os.path.join(args.datafolder,
-    #                                   'FaceCamera-times.npy'))
-    #     insure_ordered_FaceCamera_picture_names(args.datafolder)
-    #     FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
-    #     IMGS = []
-    #     for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
-    #         IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
-    #     FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera-acquisition',
-    #                                                 data=np.array(IMGS).astype(np.uint8),
-    #                                                 unit='NA',
-    #                                                 timestamps=np.array(FaceCamera_times))
-    #     nwbfile.add_acquisition(FaceCamera_frames)
+    #################################################
+    ####         FaceCamera Recording         #######
+    #################################################
+    if metadata['FaceCamera']:
+        if args.verbose:
+            print('=> Storing FaceCamera acquisition [...]')
+        if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
+            print(' /!\ No FaceCamera metadata found /!\ ')
+            print('   -----> Not able to build NWB file')
+        FaceCamera_times = np.load(os.path.join(args.datafolder,
+                                      'FaceCamera-times.npy'))
+        insure_ordered_FaceCamera_picture_names(args.datafolder)
+        FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+        IMGS = []
+        for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
+            IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
+        FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera-acquisition',
+                                                    data=np.array(IMGS).astype(np.uint8),
+                                                    unit='NA',
+                                                    timestamps=np.array(FaceCamera_times))
+        nwbfile.add_acquisition(FaceCamera_frames)
         
-    # #################################################
-    # ####    Electrophysiological Recording    #######
-    # #################################################
-    # if metadata['Electrophy']:
-    #     if args.verbose:
-    #         print('=> Storing electrophysiological signal [...]')
-    #     electrophy = pynwb.TimeSeries(name='Electrophysiological-Signal',
-    #                                   data = NIdaq_data['analog'][1],
-    #                                   starting_time=0.,
-    #                                   unit='[voltage]',
-    #                                   rate=float(metadata['NIdaq-acquisition-frequency']))
-    #     nwbfile.add_acquisition(electrophy)
+    #################################################
+    ####    Electrophysiological Recording    #######
+    #################################################
+    if metadata['Electrophy']:
+        if args.verbose:
+            print('=> Storing electrophysiological signal [...]')
+        electrophy = pynwb.TimeSeries(name='Electrophysiological-Signal',
+                                      data = NIdaq_data['analog'][1],
+                                      starting_time=0.,
+                                      unit='[voltage]',
+                                      rate=float(metadata['NIdaq-acquisition-frequency']))
+        nwbfile.add_acquisition(electrophy)
 
     #################################################
     ####         Calcium Imaging              #######
@@ -224,10 +235,10 @@ def build_NWB(args,
             save_nwb(os.path.join(Ca_subfolder, 'suite2p'))
             ior = pynwb.NWBHDF5IO(os.path.join(Ca_subfolder, 'suite2p', 'ophys.nwb'), 'r',
                                   manager=manager)
-            ophys = ior.read()
+            ophys = ior.read().copy()
             # need to modify the _AbstractContainer__container_source of a data_interfaces !! (see https://github.com/NeurodataWithoutBorders/pynwb/issues/668#issuecomment-643513068)
-            nwbfile.processing['ophys'].data_interfaces['Neuropil']._AbstractContainer__container_source = 'skjshdf.nwb'
-            # p = ophys.processing
+            for key in nwbfile.processing['ophys'].data_interfaces:
+                nwbfile.processing['ophys'].data_interfaces[key]._AbstractContainer__container_source = filename
             nwbfile.add_processing_module(ophys.processing)
             ior.close()
             
@@ -268,13 +279,6 @@ def build_NWB(args,
     ####         Writing NWB file             #######
     #################################################
 
-    if args.export=='FULL':
-        filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(os.path.sep)[-2],
-                                                                args.datafolder.split(os.path.sep)[-1]))
-    else:
-        filename = os.path.join(args.datafolder, '%s-%s.PROCESSED-ONLY.nwb' % (args.datafolder.split(os.path.sep)[-2],
-                                                                          args.datafolder.split(os.path.sep)[-1]))
-    
     if os.path.isfile(filename):
         temp = str(tempfile.NamedTemporaryFile().name)+'.nwb'
         print("""
