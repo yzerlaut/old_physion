@@ -183,24 +183,24 @@ def build_NWB(args,
     #################################################
     ####         FaceCamera Recording         #######
     #################################################
-    if metadata['FaceCamera']:
-        if args.verbose:
-            print('=> Storing FaceCamera acquisition [...]')
-        if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
-            print(' /!\ No FaceCamera metadata found /!\ ')
-            print('   -----> Not able to build NWB file')
-        FaceCamera_times = np.load(os.path.join(args.datafolder,
-                                      'FaceCamera-times.npy'))
-        insure_ordered_FaceCamera_picture_names(args.datafolder)
-        FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
-        IMGS = []
-        for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
-            IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
-        FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera-acquisition',
-                                                    data=np.array(IMGS).astype(np.uint8),
-                                                    unit='NA',
-                                                    timestamps=np.array(FaceCamera_times))
-        nwbfile.add_acquisition(FaceCamera_frames)
+    # if metadata['FaceCamera']:
+    #     if args.verbose:
+    #         print('=> Storing FaceCamera acquisition [...]')
+    #     if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
+    #         print(' /!\ No FaceCamera metadata found /!\ ')
+    #         print('   -----> Not able to build NWB file')
+    #     FaceCamera_times = np.load(os.path.join(args.datafolder,
+    #                                   'FaceCamera-times.npy'))
+    #     insure_ordered_FaceCamera_picture_names(args.datafolder)
+    #     FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+    #     IMGS = []
+    #     for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
+    #         IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
+    #     FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera-acquisition',
+    #                                                 data=np.array(IMGS).astype(np.uint8),
+    #                                                 unit='NA',
+    #                                                 timestamps=np.array(FaceCamera_times))
+    #     nwbfile.add_acquisition(FaceCamera_frames)
         
     #################################################
     ####    Electrophysiological Recording    #######
@@ -236,9 +236,10 @@ def build_NWB(args,
             ior = pynwb.NWBHDF5IO(os.path.join(Ca_subfolder, 'suite2p', 'ophys.nwb'), 'r',
                                   manager=manager)
             ophys = ior.read().copy()
+            print(ophys)
             # need to modify the _AbstractContainer__container_source of a data_interfaces !! (see https://github.com/NeurodataWithoutBorders/pynwb/issues/668#issuecomment-643513068)
-            for key in nwbfile.processing['ophys'].data_interfaces:
-                nwbfile.processing['ophys'].data_interfaces[key]._AbstractContainer__container_source = filename
+            for key in ophys.processing['ophys'].data_interfaces:
+                ophys.processing['ophys'].data_interfaces[key]._AbstractContainer__container_source = filename
             nwbfile.add_processing_module(ophys.processing)
             ior.close()
             
