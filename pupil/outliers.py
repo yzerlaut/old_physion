@@ -5,21 +5,22 @@ def replace_outliers(data, std_criteria=2.):
     """
     Nearest-neighbor interpolation of pupil properties
     """
-    product = np.ones(len(data['times']))
+    times = np.arange(len(data['cx']))
+    product = np.ones(len(times))
     std = 1
     for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
         product *= np.abs(data[key]-data[key].mean())
         std *= std_criteria*data[key].std()
     accept_cond =  (product<std)
     
-    dt = data['times'][1]-data['times'][0]
+    dt = times[1]-times[0]
     for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
         # duplicating the first and last valid points to avoid boundary errors
-        x = np.concatenate([[data['times'][0]-dt], data['times'][accept_cond], [data['times'][-1]+dt]])
+        x = np.concatenate([[times[0]-dt], times[accept_cond], [times[-1]+dt]])
         y = np.concatenate([[data[key][accept_cond][0]],
                             data[key][accept_cond], [data[key][accept_cond][-1]]])
         func = interp1d(x, y, kind='nearest', assume_sorted=True)
-        data[key+'-corrected'] = func(data['times'])
+        data[key+'-corrected'] = func(times)
         
     return data
 

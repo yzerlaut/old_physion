@@ -2,8 +2,9 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore
 import os, sys, pathlib
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
+from pupil import roi
 
 pupilpen = pg.mkPen((255,0,0), width=3, style=QtCore.Qt.SolidLine)
 
@@ -24,7 +25,11 @@ def shift(self, i):
 
 def convert_time_to_index(time, nwb_quantity):
     if nwb_quantity.timestamps is not None:
-        return np.arange(nwb_quantity.timestamps.shape[0])[nwb_quantity.timestamps[:]>=time][0]
+        cond = nwb_quantity.timestamps[:]>=time
+        if np.sum(cond)>0:
+            return np.arange(nwb_quantity.timestamps.shape[0])[cond][0]
+        else:
+            return nwb_quantity.timestamps.shape[0]-1
     elif nwb_quantity.starting_time is not None:
         t = time-nwb_quantity.starting_time
         dt = 1./nwb_quantity.rate
@@ -81,17 +86,35 @@ def raw_data_plot(self, tzoom,
 
     ## -------- FaceCamera and Pupil-Size --------- ##
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
-    if 'FaceCamera-acquisition' in self.nwbfile.acquisition:
-        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera-acquisition'])
-        self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera-acquisition'].data[i0])
+    if 'FaceCamera' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
+        self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera'].data[i0])
         if hasattr(self, 'FaceCameraFrameLevel'):
             self.plot.removeItem(self.FaceCameraFrameLevel)
-        self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera-acquisition'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
-
-    # if self.Face is not None:
-    #     im_face = self.Face.grab_frame(self.time)
-    #     self.pFaceimg.setImage(im_face)
-        
+        self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
+                                                   [0, y.max()], pen=pen, linewidth=0.5)
+        # --- IF PUPIL IS PROCESSED ----
+        if self.pupil_data is not None:
+            i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.acquisition['FaceCamera'])
+            i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.acquisition['FaceCamera'])
+            img = self.nwbfile.acquisition['FaceCamera'].data[i0][self.pupil_data['xmin']:self.pupil_data['xmax'],\
+                                                                  self.pupil_data['ymin']:self.pupil_data['ymax'],]
+            self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
+            y = scale_and_position(self, self.pupil_data['diameter'][i1:i2], i=iplot)
+            iplot+=1
+            if plot_update:
+                self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i1:i2], y, pen=pen)
+            # self.pPupilimg.setLevels([np.min(img),np.max(img)])
+            coords = []
+            for key in ['cx', 'cy', 'sx', 'sy']:
+                coords.append(self.pupil_data[key+'-corrected'][i0])
+            if hasattr(self, 'fit'):
+                self.fit.remove(self)
+            self.fit = roi.pupilROI(moveable=False,
+                                    parent=self,
+                                    color=(125, 0, 0),
+                                    pos = roi.ellipse_props_to_ROI(coords))
+            
     
     # ## -------- Pupil --------- ##
     # if self.Pupil is not None and self.Pupil.processed is not None:

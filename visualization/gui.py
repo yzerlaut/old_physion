@@ -98,6 +98,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.open_file()
         plots.raw_data_plot(self, self.tzoom)
 
+    def try_to_find_time_extents(self):
+        self.tlim, safety_counter = None, 0
+        while (self.tlim is None) and (safety_counter<10):
+            for key in self.nwbfile.acquisition:
+                try:
+                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
+                                 self.nwbfile.acquisition[key].starting_time+self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                except BaseException as be:
+                    pass
+        if self.tlim is None:
+            self.tlim = [0, 50] # bad for movies
+        
     def open_file(self):
         
         # filename = QtGui.QFileDialog.getOpenFileName(self,
@@ -108,22 +120,24 @@ class MainWindow(QtWidgets.QMainWindow):
         # else:
         #     filename = filename[0]
             
-        filename = os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb')
+        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
         self.io = pynwb.NWBHDF5IO(filename, 'r')
         t0 = time.time()
         self.nwbfile = self.io.read()
-        print(self.nwbfile)
-        self.tlim, safety_counter = None, 0
-        while (self.tlim is None) and (safety_counter<10):
-            for key in self.nwbfile.acquisition:
-                try:
-                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
-                                  self.nwbfile.acquisition[key].starting_time+self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
-                except BaseException as be:
-                    pass
-        if self.tlim is None:
-            self.tlim = [0, 50] # bad for movies
+        self.try_to_find_time_extents()
         self.tzoom = self.tlim
+
+        if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
+            self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
+                                      allow_pickle=True).item()
+            Lx, Ly = self.nwbfile.acquisition['FaceCamera'].data[0,:,:].shape
+            x,y = np.meshgrid(np.arange(0,Lx), np.arange(0,Ly), indexing='ij')
+            print(self.pupil_data)
+            self.pupil_data['ROIcond'] = \
+                (x>=self.pupil_data['xmin']) & (y>=self.pupil_data['ymin']) &\
+                (x<=self.pupil_data['xmax']) & (y<=self.pupil_data['ymax'])
+        else:
+            self.pupil_data = None
             
         
     def check_data_folder(self):

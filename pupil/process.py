@@ -123,6 +123,19 @@ def load_data(parent,
 
     return dataset
 
+def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
+    cx, cy, sx, sy = ellipse
+    x,y = np.meshgrid(np.arange(0,Lx), np.arange(0,Ly), indexing='ij')
+    ellipse = ((y - cy)**2 / (sy/2)**2 +
+               (x - cx)**2 / (sx/2)**2) <= 1
+    xmin, xmax = np.min(x[ellipse]), np.max(x[ellipse])
+    ymin, ymax = np.min(y[ellipse]), np.max(y[ellipse])
+
+    return {'xmin':xmin,
+            'xmax':xmax,
+            'ymin':ymin,
+            'ymax':ymax}
+
 def preprocess(cls, ellipse=None, img=None):
 
     if img is None:
@@ -214,70 +227,66 @@ def build_temporal_subsampling(cls,
         
 if __name__=='__main__':
 
-    import argparse
+    import argparse, pynwb
 
     parser=argparse.ArgumentParser()
-    parser.add_argument("--shape", default='circle')
-    parser.add_argument("--sampling_rate", type=float, default=5.)
-    parser.add_argument("--saturation", type=float, default=75)
+    parser.add_argument('-f', "--datafile", type=str,default='')
+    parser.add_argument("--shape", default='ellipse')
+    # parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--maxiter", type=int, default=100)
     # parser.add_argument("--ellipse", type=float, default=[], nargs=)
-    parser.add_argument("--gaussian_smoothing", type=float, default=2)
-    parser.add_argument('-df', "--datafolder", default='./')
-    parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
+    parser.add_argument("--gaussian_smoothing", type=float, default=0)
+    # parser.add_argument('-df', "--datafolder", default='./')
+    # parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
     parser.add_argument("-nv", "--non_verbose", help="decrease output verbosity", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     if not args.debug:
-        if os.path.isdir(args.datafolder) and\
-           os.path.isfile(os.path.join(args.datafolder, 'pupil-ROIs.npy')):
+        if os.path.isfile(args.datafile) and\
+           os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
+            
             # load ROI
-            rois = np.load(os.path.join(args.datafolder, 'pupil-ROIs.npy'),allow_pickle=True).item()
-            args.saturation = rois['ROIsaturation']
-            args.reflectors = rois['reflectors']
-            args.ellipse = rois['ROIellipse']
-            # insure data ordering and build sampling
-            dataset = load_data(args,
-                                lazy_loading=False,
-                                compressed_version=False,
-                                FaceCamera_frame_rate=args.sampling_rate)
-            # initialize processed data
-            data = dict(vars(args))
-            for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
-                data[key] = np.zeros(len(args.times))
-            data['times'] = args.times
+            data = np.load(args.datafile.replace('.nwb', '.pupil.npy'),
+                           allow_pickle=True).item()
+            args.saturation = data['ROIsaturation']
+            args.reflectors = data['reflectors']
+            args.ellipse = data['ROIellipse']
+            
+            nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
+            args.FaceCamera = nwbfile.acquisition['FaceCamera']
+            args.nframes, args.Lx, args.Ly = args.FaceCamera.data.shape
+
             # -- loop over frames
-            print('\n Processing images to track pupil size and position in "%s"' % args.datafolder)
+            print('\n Processing images to track pupil size and position in "%s"' % args.datafile)
             if not args.non_verbose:
-                printProgressBar(0, len(args.times))
-            for args.cframe, args.time in enumerate(args.times):
+                printProgressBar(0, args.nframes)
+            
+            for args.cframe in range(args.nframes):
                 # preprocess image
                 args.img = preprocess(args, ellipse=args.ellipse)
                 data['xmin'], data['xmax'] = args.xmin, args.xmax
                 data['ymin'], data['ymax'] = args.ymin, args.ymax
-                coords, _, res = fit_pupil_size(args, reflectors=args.reflectors, maxiter=args.maxiter)
-                data['cx'][args.cframe] = coords[0]
-                data['cy'][args.cframe] = coords[1]
-                data['sx'][args.cframe] = coords[2]
-                if args.shape=='circle':
-                    data['sy'][args.cframe] = coords[2]
-                else:
-                    data['sy'][args.cframe] = coords[3]
-                data['residual'][args.cframe] = res
-                if not args.non_verbose:
-                    printProgressBar(args.cframe, len(args.times))
+                coords, _, res = fit_pupil_size(args,
+                                                reflectors=args.reflectors,
+                                                maxiter=args.maxiter,
+                                                shape=args.shape)
+                data['diameter'][args.cframe] = np.pi*coords[2]*coords[3]
+                for key, val in zip(['cx', 'cy', 'sx', 'sy'], coords):
+                    data[key][args.cframe] = val
+                printProgressBar(args.cframe, args.nframes)
+            printProgressBar(args.nframes, args.nframes)
             data = replace_outliers(data) # dealing with outliers
-            np.save(os.path.join(args.datafolder, args.saving_filename), data)
             if not args.non_verbose:
-                printProgressBar(len(args.times), len(args.times))
+                printProgressBar(len(args.times), args.nframes)
                 print('Pupil size calculation over !')
-                print('Processed data saved as:', os.path.join(args.datafolder, args.saving_filename))
+                print('Processed data saved as:', args.datafile.replace('.nwb', '.pupil.npy'))
             # save analysis output
-        elif not os.path.isfile(os.path.join(args.datafolder, 'pupil-ROIs.npy')):
+            np.save(args.datafile.replace('.nwb', '.pupil.npy'), data)
+        elif not os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
             print('Need to save ROIs for this datafolder !')
         else:
-            print("ERROR: provide a valid data folder with a !")
+            print("ERROR: provide a valid NWB datafile !")
     else:
         """
         snippet of code to design/debug the fitting algorithm

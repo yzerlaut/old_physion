@@ -35,7 +35,7 @@ class reflectROI():
         self.moveable = moveable
         
         if pos is None:
-            view = parent.pROI.viewRange()
+            view = parent.pPupil.viewRange()
             imx = (view[0][1] + view[0][0]) / 2
             imy = (view[1][1] + view[1][0]) / 2
             dx = (view[0][1] - view[0][0]) / 4
@@ -67,10 +67,10 @@ class reflectROI():
         self.ROI.addScaleHandle([1, 0.5], [0., 0.5])
         self.ROI.addScaleHandle([0.5, 0], [0.5, 1])
         self.ROI.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
-        parent.pROI.addItem(self.ROI)
+        parent.pPupil.addItem(self.ROI)
 
     def remove(self, parent):
-        parent.pROI.removeItem(self.ROI)
+        parent.pPupil.removeItem(self.ROI)
         parent.win.show()
         parent.show()
 
@@ -90,7 +90,7 @@ class pupilROI():
         self.moveable = moveable
         
         if pos is None:
-            view = parent.pROI.viewRange()
+            view = parent.pPupil.viewRange()
             imx = (view[0][1] + view[0][0]) / 2
             imy = (view[1][1] + view[1][0]) / 2
             dx = (view[0][1] - view[0][0]) / 5
@@ -115,17 +115,15 @@ class pupilROI():
             movable = self.moveable,
             pen=roipen, removable=self.moveable)
         
-        self.ROI.handleSize = 8
+        self.ROI.handleSize = 7
         self.ROI.handlePen = roipen
-        self.ROI.addScaleHandle([1, 0.5], [0., 0.5])
-        self.ROI.addScaleHandle([0.5, 0], [0.5, 1])
-        self.ROI.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
-        parent.pROI.addItem(self.ROI)
+        if self.moveable:
+            self.ROI.addScaleHandle([0.5, 0], [0.5, 1])
+            self.ROI.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
+        parent.pPupil.addItem(self.ROI)
 
     def remove(self, parent):
-        parent.pROI.removeItem(self.ROI)
-        parent.win.show()
-        parent.show()
+        parent.pPupil.removeItem(self.ROI)
 
     def position(self, parent):
         pass
@@ -188,9 +186,9 @@ class sROI():
         
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
-        parent.pROIimg.clear()
+        parent.pPupilimg.clear()
         if parent.scatter is not None:
-            parent.pROI.removeItem(parent.scatter)
+            parent.pPupil.removeItem(parent.scatter)
         parent.win.show()
         parent.show()
 
@@ -202,8 +200,8 @@ class sROI():
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)
         
-        parent.pROIimg.setImage(parent.img)
-        parent.pROIimg.setLevels([parent.img.min(), parent.img.max()])
+        parent.pPupilimg.setImage(parent.img)
+        parent.pPupilimg.setLevels([parent.img.min(), parent.img.max()])
         
         parent.win.show()
         parent.show()
