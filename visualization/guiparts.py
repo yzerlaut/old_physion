@@ -182,19 +182,16 @@ def load_config1(self,
 
     build_slider(self, mainLayout)
 
-    self.cwidget.setLayout(mainLayout)
-    self.show()
-    
-    self.pScreen = self.win1.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[5,5,5], colspan=2)
+    self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
     self.pScreenimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pScreenimg.setLevels([0,255])
-    self.pFace = self.win1.addViewBox(lockAspect=True,row=0, col=2, invertY=True,border=[5,5,5], colspan=2)
+    self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
     self.pFaceimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pFaceimg.setLevels([0,255])
-    self.pPupil=self.win1.addViewBox(lockAspect=True,row=0, col=4, invertY=True, border=[20, 20, 20])
+    self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
     self.pPupilimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pPupilimg.setLevels([0,255])
-    self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[20, 20, 20])
+    self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
     self.pCaimg = pg.ImageItem(numpy.ones((50,50))*100)
     self.pCaimg.setLevels([0,255])
     for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
@@ -211,6 +208,19 @@ def load_config1(self,
     self.xaxis = self.plot.getAxis('bottom')
     self.scatter = pg.ScatterPlotItem()
     self.plot.addItem(self.scatter)
+
+    self.roiPick = QtGui.QLineEdit()
+    self.roiPick.setText('')
+    self.roiPick.setFixedWidth(350)
+    self.roiPick.returnPressed.connect(self.select_ROI)
+    font = QtGui.QFont()
+    font.setPointSize(7)
+    self.roiPick.setFont(font)
+
+    Layout12.addWidget(self.roiPick,0)
+    
+    self.cwidget.setLayout(mainLayout)
+    self.show()
 
     # label = pg.LabelItem()
     # txt = """

@@ -23,17 +23,17 @@ def shift(self, i):
     return self.settings['blank-space']*i+\
         np.sum(np.power(self.settings['increase-factor'], np.arange(i)))
 
-def convert_time_to_index(time, nwb_quantity):
+def convert_time_to_index(time, nwb_quantity, axis=0):
     if nwb_quantity.timestamps is not None:
         cond = nwb_quantity.timestamps[:]>=time
         if np.sum(cond)>0:
             return np.arange(nwb_quantity.timestamps.shape[0])[cond][0]
         else:
-            return nwb_quantity.timestamps.shape[0]-1
+            return nwb_quantity.timestamps.shape[axis]-1
     elif nwb_quantity.starting_time is not None:
         t = time-nwb_quantity.starting_time
         dt = 1./nwb_quantity.rate
-        imax = nwb_quantity.data.shape[0]-1 # maybe shift to -1 to handle images
+        imax = nwb_quantity.data.shape[axis]-1 # maybe shift to -1 to handle images
         return max([1, min([int(t/dt), imax-1])]) # then we add +1 / -1 in the visualization
     else:
         return 0
@@ -46,45 +46,51 @@ def convert_index_to_time(index, nwb_quantity):
 def raw_data_plot(self, tzoom,
                   plot_update=True,
                   with_images=False,
+                  with_roi=False,
                   with_scatter=False):
 
     iplot = 0
     scatter = []
+    self.plot.clear()
     
     ## -------- Screen --------- ##
-    pen = pg.mkPen(color=self.settings['colors']['Screen'])
-
+    
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
+        
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Photodiode-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Photodiode-Signal'])-1
         isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
         iplot+=1
-        if plot_update:
-            self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y, pen=pen)
+        self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
+                       pen=pg.mkPen(color=self.settings['colors']['Screen']))
 
     if 'visual-stimuli' in self.nwbfile.stimulus:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
         self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
+        self.pScreenimg.setLevels([0,255])
         if hasattr(self, 'ScreenFrameLevel'):
             self.plot.removeItem(self.ScreenFrameLevel)
-        self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
+        # self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2), [0, y.max()],
+        #                                        pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
 
 
-    # ## -------- Locomotion --------- ##
-    pen = pg.mkPen(color=self.settings['colors']['Locomotion'])
+    ## -------- Locomotion --------- ##
+    
     if 'Running-Speed' in self.nwbfile.acquisition:
+        
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Running-Speed'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Running-Speed'])-1
         isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Running-Speed'].data[isampling], i=iplot)
         iplot+=1
-        if plot_update:
-            self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y, pen=pen)
+        self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y,
+                       pen=pg.mkPen(color=self.settings['colors']['Locomotion']))
             
 
     ## -------- FaceCamera and Pupil-Size --------- ##
+    
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
     if 'FaceCamera' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
@@ -102,8 +108,7 @@ def raw_data_plot(self, tzoom,
             self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
             y = scale_and_position(self, self.pupil_data['diameter'][i1:i2], i=iplot)
             iplot+=1
-            if plot_update:
-                self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i1:i2], y, pen=pen)
+            self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i1:i2], y, pen=pen)
             # self.pPupilimg.setLevels([np.min(img),np.max(img)])
             coords = []
             for key in ['cx', 'cy', 'sx', 'sy']:
@@ -162,20 +167,52 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
-    if 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
+    if (self.time==0) and ('ophys' in self.nwbfile.processing):
+        self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['meanImg'][:]) # plotting the mean image
+    elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['CaImaging-TimeSeries'])
         self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0])
         if hasattr(self, 'CaFrameLevel'):
             self.plot.removeItem(self.CaFrameLevel)
         self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
         
+    if ('ophys' in self.nwbfile.processing) and with_roi:
+        if hasattr(self, 'ROIscatter'):
+            self.pCa.removeItem(self.ROIscatter)
+        self.ROIscatter = pg.ScatterPlotItem()
+        X, Y = [], []
+        for ir in self.roiIndices:
+            indices = np.arange(self.pixel_masks_index[ir], self.pixel_masks_index[ir+1])
+            X += [self.pixel_masks[ii][1] for ii in indices]
+            Y += [self.pixel_masks[ii][0] for ii in indices]
+        self.ROIscatter.setData(X, Y, size=1, brush=pg.mkBrush(0,255,0))
+        self.pCa.addItem(self.ROIscatter)
+
+    if ('ophys' in self.nwbfile.processing) and (self.roiIndices is not None):
+        i1 = convert_time_to_index(self.tzoom[0], self.Neuropil, axis=1)
+        i2 = convert_time_to_index(self.tzoom[1], self.Neuropil, axis=1)
+        if self.roiPick.text()=='sum':
+            y = scale_and_position(self, self.Fluorescence.data[self.roiIndices,i1:i2].sum(axis=0), i=iplot)
+            nrnp = scale_and_position(self, self.Fluorescence.data[self.roiIndices,i1:i2].sum(axis=0),
+                                      value=self.Neuropil.data[self.roiIndices,i1:i2].sum(axis=0), i=iplot)
+            tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
+            self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
+            self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+        else:
+            for n, ir in enumerate(self.roiIndices):
+                y = scale_and_position(self, self.Fluorescence.data[ir,i1:i2], i=iplot)+n
+                nrnp = scale_and_position(self, self.Fluorescence.data[ir,i1:i2], value=self.Neuropil.data[ir,i1:i2], i=iplot)+n
+                tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
+                self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
+                self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+        iplot += 1
+
     # if self.CaImaging is not None:
     #     print(len(self.CaImaging.t))
     #     print(self.CaImaging.Firing.shape)
     #     cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
     #     isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])
     #     for n in range(self.CaImaging.Firing.shape[0]):
-    #         y = scale_and_position(self, self.CaImaging.Firing[n,cond][::isampling], i=iplot)+.1*n
     #         # y = scale_and_position(self, self.CaImaging.Fluo[n,cond][::isampling], i=iplot)+.1*n 
     #         if plot_update:
     #             self.plot.plot(self.CaImaging.t[cond][::isampling], y, pen=pen)

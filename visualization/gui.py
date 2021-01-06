@@ -37,16 +37,18 @@ class MainWindow(QtWidgets.QMainWindow):
         
         super(MainWindow, self).__init__()
 
-        # adding a "quit" keyboard shortcut
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self) # or 'Ctrl+Q'
+        # adding a few keyboard shortcut
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
         self.openSc.activated.connect(self.open_file)
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Space'), self)
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
         self.openSc.activated.connect(self.hitting_space)
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
-        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         self.refreshSc.activated.connect(self.refresh)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+        self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+H'), self)
+        self.homeSc.activated.connect(self.back_to_initial_view)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
         self.maxSc.activated.connect(self.showwindow)
 
         ####################################################
@@ -75,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for mod in MODALITIES:
             setattr(self, mod, None)
             
-        self.time = 0
+        self.time, self.roiIndices = 0, None
         self.check_data_folder()
         
         self.minView = False
@@ -95,7 +97,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pbox.setCurrentIndex(0)
         # self.display_quantities()
         
-        self.open_file()
+        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
+        self.load_file(filename)
         plots.raw_data_plot(self, self.tzoom)
 
     def try_to_find_time_extents(self):
@@ -112,30 +115,78 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def open_file(self):
         
-        # filename = QtGui.QFileDialog.getOpenFileName(self,
-        #                     "Open Multimodal Experimental Recording (NWB file) ",filter="*.nwb")
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                            "Open Multimodal Experimental Recording (NWB file) ",filter="*.nwb")
+        
+        if filename!='':
+            self.reset()
+            self.datafile=filename
+            self.load_file(self.datafile)
+            self.display_quantities()
+        else:
+            print('"%s" filename not recognized ! ')
 
-        # if filename[0]=='':
-        #     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'test.nwb')
-        # else:
-        #     filename = filename[0]
+    def reset(self):
+        
+        self.plot.clear()
+        self.pScreenimg.clear()
+        self.pFaceimg.clear()
+        self.pPupil.clear()
+        self.pPupilimg.clear()
+        self.roiIndices = None
+        
+    def select_ROI(self):
+        
+        self.pixel_masks_index = self.Segmentation.columns[0].data[:]
+        self.pixel_masks = self.Segmentation.columns[1].data[:]
+        self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
+        
+        if self.roiPick.text() in ['sum', 'all']:
+            self.roiIndices = np.arange(len(self.iscell))[self.iscell]
+        elif len(self.roiPick.text().split('-'))>1:
+            try:
+                self.roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
+            except BaseException as be:
+                print(be)
+                self.roiIndices = None
+        elif len(self.roiPick.text().split(','))>1:
+            try:
+                self.roiIndices = [int(ii) for ii in self.roiPick.text().split(',')]
+            except BaseException as be:
+                print(be)
+                self.roiIndices = None
+        elif len(self.roiPick.text().split('-'))>1:
+            print('not implemented yet !')
+            self.roiIndices = None
+        else:
+            try:
+                self.roiIndices = [np.arange(len(self.iscell))[self.iscell][int(self.roiPick.text())]]
+            except BaseException as be:
+                print(be)
+                self.roiIndices = None
+
+        plots.raw_data_plot(self, self.tzoom, with_roi=True)
+
             
-        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
+    def load_file(self, filename):
         self.io = pynwb.NWBHDF5IO(filename, 'r')
         t0 = time.time()
         self.nwbfile = self.io.read()
         self.try_to_find_time_extents()
         self.tzoom = self.tlim
 
+        if 'ophys' in self.nwbfile.processing:
+            self.roiPick.setText(' [select ROI] e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"')
+            self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
+            self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
+            self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
+            self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
+        else:
+            self.roiPick.setText('')
+
         if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
             self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
                                       allow_pickle=True).item()
-            Lx, Ly = self.nwbfile.acquisition['FaceCamera'].data[0,:,:].shape
-            x,y = np.meshgrid(np.arange(0,Lx), np.arange(0,Ly), indexing='ij')
-            print(self.pupil_data)
-            self.pupil_data['ROIcond'] = \
-                (x>=self.pupil_data['xmin']) & (y>=self.pupil_data['ymin']) &\
-                (x<=self.pupil_data['xmax']) & (y<=self.pupil_data['ymax'])
         else:
             self.pupil_data = None
             
@@ -301,12 +352,17 @@ class MainWindow(QtWidgets.QMainWindow):
     def next_frame(self):
         print(self.time, self.dt_movie)
         self.time = self.time+self.dt_movie
+        self.prev_time = self.time
         if self.time>self.tzoom[0]+.8*(self.tzoom[1]-self.tzoom[0]):
             print('block')
             self.tzoom = [self.view[0]+self.time, self.view[1]+self.time]
-        self.display_quantities()
+        if self.time==self.prev_time:
+            self.time = self.time+2.*self.dt_movie
+            self.display_quantities()
+            
     
     def pause(self):
+        print('stopping')
         self.updateTimer.stop()
         self.playButton.setEnabled(True)
         self.pauseButton.setEnabled(False)
@@ -315,9 +371,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def refresh(self):
         self.plot.clear()
         self.tzoom = self.plot.getAxis('bottom').range
-        self.display_quantities(with_scatter=False,
-                                with_images=False)
-
+        self.display_quantities()
         
     def update_frame(self, from_slider=True):
         
