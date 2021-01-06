@@ -12,10 +12,12 @@ The interface is minimal:
 Select the desired modalities and "init" and "launch" recordings.
 
 
-## Machinery
+## Under the hood
 
-Using spearate `threads` for the different processes using the `multiprocessing` module.
+Using separate `threads` for the different processes using the `multiprocessing` module, we interact with those threads by sending "record"/"stop" signals. The different threads are:
 
-- The camera is launched on an independent process and we interact by sending "record"/"stop" signals.
+- The NIdaq recording
 
-- 
+- THe visual stimulation
+
+- The FLIR-camera
