@@ -136,7 +136,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile,
 
     # BACKGROUNDS
     # (meanImg, Vcorr and max_proj are REQUIRED)
-    bg_strs = ['meanImg', 'Vcorr', 'max_proj', 'meanImg_chan2']
+    bg_strs = ['meanImg', 'meanImgE', 'Vcorr', 'max_proj', 'meanImg_chan2']
     nplanes = ops['nplanes']
     for iplane in range(nplanes):
         images = Images('Backgrounds_%d'%iplane)
