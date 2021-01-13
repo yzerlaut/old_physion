@@ -2,6 +2,11 @@ import datetime, numpy, os, sys
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
+smallfont = QtGui.QFont()
+smallfont.setPointSize(7)
+verysmallfont = QtGui.QFont()
+verysmallfont.setPointSize(5)
+
 def remove_size_props(o, fcol=False, button=False, image=False):
     o.setMinimumHeight(0)
     o.setMinimumWidth(0)
@@ -19,9 +24,7 @@ def remove_size_props(o, fcol=False, button=False, image=False):
 def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     
     self.cal = QtWidgets.QCalendarWidget(self)
-    font = QtGui.QFont()
-    font.setPointSize(5)
-    self.cal.setFont(font)
+    self.cal.setFont(verysmallfont)
     self.cal.setMinimumHeight(160)
     self.cal.setMaximumHeight(160)
     self.cal.setMinimumWidth(265)
@@ -116,17 +119,21 @@ def build_slider(self, Layout):
     self.frameSlider.setTickInterval(1)
     self.frameSlider.setTracking(False)
     self.frameSlider.valueChanged.connect(self.update_frame)
+    self.frameSlider.setMaximumHeight(20)
     Layout.addWidget(self.frameSlider)
 
         
 def load_config1(self,
                  df_width = 600,
-                 selector_height = 40,
+                 selector_height = 30,
                  win1_Wmax=1200, win1_Wmin=300,
                  win1_Hmax=500, win2_Wmax=500):
 
     self.cwidget = QtGui.QWidget(self)
     self.setCentralWidget(self.cwidget)
+
+    self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
+        
     
     mainLayout = QtWidgets.QVBoxLayout()
 
@@ -136,19 +143,32 @@ def load_config1(self,
     Layout11 = QtWidgets.QVBoxLayout()
     Layout1.addLayout(Layout11)
     create_calendar(self, Layout11)
-    self.notes = QtWidgets.QLabel(20*'-'+5*'\n', self)
-    self.notes.setMinimumHeight(70)
-    self.notes.setMaximumHeight(70)
+    self.cal.setMaximumHeight(150)
+
+    # subject box
+    self.sbox = QtWidgets.QComboBox(self)
+    self.sbox.setFont(smallfont)
+    # self.sbox.activated.connect(self.select_subject) # To be written !!
+    self.sbox.setMaximumHeight(selector_height)
+    self.sbox.addItem('  [subject] ')
+    self.sbox.setCurrentIndex(0)
+    Layout11.addWidget(self.sbox)
+    
+    # notes
+    self.notes = QtWidgets.QLabel('\n[exp info]'+5*'\n', self)
+    self.notes.setFont(smallfont)
     Layout11.addWidget(self.notes)
 
     self.pbox = QtWidgets.QComboBox(self)
+    self.pbox.setFont(smallfont)
     self.pbox.activated.connect(self.display_quantities)
     self.pbox.setMaximumHeight(selector_height)
-    if self.raw_data_visualization:
-        self.pbox.addItem('')
-        self.pbox.addItem('-> Show Raw Data')
-        self.pbox.setCurrentIndex(1)
-        
+    self.pbox.addItem('[visualization/analysis]')
+    self.pbox.addItem('-> Show Raw Data')
+    self.pbox.addItem('-> Trial-average')
+    self.pbox.addItem('-> Behavioral-modulation')
+    self.pbox.setCurrentIndex(0)
+    
     Layout11.addWidget(self.pbox)
 
     Layout113 = QtWidgets.QHBoxLayout()
@@ -209,39 +229,61 @@ def load_config1(self,
     self.scatter = pg.ScatterPlotItem()
     self.plot.addItem(self.scatter)
 
-    self.roiPick = QtGui.QLineEdit()
-    self.roiPick.setText('')
-    self.roiPick.setFixedWidth(350)
-    self.roiPick.returnPressed.connect(self.select_ROI)
-    font = QtGui.QFont()
-    font.setPointSize(7)
-    self.roiPick.setFont(font)
 
-    Layout12.addWidget(self.roiPick,0)
+    Layout122 = QtWidgets.QHBoxLayout()
+    Layout12.addLayout(Layout122)
+    
+    self.roiPick = QtGui.QLineEdit()
+    self.roiPick.setText(' [...] ')
+    self.roiPick.setMinimumWidth(150)
+    self.roiPick.setMaximumWidth(350)
+    self.roiPick.returnPressed.connect(self.select_ROI)
+    self.roiPick.setFont(smallfont)
+
+    self.ephysPick = QtGui.QLineEdit()
+    self.ephysPick.setText(' ')
+    # self.ephysPick.returnPressed.connect(self.select_ROI)
+    self.ephysPick.setFont(smallfont)
+
+    self.guiKeywords = QtGui.QLineEdit()
+    self.guiKeywords.setText('     [GUI keywords] ')
+    self.guiKeywords.setFixedWidth(200)
+    self.guiKeywords.returnPressed.connect(self.keyword_update)
+    self.guiKeywords.setFont(smallfont)
+    
+    Layout122.addWidget(self.guiKeywords)
+    Layout122.addWidget(self.ephysPick)
+    Layout122.addWidget(self.roiPick)
     
     self.cwidget.setLayout(mainLayout)
     self.show()
 
-    # label = pg.LabelItem()
-    # txt = """
-    # <span style='font-size: 12pt'>
-    # <span style='color: grey'> <b>Screen</b> </span> <br/>
-    # <span style='color: white'> <b>Locomotion</b> </span> <br/>
-    # <span style='color: red'> <b>Pupil</b> </span> <br/>
-    # <span style='color: blue'> <b>Electrophy</b> </span> <br/>
-    # <span style='color: green'> <b> Ca-Imaging </b> </span>"""
-    # label.setText(txt)
-    # self.win2.addItem(label)
-
 class NewWindow(QtWidgets.QMainWindow):
     
     def __init__(self,
-                 parent=None,
+                 parent=None, i=0,
                  title='New Window'):
 
         super(NewWindow, self).__init__()
 
-        self.setGeometry(100, 100, 800, 500)
+        self.setGeometry(100+20*i, 100+20*i, 1000, 600)
+        pg.setConfigOptions(imageAxisOrder='row-major')
+
+        # adding a few keyboard shortcut
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
+        self.openSc.activated.connect(self.open_file)
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
+        self.openSc.activated.connect(self.hitting_space)
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
+        self.quitSc.activated.connect(self.quit)
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
+        self.refreshSc.activated.connect(self.refresh)
+        self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+I'), self)
+        self.homeSc.activated.connect(self.back_to_initial_view)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
+        self.maxSc.activated.connect(self.showwindow)
+        
+        self.setWindowTitle(title)
         
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
@@ -260,6 +302,10 @@ class NewWindow(QtWidgets.QMainWindow):
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
         
+        self.statusBar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.statusBar.setFont(smallfont)
+
         self.showwindow()
 
     def quit(self):
@@ -268,6 +314,15 @@ class NewWindow(QtWidgets.QMainWindow):
     def refresh(self):
         pass # to be implemented in the child class !
 
+    def open_file(self):
+        pass # to be implemented in the child class !
+
+    def hitting_space(self):
+        pass # to be implemented in the child class !
+    
+    def back_to_initial_view(self):
+        pass # to be implemented in the child class !
+    
     def showwindow(self):
         if self.minView:
             self.minView = self.maxview()
@@ -280,7 +335,6 @@ class NewWindow(QtWidgets.QMainWindow):
         self.showNormal()
         return True
     
-
     # Layout11 = QtWidgets.QVBoxLayout()
     # Layout1.addLayout(Layout11)
     # create_calendar(self, Layout11)

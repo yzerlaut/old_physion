@@ -4,26 +4,21 @@ import numpy as np
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
-from assembling.dataset import Dataset, MODALITIES
 from visualization.guiparts import NewWindow
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 
 class TrialAverageWindow(NewWindow):
 
-    def __init__(self,
+    def __init__(self, 
                  parent=None,
-                 dataset=None,
                  dt_sampling=10, # ms
                  title='Trial-Averaging'):
 
-        super(TrialAverageWindow, self).__init__(parent=parent,
+        super(TrialAverageWindow, self).__init__(parent=parent.app,
                                                  title=title)
 
-        self.dataset = dataset
-        description, self.keys,\
-            self.quantities = dataset_description(self.dataset)
-        
+        self.parent = parent
         self.EPISODES = None
         
         mainLayout = QtWidgets.QHBoxLayout(self.cwidget)
@@ -36,7 +31,7 @@ class TrialAverageWindow(NewWindow):
         Layout1.addLayout(self.Layout11)
 
         # description
-        self.notes = QtWidgets.QLabel(description, self)
+        self.notes = QtWidgets.QLabel(parent.description, self)
         noteBoxsize = (200, 200)
         self.notes.setMinimumHeight(noteBoxsize[1])
         self.notes.setMaximumHeight(noteBoxsize[1])
@@ -49,8 +44,14 @@ class TrialAverageWindow(NewWindow):
         Layout1.addLayout(self.Layout12)
         self.Layout12.addWidget(QtWidgets.QLabel('Quantity', self))
         self.qbox = QtWidgets.QComboBox(self)
-        for q in self.quantities:
-            self.qbox.addItem(q)
+        if 'Photodiode-Signal' in self.parent.nwbfile.acquisition:
+            self.qbox.addItem('Photodiode')
+        if 'Running-Speed' in self.parent.nwbfile.acquisition:
+            self.qbox.addItem('Running-Speed')
+        if 'Pupil' in self.parent.nwbfile.processing:
+            self.qbox.addItem('Pupil')
+        if 'ophys' in self.parent.nwbfile.processing:
+            self.qbox.addItem('CaImaging')
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
         self.Layout12.addWidget(QtWidgets.QLabel('Sub-Quantity', self))
@@ -65,13 +66,13 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(QtWidgets.QLabel(9*'-'+\
                                                  ' Display options '+\
                                                  9*'-', self))
-        for key in self.keys:
+        for key in self.parent.keys:
             setattr(self, "c"+key, QtWidgets.QComboBox(self))
             self.Layout12.addWidget(getattr(self, "c"+key))
             for k in ['(merge)', '(color-code)', '(row)', '(column)']:
                 getattr(self, "c"+key).addItem(key+\
                                     ((30-len(k)-len(key))*' ')+k)
-        for i in range(4-len(self.keys)):
+        for i in range(4-len(self.parent.keys)):
             self.Layout12.addWidget(QtWidgets.QLabel('', self))
 
         self.refreshBtn = QtWidgets.QPushButton('[R]efresh plots', self)
@@ -102,8 +103,6 @@ class TrialAverageWindow(NewWindow):
         else:
             COLORS = [(255,255,255,255)]
 
-        print(COLORS)
-        
         l = self.plots.addLayout(rowspan=len(ROW_CONDS),
                                  colspan=len(COL_CONDS),
                                  border=(0,0,0))
@@ -147,9 +146,11 @@ class TrialAverageWindow(NewWindow):
         if (self.EPISODES is None) or\
            (self.quantity!=self.EPISODES['quantity'])or\
            (self.samplingBox.value()!=self.EPISODES['dt_sampling']):
-            self.EPISODES = build_episodes(self.dataset,
-                           quantity=self.quantity,
-                           dt_sampling=self.samplingBox.value())
+            self.statusBar.showMessage('  building episodes [...]')
+            self.EPISODES = build_episodes(self,
+                                quantity=self.quantity,
+                                dt_sampling=self.samplingBox.value())
+            self.statusBar.showMessage('-> done !')
 
         if self.quantity=='CaImaging':
             for k in ['Firing', 'F', 'Fneu', 'dF']:
@@ -167,37 +168,37 @@ class TrialAverageWindow(NewWindow):
             XK = np.meshgrid(*X)
             print(XK)
             for i in range(len(XK[0].flatten())): # looping over joint conditions
-                cond = np.ones(len(self.dataset.metadata['time_start']), dtype=bool)
+                cond = np.ones(self.parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
                 for k, xk in zip(K, XK):
-                    cond = cond & (self.dataset.metadata[k]==xk.flatten()[i])
+                    cond = cond & (self.parent.nwbfile.stimulus[k]==xk.flatten()[i])
                 CONDS.append(cond)
             return CONDS
         else:
-            return [np.ones(len(self.dataset.metadata['time_start']), dtype=bool)]
+            return [np.ones(self.parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)]
             
     
     def build_column_conditions(self):
         X, K = [], []
-        for key in self.keys:
+        for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('column'))>1:
-                X.append(np.unique(self.dataset.metadata[key]))
+                X.append(np.unique(self.parent.nwbfile.stimulus[key]))
                 K.append(key)
         return self.build_conditions(X, K)
 
     
     def build_row_conditions(self):
         X, K = [], []
-        for key in self.keys:
+        for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('row'))>1:
-                X.append(np.sort(np.unique(self.dataset.metadata[key])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key])))
                 K.append(key)
         return self.build_conditions(X, K)
 
     def build_color_conditions(self):
         X, K = [], []
-        for key in self.keys:
+        for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('color'))>1:
-                X.append(np.sort(np.unique(self.dataset.metadata[key])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -209,9 +210,9 @@ class TrialAverageWindow(NewWindow):
             self.sqbox.addItem('[sum]')
             self.sqbox.addItem('[all] (row)')
             self.sqbox.addItem('[all] (color-code)')
-            for i in range(self.dataset.CaImaging.F.shape[0]):
+            for i in range(np.sum(self.parent.iscell)):
                 self.sqbox.addItem('ROI-%i' % (i+1))
-            for k in ['Firing', 'F', 'Fneu', 'dF (F-0.7*Fneu)']:
+            for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
                 self.pbox.addItem(k)
     
     def update_subquantity(self):
@@ -255,25 +256,23 @@ def dataset_description(dataset):
 
     return S, KEYS, quantities
 
-def build_episodes(dataset,
+def build_episodes(self,
                    quantity='Locomotion',
                    dt_sampling=1, # ms
                    interpolation='linear'):
 
-    print('building episodes [...]')
     EPISODES = {'dt_sampling':dt_sampling,
                 'quantity':quantity}
     
-
     # new sampling
-    interstim = dataset.metadata['presentation-interstim-period']
+    interstim = self.parent.metadata['presentation-interstim-period']
     ipre = int(interstim/dt_sampling/1e-3*3./4.) # 3/4 of prestim
-    idur = int(dataset.metadata['presentation-duration']/dt_sampling/1e-3)
+    idur = int(self.parent.metadata['presentation-duration']/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     EPISODES[quantity] = []
     if quantity=='Photodiode':
-        tfull = dataset.Screen.photodiode.t
-        valfull = dataset.Screen.photodiode.val
+        tfull = np.arange(self.parent.nwbfile.acquisition['Photodiode-Signal'].data.shape[0])/self.parent.nwbfile.acquisition['Photodiode-Signal'].rate
+        valfull = self.parent.nwbfile.acquisition['Photodiode-Signal'].data
     elif quantity=='CaImaging':
         tfull = dataset.CaImaging.t
         VALFULLS = []
@@ -286,8 +285,8 @@ def build_episodes(dataset,
         tfull = getattr(dataset, quantity).t
         valfull = getattr(dataset, quantity).val
     
-    for tstart, tstop in zip(dataset.metadata['time_start_realigned'],\
-                             dataset.metadata['time_stop_realigned']):
+    for tstart, tstop in zip(self.parent.nwbfile.stimulus['time_start_realigned'].data[:],\
+                             self.parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
 
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
         if quantity=='CaImaging':
@@ -301,8 +300,8 @@ def build_episodes(dataset,
             EPISODES[quantity].append(func(EPISODES['t']))
         
     if quantity=='CaImaging':
-        for tstart, tstop in zip(dataset.metadata['time_start_realigned'],\
-                                 dataset.metadata['time_stop_realigned']):
+        for tstart, tstop in zip(self.parent.metadata['time_start_realigned'],\
+                                 self.parent.metadata['time_stop_realigned']):
             cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
             for n in range(dataset.CaImaging.Firing.shape[0]):
                 for k in ['Firing', 'F', 'Fneu', 'dF']:

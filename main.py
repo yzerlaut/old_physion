@@ -113,10 +113,12 @@ class MainWindow(QtWidgets.QMainWindow):
         from analysis.gui import run as RunAnalysisGui
         self.child = RunAnalysisGui(self.app, args,
                                     raw_data_visualization=True)
-    def launch_analysis(self):
-        from analysis.gui import run as RunAnalysisGui
-        self.child = RunAnalysisGui(self.app, args)
         
+    def launch_analysis(self):
+        # from analysis.gui import run as RunAnalysisGui
+        # self.child = RunAnalysisGui(self.app, args)
+        pass
+    
     def launch_notebook(self):
         self.statusBar.showMessage('Notebook module not implemented yet')
         

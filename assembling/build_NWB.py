@@ -122,7 +122,7 @@ def build_NWB(args,
             print('   -----> Not able to build NWB file')
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
-        print(VisualStim, metadata)
+
         # using the photodiod signal for the realignement
         if args.verbose:
             print('=> Performing realignement from photodiode [...]')

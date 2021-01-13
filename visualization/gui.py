@@ -7,6 +7,8 @@ from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
 from visualization import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
+from analysis.behavioral_modulation import BehavioralModWindow
+from analysis.read_NWB import read as read_NWB
 
 settings = {
     'window_size':(1000,600),
@@ -20,10 +22,12 @@ settings = {
               'Electrophy':(100,100,255,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
     # general settings
-    'Npoints':400}
+    'Npoints':500}
+
+pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(guiparts.NewWindow):
     
     def __init__(self, app,
                  args=None,
@@ -35,37 +39,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
         
-        super(MainWindow, self).__init__()
-
-        # adding a few keyboard shortcut
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
-        self.openSc.activated.connect(self.open_file)
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
-        self.openSc.activated.connect(self.hitting_space)
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
-        self.quitSc.activated.connect(self.quit)
-        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
-        self.refreshSc.activated.connect(self.refresh)
-        self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+H'), self)
-        self.homeSc.activated.connect(self.back_to_initial_view)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
-        self.maxSc.activated.connect(self.showwindow)
-
-        ####################################################
-        # BASIC style config
-        self.setWindowTitle('Data Visualization -- Physiology of Visual Circuits')
-        pg.setConfigOptions(imageAxisOrder='row-major')
-
-        # default (small) geometry
-        self.setGeometry(100,100,*self.settings['window_size'])
+        super(MainWindow, self).__init__(i=0,
+            title='Data Visualization -- Physiology of Visual Circuits')
 
         # play button
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
-        
-        self.statusBar = QtWidgets.QStatusBar()
-        # self.setStatusBar(self.statusBar)
-        # self.statusBar.showMessage('Pick a date, a data-folder and a visualization/analysis')
         
         guiparts.load_config1(self)
 
@@ -74,10 +53,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        for mod in MODALITIES:
-            setattr(self, mod, None)
-            
         self.time, self.roiIndices = 0, None
+        self.CaImaging_bg_key = 'meanImg'
         self.check_data_folder()
         
         self.minView = False
@@ -87,17 +64,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # ========= for debugging ==========
         # ----------------------------------
         # self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
-        # date = datetime.date(2020, 11, 4)
-        # date = self.cal.setSelectedDate(date)
+        # date = 
+        # date = self.cal.setSelectedDate(datetime.date(2020, 11, 4))
         # self.pick_date()
         # self.preload_datafolder(self.datafolder)
         # self.dbox.setCurrentIndex(1)
         # self.pick_datafolder()
-        self.pbox.addItem('-> Show Raw Data')
-        self.pbox.setCurrentIndex(0)
         # self.display_quantities()
         
-        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
+        # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
+        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
         self.load_file(filename)
         plots.raw_data_plot(self, self.tzoom)
 
@@ -116,7 +92,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def open_file(self):
         
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                            "Open Multimodal Experimental Recording (NWB file) ",filter="*.nwb")
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                            filter="*.nwb")
         
         if filename!='':
             self.reset()
@@ -136,10 +114,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.roiIndices = None
         
     def select_ROI(self):
-        
-        self.pixel_masks_index = self.Segmentation.columns[0].data[:]
-        self.pixel_masks = self.Segmentation.columns[1].data[:]
-        self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
         
         if self.roiPick.text() in ['sum', 'all']:
             self.roiIndices = np.arange(len(self.iscell))[self.iscell]
@@ -167,22 +141,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
+    def keyword_update(self):
+
+        if self.guiKeywords.text() in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
+            self.CaImaging_bg_key = self.guiKeywords.text()
+        else:
+            self.statusBar.setText('  /!\ keyword not recognized /!\ ')
+        plots.raw_data_plot(self, self.tzoom, with_roi=True)
+
             
     def load_file(self, filename):
+
+        
         self.io = pynwb.NWBHDF5IO(filename, 'r')
-        t0 = time.time()
         self.nwbfile = self.io.read()
-        self.try_to_find_time_extents()
+        read_NWB(self, verbose=True) # see ../analysis/read_NWB.py
+        
         self.tzoom = self.tlim
+        self.notes.setText(self.description)
+
+        self.cal.setSelectedDate(self.nwbfile.session_start_time.date())
+        self.dbox.clear()
+        self.dbox.addItem(self.df_name)
+        self.dbox.setCurrentIndex(0)
+        self.sbox.clear()
+        self.sbox.addItem(self.nwbfile.subject.description)
+        self.sbox.setCurrentIndex(0)
+        self.pbox.setCurrentIndex(1)
+        
 
         if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText(' [select ROI] e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"')
-            self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
-            self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
-            self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
-            self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
-        else:
-            self.roiPick.setText('')
+            self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
 
         if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
             self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
@@ -245,23 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
             print('No metadata found')
         return output
 
-    def load_data(self):
-
-         # see assembling/dataset.py
-        dataset = Dataset(self.datafolder,
-                          modalities=MODALITIES)
-        self.dataset = dataset
-        for key in MODALITIES:
-            setattr(self, key, getattr(dataset, key))
-        setattr(self, 'metadata', dataset.metadata)
-
-        try:
-            self.tzoom = [0, self.metadata['time_start'][-1]+self.metadata['presentation-duration']]
-        except KeyError:
-            pass
-            
-        self.time = 0
-        
     def pick_datafolder(self):
         if not self.raw_data_visualization:
             self.pbox.clear()
@@ -307,9 +279,11 @@ class MainWindow(QtWidgets.QMainWindow):
         """
 
         if self.pbox.currentText()=='-> Trial-average':
-            self.window2 = TrialAverageWindow(self.app,
-                                        dataset=self.dataset)
+            self.window2 = TrialAverageWindow(parent=self)
             self.window2.show()
+        if self.pbox.currentText()=='-> Behavioral-modulation':
+            self.window3 = BehavioralModWindow(parent=self)
+            self.window3.show()
         elif (self.pbox.currentText()=='-> Show Raw Data') or force:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
@@ -319,6 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def back_to_initial_view(self):
+        self.time = 0
         self.tzoom = self.tlim
         self.display_quantities(force=True)
 
@@ -359,7 +334,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.time==self.prev_time:
             self.time = self.time+2.*self.dt_movie
             self.display_quantities()
-            
     
     def pause(self):
         print('stopping')
