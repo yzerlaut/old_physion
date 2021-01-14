@@ -4,7 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
-from visualization.guiparts import NewWindow
+from dataviz.guiparts import NewWindow
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 

@@ -5,7 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
-from visualization import guiparts, plots
+from dataviz import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
