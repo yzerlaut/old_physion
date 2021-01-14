@@ -30,17 +30,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.datafolder = ''
         
         # buttons and functions
-        LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
-        FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
-        button_length = 100
+        LABELS = ["i) Initialize", "g) Generate", "r) Run", "s) Stop", "q) Quit"]
+        FUNCTIONS = [self.initialize, self.generate, self.run, self.stop, self.quit]
+        button_length = 130
         
         self.setWindowTitle('Visual Stimulation Program')
-        self.setGeometry(50, 50, int(1.01*button_length*len(LABELS)), 310)
+        self.setGeometry(100, 100, int(1.01*button_length*len(LABELS)), 320)
 
         # protocol change
         label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
         label1.setMinimumWidth(320)
-        label1.move(100, 50)
+        label1.move(150, 50)
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.addItems(['']+PRESENTATIONS)
         self.cbp.currentIndexChanged.connect(self.change_protocol)
@@ -50,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # stimulus pick
         label2 = QtWidgets.QLabel("   /|===> Stimulus <===|\\", self)
         label2.setMinimumWidth(330)
-        label2.move(100, 110)
+        label2.move(150, 110)
         self.cbs = QtWidgets.QComboBox(self)
         self.cbs.addItems(['']+list(STIMULI.keys()))
         self.cbs.currentIndexChanged.connect(self.change_stimulus)
@@ -60,7 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # setup pick
         label3 = QtWidgets.QLabel("     /|===>  Setup  <===|\\", self)
         label3.setMinimumWidth(320)
-        label3.move(100, 170)
+        label3.move(150, 170)
         self.cbst = QtWidgets.QComboBox(self)
         self.cbst.addItems(SETUP)
         self.cbst.currentIndexChanged.connect(self.change_setup)
@@ -122,6 +122,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.save_experiment()
             self.statusBar.showMessage('stimulation running [...]')
             self.stim.run(self)
+            self.stim.close()
+            self.init = False
+            
+    def generate(self):
+        self.stop_flag=False
+        if (self.stim is None) or not self.init:
+            self.statusBar.showMessage('Need to initialize the stimulation !')
+        else:
+            self.statusBar.showMessage('stimulation generation [...]')
+            self.stim.generate(self)
             self.stim.close()
             self.init = False
     

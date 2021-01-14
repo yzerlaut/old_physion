@@ -213,7 +213,13 @@ class visual_stim:
             self.on.draw()
         else:
             self.off.draw()
+
+    def run(self, parent):
+        start = clock.getTime()
+        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+            index = int((clock.getTime()-start)/self.dt)
             
+        
     #####################################################
     # showing a single static pattern
     def single_static_patterns_presentation(self, parent, index):
