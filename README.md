@@ -1,6 +1,6 @@
-# Physiology of visual circuits
+# physion - Vision Physiology
 
-> *Code for experimental setups and analysis pipelines to study cellular and network physiology in sensory cortex*
+> *Code for experimental setups and analysis pipelines to study cellular and network physiology in visual cortical circuits*
 
 ## Modules
 
@@ -12,7 +12,8 @@
 - [Pupil tracking](pupil/README.md)
 - [Behavioral monitoring](behavioral_monitoring/README.md) -- forked from [FaceMap](https://github.com/MouseLand/facemap)
 - [Hardware control](hardware_control/README.md)
-- [Analysis and Visualization](analysis/README.md)
+- [Visualization](dataviz/README.md)
+- [Analysis](analysis/README.md)
 
 ## How do I get set up ?
 
