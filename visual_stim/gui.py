@@ -8,7 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import create_day_folder, generate_filename_path
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
-from psychopy_code.stimuli import build_stim
+from stimuli import build_stim
 from default_params import STIMULI, PRESENTATIONS, SETUP
 from guiparts import *
 
@@ -32,7 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["i) Initialize", "g) Generate", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.generate, self.run, self.stop, self.quit]
-        button_length = 130
+        button_length = 110
         
         self.setWindowTitle('Visual Stimulation Program')
         self.setGeometry(100, 100, int(1.01*button_length*len(LABELS)), 320)
@@ -40,35 +40,35 @@ class MainWindow(QtWidgets.QMainWindow):
         # protocol change
         label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)
         label1.setMinimumWidth(320)
-        label1.move(150, 50)
+        label1.move(180, 50)
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.addItems(['']+PRESENTATIONS)
         self.cbp.currentIndexChanged.connect(self.change_protocol)
-        self.cbp.setMinimumWidth(250)
+        self.cbp.setMinimumWidth(450)
         self.cbp.move(70, 80)
 
         # stimulus pick
         label2 = QtWidgets.QLabel("   /|===> Stimulus <===|\\", self)
         label2.setMinimumWidth(330)
-        label2.move(150, 110)
+        label2.move(180, 110)
         self.cbs = QtWidgets.QComboBox(self)
         self.cbs.addItems(['']+list(STIMULI.keys()))
         self.cbs.currentIndexChanged.connect(self.change_stimulus)
-        self.cbs.setMinimumWidth(250)
+        self.cbs.setMinimumWidth(450)
         self.cbs.move(70, 140)
 
         # setup pick
         label3 = QtWidgets.QLabel("     /|===>  Setup  <===|\\", self)
         label3.setMinimumWidth(320)
-        label3.move(150, 170)
+        label3.move(180, 170)
         self.cbst = QtWidgets.QComboBox(self)
         self.cbst.addItems(SETUP)
         self.cbst.currentIndexChanged.connect(self.change_setup)
-        self.cbst.setMinimumWidth(250)
+        self.cbst.setMinimumWidth(450)
         self.cbst.move(70, 200)
 
         mainMenu = self.menuBar()
-        self.fileMenu = mainMenu.addMenu('&File')
+        self.fileMenu = mainMenu.addMenu('&')
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(button_length)
-            btn.move(shift, 20)
+            btn.move(shift, 15)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
@@ -88,11 +88,11 @@ class MainWindow(QtWidgets.QMainWindow):
         LABELS = ["o) Load Protocol", " Save Protocol", "Set folders"]
         FUNCTIONS = [self.load_protocol, self.save_protocol, self.set_folders]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
-                                            150*np.arange(len(LABELS)), [150, 150, 100]):
+                                            50+170*np.arange(len(LABELS)), [160, 160, 130]):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(size)
-            btn.move(shift, 250)
+            btn.move(shift, 260)
             action = QtWidgets.QAction(label, self)
             if len(label.split(')'))>0:
                 action.setShortcut(label.split(')')[0])
@@ -179,6 +179,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
+            self.protocol['filename'] = filename
             self.datafolder = self.protocol['data-folder']
             self.protocol_folder = self.protocol['protocol-folder']
             self.setup = self.protocol['Setup']
