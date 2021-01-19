@@ -53,8 +53,9 @@ class MainWindow(guiparts.NewWindow):
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        self.time, self.roiIndices = 0, None
+        self.time, self.roiIndices = 0, []
         self.CaImaging_bg_key = 'meanImg'
+        self.CaImaging_key = 'Fluorescence'
         self.check_data_folder()
         
         self.minView = False
@@ -75,6 +76,7 @@ class MainWindow(guiparts.NewWindow):
         # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
         filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
         self.load_file(filename)
+        print(self.nwbfile.processing['ophys']['Fluorescence'].roi_response_series['Fluorescence'].data.shape)
         plots.raw_data_plot(self, self.tzoom)
 
     def try_to_find_time_extents(self):
@@ -83,7 +85,8 @@ class MainWindow(guiparts.NewWindow):
             for key in self.nwbfile.acquisition:
                 try:
                     self.tlim = [self.nwbfile.acquisition[key].starting_time,
-                                 self.nwbfile.acquisition[key].starting_time+self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                                 self.nwbfile.acquisition[key].starting_time+\
+                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
                 except BaseException as be:
                     pass
         if self.tlim is None:
@@ -112,33 +115,43 @@ class MainWindow(guiparts.NewWindow):
         self.pPupil.clear()
         self.pPupilimg.clear()
         self.roiIndices = None
-        
-    def select_ROI(self):
-        
-        if self.roiPick.text() in ['sum', 'all']:
-            self.roiIndices = np.arange(len(self.iscell))[self.iscell]
-        elif len(self.roiPick.text().split('-'))>1:
+
+
+    def select_ROI_from_pick(self, cls=None):
+
+        if cls is None:
+            cls = self # so that 
+
+        if cls.roiPick.text() in ['sum', 'all']:
+            roiIndices = np.arange(len(self.iscell))[self.iscell]
+        elif len(cls.roiPick.text().split('-'))>1:
             try:
-                self.roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
+                roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
             except BaseException as be:
                 print(be)
-                self.roiIndices = None
-        elif len(self.roiPick.text().split(','))>1:
+                roiIndices = None
+        elif len(cls.roiPick.text().split(','))>1:
             try:
-                self.roiIndices = [int(ii) for ii in self.roiPick.text().split(',')]
+                roiIndices = [int(ii) for ii in cls.roiPick.text().split(',')]
             except BaseException as be:
                 print(be)
-                self.roiIndices = None
-        elif len(self.roiPick.text().split('-'))>1:
+                roiIndices = None
+        elif len(cls.roiPick.text().split('-'))>1:
             print('not implemented yet !')
-            self.roiIndices = None
+            roiIndices = []
         else:
             try:
-                self.roiIndices = [np.arange(len(self.iscell))[self.iscell][int(self.roiPick.text())]]
+                roiIndices = [np.arange(len(self.iscell))[self.iscell][int(cls.roiPick.text())]]
             except BaseException as be:
                 print(be)
-                self.roiIndices = None
+                roiIndices = []
 
+        return roiIndices
+    
+        
+    def select_ROI(self):
+        """ see select ROI above """
+        self.roiIndices = self.select_ROI_from_pick()
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
     def keyword_update(self):
@@ -169,8 +182,8 @@ class MainWindow(guiparts.NewWindow):
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
         
-
         if 'ophys' in self.nwbfile.processing:
+            self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
             self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
 
         if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
@@ -385,6 +398,7 @@ class MainWindow(guiparts.NewWindow):
     def quit(self):
         self.io.close()
         sys.exit()
+
 
 def run(app, args=None, parent=None,
         raw_data_visualization=False):
