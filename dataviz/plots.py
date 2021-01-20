@@ -59,7 +59,10 @@ def raw_data_plot(self, tzoom,
         
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Photodiode-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Photodiode-Signal'])-1
-        isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        if self.no_subsampling:
+            isampling = np.arange(i1, i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
@@ -82,7 +85,10 @@ def raw_data_plot(self, tzoom,
         
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Running-Speed'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Running-Speed'])-1
-        isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        if self.no_subsampling:
+            isampling = np.arange(i1, i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Running-Speed'].data[isampling], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y,
@@ -147,23 +153,19 @@ def raw_data_plot(self, tzoom,
     #     y = shift(self, 2)+np.zeros(2)
     #     self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
 
-
     # ## -------- Electrophy --------- ##
-    # pen = pg.mkPen(color=self.settings['colors']['Electrophy'])
-    # if self.Electrophy is not None:
-    #     cond = (self.Electrophy.t>=tzoom[0]) & (self.Electrophy.t<=tzoom[1])
-    #     isampling = max([1,int(len(self.Electrophy.t[cond])/self.settings['Npoints'])])
-    #     y = scale_and_position(self, self.Electrophy.val[cond][::isampling], i=iplot)
-    #     iplot+=1
-    #     if plot_update:
-    #         self.plot.plot(self.Electrophy.t[cond][::isampling], y, pen=pen)
-    #     if with_scatter:
-    #         itime = np.argmin((self.Electrophy.t[cond]-self.time)**2)
-    #         val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=iplot)
-    #         scatter.append((self.Electrophy.t[cond][itime], val))
-    # else:
-    #     y = shift(self,3)+np.zeros(2)
-    #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
+    if ('Electrophysiological-Signal' in self.nwbfile.acquisition):
+        i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Electrophysiological-Signal'])+1
+        i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Electrophysiological-Signal'])-1
+        if self.no_subsampling:
+            isampling = np.arange(i1, i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        y = scale_and_position(self,self.nwbfile.acquisition['Electrophysiological-Signal'].data[isampling], i=iplot)
+        iplot+=1
+        self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Electrophysiological-Signal']), y,
+                       pen=pg.mkPen(color=self.settings['colors']['Electrophy']))
+
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])

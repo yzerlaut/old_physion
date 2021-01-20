@@ -38,6 +38,7 @@ class MainWindow(guiparts.NewWindow):
         self.app = app
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
+        self.no_subsampling = False
         
         super(MainWindow, self).__init__(i=0,
             title='Data Visualization -- Physiology of Visual Circuits')
@@ -76,8 +77,9 @@ class MainWindow(guiparts.NewWindow):
         
         # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
         filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
+        filename = os.path.join('D:', '2021_01_20', '16-42-18', '2021_01_20-16-42-18.FULL.nwb')
         self.load_file(filename)
-        print(self.nwbfile.processing['ophys']['Fluorescence'].roi_response_series['Fluorescence'].data.shape)
+        print(self.nwbfile.acquisition)
         plots.raw_data_plot(self, self.tzoom)
 
     def try_to_find_time_extents(self):
@@ -162,8 +164,12 @@ class MainWindow(guiparts.NewWindow):
 
         if self.guiKeywords.text() in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
             self.CaImaging_bg_key = self.guiKeywords.text()
+        elif self.guiKeywords.text()=='no_subsampling':
+            self.no_subsampling = True
+        elif self.guiKeywords.text()=='subsampling':
+            self.no_subsampling = False
         else:
-            self.statusBar.setText('  /!\ keyword not recognized /!\ ')
+            self.statusBar.setText('  /!\ keyword "%s" not recognized /!\ ' % self.guiKeywords.text())
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             

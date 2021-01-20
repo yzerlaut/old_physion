@@ -46,6 +46,8 @@ class TrialAverageWindow(NewWindow):
         self.qbox = QtWidgets.QComboBox(self)
         if 'Photodiode-Signal' in self.parent.nwbfile.acquisition:
             self.qbox.addItem('Photodiode')
+        if 'Electrophysiological-Signal' in self.parent.nwbfile.acquisition:
+            self.qbox.addItem('Electrophy')
         if 'Running-Speed' in self.parent.nwbfile.acquisition:
             self.qbox.addItem('Running-Speed')
         if 'Pupil' in self.parent.nwbfile.processing:
@@ -145,7 +147,7 @@ class TrialAverageWindow(NewWindow):
             for icol, col_cond in enumerate(COL_CONDS):
                 self.AX[irow].append(self.l.addPlot())
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    cond = col_cond & row_cond & color_cond
+                    cond = np.array(col_cond & row_cond & color_cond)[:len(self.EPISODES[quantity])]
                     pen = pg.mkPen(color=COLORS[icolor], width=2)
                     my = np.array(self.EPISODES[quantity])[cond,:].mean(axis=0)
                     if np.sum(cond)>1:
@@ -237,47 +239,6 @@ class TrialAverageWindow(NewWindow):
         #         self.sqbox.addItem('ROI-%i' % (i+1))
         #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
         #         self.pbox.addItem(k)
-    
-    def update_subquantity(self):
-        pass
-
-def dataset_description(dataset):
-    S = '%s\n\n%s -- %s\n\n' % (dataset.metadata['Stimulus'],
-                                dataset.metadata['day'].replace('_', '/'),
-                                dataset.metadata['time'].replace('-', ':'))
-    KEYS = []
-    for key in dataset.VisualStim:
-        if key not in ['time_start', 'time_stop', 'index']:
-            # print('then this is a parameter of the stimulus')
-            if len(np.unique(dataset.VisualStim[key]))>1:
-                S+='%s=[%s,%s]\n      ---> N-%s = %i' % (key,
-                                                  np.min(dataset.VisualStim[key]),
-                                                  np.max(dataset.VisualStim[key]),
-                                                  key,
-                                                  len(np.unique(dataset.VisualStim[key])))
-                KEYS.append(key)
-            else:
-                S+='%s = %.2f' % (key, dataset.VisualStim[key][0])
-            S+='\n'
-    if 'time_start_realigned' in dataset.metadata:
-        S += 'completed N=%i/%i episodes' %(\
-                       len(dataset.metadata['time_start_realigned']), len(dataset.metadata['time_start']))
-    else:
-        print('"time_start_realigned" not available')
-        print('--> Need to realign data with respect to Visual-Stimulation !!')
-
-    quantities = {}
-    if dataset.Screen is not None:
-        if dataset.Screen.photodiode is not None:
-            quantities['Photodiode'] = {}
-    if dataset.CaImaging is not None:
-        quantities['CaImaging'] = {}
-    if dataset.Locomotion is not None:
-        quantities['Locomotion'] = {}
-    if dataset.Electrophy is not None:
-        quantities['Electrophy'] = {}
-
-    return S, KEYS, quantities
 
 def build_episodes(self,
                    quantity='Locomotion',
@@ -295,24 +256,30 @@ def build_episodes(self,
     idur = int(self.parent.metadata['presentation-duration']/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     EPISODES[quantity] = []
-    if quantity=='Photodiode':
-        tfull = np.arange(self.parent.nwbfile.acquisition['Photodiode-Signal'].data.shape[0])/self.parent.nwbfile.acquisition['Photodiode-Signal'].rate
-        valfull = self.parent.nwbfile.acquisition['Photodiode-Signal'].data
-    elif quantity=='CaImaging':
+    
+    key = None
+    if quantity=='CaImaging':
         if 'CaImaging-TimeSeries' in self.parent.nwbfile.acquisition:
             tfull = self.parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
         else:
             dt = 1./np.self.parent.nwbfile.processing['ophys'].rate
             tfull = np.arange(self.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
-        print(self.parent.iscell[self.parent.roiIndices])
         if len(self.parent.roiIndices)>1:
             valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[np.array(self.parent.roiIndices)], :].mean(axis=0)
         elif len(self.parent.roiIndices)==1:
             valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices[0]], :]
         else:
             valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices], :].sum(axis=0)
+    elif quantity=='Photodiode':
+        key = 'Photodiode-Signal'
+    elif quantity=='Electrophy':
+        key = 'Electrophysiological-Signal'
     else:
         print(quantity, 'not recognized')
+        
+    if key is not None:
+        tfull = np.arange(self.parent.nwbfile.acquisition[key].data.shape[0])/self.parent.nwbfile.acquisition[key].rate
+        valfull = self.parent.nwbfile.acquisition[key].data
     
     for tstart, tstop in zip(self.parent.nwbfile.stimulus['time_start_realigned'].data[:],\
                              self.parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
@@ -320,7 +287,11 @@ def build_episodes(self,
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
-        EPISODES[quantity].append(func(EPISODES['t']))
+        try:
+            EPISODES[quantity].append(func(EPISODES['t']))
+        except ValueError:
+            print(tstart, tstop)
+            pass
             
     print('[ok] episodes ready !')
     return EPISODES

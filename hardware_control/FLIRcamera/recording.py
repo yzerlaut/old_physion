@@ -26,30 +26,28 @@ class CameraAcquisition:
                  root_folder=None,
                  imgs_folder=None,
                  settings={'frame_rate':20.}):
-        
-        self.times, self.frame_index = [], 0
-        if root_folder is not None:
-            self.root_folder = root_folder
-            self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
-        else:
-            self.root_folder = './'
-        if imgs_folder is None:
-            self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
-            Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
-        else:
-            self.imgs_folder = imgs_folder
+
+        try:
+            self.cam = simple_pyspin.Camera()
+            self.cam.init()
+            self.init_camera_settings()
+            self.img = self.cam.get_array()
+            self.success_init = True
+        except BaseException as be:
+            print(be)
+            print('\n /!\ the camera could not be initialized /!\  ')
+            self.success_init = False
+
+            
         self.init_camera(settings)
         self.batch_index = 0
         self.running=False
         
-    def init_camera(self, settings):
+    def init_camera_settings(self, settings):
         
-        self.cam = simple_pyspin.Camera()
-        self.cam.init()
-
         ###
         ## -- SETTINGS through the FlyCap software, easier....
-        
+
         # # Set the area of interest (AOI) to the middle half
         # self.cam.Width = self.cam.SensorWidth // 2
         # self.cam.Height = self.cam.SensorHeight // 2
@@ -80,7 +78,48 @@ class CameraAcquisition:
         print('saving a sample image as:', desktop_png)
         imsave(desktop_png, np.array(self.cam.get_array()))
 
-    def rec(self, duration, stop_flag, camready_flag, t0=None):
+    def frame_generator(self, stop_flag):
+        """
+        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
+        random samples of sin([0, 2pi]).
+        """
+        while (not stop_flag.is_set()):
+            yield self.cam.get_array()
+        return        
+        
+        
+    def rec(self, filename, stop_flag, camready_flag, t0=None):
+
+        data = DataChunkIterator(data=self.frame_generator(stop_flag))
+
+        self.nwbfile = pynwb.NWBFile(identifier=filename,
+                                     session_description='Movie file for stimulus presentation',
+                                     session_start_time=datetime.datetime.now(),
+                                     experiment_description=str(self.protocol),
+                                     experimenter='Yann Zerlaut',
+                                     lab='Bacci and Rebola labs',
+                                     institution='Paris Brain Institute',
+                                     source_script=str(pathlib.Path(__file__).resolve()),
+                                     source_script_file_name=str(pathlib.Path(__file__).resolve()),
+                                     file_create_date=datetime.datetime.today())
+
+        data = DataChunkIterator(data=self.frame_generator())
+        # frame_stimuli = pynwb.TimeSeries(name='visual-stimuli',
+        frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
+                                                data=data,
+                                                unit='NA',
+                                                starting_time=0.,
+                                                rate=refresh_freq)
+        self.nwbfile.add_stimulus(frame_stimuli)
+
+        io = pynwb.NWBHDF5IO(filename, 'w')
+
+        io.write(self.nwbfile)
+        io.close()
+        
+        self.t = time.time()
+        camready_flag.set()
+        
         if t0 is None:
             t0=time.time()
         self.running=True
@@ -113,7 +152,7 @@ class CameraAcquisition:
         
     def rec_and_check(self, run_flag, quit_flag):
         
-        print(self.running)
+
         self.cam.start()
         self.t = time.time()
 
