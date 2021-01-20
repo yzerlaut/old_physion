@@ -107,6 +107,7 @@ class TrialAverageWindow(NewWindow):
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())
+        self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
 
 
     def keyword_update(self):
@@ -115,7 +116,7 @@ class TrialAverageWindow(NewWindow):
         # if self.guiKeywords.text() in ['F', 'meanImgE', 'Vcorr', 'max_proj']:
         #     self.CaImaging_bg_key = self.guiKeywords.text()
         # else:
-        #     self.statusBar.setText('  /!\ keyword not recognized /!\ ')
+        #     self.statusBar.showMessage('  /!\ keyword not recognized /!\ ')
         # plots.raw_data_plot(self, self.tzoom, with_roi=True)
         
 
@@ -126,17 +127,11 @@ class TrialAverageWindow(NewWindow):
         ROW_CONDS = self.build_row_conditions()
         COLOR_CONDS = self.build_color_conditions()
 
-        print(COL_CONDS, ROW_CONDS, COLOR_CONDS)
-        
         if len(COLOR_CONDS)>1:
             COLORS = build_colors_from_array(np.arange(len(COLOR_CONDS)))
         else:
             COLORS = [(255,255,255,255)]
 
-        self.plots.clear()
-        if self.l is not None:
-            self.l.setParent(None)
-            # self.l.deleteLater()
         self.l = self.plots.addLayout(rowspan=len(ROW_CONDS),
                                       colspan=len(COL_CONDS),
                                       border=(0,0,0))
@@ -166,25 +161,29 @@ class TrialAverageWindow(NewWindow):
                     self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
                 if icol>0:
                     self.AX[irow][icol].hideAxis('left')
-                    self.AX[irow][icol].setYLink(AX[irow][0])
+                    self.AX[irow][icol].setYLink(self.AX[irow][0])
             self.l.nextRow()
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 if irow<(len(ROW_CONDS)-1):
                     self.AX[irow][icol].hideAxis('bottom')
-                    self.AX[irow][icol].setXLink(AX[-1][icol])
+                    self.AX[irow][icol].setXLink(self.AX[-1][icol])
         
     def refresh(self):
 
         self.plots.clear()
+        if self.l is not None:
+            self.l.setParent(None) # this is how you remove a layout
+        
         self.quantity = self.qbox.currentText()
-        # if (self.EPISODES is None) or\
-        #    (self.quantity!=self.EPISODES['quantity'])or\
-        #    (self.samplingBox.value()!=self.EPISODES['dt_sampling']):
+        if self.quantity=='CaImaging':
+            self.statusBar.showMessage('rebuilding episodes for "%s" and ROI "%s"' % (self.quantity,\
+                                                                              self.parent.roiIndices))
+        else:
+            self.statusBar.showMessage('rebuilding episodes for "%s"' % self.quantity)
         self.EPISODES = build_episodes(self,
                             quantity=self.quantity,
                             dt_sampling=self.samplingBox.value())
-        print(self.EPISODES)
         self.statusBar.showMessage('-> done !')
         self.plot_row_column_of_quantity(self.quantity)
         
@@ -192,11 +191,10 @@ class TrialAverageWindow(NewWindow):
         if len(K)>0:
             CONDS = []
             XK = np.meshgrid(*X)
-            print(XK)
             for i in range(len(XK[0].flatten())): # looping over joint conditions
                 cond = np.ones(self.parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
                 for k, xk in zip(K, XK):
-                    cond = cond & (self.parent.nwbfile.stimulus[k]==xk.flatten()[i])
+                    cond = cond & (self.parent.nwbfile.stimulus[k].data[:]==xk.flatten()[i])
                 CONDS.append(cond)
             return CONDS
         else:
@@ -207,7 +205,7 @@ class TrialAverageWindow(NewWindow):
         X, K = [], []
         for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('column'))>1:
-                X.append(np.unique(self.parent.nwbfile.stimulus[key]))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -216,7 +214,7 @@ class TrialAverageWindow(NewWindow):
         X, K = [], []
         for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('row'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -224,7 +222,7 @@ class TrialAverageWindow(NewWindow):
         X, K = [], []
         for key in self.parent.keys:
             if len(getattr(self, "c"+key).currentText().split('color'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -306,12 +304,13 @@ def build_episodes(self,
         else:
             dt = 1./np.self.parent.nwbfile.processing['ophys'].rate
             tfull = np.arange(self.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
+        print(self.parent.iscell[self.parent.roiIndices])
         if len(self.parent.roiIndices)>1:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.iscell[self.parent.roiIndices], :].mean(axis=0)
+            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[np.array(self.parent.roiIndices)], :].mean(axis=0)
         elif len(self.parent.roiIndices)==1:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.iscell[self.parent.roiIndices[0]], :]
+            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices[0]], :]
         else:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.iscell[self.parent.roiIndices], :].sum(axis=0)
+            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices], :].sum(axis=0)
     else:
         print(quantity, 'not recognized')
     
