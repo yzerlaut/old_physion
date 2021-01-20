@@ -347,14 +347,18 @@ class MainWindow(QtWidgets.QMainWindow):
         
         if ((self.acq is None) and (self.stim is None)) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
-        elif self.stim is None and self.acq is not None:
+        elif (self.stim is None) and (self.acq is not None) and (self.FaceCamera is not None):
+            # FaceCamera
+            self.FaceCamera.rec(self.filename.replace('metadata.npy',
+                                                      'FaceCamera.nwb'))
             self.acq.launch()
             self.statusBar.showMessage('Acquisition running [...]')
         else:
             self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # FaceCamera
-            if self.acq is not None:
-                self.FaceCamera.rec(filename.replace())
+            if self.FaceCamera is not None:
+                self.FaceCamera.rec(self.filename.replace('metadata.npy',
+                                                          'FaceCamera.nwb'))
             # Ni-Daq
             if self.acq is not None:
                 self.acq.launch()

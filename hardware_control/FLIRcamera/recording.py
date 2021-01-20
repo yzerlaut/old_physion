@@ -1,15 +1,17 @@
 """
 
 """
-import simple_pyspin, time, sys, os
+import simple_pyspin, time, sys, os, datetime
 from skimage.io import imsave
 import numpy as np
+import pynwb
+from hdmf.data_utils import DataChunkIterator
+
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from assembling.saving import last_datafolder_in_dayfolder, day_folder
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-desktop_png = os.path.join(os.path.expanduser("~/Desktop"), 'FaceCamera.png')
 
 class stop_func: # dummy version of the multiprocessing.Event class
     def __init__(self):
@@ -21,16 +23,16 @@ class stop_func: # dummy version of the multiprocessing.Event class
     
 class CameraAcquisition:
 
-    def __init__(self,
-                 folder='./',
-                 root_folder=None,
-                 imgs_folder=None,
+    def __init__(self, stop_flag,
                  settings={'frame_rate':20.}):
 
         try:
+            self.stop = stop_flag
+            print(self.stop.is_set())
             self.cam = simple_pyspin.Camera()
             self.cam.init()
-            self.init_camera_settings()
+            self.init_camera_settings(settings)
+            self.cam.start()
             self.img = self.cam.get_array()
             self.success_init = True
         except BaseException as be:
@@ -38,10 +40,7 @@ class CameraAcquisition:
             print('\n /!\ the camera could not be initialized /!\  ')
             self.success_init = False
 
-            
-        self.init_camera(settings)
-        self.batch_index = 0
-        self.running=False
+        self.times = []
         
     def init_camera_settings(self, settings):
         
@@ -73,181 +72,89 @@ class CameraAcquisition:
         # self.cam.ExposureTime =settings['exposure_time'] # microseconds, ~20% of interframe interval
 
 
-    def save_sample_on_desktop(self):
-        ### SAVING A SAMPLE ON THE DESKTOP
-        print('saving a sample image as:', desktop_png)
-        imsave(desktop_png, np.array(self.cam.get_array()))
-
-    def frame_generator(self, stop_flag):
+    def frame_generator(self, max_frame=100):
         """
-        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
-        random samples of sin([0, 2pi]).
+        ...
         """
-        while (not stop_flag.is_set()):
+        # while (not stop_flag.is_set()):
+        i=0
+        self.times = []
+        while self.stop.is_set() and i<max_frame:
+            i+=1
+            self.times.append(time.time())
             yield self.cam.get_array()
+            if i>10:
+                self.stop.clear()
         return        
         
         
-    def rec(self, filename, stop_flag, camready_flag, t0=None):
-
-        data = DataChunkIterator(data=self.frame_generator(stop_flag))
+    def rec(self, filename):
 
         self.nwbfile = pynwb.NWBFile(identifier=filename,
-                                     session_description='Movie file for stimulus presentation',
+                                     session_description='FaceCamera Acquisition',
                                      session_start_time=datetime.datetime.now(),
-                                     experiment_description=str(self.protocol),
-                                     experimenter='Yann Zerlaut',
-                                     lab='Bacci and Rebola labs',
-                                     institution='Paris Brain Institute',
-                                     source_script=str(pathlib.Path(__file__).resolve()),
-                                     source_script_file_name=str(pathlib.Path(__file__).resolve()),
+                                     source_script=str(Path(__file__).resolve()),
+                                     source_script_file_name=str(Path(__file__).resolve()),
                                      file_create_date=datetime.datetime.today())
 
-        data = DataChunkIterator(data=self.frame_generator())
-        # frame_stimuli = pynwb.TimeSeries(name='visual-stimuli',
-        frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-                                                data=data,
-                                                unit='NA',
-                                                starting_time=0.,
-                                                rate=refresh_freq)
-        self.nwbfile.add_stimulus(frame_stimuli)
+        print(self.stop.is_set())
+        data = DataChunkIterator(data=self.frame_generator(),
+                                 maxshape=(None,self.img.shape[0], self.img.shape[1]),
+                                 dtype=np.dtype(np.uint8))
 
+        images = pynwb.image.ImageSeries(name='FaceCamera',
+                                         data=data,
+                                         unit='NA',
+                                         starting_time=time.time(),
+                                         rate=self.cam.AcquisitionFrameRate)
+        
+        self.nwbfile.add_acquisition(images)
+        print(self.times)
         io = pynwb.NWBHDF5IO(filename, 'w')
-
         io.write(self.nwbfile)
         io.close()
-        
-        self.t = time.time()
-        camready_flag.set()
-        
-        if t0 is None:
-            t0=time.time()
-        self.running=True
-        self.frame_index = 0 # need to reset the index here
-        self.cam.start()
-        self.t = time.time()
-        camready_flag.set()
-        
-        while (not stop_flag.is_set()) and ((self.t-t0)<duration):
-            self.frame_index +=1
-            np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), np.array(self.cam.get_array()))
-            self.t=time.time()
-            self.times.append(self.t)
-            
-        if (self.t-t0)>=duration:
-            print('camera acquisition finished !')
-            self.stop()
-        elif stop_flag.is_set():
-            print('camera acquisition stopped !   (at t=%.2fs)' % self.t)
-            self.stop()
 
-
-    def reinit_rec(self):
-        self.running = True
-        self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
-        self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
-        Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
-        self.times = []
-
-        
-    def rec_and_check(self, run_flag, quit_flag):
-        
-
-        self.cam.start()
-        self.t = time.time()
-
-        self.save_sample_on_desktop()
-        while not quit_flag.is_set():
-            
-            image = self.cam.get_array()
-            
-            if not self.running and run_flag.is_set() : # not running and need to start  !
-                self.reinit_rec()
-                self.save_sample_on_desktop()
-            elif self.running and not run_flag.is_set(): # running and we need to stop
-                self.running=False
-                self.save_times()
-                self.save_sample_on_desktop()
-
-            # after the update
-            if self.running:
-                np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), image)
-                self.frame_index +=1
-                self.t=time.time()
-                self.times.append(self.t)
-
-        self.save_sample_on_desktop()
-        self.save_times()
-
-        
-    def save_times(self, verbose=True):
-        print('[ok] Camera data saved as: ', os.path.join(self.folder, 'FaceCamera-times.npy'))
-        np.save(os.path.join(self.folder, 'FaceCamera-times.npy'), np.array(self.times))
-        if verbose:
-            print('FaceCamera -- effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
-
-    def stop(self):
-        self.running=False
+        # stopping the camera
         self.cam.stop()
-        self.save_times()
+        
+        # adding times
+        io = pynwb.NWBHDF5IO(filename, 'r+')
+        self.nwbfile = io.read()
+        ts = pynwb.TimeSeries(name='frame-timestamps',
+                              data=np.array(self.times),
+                              unit='second',
+                              rate=self.cam.AcquisitionFrameRate)
+        self.nwbfile.add_acquisition(ts)
+        print(np.unique(self.nwbfile.acquisition['FaceCamera'].data))
+        # write the modified NWB file
+        io.write(self.nwbfile)
+        io.close()
 
         
-def camera_init_and_rec(duration, stop_flag, camready_flag, settings={'frame_rate':20.}):
-    camera = CameraAcquisition(folder=folder, settings=settings)
-    camera.rec(duration, stop_flag, camready_flag)
+def launch_FaceCamera(filename, stop_flag,
+                      settings={'frame_rate':20.}):
+    camera = CameraAcquisition(stop_flag, settings=settings)
+    if camera is not None:
+        camera.stop.set()
+        print(camera.stop.is_set())
+        camera.rec(filename)
+    else:
+        print(' /!\ The camera process could NOT be launched /!\ ')
 
-def launch_FaceCamera(run_flag, quit_flag, root_folder, settings={'frame_rate':20.}):
-    camera = CameraAcquisition(root_folder=root_folder, settings=settings)
-    camera.rec_and_check(run_flag, quit_flag)
-    
 if __name__=='__main__':
 
     os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
-    T = 2 # seconds
+    Trun = 2 # seconds
 
     import multiprocessing
         
-    # camera = CameraAcquisition()
-    # stop = stop_func()
-    # camera.rec(T, stop)
-    # stop.set()
-    
-    # stop_event = multiprocessing.Event()
-    # camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event, './'))
-    # camera_process.start()
+    fn = os.path.join(os.path.expanduser('~'), 'DATA', 'frames.nwb')
+    stop = multiprocessing.Event()
 
-    folder = os.path.join(os.path.expanduser('~'), 'DATA')
-    run = multiprocessing.Event()
-    quit_event = multiprocessing.Event()
-    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, folder))
-    run.clear()
+    settings = {'frame_rate':20.}
+    camera_process = multiprocessing.Process(target=launch_FaceCamera,
+                                             args=(fn, stop, settings))
     camera_process.start()
-    time.sleep(3)
-    run.set()
-    time.sleep(10)
-    run.clear()
-    time.sleep(3)
-    quit_event.set()
-    
-    # print(stop_event.is_set())
-    # time.sleep(T/2)
-    # stop_event.set()
-    # print(stop_event.is_set())
-    # time.sleep(T/4)
-    # stop_event.clear()
-    # print(stop_event.is_set())
-    # time.sleep(T/4)
-    # stop_event.set()
-    # print(stop_event.is_set())
-    # camera.stop()
-    folder = last_datafolder_in_dayfolder(day_folder(folder))
-    times = np.load(os.path.join(folder, 'FaceCamera-times.npy'))
-    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(times))))
-    import matplotlib.pylab as plt
-    plt.plot(times, 0*times, '|')
-    plt.show()
-
-    
-    
-
+    time.sleep(Trun)
+    stop.clear()
