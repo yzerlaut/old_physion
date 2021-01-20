@@ -135,8 +135,8 @@ class TrialAverageWindow(NewWindow):
         self.l = self.plots.addLayout(rowspan=len(ROW_CONDS),
                                       colspan=len(COL_CONDS),
                                       border=(0,0,0))
-        self.l.setContentsMargins(2, 2, 2, 2)
-        self.l.layout.setSpacing(1.)            
+        self.l.setContentsMargins(4, 4, 4, 4)
+        self.l.layout.setSpacing(2.)            
 
         # re-adding stuff
         self.AX = []

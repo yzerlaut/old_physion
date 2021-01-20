@@ -47,6 +47,7 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer.timeout.connect(self.next_frame)
         
         guiparts.load_config1(self)
+        self.windowTA, self.windowBM = None, None # sub-windows
 
         if args is not None:
             self.root_datafolder = args.root_datafolder
@@ -123,7 +124,7 @@ class MainWindow(guiparts.NewWindow):
             cls = self # so that 
 
         if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(len(self.iscell))[self.iscell]
+            roiIndices = np.arange(np.sum(self.iscell))
         elif len(cls.roiPick.text().split('-'))>1:
             try:
                 roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
@@ -132,20 +133,23 @@ class MainWindow(guiparts.NewWindow):
                 roiIndices = None
         elif len(cls.roiPick.text().split(','))>1:
             try:
-                roiIndices = [int(ii) for ii in cls.roiPick.text().split(',')]
+                roiIndices = np.array([int(ii) for ii in cls.roiPick.text().split(',')])
             except BaseException as be:
                 print(be)
                 roiIndices = None
-        elif len(cls.roiPick.text().split('-'))>1:
-            print('not implemented yet !')
-            roiIndices = []
         else:
             try:
-                roiIndices = [np.arange(len(self.iscell))[self.iscell][int(cls.roiPick.text())]]
+                i0 = int(cls.roiPick.text())
+                if (i0<0) or (i0>len(self.validROI_indices)):
+                    roiIndices = [0]
+                    self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
+                else:
+                    roiIndices = [i0]
+
             except BaseException as be:
                 print(be)
                 roiIndices = []
-
+                self.statusBar.showMessage(' /!\ Problem in setting indices /!\ ')
         return roiIndices
     
         
@@ -183,9 +187,8 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.setCurrentIndex(1)
         
         if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
-            self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
-
+            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
+            
         if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
             self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
                                       allow_pickle=True).item()
@@ -291,18 +294,19 @@ class MainWindow(guiparts.NewWindow):
         # IMPLEMENT OTHER ANALYSIS HERE
         """
 
-        if self.pbox.currentText()=='-> Trial-average':
-            self.window2 = TrialAverageWindow(parent=self)
-            self.window2.show()
-        if self.pbox.currentText()=='-> Behavioral-modulation':
+        if self.pbox.currentText()=='-> Trial-average' and (self.windowTA is None):
+            self.windowTA = TrialAverageWindow(parent=self)
+            self.windowTA.show()
+        elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
-        elif (self.pbox.currentText()=='-> Show Raw Data') or force:
+        else:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
                                 plot_update=plot_update,
                                 with_images=with_images,
                                 with_scatter=with_scatter)
+        self.pbox.setCurrentIndex(1)
 
 
     def back_to_initial_view(self):
