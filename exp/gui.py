@@ -353,6 +353,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                                       'FaceCamera.nwb'))
             self.acq.launch()
             self.statusBar.showMessage('Acquisition running [...]')
+        elif (self.stim is None) and (self.acq is not None) and (self.FaceCamera is not None):
+            # FaceCamera
+            self.FaceCamera.rec(self.filename.replace('metadata.npy',
+                                                      'FaceCamera.nwb'))
+            self.acq.launch()
+            self.statusBar.showMessage('Acquisition running [...]')
+            
         else:
             self.statusBar.showMessage('Stimulation & Acquisition running [...]')
             # FaceCamera

@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 
 import pynwb
+from hdmf.data_utils import DataChunkIterator
 from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -190,6 +191,8 @@ def build_NWB(args,
     #################################################
     ####         FaceCamera Recording         #######
     #################################################
+
+    
     if metadata['FaceCamera'] and ('raw_FaceCamera' in args.modalities):
         
         if args.verbose:
@@ -201,14 +204,26 @@ def build_NWB(args,
                                       'FaceCamera-times.npy'))
         insure_ordered_FaceCamera_picture_names(args.datafolder)
         FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
-        IMGS = []
-        for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
-            IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
+
+        IMAGES = np.sort(os.listdir(os.path.join(args.datafolder,
+                                                 'FaceCamera-imgs')))
+        img = np.load(os.path.join(args.datafolder,
+                         'FaceCamera-imgs', IMAGES[0]))
+        def frame_generator():
+            for i, fn in enumerate(FILES):
+                yield np.load(os.path.join(args.datafolder,
+                            'FaceCamera-imgs', fn)).astype(np.uint8)
+
+        data = DataChunkIterator(data=frame_generator(),
+            maxshape=(None,self.img.shape[0], self.img.shape[1]),
+            dtype=np.dtype(np.uint8))
+            
         FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
-                                                    data=np.array(IMGS).astype(np.uint8),
+                                                    data=data,
                                                     unit='NA',
-                                                    timestamps=np.array(FaceCamera_times))
+                                timestamps=np.array(FaceCamera_times))
         nwbfile.add_acquisition(FaceCamera_frames)
+
         
     #################################################
     ####    Electrophysiological Recording    #######
