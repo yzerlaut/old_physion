@@ -7,7 +7,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
-    from visual_stim.stimuli import build_stim
+    from visual_stim.psychopy_code.stimuli import build_stim
     from visual_stim.default_params import SETUP
 else:
     SETUP = [None]
@@ -15,7 +15,7 @@ else:
 from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
-    from hardware_control.FLIRcamera.recording import CameraAcquisition
+    from hardware_control.FLIRcamera.recording import launch_FaceCamera
     from hardware_control.LogitechWebcam.preview import launch_RigView
 except ModuleNotFoundError:
     # just to be able to work on the UI without the modules
@@ -47,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
         # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
         self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
-        self.FaceCamera, self.FaceCamera_process = None, None
+        self.FaceCamera_process = None
         self.RigView_process = None
         self.params_window = None
 
@@ -65,7 +65,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ElectrophyButton.move(230, 40)
         self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
         self.FaceCameraButton.move(330, 40)
-        self.FaceCameraButton.activated.connect(self.start_FaceCamera)
         self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
         self.CaImagingButton.move(430, 40)
         for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
@@ -218,12 +217,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def update_subject(self):
         self.subject = self.subjects[self.cbs.currentText()]
-
-    def start_FaceCamera(self):
-        if self.FaceCameraButton.isChecked() and (self.FaceCamera is None):
-            self.FaceCamera = CameraAcquisition()
-        else:
-            self.FaceCamera = None
         
     def init_FaceCamera(self):
         if self.FaceCamera_process is None:
@@ -347,25 +340,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
         if ((self.acq is None) and (self.stim is None)) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
-        elif (self.stim is None) and (self.acq is not None) and (self.FaceCamera is not None):
-            # FaceCamera
-            self.FaceCamera.rec(self.filename.replace('metadata.npy',
-                                                      'FaceCamera.nwb'))
+        elif self.stim is None and self.acq is not None:
             self.acq.launch()
             self.statusBar.showMessage('Acquisition running [...]')
-        elif (self.stim is None) and (self.acq is not None) and (self.FaceCamera is not None):
-            # FaceCamera
-            self.FaceCamera.rec(self.filename.replace('metadata.npy',
-                                                      'FaceCamera.nwb'))
-            self.acq.launch()
-            self.statusBar.showMessage('Acquisition running [...]')
-            
         else:
             self.statusBar.showMessage('Stimulation & Acquisition running [...]')
-            # FaceCamera
-            if self.FaceCamera is not None:
-                self.FaceCamera.rec(self.filename.replace('metadata.npy',
-                                                          'FaceCamera.nwb'))
             # Ni-Daq
             if self.acq is not None:
                 self.acq.launch()
