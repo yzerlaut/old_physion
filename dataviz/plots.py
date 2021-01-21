@@ -194,16 +194,16 @@ def raw_data_plot(self, tzoom,
         i1 = convert_time_to_index(self.tzoom[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(self.tzoom[1], self.Neuropil, axis=1)
         if self.roiPick.text()=='sum':
-            y = scale_and_position(self, self.Fluorescence.data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0), i=iplot)
-            nrnp = scale_and_position(self, self.Fluorescence.data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0),
+            y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0), i=iplot)
+            nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0),
                                       value=self.Neuropil.data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0), i=iplot)
             tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
             self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
             self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, self.Fluorescence.data[self.validROI_indices[ir],i1:i2], i=iplot)+n
-                nrnp = scale_and_position(self, self.Fluorescence.data[self.validROI_indices[ir],i1:i2],
+                y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],i1:i2], i=iplot)+n
+                nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],i1:i2],
                                           value=self.Neuropil.data[self.validROI_indices[ir],i1:i2], i=iplot)+n
                 tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
                 self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))

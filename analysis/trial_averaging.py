@@ -63,7 +63,7 @@ class TrialAverageWindow(NewWindow):
         self.guiKeywords = QtGui.QLineEdit()
         self.guiKeywords.setText('  [GUI keywords]  ')
         self.guiKeywords.setFixedWidth(250)
-        self.guiKeywords.returnPressed.connect(self.keyword_update)
+        self.guiKeywords.returnPressed.connect(self.keyword_update2)
         self.guiKeywords.setFont(smallfont)
         self.Layout12.addWidget(self.guiKeywords)
         
@@ -112,9 +112,9 @@ class TrialAverageWindow(NewWindow):
         self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
 
 
-    def keyword_update(self):
+    def keyword_update2(self):
+        self.keyword_update(string=self.guiKeywords.text(), parent=self.parent)
 
-        print(self.guiKeywords.text())
         # if self.guiKeywords.text() in ['F', 'meanImgE', 'Vcorr', 'max_proj']:
         #     self.CaImaging_bg_key = self.guiKeywords.text()
         # else:

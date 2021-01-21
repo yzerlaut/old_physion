@@ -55,7 +55,7 @@ class MainWindow(guiparts.NewWindow):
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        self.time, self.roiIndices = 0, []
+        self.time, self.io, self.roiIndices, self.tzoom = 0, None, [], [0,50]
         self.CaImaging_bg_key = 'meanImg'
         self.CaImaging_key = 'Fluorescence'
         self.check_data_folder()
@@ -76,11 +76,11 @@ class MainWindow(guiparts.NewWindow):
         # self.display_quantities()
         
         # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
-        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
-        filename = os.path.join('D:', '2021_01_20', '16-42-18', '2021_01_20-16-42-18.FULL.nwb')
-        self.load_file(filename)
-        print(self.nwbfile.acquisition)
-        plots.raw_data_plot(self, self.tzoom)
+        # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
+        # filename = os.path.join('D:', '2021_01_20', '16-42-18', '2021_01_20-16-42-18.FULL.nwb')
+        # self.load_file(filename)
+        # print(self.nwbfile.acquisition)
+        # plots.raw_data_plot(self, self.tzoom)
 
     def try_to_find_time_extents(self):
         self.tlim, safety_counter = None, 0
@@ -106,70 +106,28 @@ class MainWindow(guiparts.NewWindow):
             self.reset()
             self.datafile=filename
             self.load_file(self.datafile)
-            self.display_quantities()
+            plots.raw_data_plot(self, self.tzoom)
         else:
             print('"%s" filename not recognized ! ')
 
+            
     def reset(self):
-        
+        self.windowTA, self.windowBM = None, None # sub-windows
+        self.no_subsampling = False
         self.plot.clear()
         self.pScreenimg.clear()
         self.pFaceimg.clear()
+        self.pCaimg.clear()
         self.pPupil.clear()
         self.pPupilimg.clear()
         self.roiIndices = None
 
 
-    def select_ROI_from_pick(self, cls=None):
-
-        if cls is None:
-            cls = self # so that 
-
-        if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(np.sum(self.iscell))
-        elif len(cls.roiPick.text().split('-'))>1:
-            try:
-                roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
-            except BaseException as be:
-                print(be)
-                roiIndices = None
-        elif len(cls.roiPick.text().split(','))>1:
-            try:
-                roiIndices = np.array([int(ii) for ii in cls.roiPick.text().split(',')])
-            except BaseException as be:
-                print(be)
-                roiIndices = None
-        else:
-            try:
-                i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>len(self.validROI_indices)):
-                    roiIndices = [0]
-                    self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
-                else:
-                    roiIndices = [i0]
-
-            except BaseException as be:
-                print(be)
-                roiIndices = []
-                self.statusBar.showMessage(' /!\ Problem in setting indices /!\ ')
-        return roiIndices
-    
         
     def select_ROI(self):
         """ see select ROI above """
         self.roiIndices = self.select_ROI_from_pick()
-        plots.raw_data_plot(self, self.tzoom, with_roi=True)
-
-    def keyword_update(self):
-
-        if self.guiKeywords.text() in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
-            self.CaImaging_bg_key = self.guiKeywords.text()
-        elif self.guiKeywords.text()=='no_subsampling':
-            self.no_subsampling = True
-        elif self.guiKeywords.text()=='subsampling':
-            self.no_subsampling = False
-        else:
-            self.statusBar.setText('  /!\ keyword "%s" not recognized /!\ ' % self.guiKeywords.text())
+        print(self.roiIndices)
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             
@@ -406,7 +364,8 @@ class MainWindow(guiparts.NewWindow):
         pass
     
     def quit(self):
-        self.io.close()
+        if self.io is not None:
+            self.io.close()
         sys.exit()
 
 

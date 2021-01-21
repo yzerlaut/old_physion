@@ -335,6 +335,57 @@ class NewWindow(QtWidgets.QMainWindow):
         self.showNormal()
         return True
     
+    def select_ROI_from_pick(self, cls=None):
+
+        if cls is None:
+            cls = self # so that 
+
+        if cls.roiPick.text() in ['sum', 'all']:
+            roiIndices = np.arange(np.sum(self.iscell))
+        elif len(cls.roiPick.text().split('-'))>1:
+            try:
+                roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
+            except BaseException as be:
+                print(be)
+                roiIndices = None
+        elif len(cls.roiPick.text().split(','))>1:
+            try:
+                roiIndices = np.array([int(ii) for ii in cls.roiPick.text().split(',')])
+            except BaseException as be:
+                print(be)
+                roiIndices = None
+        else:
+            try:
+                i0 = int(cls.roiPick.text())
+                if (i0<0) or (i0>len(self.validROI_indices)):
+                    roiIndices = [0]
+                    self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
+                else:
+                    roiIndices = [i0]
+
+            except BaseException as be:
+                print(be)
+                roiIndices = []
+                self.statusBar.showMessage(' /!\ Problem in setting indices /!\ ')
+        return roiIndices
+
+    def keyword_update(self, string=None, parent=None):
+
+        if string is None:
+            string = string
+        if parent is None:
+            parent = self
+        if string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
+            parent.CaImaging_bg_key = string
+        elif string=='no_subsampling':
+            parent.no_subsampling = True
+        elif string in ['Fluorescence', 'Neuropil', 'Deconvolved']:
+            parent.CaImaging_key = string
+        elif string=='subsampling':
+            parent.no_subsampling = False
+        else:
+            self.statusBar.setMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
+
     # Layout11 = QtWidgets.QVBoxLayout()
     # Layout1.addLayout(Layout11)
     # create_calendar(self, Layout11)
