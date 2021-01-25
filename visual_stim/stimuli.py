@@ -1,6 +1,6 @@
 from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
 import numpy as np
-import itertools, os, sys, pathlib, subprocess, time, datetime
+import itertools, os, sys, pathlib, subprocess, time, datetime, json
 import pynwb
 from hdmf.data_utils import DataChunkIterator
 from hdmf.backends.hdf5.h5_utils import H5DataIO
@@ -23,7 +23,8 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self,
-                 protocol,
+                 protocol=None,
+                 protocol_file='',
                  screen = {'name':'Lilliput',
                            'screen_id':1,
                            'resolution':[1280, 768],
@@ -31,26 +32,32 @@ class visual_stim:
                            'distance_from_eye':15, # in cm
                            'monitoring_square':{'size':100,
                                                 'location':'bottom-left',
-                                                'on_times':np.concatenate([[0],[0.5],np.arange(1, 1000)]),
+                                                'on_times':np.concatenate([[0],[0.5],np.arange(1, 100)]), # single stimuli won't last too long
                                                 'on_duration':0.2},
                            'gamma_correction':{'k':1.03,
                                                'gamma':1.77}},
-                 movie_refresh_freq = 30.,
                  stimuli_folder=os.path.join(os.path.expanduser('~'), 'DATA', 'STIMULI'),
-                 demo=True):
+                 task='visualize'):
         """
         """
-        
-        self.protocol = protocol
-        if 'filename' not in protocol:
+        if protocol is None:
+            with open(protocol_file, 'r') as fp:
+                self.protocol = json.load(fp)
+        else:
+            self.protocol = protocol
+            
+        if 'filename' not in self.protocol:
             protocol['filename'] = protocol['Stimulus']
         self.screen = screen
         self.screen['shape'] = (self.screen['resolution'][1], self.screen['resolution'][0])
         self.stimuli_folder = stimuli_folder
-        self.io, self.nwbfile = None, None
-        self.movie_refresh_freq = movie_refresh_freq
-        self.demo = demo
-        
+        self.win, self.io, self.nwbfile = None, None, None
+        if task in ['visualize', 'see', 'demo']:
+            self.demo = True
+        else:
+            self.demo = False
+
+    
     def init_presentation(self):
         if self.demo or (self.protocol['Setup']=='demo-mode'):
             self.monitor = monitors.Monitor('testMonitor')
@@ -124,12 +131,17 @@ class visual_stim:
                 self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
                                                      (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
 
+    def write_protocol(self, filename):
+        # to overwrite the protocol with the filename info
+        with open(filename, 'w') as f:
+            json.dump(self.protocol, f, indent=4)
         
     # the close function
     def close(self):
         if self.io is not None:
             self.io.close()
-        self.win.close()
+        if self.win is not None:
+            self.win.close()
 
     def quit(self):
         if self.io is not None:
@@ -137,7 +149,8 @@ class visual_stim:
         core.quit()
 
     def check_movie(self):
-        if ('movie_filename' in self.protocol) and os.path.isfile(self.protocol['movie_filename']):
+        if ('movie_filename' in self.protocol) and\
+           os.path.isfile(os.path.join(self.stimuli_folder, self.protocol['movie_filename'])):
             return True
         else:
             return False
@@ -145,23 +158,24 @@ class visual_stim:
     def preload_movie(self):
 
         if self.check_movie():
-            self.io = pynwb.NWBHDF5IO(self.protocol['movie_filename'], 'r')
+            self.io = pynwb.NWBHDF5IO(os.path.join(self.stimuli_folder, self.protocol['movie_filename']), 'r')
             self.nwbfile = self.io.read()
         else:
-            print(self.protocol['movie_filename'], 'not found')
+            print(self.protocol['movie_filename'], 'not found in ', self.stimuli_folder)
 
-            # blinking in bottom-left corner
             
     def run(self, parent):
         if self.nwbfile is not None:
             start = clock.getTime()
             index, imax = 0, self.nwbfile.stimulus['visual-stimuli'].data.shape[0]
             while index<imax and not parent.stop_flag:
-                frame = visual.ImageStim(self.win, image=self.nwbfile.stimulus['visual-stimuli'].data[index,:,:],
+                frame = visual.ImageStim(self.win,
+                                         image=self.nwbfile.stimulus['visual-stimuli'].data[index,:,:],
                                          units='pix', size=self.win.size)
                 frame.draw()
                 self.win.flip()
                 index = int((clock.getTime()-start)*self.nwbfile.stimulus['visual-stimuli'].rate)
+                print(clock.getTime()-start)
         else:
             print(' Need to generate and preload the nwbfile movie')
             print(' /!\ running not possible ! /!\ ')
@@ -176,12 +190,10 @@ class visual_stim:
         else:
             img[cond] = -1
 
-    def generate_movie(self,
-                       refresh_freq=60.):
+    def generate_movie(self):
 
-        filename = os.path.join(self.stimuli_folder,
-                                self.protocol['filename'].split(os.path.sep)[-1].replace('.json',
-                                '_'+datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')+'.nwb'))
+        filename = self.protocol['filename'].split(os.path.sep)[-1].replace('.json',
+                                    '_'+datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')+'.nwb')
         self.protocol['movie_filename'] = filename
         self.nwbfile = pynwb.NWBFile(identifier=filename,
                                      session_description='Movie file for stimulus presentation',
@@ -195,6 +207,7 @@ class visual_stim:
                                      file_create_date=datetime.datetime.now(pytz.utc))
 
         data = DataChunkIterator(data=self.frame_generator())
+        # WITH COMPRESSION
         # dataC = H5DataIO(data=data,
         #                  compression='gzip',
         #                  compression_opts=4)
@@ -203,14 +216,39 @@ class visual_stim:
                                                 data=data,
                                                 unit='NA',
                                                 starting_time=0.,
-                                                rate=refresh_freq)
+                                                rate=self.protocol['movie_refresh_freq'])
         self.nwbfile.add_stimulus(frame_stimuli)
 
-        io = pynwb.NWBHDF5IO(filename, 'w')
+        io = pynwb.NWBHDF5IO(os.path.join(self.stimuli_folder, filename), 'w')
 
         io.write(self.nwbfile)
         io.close()
+        
 
+    def angle_to_cm(self, value):
+        return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
+    
+    def angle_to_pix(self, value):
+        return self.screen['resolution'][0]/self.screen['width']*\
+            self.angle_to_cm(value)
+
+    def cm_to_angle(self, value):
+        return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
+
+    def pix_to_angle(self, value):
+        return self.cm_to_angle(value/self.screen['resolution'][0]*\
+                                self.screen['width'])
+                
+    def horizontal_angle_to_pixel(self, value):
+        """ 0-angle is the center of the screen"""
+        x0 = int(self.screen['resolution'][0]/2.)
+        return self.angle_to_pix(value)+x0
+    
+    def vertical_angle_to_pixel(self, value):
+        """ 0-angle is the center of the screen"""
+        z0 = int(self.screen['resolution'][1]/2.)
+        return self.angle_to_pix(value)+z0
+    
     def frame_generator(self, nmax=100):
         """
         Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
@@ -219,7 +257,7 @@ class visual_stim:
         x, y = np.meshgrid(np.arange(self.screen['resolution'][0]), np.arange(self.screen['resolution'][1]))
         times = np.linspace(0,3,100)
         # prestim
-        for i in range(int(self.protocol['presentation-prestim-period']*self.movie_refresh_freq)):
+        for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
             yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
         for i, t in enumerate(times):
             img = np.sin(i/10+3.*2.*np.pi*x/self.screen['resolution'][0])
@@ -227,10 +265,10 @@ class visual_stim:
             self.add_monitoring_signal(x, y, img, t, 0)
             yield img
         # interstim
-        for i in range(int(self.protocol['presentation-interstim-period']*self.movie_refresh_freq)):
+        for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
             yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
         # poststim
-        for i in range(int(self.protocol['presentation-poststim-period']*self.movie_refresh_freq)):
+        for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
             yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
         return        
         
@@ -241,36 +279,34 @@ class visual_stim:
 
 class light_level_single_stim(visual_stim):
 
-    def __init__(self, protocol):
+    def __init__(self, protocol, generate=False):
         
         super().__init__(protocol)
-        super().init_experiment(protocol, ['light-level'])
+        if generate:
+            super().init_experiment(protocol, ['light-level'])
         
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-            visual.GratingStim(win=self.win,
-                               size=1000, pos=[0,0], sf=0,
-                               color=self.gamma_corrected_lum(self.experiment['light-level'][i]))])
-
-    def frame_generator(self, nmax=100):
+    def frame_generator(self):
         """
         Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
         random samples of sin([0, 2pi]).
         """
-        # for i in range(len(self.experiment['index'])):
-            # self.PATTERNS.append([\
-            # visual.GratingStim(win=self.win,
-            #                    size=1000, pos=[0,0], sf=0,
-            #                    color=self.gamma_corrected_lum(self.experiment['light-level'][i]))])
-            
         x, y = np.meshgrid(np.arange(self.screen['resolution'][0]), np.arange(self.screen['resolution'][1]))
-        times = np.linspace(0,3,100)
-        for i, t in enumerate(times):
-            img = np.sin(i/10+3.*2.*np.pi*x/self.screen['resolution'][0])
+        # prestim
+        for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
+            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
+        for episode, start in enumerate(self.experiment['time_start']):
+            img = self.experiment['light-level'][episode]+0.*x
             img = self.gamma_corrected_lum(img)
-            self.add_monitoring_signal(x, y, img, t, 0)
-            yield img
+            for i in range(int(self.protocol['presentation-duration']*self.protocol['movie_refresh_freq'])):
+                self.add_monitoring_signal(x, y, img, i/self.protocol['movie_refresh_freq'], 0)
+                yield img
+            if episode<len(self.experiment['time_start'])-1:
+                # adding interstim
+                for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
+                    yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
+        # poststim
+        for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
+            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
         return        
 
             
@@ -585,45 +621,6 @@ class dense_noise(visual_stim):
 
         self.experiment = {'refresh-times':self.STIM['t']}
             
-def build_stim(protocol):
-    """
-    """
-    if (protocol['Stimulus']=='light-level'):
-        return light_level_single_stim(protocol)
-    elif (protocol['Stimulus']=='full-field-grating'):
-        return full_field_grating_stim(protocol)
-    elif (protocol['Stimulus']=='center-grating'):
-        return center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='off-center-grating'):
-        return off_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='surround-grating'):
-        return surround_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-full-field-grating'):
-        return drifting_full_field_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-center-grating'):
-        return drifting_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-off-center-grating'):
-        return drifting_off_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-surround-grating'):
-        return drifting_surround_grating_stim(protocol)
-    elif (protocol['Stimulus']=='Natural-Image'):
-        return natural_image(protocol)
-    elif (protocol['Stimulus']=='Natural-Image+VSE'):
-        return natural_image_vse(protocol)
-    elif (protocol['Stimulus']=='sparse-noise'):
-        if protocol['Presentation']=='Single-Stimulus':
-            return sparse_noise(protocol)
-        else:
-            print('Noise stim have to be done as "Single-Stimulus" !')
-    elif (protocol['Stimulus']=='dense-noise'):
-        if protocol['Presentation']=='Single-Stimulus':
-            return dense_noise(protocol)
-        else:
-            print('Noise stim have to be done as "Single-Stimulus" !')
-    else:
-        print('Protocol not recognized !')
-        return None
-
     
 class dummy_parent:
     def __init__(self):
@@ -631,21 +628,79 @@ class dummy_parent:
 
 if __name__=='__main__':
 
-    import json
-    fn = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
-                      'exp', 'protocols',
-                      'light-levels.json')
-    with open(fn, 'r') as fp:
-        protocol = json.load(fp)
-    protocol['filename'] = fn
-    
-    # stim = light_level_single_stim(protocol)
-    stim = visual_stim(protocol, demo=True)
-    stim.generate_movie()
-    stim.preload_movie()
-    parent = dummy_parent()
-    stim.init_experiment(stim.protocol, ['light-level'])
-    print(stim.experiment)
-    stim.init_presentation()
-    stim.run(parent=parent)
+    import argparse
+    parser=argparse.ArgumentParser(description="Generate visual stimuli",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("protocol_file",
+     default=os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),\
+                          'exp', 'protocols', 'light-levels.json'))
+    parser.add_argument('-t', "--task",\
+        help="""
+        Task to be performed, either:
+        - generate
+        - visualize/see/demo
+        - play
+        - both
+        """, default='see')
+    parser.add_argument('-sf', "--stimuli_folder",
+                        default=os.path.join(os.path.expanduser('~'),
+                                             'DATA', 'STIMULI'))
+    args = parser.parse_args()
+
+    if os.path.isfile(args.protocol_file):
+
+        if args.task in ['generate', 'both']:
+            if protocol['Stimulus']=='light-level':
+                stim = light_level_single_stim(**vars(args))
+            elif (protocol['Stimulus']=='full-field-grating'):
+                stim = full_field_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='center-grating'):
+                stim = center_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='off-center-grating'):
+                stim = off_center_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='surround-grating'):
+                stim = surround_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='drifting-full-field-grating'):
+                stim = drifting_full_field_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='drifting-center-grating'):
+                stim = drifting_center_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='drifting-off-center-grating'):
+                stim = drifting_off_center_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='drifting-surround-grating'):
+                stim = drifting_surround_grating_stim(**vars(args))
+            elif (protocol['Stimulus']=='Natural-Image'):
+                stim = natural_image(**vars(args))
+            elif (protocol['Stimulus']=='Natural-Image+VSE'):
+                stim = natural_image_vse(**vars(args))
+            elif (protocol['Stimulus']=='sparse-noise'):
+                if protocol['Presentation']=='Single-Stimulus':
+                    stim = sparse_noise(**vars(args))
+                else:
+                    print('Noise stim have to be done as "Single-Stimulus" !')
+            elif (protocol['Stimulus']=='dense-noise'):
+                if protocol['Presentation']=='Single-Stimulus':
+                    stim = dense_noise(**vars(args))
+                else:
+                    print('Noise stim have to be done as "Single-Stimulus" !')
+            else:
+                print('Protocol not recognized !')
+                stim = None
+            
+            # common to all protocols
+            if stim is not None:
+                stim.generate_movie()
+                stim.write_protocol(args.protocol_file)
+
+        if args.task in ['visualize', 'see', 'both']:
+            stim = visual_stim(**vars(args))
+            # stim.preload_movie()
+            # parent = dummy_parent()
+            # stim.init_presentation()
+            # stim.run(parent=parent)
+            print(stim.pix_to_angle(1280))
+            print(stim.pix_to_angle(768))
+            
+    else:
+        print('Need to pass a valid ')
+
 

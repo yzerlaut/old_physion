@@ -1,6 +1,7 @@
 import datetime, numpy, os, sys
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
+import numpy as np
 
 smallfont = QtGui.QFont()
 smallfont.setPointSize(7)
