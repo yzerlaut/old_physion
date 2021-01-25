@@ -243,6 +243,19 @@ if __name__=='__main__':
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=tempfile.gettempdir())
+
+    import argparse
+    parser=argparse.ArgumentParser(description="Generate visual stimuli",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-sf', "--stimuli_folder",
+                        default=os.path.join(os.path.expanduser('~'),
+                                             'DATA', 'STIMULI'))
+    parser.add_argument('-sc', "--screen", default='Dell-P2018H')
+    parser.add_argument("--demo", action="store_true")
+    args = parser.parse_args()
+    task = args.task # need to keep track of original value
+    
+    
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(app, args=args)
