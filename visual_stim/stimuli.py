@@ -1,7 +1,7 @@
 from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
 import numpy as np
 import itertools, os, sys, pathlib, subprocess, time, datetime, json
-import pynwb
+import pynwb, time, ast
 from hdmf.data_utils import DataChunkIterator
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from dateutil.tz import tzlocal
@@ -24,6 +24,7 @@ class visual_stim:
     def __init__(self,
                  protocol=None,
                  protocol_file='',
+                 nwbfile=None,
                  screen = 'Lilliput',
                  stimuli_folder=os.path.join(os.path.expanduser('~'), 'DATA', 'STIMULI'),
                  task='visualize',
@@ -31,7 +32,13 @@ class visual_stim:
                  demo=False):
         """
         """
-        if protocol is None:
+        
+        self.win, self.io, self.nwbfile = None, None, None
+        if nwbfile is not None:
+            self.io = pynwb.NWBHDF5IO(nwbfile, 'r')
+            self.nwbfile = self.io.read()
+            self.protocol = ast.literal_eval(self.nwbfile.experiment_description)
+        elif protocol is None:
             with open(protocol_file, 'r') as fp:
                 self.protocol = json.load(fp)
         else:
@@ -43,7 +50,6 @@ class visual_stim:
         self.load_screen(screen)
         
         self.stimuli_folder = stimuli_folder
-        self.win, self.io, self.nwbfile = None, None, None
         self.demo = demo
 
 
@@ -752,17 +758,18 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(description="Generate visual stimuli",
                        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("protocol_file",
-     default=os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),\
-                          'exp', 'protocols', 'light-levels.json'))
+    parser.add_argument("protocol_file", default='')
+     # default=os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),\
+     #                      'exp', 'protocols', 'light-levels.json'))
     parser.add_argument('-t', "--task",\
         help="""
         Task to be performed, either:
         - generate
         - visualize/see/demo
-    - play
+        - play
         - both
         """, default='see')
+    parser.add_argument('-nwb', "--nwbfile", default='')
     parser.add_argument('-sf', "--stimuli_folder",
                         default=os.path.join(os.path.expanduser('~'),
                                              'DATA', 'STIMULI'))
@@ -818,11 +825,15 @@ if __name__=='__main__':
             args.task = 'see'
             stim = visual_stim(**vars(args))
             stim.preload_movie()
-            parent = dummy_parent()
             stim.init_presentation()
             stim.run(parent=parent)
             
-    else:
-        print('Need to pass a valid ')
+    elif args.nwbfile!='':
+        # meaning play
+        stim = visual_stim(**vars(args))
+        stim.init_presentation()
+        parent = dummy_parent()
+        stim.run(parent=parent)
+
 
 

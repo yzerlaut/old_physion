@@ -85,8 +85,8 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        LABELS = ["o) Load Protocol", " Save Protocol", "Set folders"]
-        FUNCTIONS = [self.load_protocol, self.save_protocol, self.set_folders]
+        LABELS = ["o) Load Protocol", "Load .nwb",  "Save Protocol", "Set folders"]
+        FUNCTIONS = [self.load_protocol, self.load_nwb, self.save_protocol, self.set_folders]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
                                             50+170*np.arange(len(LABELS)), [160, 160, 130]):
             btn = QtWidgets.QPushButton(label, self)
@@ -101,7 +101,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.show()
 
-        
     def initialize(self):
         if (self.protocol is None) and (\
            (self.cbp.currentText()=='') or (self.cbs.currentText()=='')):
@@ -174,6 +173,32 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
             
+    def load_nwb(self):
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open stimulation file', self.protocol_folder,"Stimulation files (*.nwb)")
+        try:
+            self.io = pynwb.NWBHDF5IO(filename[0], 'r')
+            self.nwbfile = self.io.read()
+            self.stim = visual_stim(nwbfile=filename[0])
+        #     with open(filename[0], 'r') as fp:
+        #         self.protocol = json.load(fp)
+        #     self.protocol['filename'] = filename
+        #     self.datafolder = self.protocol['data-folder']
+        #     self.protocol_folder = self.protocol['protocol-folder']
+        #     self.setup = self.protocol['Setup']
+        #     # update main window
+        #     s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Setup']
+        #     self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
+        #     self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
+        #     self.cbst.setCurrentIndex(np.argwhere(s3==np.array(SETUP))[0][0])
+        #     self.statusBar.showMessage('successfully loaded "%s"' % filename[0])
+        #     # draw params window
+        #     self.params_window = draw_window(self, self.protocol)
+        #     # self.params_window = draw_window(self, self.protocol)
+        #     self.params_window.show()
+        except FileNotFoundError:
+            self.statusBar.showMessage('NWB file "%s" not found !' % filename[0])
+
+        
     def load_protocol(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', self.protocol_folder,"Protocol files (*.json)")
         try:
