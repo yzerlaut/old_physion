@@ -203,50 +203,54 @@ class visual_stim:
 
         data = DataChunkIterator(data=self.frame_generator())
         # WITH COMPRESSION
-        # dataC = H5DataIO(data=data,
-        #                  compression='gzip',
-        #                  compression_opts=4)
+        dataC = H5DataIO(data=data,
+                         compression='gzip',
+                         compression_opts=4)
         frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-                                                # data=dataC, # putting compressed data
-                                                data=data,
+                                                data=dataC, # putting compressed data
+                                                # data=data, # IN CASE UNCOMPRESSED
                                                 unit='NA',
                                                 starting_time=0.,
                                                 rate=self.protocol['movie_refresh_freq'])
         self.nwbfile.add_stimulus(frame_stimuli)
         for key in self.experiment:
             vsp = pynwb.TimeSeries(name=key,
-                                   data = self.VisualStimProp[key],
+                                   data = self.experiment[key],
                                    unit='NA',
                                    timestamps=self.experiment['time_start'])
-            nwbfile.add_stimulus(vsp)
+            self.nwbfile.add_stimulus(vsp)
 
         io = pynwb.NWBHDF5IO(os.path.join(self.stimuli_folder, self.protocol['movie_filename']), 'w')
 
         io.write(self.nwbfile)
         io.close()
 
-    def cm_to_angle(self, value):
-        return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
-    
-    def pix_to_angle(self, value):
-        return self.cm_to_angle(value/self.screen['resolution'][0]*\
-                                self.screen['width'])
-
-    
-    def angle_meshgrid(self):
-        x = np.linspace(self.cm_to_angle(-self.screen['width']/2.),
-                        self.cm_to_angle(self.screen['width']/2.),
-                        self.screen['resolution'][0])
-        z = np.linspace(self.cm_to_angle(-self.screen['height']/2.),
-                        self.cm_to_angle(self.screen['height']/2.),
-                        self.screen['resolution'][1])
-        return np.meshgrid(x, z)
-
     def pixel_meshgrid(self):
         return np.meshgrid(np.arange(self.screen['resolution'][0]),
                            np.arange(self.screen['resolution'][1]))
-
     
+    def cm_to_angle(self, value):
+        return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
+    
+    def horizontal_pix_to_angle(self, value):
+        # centered in 0
+        return self.cm_to_angle((value-self.screen['resolution'][0]/2.)/self.screen['resolution'][0]*self.screen['width'])
+
+    def vertical_pix_to_angle(self, value):
+        # centered in 0
+        return self.cm_to_angle((value-self.screen['resolution'][1]/2.)/self.screen['resolution'][0]*self.screen['width'])
+    
+    
+    # def angle_meshgrid(self):
+    #     x = np.linspace(self.cm_to_angle(-self.screen['width']/2.),
+    #                     self.cm_to_angle(self.screen['width']/2.),
+    #                     self.screen['resolution'][0])
+    #     z = np.linspace(self.cm_to_angle(-self.screen['height']/2.),
+    #                     self.cm_to_angle(self.screen['height']/2.),
+    #                     self.screen['resolution'][1])
+    #     return np.meshgrid(x, z)
+
+
     # def angle_to_cm(self, value):
     #     return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
     
@@ -254,16 +258,15 @@ class visual_stim:
     #     return self.screen['resolution'][0]/self.screen['width']*\
     #         self.angle_to_cm(value)
 
-                
     # def horizontal_angle_to_pixel(self, value):
     #     """ 0-angle is the center of the screen"""
     #     x0 = int(self.screen['resolution'][0]/2.)
-    #     return self.angle_to_pix(value)+x0
+    #     return self.angle_to_pix(value).astype(np.int)+x0
     
     # def vertical_angle_to_pixel(self, value):
     #     """ 0-angle is the center of the screen"""
     #     z0 = int(self.screen['resolution'][1]/2.)
-    #     return self.angle_to_pix(value)+z0
+    #     return self.angle_to_pix(value).astype(np.int)+z0
     
     def frame_generator(self, nmax=100):
         print('  /!\ Should be implemented in the child class !! /!\ ')
@@ -289,7 +292,7 @@ class light_level_single_stim(visual_stim):
         x, y = self.pixel_meshgrid()
         # prestim
         for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-prestim-screen']-1)
         for episode, start in enumerate(self.experiment['time_start']):
             img = self.experiment['light-level'][episode]+0.*x
             img = self.gamma_corrected_lum(img)
@@ -299,10 +302,10 @@ class light_level_single_stim(visual_stim):
             if episode<len(self.experiment['time_start'])-1:
                 # adding interstim
                 for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
-                    yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
+                    yield np.ones(x.shape)*(2*self.protocol['presentation-interstim-screen']-1)
         # poststim
         for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-poststim-screen']-1)
         return        
 
             
@@ -324,10 +327,10 @@ class full_field_grating_stim(visual_stim):
         random samples of sin([0, 2pi]).
         """
         xp, zp = self.pixel_meshgrid()
-        x, z = self.angle_meshgrid()
+        x, z = self.horizontal_pix_to_angle(xp), self.vertical_pix_to_angle(zp)
         # prestim
         for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-prestim-screen']-1)
         for episode, start in enumerate(self.experiment['time_start']):
             angle = self.experiment['angle'][episode]
             spatial_freq = self.experiment['spatial-freq'][episode]
@@ -341,10 +344,10 @@ class full_field_grating_stim(visual_stim):
             if episode<len(self.experiment['time_start'])-1:
                 # adding interstim
                 for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
-                    yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
+                    yield np.ones(x.shape)*(2*self.protocol['presentation-interstim-screen']-1)
         # poststim
         for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-poststim-screen']-1)
         return        
 
             
@@ -362,10 +365,12 @@ class drifting_full_field_grating_stim(visual_stim):
         random samples of sin([0, 2pi]).
         """
         xp, zp = self.pixel_meshgrid()
-        x, z = self.angle_meshgrid()
+        x = self.horizontal_pix_to_angle(xp)
+        z = self.vertical_pix_to_angle(zp)
+
         # prestim
         for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-prestim-screen']-1)
         for episode, start in enumerate(self.experiment['time_start']):
             angle = self.experiment['angle'][episode]
             spatial_freq = self.experiment['spatial-freq'][episode]
@@ -380,10 +385,10 @@ class drifting_full_field_grating_stim(visual_stim):
             if episode<len(self.experiment['time_start'])-1:
                 # adding interstim
                 for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
-                    yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
+                    yield np.ones(x.shape)*(2*self.protocol['presentation-interstim-screen']-1)
         # poststim
         for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-poststim-screen']-1)
         return        
             
 #####################################################
@@ -404,32 +409,33 @@ class center_grating_stim(visual_stim):
         random samples of sin([0, 2pi]).
         """
         xp, zp = self.pixel_meshgrid()
-        x, z = self.angle_meshgrid()
+        x, z = self.horizontal_pix_to_angle(xp), self.vertical_pix_to_angle(zp)
         # prestim
         for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-prestim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-prestim-screen']-1)
         for episode, start in enumerate(self.experiment['time_start']):
             angle = self.experiment['angle'][episode]
             spatial_freq = self.experiment['spatial-freq'][episode]
             contrast = self.experiment['contrast'][episode]
-            xcenter, zcenter = self.experiment['x-center'][episode], self.experiment['y-center'][episode]
+            xcenter, zcenter = self.experiment['x-center'][episode],\
+                self.experiment['y-center'][episode]
             radius = self.experiment['radius'][episode]
             bg_color = self.experiment['bg-color'][episode]
             x_rot = x*np.cos(angle/180.*np.pi)+z*np.sin(angle/180.*np.pi)
-            circle_cond = (((x.flatten()-xcenter)**2+(z.flatten()-zcenter)**2)<=radius**2)
-            img = (2*bg_color-1)*np.ones(self.screen['shape']).flatten()
+            circle_cond = ((x-xcenter)**2+(z-zcenter)**2<radius**2)
+            img = (2*bg_color-1)*np.ones(x.shape)
             img[circle_cond] = np.cos(2*np.pi*spatial_freq*x_rot[circle_cond])
-            img = self.gamma_corrected_lum(img0).reshape(self.screen['shape'])
+            img = self.gamma_corrected_lum(img)
             for i in range(int(self.protocol['presentation-duration']*self.protocol['movie_refresh_freq'])):
                 self.add_monitoring_signal(xp, zp, img, i/self.protocol['movie_refresh_freq'], 0)
                 yield img
             if episode<len(self.experiment['time_start'])-1:
                 # adding interstim
                 for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
-                    yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-interstim-screen']-1)
+                    yield np.ones(x.shape)*(2*self.protocol['presentation-interstim-screen']-1)
         # poststim
         for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
-            yield np.ones(self.screen['shape'])*(2*self.protocol['presentation-poststim-screen']-1)
+            yield np.ones(x.shape)*(2*self.protocol['presentation-poststim-screen']-1)
         return        
 
             
@@ -616,7 +622,9 @@ class natural_image_vse(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol, ['Image-ID', 'VSE-seed', 'mean-saccade-duration', 'std-saccade-duration'])
+        super().init_experiment(protocol,
+                                ['Image-ID', 'VSE-seed',
+                                 'mean-saccade-duration', 'std-saccade-duration'])
 
         print(self.experiment)
         self.VSEs = [] # array of Virtual-Scene-Exploration
@@ -648,6 +656,51 @@ class natural_image_vse(visual_stim):
                                                           units='pix', size=self.win.size))
             
     
+#####################################################
+##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
+#####################################################
+
+class gaussian_blobs(visual_stim):
+    
+    def __init__(self, **args):
+        
+        super().__init__(**args)
+        if self.task=='generate':
+            super().init_experiment(self.protocol, ['x-center', 'y-center',
+                                                    'radius','center-time',
+                                                    'extent-time', 'contrast', 'bg-color'])
+        
+    def frame_generator(self):
+        """
+        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
+        random samples of sin([0, 2pi]).
+        """
+        xp, zp = self.pixel_meshgrid()
+        x, z = self.horizontal_pix_to_angle(xp), self.vertical_pix_to_angle(zp)
+        # prestim
+        for i in range(int(self.protocol['presentation-prestim-period']*self.protocol['movie_refresh_freq'])):
+            yield np.ones(x.shape)*(2*self.protocol['presentation-prestim-screen']-1)
+        for episode, start in enumerate(self.experiment['time_start']):
+            t0, sT = self.experiment['center-time'][episode], self.experiment['extent-time'][episode]
+            contrast = self.experiment['contrast'][episode]
+            xcenter, zcenter = self.experiment['x-center'][episode],\
+                self.experiment['y-center'][episode]
+            radius = self.experiment['radius'][episode]
+            bg_color = self.experiment['bg-color'][episode]
+            for i in range(int(self.protocol['presentation-duration']*self.protocol['movie_refresh_freq'])):
+                img = 2*(np.exp(-((x-xcenter)**2+(z-zcenter)**2)/2./radius**2)*\
+                    contrast*np.exp(-(i/self.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
+                img = self.gamma_corrected_lum(img)
+                self.add_monitoring_signal(xp, zp, img, i/self.protocol['movie_refresh_freq'], 0)
+                yield img
+            if episode<len(self.experiment['time_start'])-1:
+                # adding interstim
+                for i in range(int(self.protocol['presentation-interstim-period']*self.protocol['movie_refresh_freq'])):
+                    yield np.ones(x.shape)*(2*self.protocol['presentation-interstim-screen']-1)
+        # poststim
+        for i in range(int(self.protocol['presentation-poststim-period']*self.protocol['movie_refresh_freq'])):
+            yield np.ones(x.shape)*(2*self.protocol['presentation-poststim-screen']-1)
+        return        
 
 #####################################################
 ##  ----    PRESENTING BINARY NOISE         --- #####
@@ -746,15 +799,11 @@ if __name__=='__main__':
             elif (args.protocol['Stimulus']=='Natural-Image+VSE'):
                 stim = natural_image_vse(**vars(args))
             elif (args.protocol['Stimulus']=='sparse-noise'):
-                if args.protocol['Presentation']=='Single-Stimulus':
-                    stim = sparse_noise(**vars(args))
-                else:
-                    print('Noise stim have to be done as "Single-Stimulus" !')
-            elif (args.protocol['Stimulus']=='dense-noise'):
-                if args.protocol['Presentation']=='Single-Stimulus':
-                    stim = dense_noise(**vars(args))
-                else:
-                    print('Noise stim have to be done as "Single-Stimulus" !')
+                stim = sparse_noise(**vars(args))
+            elif (args.protocol['Stimulus']=='sparse-noise'):
+                stim = sparse_noise(**vars(args))
+            elif (args.protocol['Stimulus']=='gaussian-blobs'):
+                stim = gaussian_blobs(**vars(args))
             else:
                 print('Protocol not recognized !')
                 stim = None
