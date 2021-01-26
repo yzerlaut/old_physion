@@ -4,6 +4,7 @@ import numpy as np
 
 import pynwb
 from hdmf.data_utils import DataChunkIterator
+from hdmf.backends.hdf5.h5_utils import H5DataIO
 from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -199,48 +200,32 @@ def build_NWB(args,
             print('=> Storing FaceCamera acquisition [...]')
         if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
             print(' /!\ No FaceCamera metadata found /!\ ')
-# <<<<<<< HEAD
-#         else:
-#             FaceCamera_times = np.load(os.path.join(args.datafolder,
-#                                           'FaceCamera-times.npy'))
-#             insure_ordered_FaceCamera_picture_names(args.datafolder)
-#             FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
-#             IMGS = []
-#             for fn in np.sort(os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))):
-#                 IMGS.append(np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', fn)))
-#             FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
-#                                                         data=np.array(IMGS).astype(np.uint8),
-#                                                         unit='NA',
-#                                                         timestamps=np.array(FaceCamera_times))
-#             nwbfile.add_acquisition(FaceCamera_frames)
-# =======
-            print('   -----> Not able to build NWB file')
-        FaceCamera_times = np.load(os.path.join(args.datafolder,
-                                      'FaceCamera-times.npy'))
-        insure_ordered_FaceCamera_picture_names(args.datafolder)
-        FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+        else:
+            FaceCamera_times = np.load(os.path.join(args.datafolder,
+                                          'FaceCamera-times.npy'))
+            insure_ordered_FaceCamera_picture_names(args.datafolder)
+            FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
 
-        IMAGES = np.sort(os.listdir(os.path.join(args.datafolder,
-                                                 'FaceCamera-imgs')))
-        img = np.load(os.path.join(args.datafolder,
-                         'FaceCamera-imgs', IMAGES[0]))
-        def frame_generator():
-            for i, fn in enumerate(FILES):
-                yield np.load(os.path.join(args.datafolder,
-                            'FaceCamera-imgs', fn)).astype(np.uint8)
+            IMAGES = np.sort(os.listdir(os.path.join(args.datafolder,
+                                                     'FaceCamera-imgs')))
+            img = np.load(os.path.join(args.datafolder,
+                             'FaceCamera-imgs', IMAGES[0])).astype(np.uint8)
+            def FaceCamera_frame_generator():
+                for fn in IMAGES:
+                    yield np.load(os.path.join(args.datafolder,
+                                'FaceCamera-imgs', fn)).astype(np.uint8)
+            FC_dataI = DataChunkIterator(data=FaceCamera_frame_generator(),
+                                     maxshape=(None,img.shape[0], img.shape[1]),
+                                     dtype=np.dtype(np.uint8))
+            FC_dataC = H5DataIO(data=FC_dataI, # with COMPRESSION
+                                compression='gzip',
+                                compression_opts=args.compression)
+            FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
+                                                        data=FC_dataC,
+                                                        unit='NA',
+                                    timestamps=np.array(FaceCamera_times))
+            nwbfile.add_acquisition(FaceCamera_frames)
 
-        data = DataChunkIterator(data=frame_generator(),
-            maxshape=(None,self.img.shape[0], self.img.shape[1]),
-            dtype=np.dtype(np.uint8))
-            
-        FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
-                                                    data=data,
-                                                    unit='NA',
-                                timestamps=np.array(FaceCamera_times))
-        nwbfile.add_acquisition(FaceCamera_frames)
-
-# >>>>>>> 165d72d35bc04343d8e9ad82d76741416d94ceaf
-        
     #################################################
     ####    Electrophysiological Recording    #######
     #################################################
@@ -300,13 +285,24 @@ def build_NWB(args,
                                  Lx=int(xml['settings']['pixelsPerLine']),
                                  read_filename=os.path.join(Ca_subfolder, 'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                             Ca_Imaging_options['Suite2P-binary-filename']))
+
+            def Ca_frame_generator():
+                for i in range(Ca_data.shape[0]):
+                    yield Ca_data.data[i, :, :].astype(np.uint16)
+
+            Ca_dataI = DataChunkIterator(data=Ca_frame_generator(),
+                                         maxshape=(None, Ca_data.shape[1], Ca_data.shape[2]),
+                                         dtype=np.dtype(np.uint8))
+            Ca_dataC = H5DataIO(data=Ca_dataI, # with COMPRESSION
+                                compression='gzip',
+                                compression_opts=args.compression)
             image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                        dimension=[2],
-                                                       data = Ca_data.data[:].astype(np.uint16),
+                                                       # data = Ca_data.data[:].astype(np.uint16),
+                                                       data = Ca_dataC,
                                                        imaging_plane=imaging_plane,
                                                        unit='s',
                                                        timestamps = CaImaging_timestamps)
-            Ca_data.close()
         else:
             image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                        dimension=[2],
@@ -314,6 +310,7 @@ def build_NWB(args,
                                                        imaging_plane=imaging_plane,
                                                        unit='s',
                                                        timestamps = np.arange(2))
+            Ca_data = None
         nwbfile.add_acquisition(image_series)
 
         if ('processed_CaImaging' in args.modalities) and os.path.isdir(os.path.join(Ca_subfolder, 'suite2p')):
@@ -325,7 +322,6 @@ def build_NWB(args,
                                               image_series=image_series)
         elif ('processed_CaImaging' in args.modalities):
             print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % Ca_subfolder)
-
 
     #################################################
     ####         Writing NWB file             #######
@@ -348,6 +344,9 @@ def build_NWB(args,
     io.close()
     print('---> done !')
     
+    if Ca_data is not None:
+        Ca_data.close()
+
     return filename
     
 if __name__=='__main__':
@@ -356,6 +355,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="""
     Building NWB file from mutlimodal experimental recordings
     """,formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-c', "--compression", type=int, default=4, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
     parser.add_argument('-df', "--datafolder", type=str, default='')
     parser.add_argument('-rf', "--root_datafolder", type=str, default='')
     parser.add_argument('-m', "--modalities", nargs='*', type=str, default=ALL_MODALITIES)
