@@ -8,7 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import create_day_folder, generate_filename_path
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
-from stimuli import build_stim
+from stimuli import visual_stim
 from default_params import STIMULI, PRESENTATIONS, SETUP
 from guiparts import *
 
@@ -109,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('[...] preparing stimulation')
             self.protocol = extract_params_from_window(self)
-            self.stim = build_stim(self.protocol)
+            self.stim = visual_stim(self.protocol)
             # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
             self.statusBar.showMessage('stimulation ready !')
             self.init = True
@@ -236,27 +236,18 @@ def run(app, args=None, parent=None):
     return MainWindow(app, args=args, parent=parent)
     
 if __name__=='__main__':
-    import tempfile
-
-    import argparse, os
-    parser=argparse.ArgumentParser(description="Experiment interface",
+    import tempfile, argparse, os
+    parser=argparse.ArgumentParser(description="Generate visual stimuli",
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=tempfile.gettempdir())
-
-    import argparse
-    parser=argparse.ArgumentParser(description="Generate visual stimuli",
-                       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-sf', "--stimuli_folder",
                         default=os.path.join(os.path.expanduser('~'),
                                              'DATA', 'STIMULI'))
     parser.add_argument('-sc', "--screen", default='Dell-P2018H')
     parser.add_argument("--demo", action="store_true")
     args = parser.parse_args()
-    task = args.task # need to keep track of original value
     
-    
-    args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(app, args=args)
     sys.exit(app.exec_())
