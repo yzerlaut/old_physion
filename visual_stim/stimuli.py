@@ -213,6 +213,12 @@ class visual_stim:
                                                 starting_time=0.,
                                                 rate=self.protocol['movie_refresh_freq'])
         self.nwbfile.add_stimulus(frame_stimuli)
+        for key in self.experiment:
+            vsp = pynwb.TimeSeries(name=key,
+                                   data = self.VisualStimProp[key],
+                                   unit='NA',
+                                   timestamps=self.experiment['time_start'])
+            nwbfile.add_stimulus(vsp)
 
         io = pynwb.NWBHDF5IO(os.path.join(self.stimuli_folder, self.protocol['movie_filename']), 'w')
 
@@ -411,8 +417,8 @@ class center_grating_stim(visual_stim):
             bg_color = self.experiment['bg-color'][episode]
             x_rot = x*np.cos(angle/180.*np.pi)+z*np.sin(angle/180.*np.pi)
             circle_cond = (((x.flatten()-xcenter)**2+(z.flatten()-zcenter)**2)<=radius**2)
-            img0 = (2*bg_color-1)*np.ones(self.screen['shape']).flatten()
-            img0[circle_cond] = np.cos(2*np.pi*spatial_freq*x_rot.flatten()[circle_cond])
+            img = (2*bg_color-1)*np.ones(self.screen['shape']).flatten()
+            img[circle_cond] = np.cos(2*np.pi*spatial_freq*x_rot[circle_cond])
             img = self.gamma_corrected_lum(img0).reshape(self.screen['shape'])
             for i in range(int(self.protocol['presentation-duration']*self.protocol['movie_refresh_freq'])):
                 self.add_monitoring_signal(xp, zp, img, i/self.protocol['movie_refresh_freq'], 0)
@@ -752,7 +758,7 @@ if __name__=='__main__':
             else:
                 print('Protocol not recognized !')
                 stim = None
-            
+
             # common to all protocols
             if stim is not None:
                 stim.generate_movie()
