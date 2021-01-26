@@ -7,7 +7,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
-    from visual_stim.psychopy_code.stimuli import build_stim
+    from visual_stim.stimuli import build_stim
     from visual_stim.default_params import SETUP
 else:
     SETUP = [None]

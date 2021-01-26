@@ -38,6 +38,7 @@ class MainWindow(guiparts.NewWindow):
         self.app = app
         self.settings = settings
         self.raw_data_visualization = raw_data_visualization
+        self.no_subsampling = False
         
         super(MainWindow, self).__init__(i=0,
             title='Data Visualization -- Physiology of Visual Circuits')
@@ -47,14 +48,16 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer.timeout.connect(self.next_frame)
         
         guiparts.load_config1(self)
+        self.windowTA, self.windowBM = None, None # sub-windows
 
         if args is not None:
             self.root_datafolder = args.root_datafolder
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        self.time, self.roiIndices = 0, None
+        self.time, self.io, self.roiIndices, self.tzoom = 0, None, [], [0,50]
         self.CaImaging_bg_key = 'meanImg'
+        self.CaImaging_key = 'Fluorescence'
         self.check_data_folder()
         
         self.minView = False
@@ -73,9 +76,11 @@ class MainWindow(guiparts.NewWindow):
         # self.display_quantities()
         
         # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
-        filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
-        self.load_file(filename)
-        plots.raw_data_plot(self, self.tzoom)
+        # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
+        # filename = os.path.join('D:', '2021_01_20', '16-42-18', '2021_01_20-16-42-18.FULL.nwb')
+        # self.load_file(filename)
+        # print(self.nwbfile.acquisition)
+        # plots.raw_data_plot(self, self.tzoom)
 
     def try_to_find_time_extents(self):
         self.tlim, safety_counter = None, 0
@@ -83,7 +88,8 @@ class MainWindow(guiparts.NewWindow):
             for key in self.nwbfile.acquisition:
                 try:
                     self.tlim = [self.nwbfile.acquisition[key].starting_time,
-                                 self.nwbfile.acquisition[key].starting_time+self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                                 self.nwbfile.acquisition[key].starting_time+\
+                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
                 except BaseException as be:
                     pass
         if self.tlim is None:
@@ -100,53 +106,28 @@ class MainWindow(guiparts.NewWindow):
             self.reset()
             self.datafile=filename
             self.load_file(self.datafile)
-            self.display_quantities()
+            plots.raw_data_plot(self, self.tzoom)
         else:
             print('"%s" filename not recognized ! ')
 
+            
     def reset(self):
-        
+        self.windowTA, self.windowBM = None, None # sub-windows
+        self.no_subsampling = False
         self.plot.clear()
         self.pScreenimg.clear()
         self.pFaceimg.clear()
+        self.pCaimg.clear()
         self.pPupil.clear()
         self.pPupilimg.clear()
         self.roiIndices = None
+
+
         
     def select_ROI(self):
-        
-        if self.roiPick.text() in ['sum', 'all']:
-            self.roiIndices = np.arange(len(self.iscell))[self.iscell]
-        elif len(self.roiPick.text().split('-'))>1:
-            try:
-                self.roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
-            except BaseException as be:
-                print(be)
-                self.roiIndices = None
-        elif len(self.roiPick.text().split(','))>1:
-            try:
-                self.roiIndices = [int(ii) for ii in self.roiPick.text().split(',')]
-            except BaseException as be:
-                print(be)
-                self.roiIndices = None
-        elif len(self.roiPick.text().split('-'))>1:
-            print('not implemented yet !')
-            self.roiIndices = None
-        else:
-            try:
-                self.roiIndices = [np.arange(len(self.iscell))[self.iscell][int(self.roiPick.text())]]
-            except BaseException as be:
-                print(be)
-                self.roiIndices = None
-
-        plots.raw_data_plot(self, self.tzoom, with_roi=True)
-
-    def keyword_update(self):
-
-        if self.guiKeywords.text() in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
-            self.CaImaging_bg_key = self.guiKeywords.text()
-        else:
-            self.statusBar.setText('  /!\ keyword not recognized /!\ ')
+        """ see select ROI above """
+        self.roiIndices = self.select_ROI_from_pick()
+        print(self.roiIndices)
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             
@@ -169,10 +150,9 @@ class MainWindow(guiparts.NewWindow):
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
         
-
         if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText('e.g. "all" / "sum" / "28" / "3-24" / "3,4,7"   [select ROI] ')
-
+            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
+            
         if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
             self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
                                       allow_pickle=True).item()
@@ -278,18 +258,19 @@ class MainWindow(guiparts.NewWindow):
         # IMPLEMENT OTHER ANALYSIS HERE
         """
 
-        if self.pbox.currentText()=='-> Trial-average':
-            self.window2 = TrialAverageWindow(parent=self)
-            self.window2.show()
-        if self.pbox.currentText()=='-> Behavioral-modulation':
+        if self.pbox.currentText()=='-> Trial-average' and (self.windowTA is None):
+            self.windowTA = TrialAverageWindow(parent=self)
+            self.windowTA.show()
+        elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
-        elif (self.pbox.currentText()=='-> Show Raw Data') or force:
+        else:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
                                 plot_update=plot_update,
                                 with_images=with_images,
                                 with_scatter=with_scatter)
+        self.pbox.setCurrentIndex(1)
 
 
     def back_to_initial_view(self):
@@ -383,8 +364,10 @@ class MainWindow(guiparts.NewWindow):
         pass
     
     def quit(self):
-        self.io.close()
+        if self.io is not None:
+            self.io.close()
         sys.exit()
+
 
 def run(app, args=None, parent=None,
         raw_data_visualization=False):
