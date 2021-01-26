@@ -28,6 +28,7 @@ def compute_locomotion(binary_signal, acq_freq=1e4,
                                                 smoothing=int(speed_smoothing*acq_freq))
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']        
+LIGHT_MODALITIES = ['processed_CaImaging',  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']        
 
 def build_NWB(args,
               Ca_Imaging_options={'Suite2P-binary-filename':'data.bin',
@@ -289,20 +290,28 @@ def build_NWB(args,
             def Ca_frame_generator():
                 for i in range(Ca_data.shape[0]):
                     yield Ca_data.data[i, :, :].astype(np.uint16)
-
             Ca_dataI = DataChunkIterator(data=Ca_frame_generator(),
                                          maxshape=(None, Ca_data.shape[1], Ca_data.shape[2]),
                                          dtype=np.dtype(np.uint8))
-            Ca_dataC = H5DataIO(data=Ca_dataI, # with COMPRESSION
-                                compression='gzip',
-                                compression_opts=args.compression)
-            image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
-                                                       dimension=[2],
-                                                       # data = Ca_data.data[:].astype(np.uint16),
-                                                       data = Ca_dataC,
-                                                       imaging_plane=imaging_plane,
-                                                       unit='s',
-                                                       timestamps = CaImaging_timestamps)
+            if args.compression>0:
+                Ca_dataC = H5DataIO(data=Ca_dataI, # with COMPRESSION
+                                    compression='gzip',
+                                    compression_opts=args.compression)
+                image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
+                                                           dimension=[2],
+                                                           data = Ca_dataC,
+                                                           imaging_plane=imaging_plane,
+                                                           unit='s',
+                                                           timestamps = CaImaging_timestamps)
+            else:
+                image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
+                                                           dimension=[2],
+                                                           data = Ca_dataI,
+                                                           # data = Ca_data.data[:].astype(np.uint16),
+                                                           # data = Ca_data.data[:].astype(np.uint16),
+                                                           imaging_plane=imaging_plane,
+                                                           unit='s',
+                                                           timestamps = CaImaging_timestamps)
         else:
             image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                        dimension=[2],
@@ -355,7 +364,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="""
     Building NWB file from mutlimodal experimental recordings
     """,formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', "--compression", type=int, default=4, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
+    parser.add_argument('-c', "--compression", type=int, default=0, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
     parser.add_argument('-df', "--datafolder", type=str, default='')
     parser.add_argument('-rf', "--root_datafolder", type=str, default='')
     parser.add_argument('-m', "--modalities", nargs='*', type=str, default=ALL_MODALITIES)
@@ -369,6 +378,9 @@ if __name__=='__main__':
     if not args.silent:
         args.verbose = True
 
+    if args.export=='LIGHTWEIGHT':
+        args.modalities = LIGHT_MODALITIES
+        
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):
             if args.datafolder[-1]==os.path.sep:
@@ -376,3 +388,11 @@ if __name__=='__main__':
             build_NWB(args)
         else:
             print('"%s" not a valid datafolder' % args.datafolder)
+    elif args.root_datafolder!='':
+        FOLDERS = [l for l in os.listdir(args.root_datafolder) if len(l)==8]
+        for f in FOLDERS:
+            args.datafolder = os.path.join(args.root_datafolder, f)
+            try:
+                build_NWB(args)
+            except BaseException as e:
+                print(e)
