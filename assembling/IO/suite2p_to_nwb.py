@@ -89,16 +89,16 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile,
     ncells_all = 0
     for iplane, ops in enumerate(ops1):
         if iplane==0:
-            iscell = np.load(os.path.join(ops['save_path'], 'iscell.npy'))
+            iscell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy'))
             for fstr in file_strs:
-                traces.append(np.load(os.path.join(ops['save_path'], fstr)))
+                traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)))
         else:
-            iscell = np.append(iscell, np.load(os.path.join(ops['save_path'], 'iscell.npy')), axis=0)
+            iscell = np.append(iscell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')), axis=0)
             for i,fstr in enumerate(file_strs):
                 traces[i] = np.append(traces[i], 
-                                    np.load(os.path.join(ops['save_path'], fstr)), axis=0) 
+                                    np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)), axis=0) 
 
-        stat = np.load(os.path.join(ops['save_path'], 'stat.npy'), allow_pickle=True)
+        stat = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'stat.npy'), allow_pickle=True)
         ncells = len(stat)
         for n in range(ncells):
             if multiplane:
