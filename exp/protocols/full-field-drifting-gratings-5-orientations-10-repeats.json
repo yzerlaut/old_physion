@@ -24,6 +24,7 @@
   "contrast-1": 1.0,
   "contrast-2": 1.0,
   "N-contrast": 0,
-  "data-folder": "/home/yann/work/cortical-physio-icm/exp/protocols",
-  "protocol-folder": "/home/yann/work/cortical-physio-icm/exp/protocols"
+  "movie_refresh_freq": 15.0,
+  "protocol-folder": "/home/yann/work/cortical-physio-icm/visual_stim/protocols",
+  "filename": "full-field-drifting-gratings-5-orientations-10-repeats.json"
 }
