@@ -24,7 +24,7 @@ class visual_stim:
     def __init__(self,
                  protocol=None,
                  protocol_file='',
-                 nwbfile=None,
+                 nwbfile='',
                  screen = 'Lilliput',
                  stimuli_folder=os.path.join(os.path.expanduser('~'), 'DATA', 'STIMULI'),
                  task='visualize',
@@ -34,7 +34,7 @@ class visual_stim:
         """
         
         self.win, self.io, self.nwbfile = None, None, None
-        if nwbfile is not None:
+        if nwbfile!='':
             self.io = pynwb.NWBHDF5IO(nwbfile, 'r')
             self.nwbfile = self.io.read()
             self.protocol = ast.literal_eval(self.nwbfile.experiment_description)
@@ -50,7 +50,7 @@ class visual_stim:
         self.load_screen(screen)
         
         self.stimuli_folder = stimuli_folder
-        self.demo = demo
+        self.demo, self.compression = demo, compression
 
 
     def load_screen(self, screen):
@@ -212,7 +212,7 @@ class visual_stim:
         # WITH COMPRESSION
         dataC = H5DataIO(data=data,
                          compression='gzip',
-                         compression_opts=compression)
+                         compression_opts=self.compression)
         frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
                                                 data=dataC, # putting compressed data
                                                 # data=data, # IN CASE UNCOMPRESSED
@@ -769,6 +769,8 @@ if __name__=='__main__':
         - play
         - both
         """, default='see')
+    parser.add_argument('-c', "--compression", type=int,
+                        default=0, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
     parser.add_argument('-nwb', "--nwbfile", default='')
     parser.add_argument('-sf', "--stimuli_folder",
                         default=os.path.join(os.path.expanduser('~'),
