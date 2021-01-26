@@ -259,11 +259,11 @@ def build_episodes(self,
     
     key = None
     if quantity=='CaImaging':
-        if 'CaImaging-TimeSeries' in self.parent.nwbfile.acquisition:
+        if 'CaImaging-TimeSeries' in self.parent.nwbfile.acquisition and len(self.parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps)>2:
             tfull = self.parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
         else:
-            dt = 1./np.self.parent.nwbfile.processing['ophys'].rate
-            tfull = np.arange(self.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
+            dt = 1./self.parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].rate
+            tfull = np.arange(self.parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
         if len(self.parent.roiIndices)>1:
             valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[np.array(self.parent.roiIndices)], :].mean(axis=0)
         elif len(self.parent.roiIndices)==1:
@@ -285,8 +285,10 @@ def build_episodes(self,
                              self.parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
 
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
+        print(tfull, valfull, cond)
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
+        
         try:
             EPISODES[quantity].append(func(EPISODES['t']))
         except ValueError:
