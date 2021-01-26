@@ -27,6 +27,7 @@ class visual_stim:
                  screen = 'Lilliput',
                  stimuli_folder=os.path.join(os.path.expanduser('~'), 'DATA', 'STIMULI'),
                  task='visualize',
+                 compression=0,
                  demo=False):
         """
         """
@@ -184,7 +185,7 @@ class visual_stim:
         else:
             img[cond] = -1
 
-    def generate_movie(self):
+    def generate_movie(self, compression=0):
 
         filename = self.protocol['filename'].split(os.path.sep)[-1].replace('.json',
                                     '_'+datetime.datetime.today().strftime('%Y-%m-%d-%H-%M-%S')+'.nwb')
@@ -205,7 +206,7 @@ class visual_stim:
         # WITH COMPRESSION
         dataC = H5DataIO(data=data,
                          compression='gzip',
-                         compression_opts=4)
+                         compression_opts=compression)
         frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
                                                 data=dataC, # putting compressed data
                                                 # data=data, # IN CASE UNCOMPRESSED
@@ -759,7 +760,7 @@ if __name__=='__main__':
         Task to be performed, either:
         - generate
         - visualize/see/demo
-        - play
+    - play
         - both
         """, default='see')
     parser.add_argument('-sf', "--stimuli_folder",
