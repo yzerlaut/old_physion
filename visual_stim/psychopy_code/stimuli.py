@@ -58,6 +58,7 @@ def stop_signal(parent):
 class visual_stim:
 
     def __init__(self, protocol,
+                 screen='Lilliput',
                  screen_id = 1,
                  screen_size = np.array([1280, 768]),
                  monitoring_square = {'size':8,
@@ -80,7 +81,7 @@ class visual_stim:
             self.win = visual.Window(screen_size, monitor=self.monitor,
                                      units='deg', color=-1) #create a window
         else:
-            self.monitor = monitors.Monitor('Lilliput')
+            self.monitor = monitors.Monitor(screen)
             self.win = visual.Window(screen_size, monitor=self.monitor,
                                      screen=screen_id, fullscr=True, units='deg', color=-1)
             
@@ -218,8 +219,9 @@ class visual_stim:
     # showing a single static pattern
     def single_static_patterns_presentation(self, parent, index):
         start = clock.getTime()
+        patterns = self.get_patterns(index)
         while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-            for pattern in self.PATTERNS[index]:
+            for pattern in patterns:
                 pattern.draw()
             if (int(1e3*clock.getTime()-1e3*start)<self.Tfull) and\
                (int(1e3*clock.getTime()-1e3*start)%self.Tfull_first<self.Ton):
@@ -254,9 +256,10 @@ class visual_stim:
     # showing a single dynamic pattern with a phase advance
     def single_dynamic_gratings_presentation(self, parent, index):
         start, prev_t = clock.getTime(), clock.getTime()
+        patterns = self.get_patterns(index)
         while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
             new_t = clock.getTime()
-            for pattern in self.PATTERNS[index]:
+            for pattern in patterns:
                 pattern.setPhase(self.speed*(new_t-prev_t), '+') # advance phase
                 pattern.draw()
             self.add_monitoring_signal(new_t, start)
@@ -375,6 +378,11 @@ class light_level_single_stim(visual_stim):
                                size=1000, pos=[0,0], sf=0,
                                color=self.gamma_corrected_lum(self.experiment['light-level'][i]))])
             
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0], sf=0,
+                                   color=self.gamma_corrected_lum(self.experiment['light-level'][index]))]
+            
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
 #####################################################
@@ -385,15 +393,13 @@ class full_field_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0],
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
-
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0],
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
+                                 
             
 class drifting_full_field_grating_stim(visual_stim):
 
@@ -401,14 +407,12 @@ class drifting_full_field_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast', 'speed'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0],
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0],
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
         
 #####################################################
@@ -421,15 +425,13 @@ class center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius'][i], mask='circle',
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius'][index], mask='circle',
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
 class drifting_center_grating_stim(visual_stim):
     
@@ -437,16 +439,13 @@ class drifting_center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'])
 
-        print(self.experiment['bg-color'])
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius'][i], mask='circle',
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i]))])
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius'][index], mask='circle',
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
 
 #####################################################
@@ -459,19 +458,18 @@ class off_center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0],
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius'][i],
-                                                     mask='circle', sf=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
+        
+    def get_patterns(self, index):
+        return [visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0],
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius'][index],
+                                   mask='circle', sf=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
 
             
 class drifting_off_center_grating_stim(visual_stim):
@@ -480,21 +478,20 @@ class drifting_off_center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color', 'speed'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  # Surround grating
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0],
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
-                                  # + center Mask
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius'][i],
-                                                     mask='circle', sf=0, contrast=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
+    def get_patterns(self, index):
+        return [\
+                # Surround grating
+                visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0],
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
+                # + center Mask
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius'][index],
+                                   mask='circle', sf=0, contrast=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
 
 
 #####################################################
@@ -507,24 +504,24 @@ class surround_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius-start', 'radius-end','spatial-freq', 'angle', 'contrast', 'bg-color'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0], sf=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i])),
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius-end'][i],
-                                                     mask='circle', 
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius-start'][i],
-                                                     mask='circle', sf=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
+    def get_patterns(self, index):
+        return [\
+                visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0], sf=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index])),
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius-end'][index],
+                                   mask='circle', 
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius-start'][index],
+                                   mask='circle', sf=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
+    
 
 class drifting_surround_grating_stim(visual_stim):
 
@@ -532,24 +529,23 @@ class drifting_surround_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius-start', 'radius-end','spatial-freq', 'angle', 'contrast', 'bg-color', 'speed'])
 
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-                                  visual.GratingStim(win=self.win,
-                                                     size=1000, pos=[0,0], sf=0,contrast=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i])),
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius-end'][i],
-                                                     mask='circle', 
-                                                     sf=self.experiment['spatial-freq'][i],
-                                                     ori=self.experiment['angle'][i],
-                                                     contrast=self.gamma_corrected_contrast(self.experiment['contrast'][i])),
-                                  visual.GratingStim(win=self.win,
-                                                     pos=[self.experiment['x-center'][i], self.experiment['y-center'][i]],
-                                                     size=self.experiment['radius-start'][i],
-                                                     mask='circle', sf=0,contrast=0,
-                                                     color=self.gamma_corrected_lum(self.experiment['bg-color'][i]))])
+    def get_patterns(self, index):
+        return [\
+                visual.GratingStim(win=self.win,
+                                   size=1000, pos=[0,0], sf=0,contrast=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index])),
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius-end'][index],
+                                   mask='circle', 
+                                   sf=self.experiment['spatial-freq'][index],
+                                   ori=self.experiment['angle'][index],
+                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
+                visual.GratingStim(win=self.win,
+                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
+                                   size=self.experiment['radius-start'][index],
+                                   mask='circle', sf=0,contrast=0,
+                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
         
 
 #####################################################

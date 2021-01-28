@@ -169,7 +169,6 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
-            self.datafolder = self.protocol['data-folder']
             self.protocol_folder = self.protocol['protocol-folder']
             self.setup = self.protocol['Setup']
             # update main window

@@ -7,7 +7,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
-    from visual_stim.stimuli import visual_stim
+    from visual_stim.psychopy_code.stimuli import build_stim
     from visual_stim.default_params import SETUP
 else:
     SETUP = [None]
@@ -286,7 +286,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
-            self.stim = visual_stim(self.protocol)
+            self.stim = build_stim(self.protocol)
             # np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
