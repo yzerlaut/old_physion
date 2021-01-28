@@ -1,6 +1,6 @@
 from psychopy import visual, core, clock, monitors #import some libraries from PsychoPy
 import numpy as np
-import sys, pathlib, pynwb
+import sys, pathlib
 from preprocess_NI import *
 
 SCREEN = [int(16/9.*600),600]
@@ -150,31 +150,6 @@ if sys.argv[-1]=='drifting-grating':
     mywin.close()
     core.quit()
 
-if sys.argv[-1]=='sparse-noise':
-
-    from noise import build_sparse_noise
-    import time
-    
-    monitor = monitors.Monitor('testMonitor')
-    win = visual.Window((400,200), monitor=monitor,
-                        units='deg', color=-1) #create a window
-    
-    start = time.time()
-    STIM = build_sparse_noise(200, monitor)
-    print('array intialization: %.1f s' % (time.time()-start))
-
-    start = time.time()
-    PATTERNS = []
-    for i in range(STIM['array'].shape[0]):
-        PATTERNS.append([visual.ImageStim(win,
-                                          image=STIM['array'][0,:,:].T,
-                                          units='pix')])
-    print('loading into psychopy: %.1f s' % (time.time()-start))
-    
-    # from datavyz import ge
-    # ge.image(STIM['array'][0,:,:])
-    # ge.show()
-    
 if sys.argv[-1]=='dense-noise':
 
     from noise import build_dense_noise
