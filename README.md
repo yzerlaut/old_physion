@@ -58,6 +58,16 @@ python main.py
 You can now pick the specific module that you want to use.
 
 
+It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.
+
+## Preparing protocols and configuring experiments
+
+Go to the individual modules for the details about the settings of protocols:
+- [Visual stimulation](visual_stim/README.md)
+- [Electrophysiology](electrophy/README.md)
+- [Calcium imaging](Ca-imaging/README.md)
+- [Behavioral monitoring](behavioral_monitoring/README.md)
+
 ## Pre-processing data (alignement, pre-processing, ... )
 
 The master program to pre-process datafiles is launched with:

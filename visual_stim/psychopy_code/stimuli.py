@@ -3,7 +3,8 @@ import numpy as np
 import itertools, os, sys, pathlib, subprocess, time
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from psychopy_code.noise import build_sparse_noise, build_dense_noise
+from screens import SCREENS
+from psychopy_code.noise import sparse_noise_generator, build_dense_noise
 from psychopy_code.preprocess_NI import load, img_after_hist_normalization
 
 def build_stim(protocol):
@@ -73,6 +74,7 @@ class visual_stim:
         """
         self.protocol = protocol
         self.monitoring_square = monitoring_square
+        self.screen = screen
         # gamma_correction
         self.k, self.gamma = gamma_correction['k'], gamma_correction['gamma']
         
@@ -207,10 +209,17 @@ class visual_stim:
 
             # blinking in bottom-left corner
     def add_monitoring_signal(self, new_t, start):
-        if (int(1e3*new_t-1e3*start)<self.Tfull) and\
-           (int(1e3*new_t-1e3*start)%self.Tfull_first<self.Ton):
+        """ Pulses of length Ton at the times : [0, 0.5, 1, 2, 3, 4, ...] """
+        if (int(1e3*new_t-1e3*start)<self.Tfull) and (int(1e3*new_t-1e3*start)%self.Tfull_first<self.Ton):
             self.on.draw()
         elif int(1e3*new_t-1e3*start)%self.Tfull<self.Ton:
+            self.on.draw()
+        else:
+            self.off.draw()
+
+    def add_monitoring_signal_sp(self, new_t, start):
+        """ Single pulse monitoring signal (see array_run) """
+        if (int(1e3*new_t-1e3*start)<self.Ton):
             self.on.draw()
         else:
             self.off.draw()
@@ -319,34 +328,66 @@ class visual_stim:
         
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
-    def array_run(self, parent):
-        # start screen
-        self.start_screen(parent)
-        # stimulation
-        start, prev_t = clock.getTime(), clock.getTime()
-        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-            if stop_signal(parent):
-                break
-            new_t = clock.getTime()
-            try:
-                it = np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))).flatten()[0]
-                pattern = visual.ImageStim(self.win,
-                                           image=self.gamma_corrected_lum(self.STIM['array'][it,:,:].T),
-                                           units='pix', size=self.win.size)
-                pattern.draw()
-                
-            except BaseException as e:
-                print('time not matching')
-                print(np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))))
-            self.add_monitoring_signal(new_t, start)
-            prev_t = new_t
+    def single_array_presentation(self, parent, index):
+        pattern = visual.ImageStim(self.win,
+                                   image=self.gamma_corrected_lum(self.get_frame(index)),
+                                   units='pix', size=self.win.size)
+        start = clock.getTime()
+        while ((clock.getTime()-start)<(self.experiment['time_stop'][index]-\
+                                        self.experiment['time_start'][index])) and not parent.stop_flag:
+            pattern.draw()
+            self.add_monitoring_signal_sp(clock.getTime(), start)
             try:
                 self.win.flip()
             except AttributeError:
                 pass
+        # self.win.getMovieFrame() # we store the last frame
+
+    def array_run(self, parent):
+        self.start_screen(parent)
+        for i in range(len(self.experiment['time_start'])):
+            if stop_signal(parent):
+                break
+            print('Running frame of index %i/%i' % (i+1, len(self.experiment['time_start'])))
+            self.single_array_presentation(parent, i)
+            if self.protocol['Presentation']!='Single-Stimulus':
+                self.inter_screen(parent)
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
+        # self.win.saveMovieFrames(os.path.join(parent.datafolder,
+        #                                       'screen-frames', 'frame.tiff'))
+        
+    # #####################################################
+    # # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
+    # def array_run(self, parent):
+    #     # start screen
+    #     self.start_screen(parent)
+    #     # stimulation
+    #     start, prev_t = clock.getTime(), clock.getTime()
+    #     while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+    #         if stop_signal(parent):
+    #             break
+    #         new_t = clock.getTime()
+    #         try:
+    #             it = np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))).flatten()[0]
+    #             pattern = visual.ImageStim(self.win,
+    #                                        image=self.gamma_corrected_lum(self.STIM['array'][it,:,:].T),
+    #                                        units='pix', size=self.win.size)
+    #             pattern.draw()
+                
+    #         except BaseException as e:
+    #             print('time not matching')
+    #             print(np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))))
+    #         self.add_monitoring_signal(new_t, start)
+    #         prev_t = new_t
+    #         try:
+    #             self.win.flip()
+    #         except AttributeError:
+    #             pass
+    #     self.end_screen(parent)
+    #     if not parent.stop_flag:
+    #         parent.statusBar.showMessage('stimulation over !')
 
             
     ## FINAL RUN FUNCTION
@@ -654,15 +695,20 @@ class sparse_noise(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol,
             ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'])
+
+        self.noise_gen = sparse_noise_generator(duration=protocol['presentation-duration'],
+                                                screen=SCREENS[self.screen],
+                                                square_size=protocol['square-size (deg)'],
+                                                noise_mean_refresh_time=protocol['mean-refresh-time (s)'],
+                                                noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
+                                                seed=protocol['noise-seed (#)'])
+
+        print(self.Ton, self.Toff)
+        self.experiment['time_start'] = self.noise_gen.events[:-1]
+        self.experiment['time_stop'] = self.noise_gen.events[:-1]+self.noise_gen.durations
         
-        self.STIM = build_sparse_noise(protocol['presentation-duration'],
-                                       self.monitor,
-                                       square_size=protocol['square-size (deg)'],
-                                       noise_mean_refresh_time=protocol['mean-refresh-time (s)'],
-                                       noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
-                                       seed=protocol['noise-seed (#)'])
-        
-        self.experiment = {'refresh-times':self.STIM['t']}
+    def get_frame(self, index):
+        return self.noise_gen.get_frame(index)
             
 
 class dense_noise(visual_stim):
