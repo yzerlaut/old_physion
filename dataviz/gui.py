@@ -133,10 +133,7 @@ class MainWindow(guiparts.NewWindow):
             
     def load_file(self, filename):
 
-        
-        self.io = pynwb.NWBHDF5IO(filename, 'r')
-        self.nwbfile = self.io.read()
-        read_NWB(self, verbose=True) # see ../analysis/read_NWB.py
+        read_NWB(self, filename, verbose=True) # see ../analysis/read_NWB.py
         
         self.tzoom = self.tlim
         self.notes.setText(self.description)

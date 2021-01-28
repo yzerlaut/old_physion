@@ -1,4 +1,4 @@
-from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
+import cv2
 import numpy as np
 import itertools, os, sys, pathlib, subprocess, time, datetime, json
 import pynwb, time, ast
