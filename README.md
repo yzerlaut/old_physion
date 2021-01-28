@@ -17,7 +17,6 @@
 
 ## How do I get set up ?
 
-
 #### 1) Get a scientific python distribution
 
 Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
