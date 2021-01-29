@@ -27,7 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                             'protocols')
 
         self.root_datafolder = args.root_datafolder
-        self.datafolder = ''
+        self.datafolder = mp_string('')
         
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         filename = generate_filename_path(self.root_datafolder,
                                           filename='visual-stim', extension='.npz',
                                           with_screen_frames_folder=True)
-        self.datafolder = os.path.dirname(filename)
+        self.datafolder.set(os.path.dirname(filename))
         np.savez(filename, full_exp, allow_pickle=True)
         print('Stimulation data saved as: %s ' % filename)
         self.statusBar.showMessage('Stimulation data saved as: %s ' % filename)
@@ -151,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def save_protocol(self):
         if self.params_window is not None:
             self.protocol = extract_params_from_window(self)
-            self.protocol['data-folder'] = self.datafolder
+            self.protocol['data-folder'] = self.datafolder.get()
             self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file', self.protocol_folder, "Protocol files (*.json)")
@@ -169,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
-            self.protocol_folder = self.protocol['protocol-folder']
+            # self.protocol_folder = self.protocol['protocol-folder']
             self.setup = self.protocol['Setup']
             # update main window
             s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Setup']
@@ -187,8 +187,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_folders(self):
         self.protocol_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
                                                                               "Select Protocol Folder"))
-        self.datafolder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                                          "Select Data Folder"))
+        # self.datafolder = str(QtWidgets.QFileDialog.getExistingDirectory(self,
+        #                                                                   "Select Data Folder"))
+        # self.datafolder
         self.statusBar.showMessage('Protocol folder: "%s", Data folder "%s"' %\
                                    (self.protocol_folder, self.datafolder))
 
@@ -218,11 +219,23 @@ class MainWindow(QtWidgets.QMainWindow):
     #         self.statusBar.showMessage('Results of analysis saved as : '+results_filename)
     #     else:
     #         self.statusBar.showMessage('Need to perform analysis first...')
+
+
+class mp_string:
+    """ 
+    dummy class behaving like: multiprocessing.Manager().manager.Value()
+    """
+    def __init__(self, string=''):
+        self.value = string
+    def get(self):
+        return self.value
+    def set(self, string):
+        self.value = string
     
-        
 def run(app, args=None, parent=None):
     return MainWindow(app, args=args, parent=parent)
-    
+
+
 if __name__=='__main__':
     import tempfile
 

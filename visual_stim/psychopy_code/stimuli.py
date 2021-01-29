@@ -1,4 +1,4 @@
-from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
+from psychopy import visual, core, event, clock, monitors, tools # some libraries from PsychoPy
 import numpy as np
 import itertools, os, sys, pathlib, subprocess, time
  
@@ -58,35 +58,33 @@ def stop_signal(parent):
 
 class visual_stim:
 
-    def __init__(self, protocol,
-                 screen='Lilliput',
-                 screen_id = 1,
-                 screen_size = np.array([1280, 768]),
-                 monitoring_square = {'size':8,
-                                      'x':-24,
-                                      'y':-13.5,
-                                      'color-on':1,
-                                      'color-off':-1,
-                                      'time-on':0.2, 'time-off':0.8},
-                 gamma_correction= {'k':1.03,
-                                    'gamma':1.77}):
+    def __init__(self, protocol):
         """
         """
         self.protocol = protocol
-        self.monitoring_square = monitoring_square
-        self.screen = screen
-        # gamma_correction
-        self.k, self.gamma = gamma_correction['k'], gamma_correction['gamma']
+        if 'screen' not in self.protocol:
+            self.protocol['screen'] = 'Dell-P2018H'
+        self.screen = SCREENS[self.protocol['screen']]
+        print(self.screen)
         
+        self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
+
         if self.protocol['Setup']=='demo-mode':
             self.monitor = monitors.Monitor('testMonitor')
             self.win = visual.Window(screen_size, monitor=self.monitor,
                                      units='deg', color=-1) #create a window
         else:
-            self.monitor = monitors.Monitor(screen)
-            self.win = visual.Window(screen_size, monitor=self.monitor,
-                                     screen=screen_id, fullscr=True, units='deg', color=-1)
-            
+            print(self.protocol['screen'])
+            self.monitor = monitors.Monitor(self.protocol['screen'])
+            self.monitor.setDistance(self.screen['distance_from_eye'])
+            self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
+                                     screen=self.screen['screen_id'], # fullscr=True,
+                                     units='degFlat', color=-1)
+
+        # Field Of View
+        self.FOV  = [tools.viewtools.visualAngle(1e-2*self.screen['width'], 1e-2*self.screen['distance_from_eye'])[0],
+                     tools.viewtools.visualAngle(1e-2*self.screen['height'], 1e-2*self.screen['distance_from_eye'])[0]]
+        
         # blank screens
         self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
                                 color=self.protocol['presentation-prestim-screen'])
@@ -97,25 +95,74 @@ class visual_stim:
                                 color=self.protocol['presentation-poststim-screen'])
 
         # monitoring signal
-        self.on = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
-                                         pos=[self.monitoring_square['x'], self.monitoring_square['y']],
-                                         sf=0, color=self.monitoring_square['color-on'])
-        self.off = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
-                                          pos=[self.monitoring_square['x'], self.monitoring_square['y']],
-                                          sf=0, color=self.monitoring_square['color-off'])
+        # self.on = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
+        #                                  pos=[self.monitoring_square['x'], self.monitoring_square['y']],
+        #                                  sf=0, color=self.monitoring_square['color-on'])
+        # self.off = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
+        #                                   pos=[self.monitoring_square['x'], self.monitoring_square['y']],
+        #                                   sf=0, color=self.monitoring_square['color-off'])
+        # if self.screen['monitoring_square']['location']=='top-right':
+        #     pos = [vertical_pix_to_angle(1.1*self.screen['resolution'][1]),
+        #            self.horizontal_pix_to_angle(1.15*self.screen['resolution'][0])]
+        # else:
+        #     pos = [self.vertical_pix_to_angle(0), self.horizontal_pix_to_angle(0)]
+        print(self.FOV)
+        print(self.win.size)
+        print(self.monitor.getSizePix())
+        print([self.horizontal_pix_to_angle(self.win.size[0]), self.vertical_pix_to_angle(self.win.size[1])])
+        print([self.horizontal_pix_to_angle(0), self.vertical_pix_to_angle(1)])
+        
+        if self.screen['monitoring_square']['location']=='top-right':
+            pos = [self.horizontal_pix_to_angle(0)+self.screen['monitoring_square']['size'],
+                   self.vertical_pix_to_angle(0)+self.screen['monitoring_square']['size']]
+            # pos = [-self.FOV[0]/2.,-self.FOV[1]/2.]
+        # else:
+        pos, size = [0,0], 70 # self.screen['monitoring_square']['size']
+        self.on = visual.GratingStim(win=self.win,  size=size, pos=pos, sf=0, color=self.screen['monitoring_square']['color-on'], units='degFlat')
+        self.off = visual.GratingStim(win=self.win, size=size,  pos=pos, sf=0, color=self.screen['monitoring_square']['color-off'], units='degFlat')
         
         # initialize the times for the monitoring signals
-        self.Ton = int(1e3*self.monitoring_square['time-on'])
-        self.Toff = int(1e3*self.monitoring_square['time-off'])
+        self.Ton = int(1e3*self.screen['monitoring_square']['time-on'])
+        self.Toff = int(1e3*self.screen['monitoring_square']['time-off'])
         self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
 
-    # Gamma correction 
+        
+    ################################
+    #  ---   Gamma correction  --- #
+    ################################
     def gamma_corrected_lum(self, level):
         return 2*np.power(((level+1.)/2./self.k), 1./self.gamma)-1.
     def gamma_corrected_contrast(self, contrast):
         return np.power(contrast/self.k, 1./self.gamma)
+
     
-    # initialize all quantities
+    ################################
+    #  ---       Geometry      --- #
+    ################################
+    def pixel_meshgrid(self):
+        return np.meshgrid(np.arange(self.screen['resolution'][0],
+                           np.arange(self.screen['resolution'][1])))
+    
+    def cm_to_angle(self, value):
+        return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
+    
+    def horizontal_pix_to_angle(self, value):
+        # centered in 0
+        # x = (value-self.screen['resolution'][0]/2.)/self.screen['resolution'][0]*self.screen['width']
+        # return tools.viewtools.visualAngle(1e-2*self.screen['distance_from_eye'],1e-2*x)[0]
+        return self.cm_to_angle((value-self.screen['resolution'][0]/2.)/self.screen['resolution'][0]*self.screen['width'])
+
+    def vertical_pix_to_angle(self, value):
+        # centered in 0
+        # x = (value-self.screen['resolution'][1]/2.)/self.screen['resolution'][0]*self.screen['width']
+        # return tools.viewtools.visualAngle(1e-2*self.screen['distance_from_eye'],1e-2*x)[0]
+        return self.cm_to_angle((value-self.screen['resolution'][1]/2.)/self.screen['resolution'][0]*self.screen['width'])
+
+                           
+    ################################
+    #  ---     Experiment      --- #
+    ################################
+
     def init_experiment(self, protocol, keys):
 
         self.experiment, self.PATTERNS = {}, []
@@ -257,7 +304,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+        self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
 
             
@@ -292,7 +339,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+        self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
 
     #####################################################
@@ -323,7 +370,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        self.win.saveMovieFrames(os.path.join(parent.datafolder,
+        self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
         
     #####################################################
@@ -355,7 +402,7 @@ class visual_stim:
         self.end_screen(parent)
         if not parent.stop_flag:
             parent.statusBar.showMessage('stimulation over !')
-        # self.win.saveMovieFrames(os.path.join(parent.datafolder,
+        # self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
         #                                       'screen-frames', 'frame.tiff'))
         
     # #####################################################
@@ -733,9 +780,15 @@ class dense_noise(visual_stim):
 if __name__=='__main__':
 
     import json
-    with open('protocol.json', 'r') as fp:
+    with open('exp/protocols/center-gratings.json', 'r') as fp:
         protocol = json.load(fp)
-    
-    stim = light_level_single_stim(protocol)
-    stim.run()
+
+    class dummy_parent:
+        def __init__(self):
+            self.stop_flag = False
+        
+        
+    stim = drifting_full_field_grating_stim(protocol)
+    parent = dummy_parent()
+    stim.run(parent)
     stim.close()
