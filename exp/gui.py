@@ -37,7 +37,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         
-        self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
+        self.setWindowTitle('Experimental module -- Vision Physiology')
         self.setGeometry(50, 50, 550, 370)
 
         ##########################################################

@@ -22,26 +22,11 @@ class stop_func: # dummy version of the multiprocessing.Event class
 class CameraAcquisition:
 
     def __init__(self,
-                 folder='./',
-                 root_folder=None,
-                 imgs_folder=None,
                  settings={'frame_rate':20.}):
         
-        self.times, self.frame_index = [], 0
-        if root_folder is not None:
-            self.root_folder = root_folder
-            self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
-        else:
-            self.root_folder = './'
-        if imgs_folder is None:
-            self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
-            Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
-        else:
-            self.imgs_folder = imgs_folder
+        self.times, self.running = [], False
         self.init_camera(settings)
-        self.batch_index = 0
-        self.running=False
-        
+
     def init_camera(self, settings):
         
         self.cam = simple_pyspin.Camera()
@@ -80,86 +65,44 @@ class CameraAcquisition:
         print('saving a sample image as:', desktop_png)
         imsave(desktop_png, np.array(self.cam.get_array()))
 
-    def rec(self, duration, stop_flag, camready_flag, t0=None):
-        if t0 is None:
-            t0=time.time()
-        self.running=True
-        self.frame_index = 0 # need to reset the index here
+    def rec_and_check(self, run_flag, quit_flag, folder):
+        
         self.cam.start()
-        self.t = time.time()
-        camready_flag.set()
-        
-        while (not stop_flag.is_set()) and ((self.t-t0)<duration):
-            self.frame_index +=1
-            np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), np.array(self.cam.get_array()))
-            self.t=time.time()
-            self.times.append(self.t)
-            
-        if (self.t-t0)>=duration:
-            print('camera acquisition finished !')
-            self.stop()
-        elif stop_flag.is_set():
-            print('camera acquisition stopped !   (at t=%.2fs)' % self.t)
-            self.stop()
-
-
-    def reinit_rec(self):
-        self.running = True
-        self.folder = last_datafolder_in_dayfolder(day_folder(self.root_folder))
-        self.imgs_folder = os.path.join(self.folder, 'FaceCamera-imgs')
-        Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
-        self.times = []
-
-        
-    def rec_and_check(self, run_flag, quit_flag):
-        
-        print(self.running)
-        self.cam.start()
-        self.t = time.time()
-
         self.save_sample_on_desktop()
+        
         while not quit_flag.is_set():
             
-            image = self.cam.get_array()
-            
             if not self.running and run_flag.is_set() : # not running and need to start  !
-                self.reinit_rec()
                 self.save_sample_on_desktop()
+                self.running, self.times = True, []
+                # reinitialize recording
+                self.imgs_folder = os.path.join(folder.get(), 'FaceCamera-imgs')
+                Path(self.imgs_folder).mkdir(parents=True, exist_ok=True)
             elif self.running and not run_flag.is_set(): # running and we need to stop
                 self.running=False
-                self.save_times()
+                print('FaceCamera -- effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
                 self.save_sample_on_desktop()
+                
 
             # after the update
             if self.running:
-                np.save(os.path.join(self.imgs_folder, '%i.npy' % self.frame_index), image)
-                self.frame_index +=1
-                self.t=time.time()
-                self.times.append(self.t)
+                image, Time = self.cam.get_array().astype(np.uint8), time.time()
+                np.save(os.path.join(self.imgs_folder, '%s.npy' % Time), image)
+                # imsave(os.path.join(self.imgs_folder, '%s.png' % Time), np.array(image).astype(np.uint8)) # TOO SLOW
+                self.times.append(Time)
 
-        self.save_sample_on_desktop()
-        self.save_times()
-
-        
-    def save_times(self, verbose=True):
-        print('[ok] Camera data saved as: ', os.path.join(self.folder, 'FaceCamera-times.npy'))
-        np.save(os.path.join(self.folder, 'FaceCamera-times.npy'), np.array(self.times))
-        if verbose:
+        if len(self.times)>0:
             print('FaceCamera -- effective sampling frequency: %.1f Hz ' % (1./np.mean(np.diff(self.times))))
-
-    def stop(self):
+            self.save_sample_on_desktop()
+        
         self.running=False
         self.cam.stop()
-        self.save_times()
 
-        
-def camera_init_and_rec(duration, stop_flag, camready_flag, settings={'frame_rate':20.}):
-    camera = CameraAcquisition(folder=folder, settings=settings)
-    camera.rec(duration, stop_flag, camready_flag)
+def launch_FaceCamera(run_flag, quit_flag, datafolder,
+                      settings={'frame_rate':20.}):
+    camera = CameraAcquisition(settings=settings)
+    camera.rec_and_check(run_flag, quit_flag, datafolder)
 
-def launch_FaceCamera(run_flag, quit_flag, root_folder, settings={'frame_rate':20.}):
-    camera = CameraAcquisition(root_folder=root_folder, settings=settings)
-    camera.rec_and_check(run_flag, quit_flag)
     
 if __name__=='__main__':
 
@@ -168,47 +111,27 @@ if __name__=='__main__':
     T = 2 # seconds
 
     import multiprocessing
-        
-    # camera = CameraAcquisition()
-    # stop = stop_func()
-    # camera.rec(T, stop)
-    # stop.set()
+    from ctypes import c_char_p
     
-    # stop_event = multiprocessing.Event()
-    # camera_process = multiprocessing.Process(target=camera_init_and_rec, args=(T,stop_event, './'))
-    # camera_process.start()
-
-    folder = os.path.join(os.path.expanduser('~'), 'DATA')
     run = multiprocessing.Event()
     quit_event = multiprocessing.Event()
-    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, folder))
+    manager = multiprocessing.Manager()
+    datafolder = manager.Value(c_char_p, 'datafolder')    
+    camera_process = multiprocessing.Process(target=launch_FaceCamera, args=(run, quit_event, datafolder))
     run.clear()
     camera_process.start()
-    time.sleep(3)
+
+    # start first acq
+    datafolder.set(str(os.path.join(os.path.expanduser('~'), 'DATA', '1')))
     run.set()
-    time.sleep(10)
+    time.sleep(T)
     run.clear()
-    time.sleep(3)
+
+    # start second acq
+    datafolder.set(str(os.path.join(os.path.expanduser('~'), 'DATA', '2')))
+    run.set()
+    time.sleep(T)
+    run.clear()
+    time.sleep(0.5)
+    # quit process
     quit_event.set()
-    
-    # print(stop_event.is_set())
-    # time.sleep(T/2)
-    # stop_event.set()
-    # print(stop_event.is_set())
-    # time.sleep(T/4)
-    # stop_event.clear()
-    # print(stop_event.is_set())
-    # time.sleep(T/4)
-    # stop_event.set()
-    # print(stop_event.is_set())
-    # camera.stop()
-    folder = last_datafolder_in_dayfolder(day_folder(folder))
-    times = np.load(os.path.join(folder, 'FaceCamera-times.npy'))
-    print('max blank time of FaceCamera: %.0f ms' % (1e3*np.max(np.diff(times))))
-    import matplotlib.pylab as plt
-    plt.plot(times, 0*times, '|')
-    plt.show()
-
-    
-    
-
