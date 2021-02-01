@@ -154,7 +154,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.protocol['data-folder'] = self.datafolder.get()
             self.protocol['protocol-folder'] = self.protocol_folder
             self.protocol['Setup'] = self.setup
-            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file', self.protocol_folder, "Protocol files (*.json)")
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file',
+                                                             self.protocol_folder, "Protocol files (*.json)")
             if filename[0]!='':
                 with open(filename[0], 'w') as fp:
                     json.dump(self.protocol, fp, indent=2)
@@ -244,6 +245,7 @@ if __name__=='__main__':
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=tempfile.gettempdir())
+    parser.add_argument('-d', "--demo", action="store_true")
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(app, args=args)

@@ -24,7 +24,7 @@ SCREENS = {
         'resolution':[1280, 720],
         'width':43.4, # in cm
         'height':23.6, # in cm
-        'distance_from_eye':43.4/2., # in cm
+        'distance_from_eye':15.0, # in cm
         'monitoring_square':{'size':40.,
                              # 'location':'bottom-left',
                              'location':'top-right',
