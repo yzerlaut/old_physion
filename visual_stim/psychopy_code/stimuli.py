@@ -50,7 +50,8 @@ def build_stim(protocol):
 def stop_signal(parent):
     if (len(event.getKeys())>0) or (parent.stop_flag):
         parent.stop_flag = True
-        parent.statusBar.showMessage('stimulation stopped !')
+        if hasattr(parent, 'statusBar'):
+            parent.statusBar.showMessage('stimulation stopped !')
         return True
     else:
         return False
@@ -72,54 +73,44 @@ class visual_stim:
         if self.protocol['Setup']=='demo-mode':
             self.monitor = monitors.Monitor('testMonitor')
             self.win = visual.Window(screen_size, monitor=self.monitor,
-                                     units='deg', color=-1) #create a window
+                                     units='pix', color=-1) #create a window
         else:
-            print(self.protocol['screen'])
             self.monitor = monitors.Monitor(self.protocol['screen'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
-                                     screen=self.screen['screen_id'], # fullscr=True,
-                                     units='degFlat', color=-1)
+                                     screen=self.screen['screen_id'], fullscr=True,
+                                     units='pix', color=-1)
 
         # Field Of View
         self.FOV  = [tools.viewtools.visualAngle(1e-2*self.screen['width'], 1e-2*self.screen['distance_from_eye'])[0],
                      tools.viewtools.visualAngle(1e-2*self.screen['height'], 1e-2*self.screen['distance_from_eye'])[0]]
         
         # blank screens
-        self.blank_start = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
-                                color=self.protocol['presentation-prestim-screen'])
+        self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                              color=self.protocol['presentation-prestim-screen'], units='pix')
         if 'presentation-interstim-screen' in self.protocol:
-            self.blank_inter = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
-                                                  color=self.protocol['presentation-interstim-screen'])
-        self.blank_end = visual.GratingStim(win=self.win, size=1000, pos=[0,0], sf=0,
-                                color=self.protocol['presentation-poststim-screen'])
+            self.blank_inter = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                              color=self.protocol['presentation-interstim-screen'], units='pix')
+        self.blank_end = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                color=self.protocol['presentation-poststim-screen'], units='pix')
 
-        # monitoring signal
-        # self.on = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
-        #                                  pos=[self.monitoring_square['x'], self.monitoring_square['y']],
-        #                                  sf=0, color=self.monitoring_square['color-on'])
-        # self.off = visual.GratingStim(win=self.win, size=self.monitoring_square['size'],
-        #                                   pos=[self.monitoring_square['x'], self.monitoring_square['y']],
-        #                                   sf=0, color=self.monitoring_square['color-off'])
-        # if self.screen['monitoring_square']['location']=='top-right':
-        #     pos = [vertical_pix_to_angle(1.1*self.screen['resolution'][1]),
-        #            self.horizontal_pix_to_angle(1.15*self.screen['resolution'][0])]
-        # else:
-        #     pos = [self.vertical_pix_to_angle(0), self.horizontal_pix_to_angle(0)]
-        print(self.FOV)
-        print(self.win.size)
-        print(self.monitor.getSizePix())
-        print([self.horizontal_pix_to_angle(self.win.size[0]), self.vertical_pix_to_angle(self.win.size[1])])
-        print([self.horizontal_pix_to_angle(0), self.vertical_pix_to_angle(1)])
-        
         if self.screen['monitoring_square']['location']=='top-right':
-            pos = [self.horizontal_pix_to_angle(0)+self.screen['monitoring_square']['size'],
-                   self.vertical_pix_to_angle(0)+self.screen['monitoring_square']['size']]
-            # pos = [-self.FOV[0]/2.,-self.FOV[1]/2.]
-        # else:
-        pos, size = [0,0], 70 # self.screen['monitoring_square']['size']
-        self.on = visual.GratingStim(win=self.win,  size=size, pos=pos, sf=0, color=self.screen['monitoring_square']['color-on'], units='degFlat')
-        self.off = visual.GratingStim(win=self.win, size=size,  pos=pos, sf=0, color=self.screen['monitoring_square']['color-off'], units='degFlat')
+            pos = [int(x/2.-self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
+        elif self.screen['monitoring_square']['location']=='bottom-left':
+            pos = [int(-x/2.+self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
+        elif self.screen['monitoring_square']['location']=='top-left':
+            pos = [int(-self.screen['resolution'][0]/2.+self.screen['monitoring_square']['size']/2.),
+                   int(self.screen['resolution'][1]/2.-self.screen['monitoring_square']['size']/2.)]
+        elif self.screen['monitoring_square']['location']=='bottom-right':
+            pos = [int(self.screen['resolution'][0]/2.-self.screen['monitoring_square']['size']/2.),
+                   int(-self.screen['resolution'][1]/2.+self.screen['monitoring_square']['size']/2.)]
+        else:
+            print(30*'-'+'\n /!\ monitoring square location not recognized !!')
+
+        self.on = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'], pos=pos, sf=0,
+                                     color=self.screen['monitoring_square']['color-on'], units='pix')
+        self.off = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'],  pos=pos, sf=0,
+                                      color=self.screen['monitoring_square']['color-off'], units='pix')
         
         # initialize the times for the monitoring signals
         self.Ton = int(1e3*self.screen['monitoring_square']['time-on'])
@@ -146,6 +137,9 @@ class visual_stim:
     def cm_to_angle(self, value):
         return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
     
+    def pix_to_angle(self, value):
+        return self.cm_to_angle(value/self.screen['resolution'][0]*self.screen['width'])
+    
     def horizontal_pix_to_angle(self, value):
         # centered in 0
         # x = (value-self.screen['resolution'][0]/2.)/self.screen['resolution'][0]*self.screen['width']
@@ -157,6 +151,22 @@ class visual_stim:
         # x = (value-self.screen['resolution'][1]/2.)/self.screen['resolution'][0]*self.screen['width']
         # return tools.viewtools.visualAngle(1e-2*self.screen['distance_from_eye'],1e-2*x)[0]
         return self.cm_to_angle((value-self.screen['resolution'][1]/2.)/self.screen['resolution'][0]*self.screen['width'])
+
+    def angle_meshgrid(self):
+        x = np.linspace(self.cm_to_angle(-self.screen['width']/2.),
+                        self.cm_to_angle(self.screen['width']/2.),
+                        self.screen['resolution'][0])
+        z = np.linspace(self.cm_to_angle(-self.screen['height']/2.),
+                        self.cm_to_angle(self.screen['height']/2.),
+                        self.screen['resolution'][1])
+        return np.meshgrid(x, z)
+
+    def angle_to_cm(self, value):
+        return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
+    
+    def angle_to_pix(self, value):
+        return self.screen['resolution'][0]/self.screen['width']*\
+            self.angle_to_cm(value)
 
                            
     ################################
@@ -302,7 +312,7 @@ class visual_stim:
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
         self.end_screen(parent)
-        if not parent.stop_flag:
+        if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
         self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
@@ -332,12 +342,12 @@ class visual_stim:
             if stop_signal(parent):
                 break
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
-            self.speed = self.experiment['speed'][i]
+            self.speed = self.experiment['speed'][i] # conversion to pixels
             self.single_dynamic_gratings_presentation(parent, i)
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
         self.end_screen(parent)
-        if not parent.stop_flag:
+        if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
         self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
@@ -368,7 +378,7 @@ class visual_stim:
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
         self.end_screen(parent)
-        if not parent.stop_flag:
+        if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
         self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                               'screen-frames', 'frame.tiff'))
@@ -400,42 +410,10 @@ class visual_stim:
             if self.protocol['Presentation']!='Single-Stimulus':
                 self.inter_screen(parent)
         self.end_screen(parent)
-        if not parent.stop_flag:
+        if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
         # self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
         #                                       'screen-frames', 'frame.tiff'))
-        
-    # #####################################################
-    # # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
-    # def array_run(self, parent):
-    #     # start screen
-    #     self.start_screen(parent)
-    #     # stimulation
-    #     start, prev_t = clock.getTime(), clock.getTime()
-    #     while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-    #         if stop_signal(parent):
-    #             break
-    #         new_t = clock.getTime()
-    #         try:
-    #             it = np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))).flatten()[0]
-    #             pattern = visual.ImageStim(self.win,
-    #                                        image=self.gamma_corrected_lum(self.STIM['array'][it,:,:].T),
-    #                                        units='pix', size=self.win.size)
-    #             pattern.draw()
-                
-    #         except BaseException as e:
-    #             print('time not matching')
-    #             print(np.argwhere((self.STIM['t'][1:]>=(new_t-start)) & (self.STIM['t'][:-1]<(new_t-start))))
-    #         self.add_monitoring_signal(new_t, start)
-    #         prev_t = new_t
-    #         try:
-    #             self.win.flip()
-    #         except AttributeError:
-    #             pass
-    #     self.end_screen(parent)
-    #     if not parent.stop_flag:
-    #         parent.statusBar.showMessage('stimulation over !')
-
             
     ## FINAL RUN FUNCTION
     def run(self, parent):
@@ -459,16 +437,10 @@ class light_level_single_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['light-level'])
         
-        # then manually building patterns
-        for i in range(len(self.experiment['index'])):
-            self.PATTERNS.append([\
-            visual.GratingStim(win=self.win,
-                               size=1000, pos=[0,0], sf=0,
-                               color=self.gamma_corrected_lum(self.experiment['light-level'][i]))])
             
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   size=1000, pos=[0,0], sf=0,
+                                   size=10000, pos=[0,0], sf=0, units='pix',
                                    color=self.gamma_corrected_lum(self.experiment['light-level'][index]))]
             
 #####################################################
@@ -483,8 +455,8 @@ class full_field_grating_stim(visual_stim):
 
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   size=1000, pos=[0,0],
-                                   sf=self.experiment['spatial-freq'][index],
+                                   size=10000, pos=[0,0], units='pix',
+                                   sf=self.angle_to_pix(self.experiment['spatial-freq'][index]),
                                    ori=self.experiment['angle'][index],
                                    contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
                                  
@@ -497,8 +469,8 @@ class drifting_full_field_grating_stim(visual_stim):
 
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   size=1000, pos=[0,0],
-                                   sf=self.experiment['spatial-freq'][index],
+                                   size=10000, pos=[0,0], units='pix',
+                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
                                    ori=self.experiment['angle'][index],
                                    contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
@@ -515,10 +487,12 @@ class center_grating_stim(visual_stim):
 
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius'][index], mask='circle',
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
+                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
+                                        self.angle_to_pix(self.experiment['y-center'][index])],
+                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
+                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
+                                   ori=self.experiment['angle'][index], units='pix',
+                                   mask='circle',
                                    contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
 class drifting_center_grating_stim(visual_stim):
@@ -529,10 +503,12 @@ class drifting_center_grating_stim(visual_stim):
 
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius'][index], mask='circle',
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
+                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
+                                        self.angle_to_pix(self.experiment['y-center'][index])],
+                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
+                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
+                                   ori=self.experiment['angle'][index], units='pix',
+                                   mask='circle',
                                    contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
 
 
@@ -549,14 +525,16 @@ class off_center_grating_stim(visual_stim):
         
     def get_patterns(self, index):
         return [visual.GratingStim(win=self.win,
-                                   size=1000, pos=[0,0],
+                                   size=10000, pos=[0,0], units='pix',
                                    sf=self.experiment['spatial-freq'][index],
                                    ori=self.experiment['angle'][index],
                                    contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
                 visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius'][index],
-                                   mask='circle', sf=0,
+                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
+                                        self.angle_to_pix(self.experiment['y-center'][index])],
+                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
+                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
+                                   mask='circle', units='pix',
                                    color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
 
             
@@ -750,7 +728,6 @@ class sparse_noise(visual_stim):
                                                 noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                                 seed=protocol['noise-seed (#)'])
 
-        print(self.Ton, self.Toff)
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[:-1]+self.noise_gen.durations
         
@@ -779,16 +756,25 @@ class dense_noise(visual_stim):
 
 if __name__=='__main__':
 
-    import json
+    import json, tempfile
+    from pathlib import Path
+    
     with open('exp/protocols/center-gratings.json', 'r') as fp:
         protocol = json.load(fp)
 
+    class df:
+        def __init__(self):
+            pass
+        def get(self):
+            Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+            return tempfile.gettempdir()
+        
     class dummy_parent:
         def __init__(self):
             self.stop_flag = False
+            self.datafolder = df()
         
-        
-    stim = drifting_full_field_grating_stim(protocol)
+    stim = build_stim(protocol)
     parent = dummy_parent()
     stim.run(parent)
     stim.close()
