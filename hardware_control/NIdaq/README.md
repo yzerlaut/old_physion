@@ -2,7 +2,18 @@
 
 *control of National Instruments DAQ cards for data acquisition and stimulation*
 
-## Reference
+## Install
+
+
+- Install NIdaq-mx, get it from the National Instruments website:
+  - either https://www.ni.com/fr-fr/support/downloads/drivers/download.ni-daqmx.html#348669
+  - or https://www.ni.com/fr-fr/support/downloads/drivers/download.ni-daqmx.html#291872
+
+- Install the python API:
+  `pip install nidaqmx`
+
+
+## Code reference
 
 - https://nidaqmx-python.readthedocs.io/en/latest/
 
