@@ -341,7 +341,7 @@ class visual_stim:
             try:
                 self.win.flip()
             except AttributeError:
-                pass
+                pass
 
 
     #####################################################
@@ -739,8 +739,8 @@ def generate_VSE(duration=5,
     tsaccades = np.cumsum(np.clip(mean_saccade_duration+np.abs(np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
                                   mean_saccade_duration/2., 1.5*mean_saccade_duration))
 
-    x = np.array(np.clip(np.random.randn(len(tsaccades))*saccade_amplitude, 0, saccade_amplitude), dtype=int)
-    y = np.array(np.clip(np.random.randn(len(tsaccades))*saccade_amplitude, 0, saccade_amplitude), dtype=int)
+    x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 0, 2*saccade_amplitude), dtype=int)
+    y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 0, 2*saccade_amplitude), dtype=int)
     
     return {'t':np.array([0]+list(tsaccades)),
             'x':np.array([0]+list(x)),
@@ -751,6 +751,7 @@ def generate_VSE(duration=5,
 
 class natural_image_vse(visual_stim):
 
+    
     def __init__(self, protocol):
 
         super().__init__(protocol)
@@ -762,6 +763,7 @@ class natural_image_vse(visual_stim):
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 30.
         self.frame_refresh = protocol['movie_refresh_freq']
+        
         
     def get_frames_sequence(self, index):
 
@@ -779,14 +781,19 @@ class natural_image_vse(visual_stim):
         filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][index])]
         img0 = load(os.path.join(NI_directory, filename))
         img = 2*img_after_hist_normalization(img0)-1 # normalization + gamma_correction
+        sx, sy = img.shape
             
-        times, FRAMES = vse['t'], []
+        interval = self.experiment['time_stop'][index]-self.experiment['time_start'][index]
+        times, FRAMES = np.zeros(int(1.2*interval*self.protocol['movie_refresh_freq']), dtype=int), []
+        Times = np.arange(int(1.2*interval*self.protocol['movie_refresh_freq']))/self.protocol['movie_refresh_freq']
 
-        for i in range(len(vse['t'])):
-            ix, iy = vse['x'][i], vse['y'][i]
-            new_im = img.T[ix:sx-vse['max_amplitude']+ix,\
-                           iy:sy-vse['max_amplitude']+iy]
-            FRAMES.append(new_im)
+        for i, t in enumerate(vse['t']):
+            ix, iy = int(vse['x'][i]), int(vse['y'][i])
+            new_im = np.zeros(img.shape)
+            new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+            new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
+            FRAMES.append(new_im.T)
+            times[Times>=t] = int(i)
             
         return times, FRAMES
 
@@ -842,7 +849,6 @@ class dense_noise(visual_stim):
     def get_frame(self, index):
         return self.noise_gen.get_frame(index).T
             
-
 
 if __name__=='__main__':
 
