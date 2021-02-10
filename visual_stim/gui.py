@@ -113,6 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
             self.statusBar.showMessage('stimulation ready !')
             self.init = True
+            
         
     def run(self):
         self.stop_flag=False
