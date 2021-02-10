@@ -756,7 +756,7 @@ class natural_image_vse(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID', 'VSE-seed',
                                            'mean-saccade-duration', 'std-saccade-duration',
-                                           'vary-VSE-with-Image'],
+                                           'vary-VSE-with-Image', 'saccade-amplitude'],
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
@@ -770,67 +770,27 @@ class natural_image_vse(visual_stim):
         else:
             seed = int(self.experiment['VSE-seed'][index])
 
-        vse = generate_VSE(duration=protocol['presentation-duration'],
+        vse = generate_VSE(duration=self.protocol['presentation-duration'],
                            mean_saccade_duration=self.experiment['mean-saccade-duration'][index],
                            std_saccade_duration=self.experiment['std-saccade-duration'][index],
                            saccade_amplitude=self.angle_to_pix(self.experiment['saccade-amplitude'][index]), # in pixels, TO BE PUT IN DEGREES
                            seed=seed)
+
+        filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][index])]
+        img0 = load(os.path.join(NI_directory, filename))
+        img = 2*img_after_hist_normalization(img0)-1 # normalization + gamma_correction
             
-        bg = np.ones(self.screen['resolution'])*self.experiment['bg-color'][index]
-        interval = self.experiment['time_stop'][index]-self.experiment['time_start'][index]
+        times, FRAMES = vse['t'], []
 
-        contrast = self.experiment['contrast'][index]
-        xcenter, zcenter = self.experiment['x-center'][index], self.experiment['y-center'][index]
-        radius = self.experiment['radius'][index]
-        bg_color = self.experiment['bg-color'][index]
-        
-        t0, sT = self.experiment['center-time'][index], self.experiment['extent-time'][index]
-        itstart = np.max([0, int((t0-self.protocol['appearance_threshold']*sT)*self.protocol['movie_refresh_freq'])])
-        itend = np.min([int(interval*self.protocol['movie_refresh_freq']),
-                        int((t0+self.protocol['appearance_threshold']*sT)*self.protocol['movie_refresh_freq'])])
-
-        times, FRAMES = np.zeros(int(1.2*interval*self.protocol['movie_refresh_freq']), dtype=int), []
-        # the pre-time
-        FRAMES.append(2*bg_color-1.+0.*x)
-        times[:itstart] = 0
-        for iframe, it in enumerate(np.arange(itstart, itend)):
-            img = 2*(np.exp(-((x-xcenter)**2+(z-zcenter)**2)/2./radius**2)*\
-                     contrast*np.exp(-(it/self.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
-            FRAMES.append(img)
-            times[it] = iframe
-        # the post-time
-        FRAMES.append(2*bg_color-1.+0.*x)
-        times[itend:] = len(FRAMES)-1
+        for i in range(len(vse['t'])):
+            ix, iy = vse['x'][i], vse['y'][i]
+            new_im = img.T[ix:sx-vse['max_amplitude']+ix,\
+                           iy:sy-vse['max_amplitude']+iy]
+            FRAMES.append(new_im)
             
         return times, FRAMES
 
     
-        self.VSEs = [] # array of Virtual-Scene-Exploration
-        for i in range(len(self.experiment['index'])):
-
-                
-
-            self.VSEs.append(vse)
-            
-            filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][i])]
-            img = load(os.path.join(NI_directory, filename))
-            img = 2*self.gamma_corrected_contrast(img_after_hist_normalization(img))-1 # normalization + gamma_correction
-            # rescaled_img = adapt_to_screen_resolution(img, (SCREEN[0], SCREEN[1]))
-            sx, sy = img.T.shape
-
-            self.PATTERNS.append([])
-            
-            IMAGES = []
-            for i in range(len(vse['t'])):
-                ix, iy = vse['x'][i], vse['y'][i]
-                new_im = img.T[ix:sx-vse['max_amplitude']+ix,\
-                               iy:sy-vse['max_amplitude']+iy]
-                self.PATTERNS[-1].append(visual.ImageStim(self.win,
-                                                          image=new_im,
-                                                          units='pix', size=self.win.size))
-            
-    
-
 #####################################################
 ##  ----    PRESENTING BINARY NOISE         --- #####
 #####################################################
