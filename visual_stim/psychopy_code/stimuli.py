@@ -10,7 +10,9 @@ from psychopy_code.preprocess_NI import load, img_after_hist_normalization
 def build_stim(protocol):
     """
     """
-    if (protocol['Stimulus']=='light-level'):
+    if (protocol['Presentation']=='multiprotocol'):
+        return multiprotocol(protocol)
+    elif (protocol['Stimulus']=='light-level'):
         return light_level_single_stim(protocol)
     elif (protocol['Stimulus']=='full-field-grating'):
         return full_field_grating_stim(protocol)
@@ -69,61 +71,48 @@ class visual_stim:
         if ('store_frame' in protocol):
             self.store_frame = bool(protocol['store_frame'])
         
-        if 'screen' not in self.protocol:
-            self.protocol['screen'] = 'Dell-P2018H'
-
-        if self.protocol['Setup']=='demo-mode' or demo==True:
-            # Everything is scaled-down by a factor 2
-            self.monitor = monitors.Monitor('testMonitor')
-            self.screen0 = SCREENS[self.protocol['screen']]
-            self.screen = {}
-            for key in self.screen0:
-                self.screen[key] = self.screen0[key]
-            # for key in ['resolution', 'distance_from_eye', 'width']:
-            #     self.screen[key] = np.array(self.screen0[key])/1.6 # SCALE FACTOR HERE
-            self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
-                                     units='pix', color=-1) #create a window
-        else:
-            self.screen = SCREENS[self.protocol['screen']]
-            self.monitor = monitors.Monitor(self.protocol['screen'])
+        self.screen = SCREENS[self.protocol['screen']]
+        
+        if not ('no-window' in self.protocol):
+            self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
-                                     screen=self.screen['screen_id'], fullscr=True,
+                                     screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
                                      units='pix', color=-1)
 
-        self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
+            self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
 
-        # blank screens
-        self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                              color=self.protocol['presentation-prestim-screen'], units='pix')
-        if 'presentation-interstim-screen' in self.protocol:
-            self.blank_inter = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                              color=self.protocol['presentation-interstim-screen'], units='pix')
-        self.blank_end = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                color=self.protocol['presentation-poststim-screen'], units='pix')
+            # blank screens
+            self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                                  color=self.protocol['presentation-prestim-screen'], units='pix')
+            if 'presentation-interstim-screen' in self.protocol:
+                self.blank_inter = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                                  color=self.protocol['presentation-interstim-screen'], units='pix')
+            self.blank_end = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                                    color=self.protocol['presentation-poststim-screen'], units='pix')
 
-        if self.screen['monitoring_square']['location']=='top-right':
-            pos = [int(x/2.-self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
-        elif self.screen['monitoring_square']['location']=='bottom-left':
-            pos = [int(-x/2.+self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
-        elif self.screen['monitoring_square']['location']=='top-left':
-            pos = [int(-self.screen['resolution'][0]/2.+self.screen['monitoring_square']['size']/2.),
-                   int(self.screen['resolution'][1]/2.-self.screen['monitoring_square']['size']/2.)]
-        elif self.screen['monitoring_square']['location']=='bottom-right':
-            pos = [int(self.screen['resolution'][0]/2.-self.screen['monitoring_square']['size']/2.),
-                   int(-self.screen['resolution'][1]/2.+self.screen['monitoring_square']['size']/2.)]
-        else:
-            print(30*'-'+'\n /!\ monitoring square location not recognized !!')
+            if self.screen['monitoring_square']['location']=='top-right':
+                pos = [int(x/2.-self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
+            elif self.screen['monitoring_square']['location']=='bottom-left':
+                pos = [int(-x/2.+self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
+            elif self.screen['monitoring_square']['location']=='top-left':
+                pos = [int(-self.screen['resolution'][0]/2.+self.screen['monitoring_square']['size']/2.),
+                       int(self.screen['resolution'][1]/2.-self.screen['monitoring_square']['size']/2.)]
+            elif self.screen['monitoring_square']['location']=='bottom-right':
+                pos = [int(self.screen['resolution'][0]/2.-self.screen['monitoring_square']['size']/2.),
+                       int(-self.screen['resolution'][1]/2.+self.screen['monitoring_square']['size']/2.)]
+            else:
+                print(30*'-'+'\n /!\ monitoring square location not recognized !!')
 
-        self.on = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'], pos=pos, sf=0,
-                                     color=self.screen['monitoring_square']['color-on'], units='pix')
-        self.off = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'],  pos=pos, sf=0,
-                                      color=self.screen['monitoring_square']['color-off'], units='pix')
-        
-        # initialize the times for the monitoring signals
-        self.Ton = int(1e3*self.screen['monitoring_square']['time-on'])
-        self.Toff = int(1e3*self.screen['monitoring_square']['time-off'])
-        self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
+            self.on = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'], pos=pos, sf=0,
+                                         color=self.screen['monitoring_square']['color-on'], units='pix')
+            self.off = visual.GratingStim(win=self.win, size=self.screen['monitoring_square']['size'],  pos=pos, sf=0,
+                                          color=self.screen['monitoring_square']['color-off'], units='pix')
+
+            # initialize the times for the monitoring signals
+            self.Ton = int(1e3*self.screen['monitoring_square']['time-on'])
+            self.Toff = int(1e3*self.screen['monitoring_square']['time-off'])
+            self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
 
         
     ################################
@@ -182,6 +171,7 @@ class visual_stim:
                     self.experiment['index'] = [0]
                     self.experiment['time_start'] = [protocol['presentation-prestim-period']]
                     self.experiment['time_stop'] = [protocol['presentation-duration']+protocol['presentation-prestim-period']]
+                    self.experiment['time_duration'] = [protocol['presentation-duration']]
         else: # MULTIPLE STIMS
             VECS, FULL_VECS = [], {}
             for key in keys:
@@ -195,7 +185,7 @@ class visual_stim:
                     FULL_VECS[key].append(vec[i])
                     
             self.experiment['index'], self.experiment['repeat'] = [], []
-            self.experiment['time_start'], self.experiment['time_stop'] = [], []
+            self.experiment['time_start'], self.experiment['time_stop'], self.experiment['time_duration'] = [], [], []
             self.experiment['frame_run_type'] = []
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
@@ -218,6 +208,7 @@ class visual_stim:
                                                      n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
                 self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
                                                      (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                self.experiment['time_duration'].append(protocol['presentation-duration'])
                 self.experiment['frame_run_type'].append(run_type)
 
     # the close function
@@ -293,7 +284,7 @@ class visual_stim:
     def single_static_pattern_presentation(self, parent, index):
         start = clock.getTime()
         patterns = self.get_patterns(index)
-        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+        while ((clock.getTime()-start)<self.experiment['time_duration'][index]) and not parent.stop_flag:
             for pattern in patterns:
                 pattern.draw()
             if (int(1e3*clock.getTime()-1e3*start)<self.Tfull) and\
@@ -314,7 +305,7 @@ class visual_stim:
         start, prev_t = clock.getTime(), clock.getTime()
         patterns = self.get_patterns(index)
         self.speed = self.experiment['speed'][index]
-        while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
+        while ((clock.getTime()-start)<self.experiment['time_duration'][index]) and not parent.stop_flag:
             new_t = clock.getTime()
             for pattern in patterns:
                 pattern.setPhase(self.speed*(new_t-prev_t), '+') # advance phase
@@ -334,14 +325,13 @@ class visual_stim:
                                    image=self.gamma_corrected_lum(self.get_frame(index)),
                                    units='pix', size=self.win.size)
         start = clock.getTime()
-        while ((clock.getTime()-start)<(self.experiment['time_stop'][index]-\
-                                        self.experiment['time_start'][index])) and not parent.stop_flag:
+        while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             pattern.draw()
             self.add_monitoring_signal_sp(clock.getTime(), start)
             try:
                 self.win.flip()
             except AttributeError:
-                pass
+                pass
 
 
     #####################################################
@@ -354,8 +344,7 @@ class visual_stim:
                                            image=self.gamma_corrected_lum(frame),
                                            units='pix', size=self.win.size))
         start = clock.getTime()
-        while ((clock.getTime()-start)<(self.experiment['time_stop'][index]-\
-                                        self.experiment['time_start'][index])) and not parent.stop_flag:
+        while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*self.frame_refresh)
             FRAMES[time_indices[iframe]].draw()
             self.add_monitoring_signal(clock.getTime(), start)
@@ -364,7 +353,7 @@ class visual_stim:
             except AttributeError:
                 pass
 
-            
+
     def single_episode_run(self, parent, index):
         
         if self.experiment['frame_run_type'][index]=='drifting':
@@ -400,64 +389,78 @@ class visual_stim:
                                                   'screen-frames', 'frame.tiff'))
         
 
-    # #####################################################
-    # # adding a Virtual-Scene-Exploration on top of an image stim
-    # def single_VSE_image_presentation(self, parent, index):
-    #     start, prev_t = clock.getTime(), clock.getTime()
-    #     while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-    #         new_t = clock.getTime()
-    #         i0 = np.min(np.argwhere(self.VSEs[index]['t']>(new_t-start)))
-    #         self.PATTERNS[index][i0].draw()
-    #         self.add_monitoring_signal(new_t, start)
-    #         prev_t = new_t
-    #         try:
-    #             self.win.flip()
-    #         except AttributeError:
-    #             pass
-    #     self.win.getMovieFrame() # we store the last frame
-
-    # def vse_run(self, parent):
-    #     self.start_screen(parent)
-    #     for i in range(len(self.experiment['index'])):
-    #         if stop_signal(parent):
-    #             break
-    #         print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
-    #         self.single_VSE_image_presentation(parent, i)
-    #         if self.protocol['Presentation']!='Single-Stimulus':
-    #             self.inter_screen(parent)
-    #     self.end_screen(parent)
-    #     if not parent.stop_flag and hasattr(parent, 'statusBar'):
-    #         parent.statusBar.showMessage('stimulation over !')
-    #     self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
-    #                                           'screen-frames', 'frame.tiff'))
         
+#####################################################
+##  ----         MULTI-PROTOCOLS            --- #####           
+#####################################################
 
-    # def array_run(self, parent):
-    #     self.start_screen(parent)
-    #     for i in range(len(self.experiment['time_start'])):
-    #         if stop_signal(parent):
-    #             break
-    #         print('Running frame of index %i/%i' % (i+1, len(self.experiment['time_start'])))
-    #         self.single_array_presentation(parent, i)
-    #         if self.protocol['Presentation']!='Single-Stimulus':
-    #             self.inter_screen(parent)
-    #     self.end_screen(parent)
-    #     if not parent.stop_flag and hasattr(parent, 'statusBar'):
-    #         parent.statusBar.showMessage('stimulation over !')
-    #     # self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
-    #     #                                       'screen-frames', 'frame.tiff'))
-            
-    # ## FINAL RUN FUNCTION
-    # def run(self, parent):
-    #     if len(self.protocol['Stimulus'].split('drifting'))>1:
-    #         return self.drifting_run(parent)
-    #     elif len(self.protocol['Stimulus'].split('VSE'))>1:
-    #         return self.vse_run(parent)
-    #     elif len(self.protocol['Stimulus'].split('noise'))>1:
-    #         return self.array_run(parent)
-    #     else:
-    #         return self.static_run(parent)
+class multiprotocol(visual_stim):
+
+    def __init__(self, protocol):
         
+        super().__init__(protocol)
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 30.
+        if 'appearance_threshold' not in protocol:
+            protocol['appearance_threshold'] = 2.5 # 
+        self.frame_refresh = protocol['movie_refresh_freq']
+
+        
+        self.STIM = []
+        i=1
+        while 'Protocol-%i'%i in protocol:
+            Ppath = os.path.join(protocol['protocol-folder'], protocol['Protocol-%i'%i])
+            with open(Ppath, 'r') as fp:
+                subprotocol = json.load(fp)
+                subprotocol['screen'] = protocol['screen']
+                subprotocol['no-window'] = True
+                self.STIM.append(build_stim(subprotocol))
+                for key, val in subprotocol.items():
+                    protocol['Protocol-%i-%s'%(i,key)] = val
+            i+=1
+
+        self.experiment = {'time_duration':[],
+                           'protocol_id':[]}
+        # we initialize the keys
+        for stim in self.STIM:
+            for key in stim.experiment:
+                self.experiment[key] = []
+        # then we iterate over values
+        for IS, stim in enumerate(self.STIM):
+            for i in range(len(stim.experiment['index'])):
+                for key in self.experiment:
+                    if key in stim.experiment:
+                        self.experiment[key].append(stim.experiment[key][i])
+                    elif key not in ['protocol_id', 'time_duration']:
+                        self.experiment[key].append(None)
+                self.experiment['protocol_id'].append(IS)
+                self.experiment['time_duration'].append(stim.experiment['time_stop'][i]-stim.experiment['time_start'][i])
+        # SHUFFLING IF NECESSARY
+        indices = np.arange(len(self.experiment['index']))
+        if (protocol['shuffling']=='full'):
+            np.random.seed(protocol['shuffling-seed'])
+            np.random.shuffle(indices)
+        for key in self.experiment:
+            self.experiment[key] = np.array(self.experiment[key])[indices]
+
+        # we rebuild time
+        self.experiment['time_start'][0] = protocol['presentation-prestim-period']
+        self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
+        for i in range(1, len(self.experiment['index'])):
+            self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period']
+            self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
+
+        
+    # functions implemented in child class
+    def get_frame(self, index):
+        return self.STIM[self.experiment['protocol_id'][index]].get_frame(index, parent=self)
+    def get_patterns(self, index):
+        return self.STIM[self.experiment['protocol_id'][index]].get_patterns(index, parent=self)
+    def get_frames_sequence(self, index):
+        return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
+
+
 #####################################################
 ##  ----   PRESENTING VARIOUS LIGHT LEVELS  --- #####           
 #####################################################
@@ -469,10 +472,15 @@ class light_level_single_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['light-level'], run_type='static')
             
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
-                                   color=self.gamma_corrected_lum(self.experiment['light-level'][index]))]
+                                   color=cls.gamma_corrected_lum(cls.experiment['light-level'][index]))]
+
             
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
@@ -484,12 +492,16 @@ class full_field_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast'], run_type='static')
 
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
-                                   sf=self.angle_to_pix(self.experiment['spatial-freq'][index]),
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
+                                   sf=cls.angle_to_pix(cls.experiment['spatial-freq'][index]),
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
                                  
             
 class drifting_full_field_grating_stim(visual_stim):
@@ -498,12 +510,16 @@ class drifting_full_field_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast', 'speed'], run_type='drifting')
 
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
-                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
         
 #####################################################
@@ -516,15 +532,19 @@ class center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'], run_type='static')
 
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
-                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
-                                        self.angle_to_pix(self.experiment['y-center'][index])],
-                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
-                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
-                                   ori=self.experiment['angle'][index], units='pix',
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
+                                   pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
+                                        cls.angle_to_pix(cls.experiment['y-center'][index])],
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
+                                   ori=cls.experiment['angle'][index], units='pix',
                                    mask='circle',
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
 class drifting_center_grating_stim(visual_stim):
     
@@ -532,15 +552,19 @@ class drifting_center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'], run_type='static')
 
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
-                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
-                                        self.angle_to_pix(self.experiment['y-center'][index])],
-                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
-                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
-                                   ori=self.experiment['angle'][index], units='pix',
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
+                                   pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
+                                        cls.angle_to_pix(cls.experiment['y-center'][index])],
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
+                                   ori=cls.experiment['angle'][index], units='pix',
                                    mask='circle',
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index]))]
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
 
 #####################################################
@@ -554,19 +578,23 @@ class off_center_grating_stim(visual_stim):
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color'], run_type='static')
 
         
-    def get_patterns(self, index):
-        return [visual.GratingStim(win=self.win,
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
-                visual.GratingStim(win=self.win,
-                                   pos=[self.angle_to_pix(self.experiment['x-center'][index]),
-                                        self.angle_to_pix(self.experiment['y-center'][index])],
-                                   sf=1./self.angle_to_pix(1./self.experiment['spatial-freq'][index]),
-                                   size= 2*self.angle_to_pix(self.experiment['radius'][index]),
+                                   sf=cls.experiment['spatial-freq'][index],
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
+                                        cls.angle_to_pix(cls.experiment['y-center'][index])],
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
                                    mask='circle', units='pix',
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
 
             
 class drifting_off_center_grating_stim(visual_stim):
@@ -575,20 +603,24 @@ class drifting_off_center_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color', 'speed'], run_type='drifting')
 
-    def get_patterns(self, index):
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         return [\
                 # Surround grating
-                visual.GratingStim(win=self.win,
+                visual.GratingStim(win=cls.win,
                                    size=1000, pos=[0,0],
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
+                                   sf=cls.experiment['spatial-freq'][index],
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
                 # + center Mask
-                visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius'][index],
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
+                                   size=cls.experiment['radius'][index],
                                    mask='circle', sf=0, contrast=0,
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
 
 
 #####################################################
@@ -601,23 +633,27 @@ class surround_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius-start', 'radius-end','spatial-freq', 'angle', 'contrast', 'bg-color'], run_type='static')
 
-    def get_patterns(self, index):
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         return [\
-                visual.GratingStim(win=self.win,
+                visual.GratingStim(win=cls.win,
                                    size=1000, pos=[0,0], sf=0,
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index])),
-                visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius-end'][index],
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
+                                   size=cls.experiment['radius-end'][index],
                                    mask='circle', 
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
-                visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius-start'][index],
+                                   sf=cls.experiment['spatial-freq'][index],
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
+                                   size=cls.experiment['radius-start'][index],
                                    mask='circle', sf=0,
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
     
 
 class drifting_surround_grating_stim(visual_stim):
@@ -626,23 +662,27 @@ class drifting_surround_grating_stim(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius-start', 'radius-end','spatial-freq', 'angle', 'contrast', 'bg-color', 'speed'], run_type='drifting')
 
-    def get_patterns(self, index):
+    def get_patterns(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         return [\
-                visual.GratingStim(win=self.win,
+                visual.GratingStim(win=cls.win,
                                    size=1000, pos=[0,0], sf=0,contrast=0,
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index])),
-                visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius-end'][index],
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
+                                   size=cls.experiment['radius-end'][index],
                                    mask='circle', 
-                                   sf=self.experiment['spatial-freq'][index],
-                                   ori=self.experiment['angle'][index],
-                                   contrast=self.gamma_corrected_contrast(self.experiment['contrast'][index])),
-                visual.GratingStim(win=self.win,
-                                   pos=[self.experiment['x-center'][index], self.experiment['y-center'][index]],
-                                   size=self.experiment['radius-start'][index],
+                                   sf=cls.experiment['spatial-freq'][index],
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
+                visual.GratingStim(win=cls.win,
+                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
+                                   size=cls.experiment['radius-start'][index],
                                    mask='circle', sf=0,contrast=0,
-                                   color=self.gamma_corrected_lum(self.experiment['bg-color'][index]))]
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
         
 
 #####################################################
@@ -665,33 +705,37 @@ class gaussian_blobs(visual_stim):
                                 run_type='images_sequence')
         
             
-    def get_frames_sequence(self, index):
+    def get_frames_sequence(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         """
         Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
         random samples of sin([0, 2pi]).
         """
-        x, z = self.angle_meshgrid()
+        x, z = cls.angle_meshgrid()
         
-        bg = np.ones(self.screen['resolution'])*self.experiment['bg-color'][index]
-        interval = self.experiment['time_stop'][index]-self.experiment['time_start'][index]
+        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
 
-        contrast = self.experiment['contrast'][index]
-        xcenter, zcenter = self.experiment['x-center'][index], self.experiment['y-center'][index]
-        radius = self.experiment['radius'][index]
-        bg_color = self.experiment['bg-color'][index]
+        contrast = cls.experiment['contrast'][index]
+        xcenter, zcenter = cls.experiment['x-center'][index], cls.experiment['y-center'][index]
+        radius = cls.experiment['radius'][index]
+        bg_color = cls.experiment['bg-color'][index]
         
-        t0, sT = self.experiment['center-time'][index], self.experiment['extent-time'][index]
-        itstart = np.max([0, int((t0-self.protocol['appearance_threshold']*sT)*self.protocol['movie_refresh_freq'])])
-        itend = np.min([int(interval*self.protocol['movie_refresh_freq']),
-                        int((t0+self.protocol['appearance_threshold']*sT)*self.protocol['movie_refresh_freq'])])
+        t0, sT = cls.experiment['center-time'][index], cls.experiment['extent-time'][index]
+        itstart = np.max([0, int((t0-cls.protocol['appearance_threshold']*sT)*cls.protocol['movie_refresh_freq'])])
+        itend = np.min([int(interval*cls.protocol['movie_refresh_freq']),
+                        int((t0+cls.protocol['appearance_threshold']*sT)*cls.protocol['movie_refresh_freq'])])
 
-        times, FRAMES = np.zeros(int(1.2*interval*self.protocol['movie_refresh_freq']), dtype=int), []
+        times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
         # the pre-time
         FRAMES.append(2*bg_color-1.+0.*x)
         times[:itstart] = 0
         for iframe, it in enumerate(np.arange(itstart, itend)):
             img = 2*(np.exp(-((x-xcenter)**2+(z-zcenter)**2)/2./radius**2)*\
-                     contrast*np.exp(-(it/self.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
+                     contrast*np.exp(-(it/cls.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
             FRAMES.append(img)
             times[it] = iframe
         # the post-time
@@ -713,8 +757,12 @@ class natural_image(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'], run_type='image')
 
-    def get_frame(self, index):
-        filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][index])]
+    def get_frame(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
+        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][index])]
         img = load(os.path.join(NI_directory, filename))
         return 2*img_after_hist_normalization(img).T-1.
 
@@ -765,32 +813,38 @@ class natural_image_vse(visual_stim):
         self.frame_refresh = protocol['movie_refresh_freq']
         
         
-    def get_frames_sequence(self, index):
-
-        if self.experiment['vary-VSE-with-Image'][index]==1:
-            seed = int(self.experiment['VSE-seed'][index]+1000*self.experiment['Image-ID'][index])
+    def get_frames_sequence(self, index, parent=None):
+        if parent is not None:
+            cls = parent
         else:
-            seed = int(self.experiment['VSE-seed'][index])
+            cls = self
 
-        vse = generate_VSE(duration=self.protocol['presentation-duration'],
-                           mean_saccade_duration=self.experiment['mean-saccade-duration'][index],
-                           std_saccade_duration=self.experiment['std-saccade-duration'][index],
-                           saccade_amplitude=self.angle_to_pix(self.experiment['saccade-amplitude'][index]), # in pixels, TO BE PUT IN DEGREES
+        if cls.experiment['vary-VSE-with-Image'][index]==1:
+            seed = int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
+            seed = int(cls.experiment['VSE-seed'][index])
+
+        vse = generate_VSE(duration=cls.protocol['presentation-duration'],
+                           mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
+                           std_saccade_duration=cls.experiment['std-saccade-duration'][index],
+                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]), # in pixels, TO BE PUT IN DEGREES
                            seed=seed)
 
-        filename = os.listdir(NI_directory)[int(self.experiment['Image-ID'][index])]
+        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][index])]
         img0 = load(os.path.join(NI_directory, filename))
         img = 2*img_after_hist_normalization(img0)-1 # normalization + gamma_correction
         sx, sy = img.shape
             
-        interval = self.experiment['time_stop'][index]-self.experiment['time_start'][index]
-        times, FRAMES = np.zeros(int(1.2*interval*self.protocol['movie_refresh_freq']), dtype=int), []
-        Times = np.arange(int(1.2*interval*self.protocol['movie_refresh_freq']))/self.protocol['movie_refresh_freq']
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
+        Times = np.arange(int(1.2*interval*cls.protocol['movie_refresh_freq']))/cls.protocol['movie_refresh_freq']
 
         for i, t in enumerate(vse['t']):
             ix, iy = int(vse['x'][i]), int(vse['y'][i])
             new_im = np.zeros(img.shape)
             new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+            new_im[:ix,:] = img[sx-ix:,:]
+            new_im[:,:iy] = img[:,sy-iy:]
             new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
             FRAMES.append(new_im.T)
             times[Times>=t] = int(i)
@@ -823,7 +877,11 @@ class sparse_noise(visual_stim):
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         
-    def get_frame(self, index):
+    def get_frame(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         return self.noise_gen.get_frame(index).T
             
 
@@ -846,7 +904,11 @@ class dense_noise(visual_stim):
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         
-    def get_frame(self, index):
+    def get_frame(self, index, parent=None):
+        if parent is not None:
+            cls = parent
+        else:
+            cls = self
         return self.noise_gen.get_frame(index).T
             
 
@@ -855,7 +917,7 @@ if __name__=='__main__':
     import json, tempfile
     from pathlib import Path
     
-    with open('exp/protocols/center-gratings.json', 'r') as fp:
+    with open('exp/protocols/multiprotocols.json', 'r') as fp:
         protocol = json.load(fp)
 
     class df:
@@ -870,7 +932,6 @@ if __name__=='__main__':
             self.stop_flag = False
             self.datafolder = df()
 
-    protocol['Setup']='demo-mode'
     stim = build_stim(protocol)
     parent = dummy_parent()
     stim.run(parent)
