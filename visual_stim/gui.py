@@ -22,6 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.protocol = None # by default, can be loaded by the interface
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
+        self.demo = args.demo
         self.params_window = None
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
                                             'protocols')
@@ -109,6 +110,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('[...] preparing stimulation')
             self.protocol = extract_params_from_window(self)
+            if self.demo:
+                self.protocol['Setup']=='demo-mode'
             self.stim = build_stim(self.protocol)
             # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
             self.statusBar.showMessage('stimulation ready !')
@@ -173,6 +176,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = json.load(fp)
             # self.protocol_folder = self.protocol['protocol-folder']
             self.setup = self.protocol['Setup']
+            if self.demo:
+                self.protocol['Setup'] = 'demo-mode'
             # update main window
             s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Setup']
             self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
@@ -208,19 +213,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def create_params_window(self):
         window = QtWidgets.QDialog()
-
-        
-    # def save_results(self):
-    #     if 'NSI' in self.data:
-    #         results_filename = '.'.join(self.filename.split('.')[:-1]) if '.' in self.filename else self.filename
-    #         results_filename += '_NSI_'+datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')+'.h5'
-    #         print(self.data.keys())
-    #         to_save = {'validated_times': self.data['new_t'][self.data['NSI_validated']],
-    #                    'validated_NSI':self.data['NSI'][self.data['NSI_validated']]}
-    #         save_dict_to_hdf5(to_save, results_filename)
-    #         self.statusBar.showMessage('Results of analysis saved as : '+results_filename)
-    #     else:
-    #         self.statusBar.showMessage('Need to perform analysis first...')
 
 
 class mp_string:

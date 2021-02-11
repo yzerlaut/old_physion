@@ -61,7 +61,7 @@ def stop_signal(parent):
 
 class visual_stim:
 
-    def __init__(self, protocol, demo=False, store_frame=False):
+    def __init__(self, protocol, demo=False, store_frame=False, no_window=False):
         """
         """
         self.protocol = protocol
@@ -74,22 +74,24 @@ class visual_stim:
 
         if self.protocol['Setup']=='demo-mode' or demo==True:
             # Everything is scaled-down by a factor 2
-            self.monitor = monitors.Monitor('testMonitor')
             self.screen0 = SCREENS[self.protocol['screen']]
             self.screen = {}
             for key in self.screen0:
                 self.screen[key] = self.screen0[key]
             # for key in ['resolution', 'distance_from_eye', 'width']:
             #     self.screen[key] = np.array(self.screen0[key])/1.6 # SCALE FACTOR HERE
-            self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
-                                     units='pix', color=-1) #create a window
+            if not no_window:
+                self.monitor = monitors.Monitor('testMonitor')
+                self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
+                                         units='pix', color=-1) #create a window
         else:
             self.screen = SCREENS[self.protocol['screen']]
-            self.monitor = monitors.Monitor(self.protocol['screen'])
-            self.monitor.setDistance(self.screen['distance_from_eye'])
-            self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
-                                     screen=self.screen['screen_id'], fullscr=True,
-                                     units='pix', color=-1)
+            if not no_window:
+                self.monitor = monitors.Monitor(self.protocol['screen'])
+                self.monitor.setDistance(self.screen['distance_from_eye'])
+                self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
+                                         screen=self.screen['screen_id'], fullscr=True,
+                                         units='pix', color=-1)
 
         self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
 
@@ -341,7 +343,7 @@ class visual_stim:
             try:
                 self.win.flip()
             except AttributeError:
-                pass
+                pass
 
 
     #####################################################
@@ -364,7 +366,7 @@ class visual_stim:
             except AttributeError:
                 pass
 
-            
+
     def single_episode_run(self, parent, index):
         
         if self.experiment['frame_run_type'][index]=='drifting':
@@ -400,64 +402,33 @@ class visual_stim:
                                                   'screen-frames', 'frame.tiff'))
         
 
-    # #####################################################
-    # # adding a Virtual-Scene-Exploration on top of an image stim
-    # def single_VSE_image_presentation(self, parent, index):
-    #     start, prev_t = clock.getTime(), clock.getTime()
-    #     while ((clock.getTime()-start)<self.protocol['presentation-duration']) and not parent.stop_flag:
-    #         new_t = clock.getTime()
-    #         i0 = np.min(np.argwhere(self.VSEs[index]['t']>(new_t-start)))
-    #         self.PATTERNS[index][i0].draw()
-    #         self.add_monitoring_signal(new_t, start)
-    #         prev_t = new_t
-    #         try:
-    #             self.win.flip()
-    #         except AttributeError:
-    #             pass
-    #     self.win.getMovieFrame() # we store the last frame
-
-    # def vse_run(self, parent):
-    #     self.start_screen(parent)
-    #     for i in range(len(self.experiment['index'])):
-    #         if stop_signal(parent):
-    #             break
-    #         print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
-    #         self.single_VSE_image_presentation(parent, i)
-    #         if self.protocol['Presentation']!='Single-Stimulus':
-    #             self.inter_screen(parent)
-    #     self.end_screen(parent)
-    #     if not parent.stop_flag and hasattr(parent, 'statusBar'):
-    #         parent.statusBar.showMessage('stimulation over !')
-    #     self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
-    #                                           'screen-frames', 'frame.tiff'))
         
+#####################################################
+##  ----         MULTI-PROTOCOLS            --- #####           
+#####################################################
 
-    # def array_run(self, parent):
-    #     self.start_screen(parent)
-    #     for i in range(len(self.experiment['time_start'])):
-    #         if stop_signal(parent):
-    #             break
-    #         print('Running frame of index %i/%i' % (i+1, len(self.experiment['time_start'])))
-    #         self.single_array_presentation(parent, i)
-    #         if self.protocol['Presentation']!='Single-Stimulus':
-    #             self.inter_screen(parent)
-    #     self.end_screen(parent)
-    #     if not parent.stop_flag and hasattr(parent, 'statusBar'):
-    #         parent.statusBar.showMessage('stimulation over !')
-    #     # self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
-    #     #                                       'screen-frames', 'frame.tiff'))
-            
-    # ## FINAL RUN FUNCTION
-    # def run(self, parent):
-    #     if len(self.protocol['Stimulus'].split('drifting'))>1:
-    #         return self.drifting_run(parent)
-    #     elif len(self.protocol['Stimulus'].split('VSE'))>1:
-    #         return self.vse_run(parent)
-    #     elif len(self.protocol['Stimulus'].split('noise'))>1:
-    #         return self.array_run(parent)
-    #     else:
-    #         return self.static_run(parent)
+class multiprotocol(visual_stim):
+
+    def __init__(self, protocol):
         
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['light-level'], run_type='static')
+
+        STIM = []
+        for s in self.protocol['']:
+            STIM.append(build_stim())
+        
+    # functions implemented in child class
+    def get_patterns(self, index):
+        pass
+    def get_frame(self, index):
+        pass
+    def get_patterns(self, index):
+        return getattr(STIM[self.experiment['protocol_index'][index]], 'get_patterns')
+
+
+
+
 #####################################################
 ##  ----   PRESENTING VARIOUS LIGHT LEVELS  --- #####           
 #####################################################
@@ -473,6 +444,7 @@ class light_level_single_stim(visual_stim):
         return [visual.GratingStim(win=self.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=self.gamma_corrected_lum(self.experiment['light-level'][index]))]
+
             
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
@@ -791,6 +763,8 @@ class natural_image_vse(visual_stim):
             ix, iy = int(vse['x'][i]), int(vse['y'][i])
             new_im = np.zeros(img.shape)
             new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+            new_im[:ix,:] = img[sx-ix:,:]
+            new_im[:,:iy] = img[:,sy-iy:]
             new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
             FRAMES.append(new_im.T)
             times[Times>=t] = int(i)
