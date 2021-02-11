@@ -412,22 +412,25 @@ class multiprotocol(visual_stim):
     def __init__(self, protocol):
         
         super().__init__(protocol)
-        super().init_experiment(protocol, ['light-level'], run_type='static')
 
         STIM = []
         for s in self.protocol['']:
+            
             STIM.append(build_stim())
+
+        self.init_experiment(protocol)
+        
+    def init_experiment(self, protocol):
+        pass
         
     # functions implemented in child class
-    def get_patterns(self, index):
-        pass
     def get_frame(self, index):
-        pass
+        return getattr(STIM[self.experiment['protocol_index'][index]], 'get_frame')
     def get_patterns(self, index):
         return getattr(STIM[self.experiment['protocol_index'][index]], 'get_patterns')
-
-
-
+    def get_frames_sequence(self, index):
+        return getattr(STIM[self.experiment['protocol_index'][index]], 'get_frames_sequence')
+s
 
 #####################################################
 ##  ----   PRESENTING VARIOUS LIGHT LEVELS  --- #####           
@@ -829,7 +832,7 @@ if __name__=='__main__':
     import json, tempfile
     from pathlib import Path
     
-    with open('exp/protocols/center-gratings.json', 'r') as fp:
+    with open('exp/protocols/multiprotocols.json', 'r') as fp:
         protocol = json.load(fp)
 
     class df:

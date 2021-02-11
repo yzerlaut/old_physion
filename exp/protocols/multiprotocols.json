@@ -1,0 +1,7 @@
+{
+  "Presentation": "Multiprotocol",
+  "Protocol-1": "gaussian-blobs.json",
+  "Protocol-2": "center-gratings.json",
+  "data-folder": "",
+  "protocol-folder": "C:\\Users\\yann.zerlaut\\work\\physion\\exp\\protocols"
+}
