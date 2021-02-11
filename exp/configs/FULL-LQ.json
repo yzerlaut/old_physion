@@ -3,7 +3,7 @@
     "NIdaq-analog-input-channels":1,
     "NIdaq-digital-input-channels":2,
     "Setup":"Bacci-2P-setup",
-    "screen":"Dell-P2018H",
+    "screen":"Dell-2020",
     "FaceCamera-frame-rate":10,
     "STEP_FOR_CA_IMAGING_TRIGGER":{"channel":0,
 				   "onset": 0.1,
