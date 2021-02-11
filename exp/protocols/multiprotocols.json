@@ -1,5 +1,7 @@
 {
   "Presentation": "multiprotocol",
+  "shuffling" :"full",
+  "shuffling-seed" :34,
   "Protocol-1": "gaussian-blobs.json",
   "Protocol-2": "center-gratings.json",
   "presentation-prestim-period": 0.2,

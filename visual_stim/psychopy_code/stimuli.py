@@ -416,6 +416,8 @@ class multiprotocol(visual_stim):
                 subprotocol['screen'] = protocol['screen']
                 subprotocol['no-window'] = True
                 self.STIM.append(build_stim(subprotocol))
+                for key, val in subprotocol.items():
+                    protocol['Protocol-%i-%s'%(i,key)] = val
             i+=1
 
         self.experiment = {'time_duration':[],
@@ -434,14 +436,20 @@ class multiprotocol(visual_stim):
                         self.experiment[key].append(None)
                 self.experiment['protocol_id'].append(IS)
                 self.experiment['time_duration'].append(stim.experiment['time_stop'][i]-stim.experiment['time_start'][i])
+        # SHUFFLING IF NECESSARY
+        indices = np.arange(len(self.experiment['index']))
+        if (protocol['shuffling']=='full'):
+            np.random.seed(protocol['shuffling-seed'])
+            np.random.shuffle(indices)
+        for key in self.experiment:
+            self.experiment[key] = np.array(self.experiment[key])[indices]
+
         # we rebuild time
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
         for i in range(1, len(self.experiment['index'])):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period']
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
-        print(self.experiment)
-        print(self.protocol)
 
         
     # functions implemented in child class
