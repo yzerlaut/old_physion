@@ -93,15 +93,15 @@ def get_files_with_given_exts(dir='./', EXTS=['npz','abf','bin']):
     return np.array(FILES)
 
 
-def get_TSeries_folders(folder):
+def get_TSeries_folders(folder, frame_limit=0):
     """ get files of a given extension and sort them..."""
     FOLDERS = []
     for root, subdirs, files in os.walk(folder):
-        if 'TSeries' in root.split(os.path.sep)[-1] and len(files)>50:
+        if 'TSeries' in root.split(os.path.sep)[-1] and len(files)>frame_limit:
             FOLDERS.append(os.path.join(folder, root))
         elif 'TSeries' in root.split(os.path.sep)[-1]:
             print('"%s" ignored' % root)
-            print('   ----> data should be at least 50 frames !')
+            print('   ----> data should be at least %i frames !' % frame_limit)
     return np.array(FOLDERS)
 
 def insure_ordered_frame_names(df):
