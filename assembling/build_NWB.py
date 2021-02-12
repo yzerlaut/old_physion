@@ -15,7 +15,6 @@ from assembling.IO.binary import BinaryFile
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.IO.suite2p_to_nwb import add_ophys_processing_from_suite2p
 from behavioral_monitoring.locomotion import compute_position_from_binary_signals
-from exp.gui import STEP_FOR_CA_IMAGING
 
 def compute_locomotion(binary_signal, acq_freq=1e4,
                        speed_smoothing=10e-3, # s
@@ -136,7 +135,7 @@ def build_NWB(args,
             metadata['time_start'] = VisualStim['refresh-times'][:-1]
             metadata['time_stop'] = VisualStim['refresh-times'][1:]
         else:
-            for key in ['time_start', 'time_stop']:
+            for key in ['time_start', 'time_stop', 'time_duration']:
                 metadata[key] = VisualStim[key]
         success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
                                                     verbose=args.verbose)
@@ -171,24 +170,24 @@ def build_NWB(args,
                                       rate=float(metadata['NIdaq-acquisition-frequency']))
         nwbfile.add_acquisition(photodiode)
 
-        if args.verbose:
-            print('=> Storing the recorded frames [...]')
-        insure_ordered_frame_names(args.datafolder)
-        frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
-        MOVIE = []
-        for fn in frames:
-            im  = np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1)
-            MOVIE.append(im.astype(np.uint8)[::8,::8]) # subsampling !
-        frame_timestamps = [0]
-        for x1, x2 in zip(metadata['time_start_realigned'], metadata['time_stop_realigned']):
-            frame_timestamps.append(x1)
-            frame_timestamps.append(x2)
+        # if args.verbose:
+        #     print('=> Storing the recorded frames [...]')
+        # insure_ordered_frame_names(args.datafolder)
+        # frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
+        # MOVIE = []
+        # for fn in frames:
+        #     im  = np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1)
+        #     MOVIE.append(im.astype(np.uint8)[::8,::8]) # subsampling !
+        # frame_timestamps = [0]
+        # for x1, x2 in zip(metadata['time_start_realigned'], metadata['time_stop_realigned']):
+        #     frame_timestamps.append(x1)
+        #     frame_timestamps.append(x2)
 
-        frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-                                                data=np.array(MOVIE).astype(np.uint8),
-                                                unit='NA',
-                                                timestamps=np.array(frame_timestamps)[:len(MOVIE)])
-        nwbfile.add_stimulus(frame_stimuli)
+        # frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
+        #                                         data=np.array(MOVIE).astype(np.uint8),
+        #                                         unit='NA',
+        #                                         timestamps=np.array(frame_timestamps)[:len(MOVIE)])
+        # nwbfile.add_stimulus(frame_stimuli)
         
     #################################################
     ####         FaceCamera Recording         #######
@@ -246,7 +245,7 @@ def build_NWB(args,
     ####         Calcium Imaging              #######
     #################################################
     
-    if metadata['CaImaging']:
+    if metadata['CaImaging'] and ('CaImaging' in args.modalities):
 
         try:
             Ca_subfolder = get_TSeries_folders(args.datafolder)[0] # get Tseries folder
@@ -257,7 +256,9 @@ def build_NWB(args,
             raise Exception
         
         xml = bruker_xml_parser(CaFn) # metadata
-        CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
+        # CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
+        #     float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
+        CaImaging_timestamps = metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset']+xml['Ch1']['relativeTime']+\
             float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
 
         
