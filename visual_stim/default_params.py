@@ -154,6 +154,23 @@ STIMULI = {
     
     'center-surround-grating':{},
     
+    # gaussian blobs
+    'gaussian-blobs':{
+        'radius (deg)':5, 'x-center (deg)':0, 'y-center (deg)':0,
+        'center-time (s)': 2.,
+        'extent-time (s)': 1.,
+        'contrast (norm.)':1.,
+        'bg-color (lum.)':-1., # not thought to be varied
+        # range
+        'center-time-1':0., 'center-time-2':15., 'N-center-time':0,
+        'extent-time-1':0., 'extent-time-2':15., 'N-extent-time':0,
+        'radius-1':0, 'radius-2':150., 'N-radius':0,
+        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
+        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
+        'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
+
+    # NI
     'Natural-Image':{
         'Image-ID (#)':1,
         'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5},
@@ -161,12 +178,14 @@ STIMULI = {
     'Natural-Image+VSE':{
         'Image-ID (#)':1,
         'VSE-seed (#)':1,
-        'mean-saccade-duration (s)':1.,
+        'saccade-amplitude (deg)':1.,
+        'mean-saccade-duration (s)':3.,
         'std-saccade-duration (s)':0.5,
-        'lock-VSE-on-Image (0/1)':1,
-        'lock-VSE-on-Image-1':0,'lock-VSE-on-Image-2':1,'N-lock-VSE-on-Image':0,
-        'mean-saccade-duration-1':0.1,'mean-saccade-duration-2':10.,'N-mean-saccade-duration':0,
-        'std-saccade-duration-1':0.1,'std-saccade-duration-2':10.,'N-std-saccade-duration':0,
+        'vary-VSE-with-Image (0/1)':1,
+        'saccade-amplitude-1':0.001, 'saccade-amplitude-2':10., 'N-saccade-amplitude':0,
+        'vary-VSE-with-Image-1':0,'vary-VSE-with-Image-2':1,'N-vary-VSE-with-Image':0,
+        'mean-saccade-duration-1':0.01,'mean-saccade-duration-2':100.,'N-mean-saccade-duration':0,
+        'std-saccade-duration-1':0.01,'std-saccade-duration-2':100.,'N-std-saccade-duration':0,
         'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5,
         'VSE-seed-1':1,'VSE-seed-2':5,'N-VSE-seed':1},
     
@@ -176,22 +195,28 @@ STIMULI = {
         'mean-refresh-time (s)':2.,
         'jitter-refresh-time (s)':0.5,
         'noise-seed (#)':1,
+        'contrast (norm.)':1.,
+        'bg-color (lum.)':0., # not thought to be varied
         'square-size-1':0.2,'square-size-2':9,'N-square-size':3,
         'sparseness-1':1,'sparseness-2':50,'N-sparseness':0,
-        'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
+        'mean-refresh-time-1':0.01,'mean-refresh-time-2':10.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
         'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
+        'contrast-1':0., 'contrast-2':1., 'N-contrast':0,
+        'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0,
     },
     
     'dense-noise':{
         'square-size (deg)':2., # in degrees
-        'mean-refresh-time (s)':0.3,
-        'jitter-refresh-time (s)':0.3,
+        'mean-refresh-time (s)':2.,
+        'jitter-refresh-time (s)':0.5,
         'noise-seed (#)':1,
+        'contrast (norm.)':1.,
         'square-size-1':0.2,'square-size-2':9,'N-square-size':3,
-        'mean-refresh-time-1':0.01,'mean-refresh-time-2':5.,'N-mean-refresh-time':0,
+        'mean-refresh-time-1':0.01,'mean-refresh-time-2':10.,'N-mean-refresh-time':0,
         'jitter-refresh-time-1':0.01,'jitter-refresh-time-2':5.,'N-jitter-refresh-time':0,
         'noise-seed-1':1, 'noise-seed-2':1000, 'N-noise-seed':10,
+        'contrast-1':0., 'contrast-2':1., 'N-contrast':0,
     },
     # 'full-field-grating+VSE':{},
 }

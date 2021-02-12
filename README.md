@@ -17,7 +17,6 @@
 
 ## How do I get set up ?
 
-
 #### 1) Get a scientific python distribution
 
 Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
@@ -37,13 +36,16 @@ Open the Anaconda prompt (or the UNIX shell) and use `pip` to install the depend
 pip install -r requirements.txt
 ```
 
-The installation instructions for the experimental setup are described in a dedicated [README](./exp/README.md)
+Example of the full process from the Anaconda prompt:
 
-`pyinstaller main.py --windowed`
+<p align="center">
+  <img src="doc/install-instructions.png"/>
+</p>
+
 
 ## Running the program
 
-The master program for experiments is launched with:
+The master program for experiments is launched from the "Anaconda prompt" by typing:
 ```
 python main.py
 ```
@@ -51,6 +53,10 @@ python main.py
 <p align="center">
   <img src="doc/gui-master.png"/>
 </p>
+
+
+You can now pick the specific module that you want to use.
+
 
 It loads by default the `protocols` and `configurations` stored in [master/protocols/](master/protocols/) and [master/configs/](master/configs/) respectively. Store your protocols and recordings configurations there and you will be able to pick them from the GUI.
 

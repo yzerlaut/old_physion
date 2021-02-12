@@ -1,7 +1,7 @@
 {
   "Presentation": "Randomized-Sequence",
   "Stimulus": "drifting-center-grating",
-  "Setup": "Bacci-2P-setup",
+  "Setup": "demo-mode",
   "presentation-duration": 4.0,
   "presentation-prestim-period": 5.0,
   "presentation-poststim-period": 5.0,
@@ -36,6 +36,6 @@
   "bg-color-1": 0.5,
   "bg-color-2": 0.5,
   "N-bg-color": 0,
-  "data-folder": "C:\\Users\\VISUAL~1\\AppData\\Local\\Temp\\2020_10_16\\11-42-37",
-  "protocol-folder": "/home/yann/work/cortical-physio-icm/visual_stim/protocols"
+  "data-folder": "C:\\Users\\YANN~1.ZER\\AppData\\Local\\Temp\\2021_02_01\\15-13-39",
+  "protocol-folder": "C:\\Users\\yann.zerlaut\\work\\physion\\exp\\protocols"
 }

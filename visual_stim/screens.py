@@ -7,10 +7,31 @@ SCREENS = {
         'resolution':[1280, 768],
         'width':16, # in cm
         'distance_from_eye':15, # in cm
-        'monitoring_square':{'size':100,
+        'fullscreen':True,
+        'monitoring_square':{'size':8,
+                             'color-on':1,
+                             'color-off':-1,
+                             'time-on':0.2,
+                             'time-off':0.8,
                              'location':'bottom-left',
-                             'on_times':np.concatenate([[0],[0.5],np.arange(1, 100)]), # single stimuli won't last too long
-                             'on_duration':0.2},
+                             'x':-24,
+                             'y':-13.5},
+        'gamma_correction':{'k':1.03,
+                            'gamma':1.77},
+    },
+    'demo':{
+        'name':'testMonitor',
+        'screen_id':0,
+        'resolution':[600, 338],
+        'width':10, # in cm
+        'distance_from_eye':10, # in cm
+        'fullscreen':False,
+        'monitoring_square':{'size':8,
+                             'color-on':1,
+                             'color-off':-1,
+                             'time-on':0.2,
+                             'time-off':0.8,
+                             'location':'top-right'},
         'gamma_correction':{'k':1.03,
                             'gamma':1.77},
     },
@@ -20,11 +41,31 @@ SCREENS = {
         'resolution':[1280, 720],
         'width':43.4, # in cm
         'height':23.6, # in cm
-        'distance_from_eye':15., # in cm
-        'monitoring_square':{'size':60,
-                             'location':'bottom-left',
-                             'on_times':np.concatenate([[0],[0.5],np.arange(1, 100)]), # single stimuli won't last too long
-                             'on_duration':0.2},
+        'distance_from_eye':15.0, # in cm
+        'fullscreen':True,
+        'monitoring_square':{'size':40.,
+                             'location':'top-right',
+                             'color-on':1,
+                             'color-off':-1,
+                             'time-on':0.2,
+                             'time-off':0.8},
+        'gamma_correction':{'k':1.03,
+                            'gamma':1.77},
+    },
+    'Dell-2020':{
+        'name':'Dell-2020',
+        'screen_id':1,
+        'resolution':[1280, 720],
+        'width':43.4, # in cm
+        'height':23.6, # in cm
+        'distance_from_eye':15.0, # in cm
+        'fullscreen':True,
+        'monitoring_square':{'size':40.,
+                             'location':'top-right',
+                             'color-on':1,
+                             'color-off':-1,
+                             'time-on':0.2,
+                             'time-off':0.8},
         'gamma_correction':{'k':1.03,
                             'gamma':1.77},
     },

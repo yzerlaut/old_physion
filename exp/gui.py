@@ -1,13 +1,14 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
+from ctypes import c_char_p 
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
-    from visual_stim.stimuli import visual_stim
+    from visual_stim.psychopy_code.stimuli import build_stim
     from visual_stim.default_params import SETUP
 else:
     SETUP = [None]
@@ -28,8 +29,6 @@ except ModuleNotFoundError:
 base_path = str(pathlib.Path(__file__).resolve().parents[0])
 settings_filename = os.path.join(base_path, 'settings.npy')
 
-STEP_FOR_CA_IMAGING = {"channel":0, "onset": 0.1, "duration": .3, "value":5.0}
-
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app, args=None):
@@ -37,22 +36,31 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         
-        self.setWindowTitle('Experimental module -- Physiology of Visual Circuits')
+        self.setWindowTitle('Experimental module -- Vision Physiology')
         self.setGeometry(50, 50, 550, 370)
 
         ##########################################################
+        ######## Multiprocessing quantities
         ##########################################################
-        ##########################################################
-        self.quit_event = multiprocessing.Event() # to control the RigView !
         self.run_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
-        # self.camready_event = multiprocessing.Event() # to turn on and off recordings execute through multiprocessing.Process
+        self.run_event.clear()
+        self.closeFaceCamera_event = multiprocessing.Event()
+        self.closeFaceCamera_event.clear()
+        self.quit_event = multiprocessing.Event()
+        self.quit_event.clear()
+        self.manager = multiprocessing.Manager() # Useful to share a string across processes :
+        self.datafolder = self.manager.Value(c_char_p, str(os.path.join(os.path.expanduser('~'), 'DATA', 'trash')))
+        
+        ##########################################################
+        ######## class values
+        ##########################################################
         self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
         self.FaceCamera_process = None
         self.RigView_process = None
         self.params_window = None
 
         ##########################################################
-        ##########################################################
+        ####### GUI settings
         ##########################################################
         rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
         rml.move(30, 5)
@@ -64,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
         self.ElectrophyButton.move(230, 40)
         self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
+        self.FaceCameraButton.clicked.connect(self.toggle_FaceCamera_process)
         self.FaceCameraButton.move(330, 40)
         self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
         self.CaImagingButton.move(430, 40)
@@ -135,14 +144,32 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.get_config_list()
         self.load_settings()
-        self.datafolder = None
-	    
-        self.experiment = {} # storing the specifics of an experiment
+	# self.toggle_FaceCamera_process() # initialize if pre-set
         
+        self.experiment = {} # storing the specifics of an experiment
         self.show()
 
     ### GUI FUNCTIONS ###
-    
+    def toggle_FaceCamera_process(self):
+        if self.FaceCameraButton.isChecked() and (self.FaceCamera_process is None):
+            # need to launch it
+            self.statusBar.showMessage('  starting FaceCamera stream [...] ')
+            self.show()
+            self.closeFaceCamera_event.clear()
+            self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
+                                        args=(self.run_event , self.closeFaceCamera_event, self.datafolder,
+                                              {'frame_rate':self.config['FaceCamera-frame-rate']}))
+            self.FaceCamera_process.start()
+            time.sleep(6)
+            self.statusBar.showMessage('[ok] FaceCamera ready ! ')
+            
+        elif (not self.FaceCameraButton.isChecked()) and (self.FaceCamera_process is not None):
+            # need to shut it down
+            self.closeFaceCamera_event.set()
+            self.statusBar.showMessage(' FaceCamera stream interupted !')
+            self.FaceCamera_process = None
+            
+        
     def save_settings(self):
         settings = {'config':self.cbc.currentText(),
                     'protocol':self.cbp.currentText(),
@@ -218,21 +245,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_subject(self):
         self.subject = self.subjects[self.cbs.currentText()]
         
-    def init_FaceCamera(self):
-        if self.FaceCamera_process is None:
-            self.FaceCamera_process = multiprocessing.Process(target=launch_FaceCamera,
-                                        args=(self.run_event , self.quit_event,
-                                              self.root_datafolder,
-                                              {'frame_rate':self.config['FaceCamera-frame-rate']}))
-            self.FaceCamera_process.start()
-            print('  starting FaceCamera stream [...] ')
-            time.sleep(6)
-            print('[ok] FaceCamera ready ! ')
-        else:
-            print('[ok] FaceCamera already initialized ')
-            
-        return True
-            
     def rigview(self):
         if self.RigView_process is not None:
             self.RigView_process.terminate()
@@ -271,7 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                                filename='metadata', extension='.npy',
                                                with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
                                                with_screen_frames_folder=self.metadata['VisualStim'])
-        self.datafolder = os.path.dirname(self.filename)
+        self.datafolder.set(os.path.dirname(self.filename))
             
         if self.metadata['protocol']!='None':
             with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
@@ -279,16 +291,13 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
                 self.protocol = {}
 
-        # init facecamera
-        if self.metadata['FaceCamera']:
-            self.statusBar.showMessage('Initializing Camera stream [...]')
-            self.init_FaceCamera()
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
-            self.stim = visual_stim(self.protocol)
-            # np.save(os.path.join(self.datafolder, 'visual-stim.npy'), self.stim.experiment)
-            print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(self.datafolder, 'visual-stim.npy'))
+            self.protocol['screen'] = self.metadata['screen']
+            self.stim = build_stim(self.protocol)
+            # np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
+            print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
                 max_time = self.stim.experiment['time_stop'][-1]+20
             elif 'refresh_times' in self.stim.experiment:
@@ -396,6 +405,8 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def quit(self):
         self.quit_event.set()
+        if self.FaceCamera_process is not None:
+            self.closeFaceCamera_event.set()
         if self.acq is not None:
             self.acq.close()
         if self.stim is not None:
@@ -404,9 +415,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         # SAVING THE METADATA FILES
-        np.save(os.path.join(self.datafolder, 'metadata.npy'), self.metadata)
-        print('[ok] Metadata data saved as: %s ' % os.path.join(self.datafolder, 'metadata.npy'))
-        self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(self.datafolder, 'metadata.npy'))
+        np.save(os.path.join(str(self.datafolder.get()), 'metadata.npy'), self.metadata)
+        print('[ok] Metadata data saved as: %s ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
+        self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
 
         
 def run(app, args=None):

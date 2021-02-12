@@ -14,7 +14,7 @@ from pupil import guiparts, process, roi
 from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
-from visualization.plots import convert_index_to_time
+from dataviz.plots import convert_index_to_time
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -167,8 +167,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.processed = False
 
-        if args.datafile!='':
-            self.datafile = args.datafile
+        self.datafile = args.datafile
         
         self.load_data()
 

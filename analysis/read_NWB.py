@@ -9,8 +9,11 @@ def init(self):
     self.keys = []
     
     
-def read(self, verbose=False):
+def read(self, filename, verbose=False):
 
+    self.io = pynwb.NWBHDF5IO(filename, 'r')
+    self.nwbfile = self.io.read()
+    
     if verbose:
         t0 = time.time()
     
@@ -65,5 +68,5 @@ def read(self, verbose=False):
 
         
     if verbose:
-        print('NWB-file reading time: %.1f' % (time.time()-t0))
+        print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
 

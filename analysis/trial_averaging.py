@@ -179,13 +179,13 @@ class TrialAverageWindow(NewWindow):
         
         self.quantity = self.qbox.currentText()
         if self.quantity=='CaImaging':
-            self.statusBar.showMessage('rebuilding episodes for "%s" and ROI "%s"' % (self.quantity,\
+            self.statusBar.showMessage('rebuilding episodes for "%s" and ROI "%s" [...]' % (self.quantity,\
                                                                               self.parent.roiIndices))
         else:
-            self.statusBar.showMessage('rebuilding episodes for "%s"' % self.quantity)
-        self.EPISODES = build_episodes(self,
-                            quantity=self.quantity,
-                            dt_sampling=self.samplingBox.value())
+            self.statusBar.showMessage('rebuilding episodes for "%s" [...]' % self.quantity)
+        self.EPISODES = build_episodes(self, parent=self.parent,
+                                       quantity=self.quantity,
+                                       dt_sampling=self.samplingBox.value())
         self.statusBar.showMessage('-> done !')
         self.plot_row_column_of_quantity(self.quantity)
         
@@ -240,36 +240,39 @@ class TrialAverageWindow(NewWindow):
         #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
         #         self.pbox.addItem(k)
 
-def build_episodes(self,
+def build_episodes(self, parent=None,
                    quantity='Locomotion',
                    subquantity='',
                    dt_sampling=1, # ms
-                   interpolation='linear'):
+                   interpolation='linear',
+                   verbose=True):
 
     EPISODES = {'dt_sampling':dt_sampling,
                 'quantity':quantity}
-    
-    self.statusBar.showMessage('building episodes [...]')
+
+    if parent is None:
+        parent = self
+
     # new sampling
-    interstim = self.parent.metadata['presentation-interstim-period']
+    interstim = parent.metadata['presentation-interstim-period']
     ipre = int(interstim/dt_sampling/1e-3*3./4.) # 3/4 of prestim
-    idur = int(self.parent.metadata['presentation-duration']/dt_sampling/1e-3)
+    idur = int(parent.metadata['presentation-duration']/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     EPISODES[quantity] = []
     
     key = None
     if quantity=='CaImaging':
-        if 'CaImaging-TimeSeries' in self.parent.nwbfile.acquisition and len(self.parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps)>2:
-            tfull = self.parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
+        if 'CaImaging-TimeSeries' in parent.nwbfile.acquisition and len(parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps)>2:
+            tfull = parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
         else:
-            dt = 1./self.parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].rate
-            tfull = np.arange(self.parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
-        if len(self.parent.roiIndices)>1:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[np.array(self.parent.roiIndices)], :].mean(axis=0)
-        elif len(self.parent.roiIndices)==1:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices[0]], :]
+            dt = 1./parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].rate
+            tfull = np.arange(parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
+        if len(parent.roiIndices)>1:
+            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[np.array(parent.roiIndices)], :].mean(axis=0)
+        elif len(parent.roiIndices)==1:
+            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices[0]], :]
         else:
-            valfull = getattr(self.parent, self.parent.CaImaging_key).data[self.parent.validROI_indices[self.parent.roiIndices], :].sum(axis=0)
+            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices], :].sum(axis=0)
     elif quantity=='Photodiode':
         key = 'Photodiode-Signal'
     elif quantity=='Electrophy':
@@ -278,14 +281,13 @@ def build_episodes(self,
         print(quantity, 'not recognized')
         
     if key is not None:
-        tfull = np.arange(self.parent.nwbfile.acquisition[key].data.shape[0])/self.parent.nwbfile.acquisition[key].rate
-        valfull = self.parent.nwbfile.acquisition[key].data
+        tfull = np.arange(parent.nwbfile.acquisition[key].data.shape[0])/parent.nwbfile.acquisition[key].rate
+        valfull = parent.nwbfile.acquisition[key].data
     
-    for tstart, tstop in zip(self.parent.nwbfile.stimulus['time_start_realigned'].data[:],\
-                             self.parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
+    for tstart, tstop in zip(parent.nwbfile.stimulus['time_start_realigned'].data[:],\
+                             parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
 
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
-        print(tfull, valfull, cond)
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
         
@@ -294,8 +296,9 @@ def build_episodes(self,
         except ValueError:
             print(tstart, tstop)
             pass
-            
-    print('[ok] episodes ready !')
+
+    if verbose:
+        print('[ok] episodes ready !')
     return EPISODES
     
 if __name__=='__main__':
