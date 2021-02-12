@@ -146,7 +146,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No movie chosen")
+        self.movieLabel = QtGui.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
         self.nframes = 0
@@ -169,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.datafile = args.datafile
         
-        self.load_data()
+        # self.load_data()
 
     def showwindow(self):
         if self.minView:
@@ -188,36 +188,50 @@ class MainWindow(QtWidgets.QMainWindow):
         self.batch = False
         self.cframe = 0
         
-        if self.datafile!='':
-            self.reset()
-            
-            nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
-            self.FaceCamera = nwbfile.acquisition['FaceCamera']
-            self.nframes, self.Lx, self.Ly = self.FaceCamera.data.shape
-            if os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
-                self.data = np.load(args.datafile.replace('.nwb', '.pupil.npy'),
-                                    allow_pickle=True).item()
-                self.load_ROI()
-                
-            self.plot_pupil_trace()
-            self.jump_to_frame()
-            
-            self.timeLabel.setEnabled(True)
-            self.frameSlider.setEnabled(True)
-            self.updateFrameSlider()
-            self.updateButtons()
-            self.currentTime.setValidator(\
-                QtGui.QDoubleValidator(0, self.nframes, 2))
-            self.p1.setRange(xRange=[0,self.nframes],
-                             yRange=[0,1], padding=0.0)
+        file_dialog = QtGui.QFileDialog()
+        file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+        file_dialog.setOption(QtGui.QFileDialog.DontUseNativeDialog, True)
+        file_view = file_dialog.findChild(QtGui.QListView, 'listView')
 
-            self.movieLabel.setText(self.datafile)
+        paths=None
+        if file_dialog.exec():
+            paths = file_dialog.selectedFiles()
+
+        if (paths is not None) and os.path.isdir(paths[0]):
+            self.datafolder=paths[0]
+            self.FILES = os.listdir(os.path.join(self.datafolder, 'FaceCamera-imgs'))
+            print(self.FILES)
+        
+        # if self.datafile!='':
+        #     self.reset()
             
-            self.show_fullframe()
+        #     nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
+        #     self.FaceCamera = nwbfile.acquisition['FaceCamera']
+        #     self.nframes, self.Lx, self.Ly = self.FaceCamera.data.shape
+        #     if os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
+        #         self.data = np.load(args.datafile.replace('.nwb', '.pupil.npy'),
+        #                             allow_pickle=True).item()
+        #         self.load_ROI()
+                
         #     self.plot_pupil_trace()
-            self.genscript.setEnabled(True)
-        # else:
-        #     print("ERROR: provide a valid data folder !")
+        #     self.jump_to_frame()
+            
+        #     self.timeLabel.setEnabled(True)
+        #     self.frameSlider.setEnabled(True)
+        #     self.updateFrameSlider()
+        #     self.updateButtons()
+        #     self.currentTime.setValidator(\
+        #         QtGui.QDoubleValidator(0, self.nframes, 2))
+        #     self.p1.setRange(xRange=[0,self.nframes],
+        #                      yRange=[0,1], padding=0.0)
+
+        #     self.movieLabel.setText(self.datafile)
+            
+        #     self.show_fullframe()
+        # #     self.plot_pupil_trace()
+        #     self.genscript.setEnabled(True)
+        # # else:
+        # #     print("ERROR: provide a valid data folder !")
 
             
     def load_data_batch(self):

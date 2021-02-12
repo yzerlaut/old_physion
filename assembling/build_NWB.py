@@ -46,24 +46,31 @@ def build_NWB(args,
                 int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
 
     # subject info
-    dob = metadata['subject_props']['date_of_birth'].split('_')
-    subject = pynwb.file.Subject(description=metadata['subject_props']['description'],
-                                 sex=metadata['subject_props']['sex'],
-	                         genotype=metadata['subject_props']['genotype'],
-                                 species=metadata['subject_props']['species'],
-	                         subject_id=metadata['subject_props']['subject_id'],
-	                         weight=metadata['subject_props']['weight'],
-	                         date_of_birth=datetime.datetime(int(dob[0]),int(dob[1]),int(dob[2])))
+    if 'subject_props' in metadata:
+        subject_props = metadata['subject_props']
+        dob = subject_props['date_of_birth'].split('_')
+    else:
+        subject_props = {}
+        print('subject properties not in metadata ...')
+        dob = ['1988', '24', '4']
+    
+    subject = pynwb.file.Subject(description=(subject_props['description'] if ('description' in subject_props) else 'Unknown'),
+                                 sex=(subject_props['sex'] if ('sex' in subject_props) else 'Unknown'),
+                                 genotype=(subject_props['genotype'] if ('genotype' in subject_props) else 'Unknown'),
+                                 species=(subject_props['species'] if ('species' in subject_props) else 'Unknown'),
+                                 subject_id=(subject_props['subject_id'] if ('subject_id' in subject_props) else 'Unknown'),
+                                 weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
+	                         date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1])))
         
     nwbfile = pynwb.NWBFile(identifier='%s-%s' % (args.datafolder.split(os.path.sep)[-2],args.datafolder.split(os.path.sep)[-1]),
                             session_description=str(metadata),
                             experiment_description=metadata['protocol'],
-                            # experimenter='Y.Z.',#metadata['experimenter'],
-                            # lab=metadata['lab'],
-                            # institution=metadata['institution'],
-                            # notes=metadata['notes'],
-                            # virus=metadata['subject_props']['virus'],
-                            # surgery=metadata['subject_props']['surgery'],
+                            experimenter=(metadata['experimenter'] if ('experimenter' in metadata) else 'Unknown'),
+                            lab=(metadata['lab'] if ('lab' in metadata) else 'Unknown'),
+                            institution=(metadata['institution'] if ('institution' in metadata) else 'Unknown'),
+                            notes=(metadata['notes'] if ('notes' in metadata) else 'Unknown'),
+                            virus=(subject_props['virus'] if ('virus' in subject_props) else 'Unknown'),
+                            surgery=(subject_props['surgery'] if ('surgery' in subject_props) else 'Unknown'),
                             session_start_time=start_time,
                             subject=subject,
                             source_script=str(pathlib.Path(__file__).resolve()),
@@ -74,8 +81,11 @@ def build_NWB(args,
     if args.export=='FULL' and (args.modalities==ALL_MODALITIES):
         filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                      args.datafolder.split(os.path.sep)[-1]))
-    elif (args.export=='LIGHTWEIGHT') and (args.modalities==ALL_MODALITIES):
+    elif (args.export=='LIGHTWEIGHT'):
         filename = os.path.join(args.datafolder, '%s-%s.LIGHTWEIGHT.nwb' % (args.datafolder.split(os.path.sep)[-2],
+                                                                            args.datafolder.split(os.path.sep)[-1]))
+    elif (args.export=='NIDAQ'):
+        filename = os.path.join(args.datafolder, '%s-%s.NIDAQ.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                             args.datafolder.split(os.path.sep)[-1]))
     elif (args.modalities!=ALL_MODALITIES):
         filename = os.path.join(args.datafolder, '%s-%s.%s.nwb' % (args.datafolder.split(os.path.sep)[-2],
@@ -131,12 +141,10 @@ def build_NWB(args,
         # using the photodiod signal for the realignement
         if args.verbose:
             print('=> Performing realignement from photodiode [...]')
-        if 'refresh-times' in VisualStim: # FOR NOISE PROTOCOLS !!
-            metadata['time_start'] = VisualStim['refresh-times'][:-1]
-            metadata['time_stop'] = VisualStim['refresh-times'][1:]
-        else:
-            for key in ['time_start', 'time_stop', 'time_duration']:
-                metadata[key] = VisualStim[key]
+        if 'time_duration' not in VisualStim:
+            VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
+        for key in ['time_start', 'time_stop', 'time_duration']:
+            metadata[key] = VisualStim[key]
         success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
                                                     verbose=args.verbose)
         if success:
@@ -160,7 +168,8 @@ def build_NWB(args,
             metadata['time_start_realigned'] = metadata['time_start']
             metadata['time_stop_realigned'] = metadata['time_stop']
             print(' /!\ Realignement unsuccessful /!\ ')
-
+            print('       --> using the default time_start / time_stop values ')
+    
         if args.verbose:
             print('=> Storing the photodiode signal [...]')
         photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
@@ -245,7 +254,8 @@ def build_NWB(args,
     ####         Calcium Imaging              #######
     #################################################
     
-    if metadata['CaImaging'] and ('CaImaging' in args.modalities):
+    Ca_data = None
+    if metadata['CaImaging']:
 
         try:
             Ca_subfolder = get_TSeries_folders(args.datafolder)[0] # get Tseries folder
@@ -258,7 +268,8 @@ def build_NWB(args,
         xml = bruker_xml_parser(CaFn) # metadata
         # CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
         #     float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
-        CaImaging_timestamps = metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset']+xml['Ch1']['relativeTime']+\
+        onset = (metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset'] if 'STEP_FOR_CA_IMAGING_TRIGGER' in metadata else 0)
+        CaImaging_timestamps = onset+xml['Ch1']['relativeTime']+\
             float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
 
         
@@ -320,11 +331,10 @@ def build_NWB(args,
                                                        imaging_plane=imaging_plane,
                                                        unit='s',
                                                        timestamps = np.arange(2))
-            Ca_data = None
         nwbfile.add_acquisition(image_series)
 
         if ('processed_CaImaging' in args.modalities) and os.path.isdir(os.path.join(Ca_subfolder, 'suite2p')):
-            # we add the suite2p processing !
+            print('=> Adding the suite2p processing [...]')
             add_ophys_processing_from_suite2p(os.path.join(Ca_subfolder, 'suite2p'), nwbfile,
                                               device=device,
                                               optical_channel=optical_channel,
@@ -367,20 +377,30 @@ if __name__=='__main__':
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-c', "--compression", type=int, default=0, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
     parser.add_argument('-df', "--datafolder", type=str, default='')
-    parser.add_argument('-rf', "--root_datafolder", type=str, default='')
+    parser.add_argument('-rf', "--root_datafolder", type=str, default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-m', "--modalities", nargs='*', type=str, default=ALL_MODALITIES)
-    parser.add_argument('-d', "--day", type=str, default='2020_12_09')
+    parser.add_argument('-d', "--day", type=str, default=datetime.datetime.today().strftime('%Y_%m_%d'))
+    parser.add_argument('-t', "--time", type=str, default='')
     parser.add_argument('-e', "--export", type=str, default='FULL', help='export option [FULL / PROCESSED-ONLY]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     parser.add_argument("--silent", action="store_true")
+    parser.add_argument('-lw', "--lightweight", action="store_true")
+    parser.add_argument('-ndo', "--nidaq_only", action="store_true")
     args = parser.parse_args()
 
     if not args.silent:
         args.verbose = True
 
-    if args.export=='LIGHTWEIGHT':
+    if args.export=='LIGHTWEIGHT' or args.lightweight:
+        args.export='LIGHTWEIGHT'
         args.modalities = LIGHT_MODALITIES
+    if args.nidaq_only:
+        args.export='NIDAQ'
+        args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
+
+    if args.time!='':
+        args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
         
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):

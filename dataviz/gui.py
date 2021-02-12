@@ -127,7 +127,6 @@ class MainWindow(guiparts.NewWindow):
     def select_ROI(self):
         """ see select ROI above """
         self.roiIndices = self.select_ROI_from_pick()
-        print(self.roiIndices)
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             

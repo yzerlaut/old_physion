@@ -169,6 +169,7 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
+    print(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:])
     if (self.time==0) and ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
     elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
