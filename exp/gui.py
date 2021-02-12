@@ -296,12 +296,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
             self.protocol['screen'] = self.metadata['screen']
             self.stim = build_stim(self.protocol)
-            # np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
+            np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
-                max_time = self.stim.experiment['time_stop'][-1]+20
+                max_time = int(self.stim.experiment['time_stop'][-1])+20.
             elif 'refresh_times' in self.stim.experiment:
-                max_time = self.stim.experiment['refresh_times'][-1]+20
+                max_time = int(self.stim.experiment['refresh_times'][-1])+20.
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
@@ -310,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         output_steps = []
         if self.metadata['CaImaging']:
-            output_steps.append(self.metadata['STEP_FOR_CA_IMAGING'])
+            output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
 
         # --------------- #
         ### NI daq init ###   ## we override parameters based on the chosen modalities if needed
@@ -322,6 +322,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['Locomotion'] and (self.metadata['NIdaq-digital-input-channels']<2):
             self.metadata['NIdaq-digital-input-channels'] = 2
         try:
+            print(max_time)
             self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                    Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
                                    Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
@@ -397,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
                           Nchannel_analog_in=1, Nchannel_digital_in=0,
                           max_time=1.1,
                           buffer_time=0.1,
-                          output_steps= [STEP_FOR_CA_IMAGING],
+                          output_steps= [self.config['STEP_FOR_CA_IMAGING_TRIGGER']],
                           filename=None)
         acq.launch()
         time.sleep(1.1)
