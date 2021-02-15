@@ -191,9 +191,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cframe = 0
         
         file_dialog = QtGui.QFileDialog()
-        file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
-        file_dialog.setOption(QtGui.QFileDialog.DontUseNativeDialog, True)
-        file_view = file_dialog.findChild(QtGui.QListView, 'listView')
+        # file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
+        # file_dialog.setOption(QtGui.QFileDialog.DontUseNativeDialog, True)
+        # file_view = file_dialog.findChild(QtGui.QListView, 'listView')
 
         paths=None
         if file_dialog.exec():
