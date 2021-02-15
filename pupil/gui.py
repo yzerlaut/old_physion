@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         
-        self.setGeometry(100,100,700,700)
+        self.setGeometry(100,100,400,400)
         
         self.compressed_version=False
 
@@ -42,18 +42,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maxSc.activated.connect(self.showwindow)
         self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('F'), self)
         self.fitSc.activated.connect(self.fit_pupil_size)
+        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('O'), self)
+        self.loadSc.activated.connect(self.load_data)
         self.minView = False
         self.showwindow()
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil-size tracking software -- Physiology of Visual Circuits')
+        self.setWindowTitle('Pupil-size tracking module -- Physion')
         
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         
         # menus.mainmenu(self)
-        self.online_mode=False
+        # self.online_mode=False
         #menus.onlinemenu(self)
 
         self.cwidget = QtGui.QWidget(self)
@@ -67,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[100,100,100])
+        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,border=[100,100,100])
         # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
@@ -76,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pPupil = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[100,100,100])
+        self.pPupil = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True, border=[100,100,100])
         self.pPupil.setAspectLocked()
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pPupil.setMenuEnabled(False)
