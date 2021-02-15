@@ -373,7 +373,7 @@ class NewWindow(QtWidgets.QMainWindow):
     def keyword_update(self, string=None, parent=None):
 
         if string is None:
-            string = string
+            string = self.guiKeywords.text()
         if parent is None:
             parent = self
         if string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
@@ -385,7 +385,7 @@ class NewWindow(QtWidgets.QMainWindow):
         elif string=='subsampling':
             parent.no_subsampling = False
         else:
-            self.statusBar.setMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
+            self.statusBar.showMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
 
     # Layout11 = QtWidgets.QVBoxLayout()
     # Layout1.addLayout(Layout11)

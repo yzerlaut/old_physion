@@ -17,8 +17,11 @@ if os.path.isdir(source_folder):
             for bfn in ['F', 'Fneu', 'iscell', 'ops', 'spks', 'stat']:
                 old = os.path.join(f, 'suite2p', 'plane0', bfn+'.npy')
                 new = os.path.join(new_folder, bfn+'.npy')
-                print((old,new))
-                # shutil.copyfile(old,new)
+                shutil.copyfile(old,new)
+            old = os.path.join(f, f.split(os.path.sep)[-1]+'.xml')
+            new_folder = os.path.join(destination_folder, f.split(os.path.sep)[-1])
+            new = os.path.join(new_folder, f.split(os.path.sep)[-1]+'.xml')
+            shutil.copyfile(old,new)
 else:
     print('/!\ Need to provide a valid source folder /!\ ')
         

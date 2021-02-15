@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         
-        self.setGeometry(100,100,700,700)
+        self.setGeometry(100,100,400,400)
         
         self.compressed_version=False
 
@@ -42,18 +42,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.maxSc.activated.connect(self.showwindow)
         self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('F'), self)
         self.fitSc.activated.connect(self.fit_pupil_size)
+        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('O'), self)
+        self.loadSc.activated.connect(self.load_data)
         self.minView = False
         self.showwindow()
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil-size tracking software -- Physiology of Visual Circuits')
+        self.setWindowTitle('Pupil-size tracking module -- Physion')
         
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         
         # menus.mainmenu(self)
-        self.online_mode=False
+        # self.online_mode=False
         #menus.onlinemenu(self)
 
         self.cwidget = QtGui.QWidget(self)
@@ -67,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True,border=[100,100,100])
+        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,border=[100,100,100])
         # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
@@ -76,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pPupil = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True, border=[100,100,100])
+        self.pPupil = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True, border=[100,100,100])
         self.pPupil.setAspectLocked()
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pPupil.setMenuEnabled(False)
@@ -143,10 +145,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p1.addItem(self.scatter)
         self.p1.setLabel('bottom', 'time (frame #)')
         self.xaxis = self.p1.getAxis('bottom')
-        # self.p1.autoRange(padding=0.01)
+        self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No movie chosen")
+        self.movieLabel = QtGui.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
         self.nframes = 0
@@ -169,7 +171,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.datafile = args.datafile
         
-        self.load_data()
+        # self.load_data()
 
     def showwindow(self):
         if self.minView:
@@ -188,36 +190,60 @@ class MainWindow(QtWidgets.QMainWindow):
         self.batch = False
         self.cframe = 0
         
-        if self.datafile!='':
+        # filename = os.path.join('D:\\', 'Fani', '2020_11_19', '11-40-32', 'metadata.npy') # a default for debugging
+        
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Pupil Data(through metadata file or NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                                    filter="*.nwb, metadata.npy")
+        
+        if filename.endswith('.nwb'):
             self.reset()
-            
+            self.datafile = filename
             nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
             self.FaceCamera = nwbfile.acquisition['FaceCamera']
             self.nframes, self.Lx, self.Ly = self.FaceCamera.data.shape
-            if os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
-                self.data = np.load(args.datafile.replace('.nwb', '.pupil.npy'),
-                                    allow_pickle=True).item()
-                self.load_ROI()
-                
-            self.plot_pupil_trace()
-            self.jump_to_frame()
-            
-            self.timeLabel.setEnabled(True)
-            self.frameSlider.setEnabled(True)
-            self.updateFrameSlider()
-            self.updateButtons()
-            self.currentTime.setValidator(\
-                QtGui.QDoubleValidator(0, self.nframes, 2))
-            self.p1.setRange(xRange=[0,self.nframes],
-                             yRange=[0,1], padding=0.0)
+            self.FILES, self.times, self.imgfolder = None, None, None
+            self.datafolder = os.path.abspath(filename)
+        elif os.path.isdir(filename.replace('metadata.npy', 'FaceCamera-imgs')):
+            self.reset()
+            self.datafolder, self.FaceCamera = os.path.dirname(filename), None
+            self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
+            self.FILES = os.listdir(self.imgfolder)
+            self.nframes = len(self.FILES)
+            self.Lx, self.Ly = np.load(os.path.join(self.imgfolder, self.FILES[0])).shape
 
-            self.movieLabel.setText(self.datafile)
+            if os.path.isfile(filename.replace('metadata.npy', 'FaceCamera-times.npy')):
+                self.times = np.load(filename.replace('metadata.npy', 'FaceCamera-times.npy'))
+            else:
+                self.times = np.array([float(f.replace('.npy', '')) for f in self.FILES])
+
+            print('Sampling frequency: %.1f Hz' % (1./np.diff(self.times).mean()))
+        else:
+            print(' /!\ no FaceCamera data found ...')
             
-            self.show_fullframe()
-        #     self.plot_pupil_trace()
-            self.genscript.setEnabled(True)
-        # else:
-        #     print("ERROR: provide a valid data folder !")
+
+        if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
+            self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
+                                allow_pickle=True).item()
+            self.load_ROI()
+            self.plot_pupil_trace()
+            
+        self.jump_to_frame()
+            
+        self.timeLabel.setEnabled(True)
+        self.frameSlider.setEnabled(True)
+        self.updateFrameSlider()
+        self.updateButtons()
+        self.currentTime.setValidator(\
+            QtGui.QDoubleValidator(0, self.nframes, 2))
+
+        self.movieLabel.setText(filename)
+
+        self.addROI.setEnabled(True)
+        self.saverois.setEnabled(True)
+        
+        
 
             
     def load_data_batch(self):
@@ -240,49 +266,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if file_dialog.exec():
             paths = file_dialog.selectedFiles()
 
-        self.folders = []
-        for path in paths:
-            check = check_datafolder(path)
-            if check['FaceCamera']:
-                self.folders.append(path)
-            else:
-                print('\n Problem with "%s"' % path)
-                print(' ----> The datafolder did not pass the sanity check ! ')
-                
-        s = ''
-        for path in self.folders:
-            date, time = from_folder_to_datetime(path)
-            s += time+', '
-        self.movieLabel.setText("%s => [%s]" % (date, s[:-2]))
-        
-        if len(self.folders)>0:
-            # concatenate datafiles
-            process.build_temporal_subsampling(self, folders=self.folders)
-            self.addROI.setEnabled(True)
-            self.genscript.setEnabled(True)
-
-            self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.times[-1], 2))
-            # initialize to first available image
-            self.cframe = 0
-            self.fullimg = self.Pupil.grab_frame(self.times[self.cframe])
-            
-            #
-            self.Lx, self.Ly = self.fullimg.shape
-
-            self.p1.clear()
-            self.p1.plot(self.times, 0*self.times, pen=(0,255,0))
-            
-            if self.nframes > 0:
-                self.timeLabel.setEnabled(True)
-                self.frameSlider.setEnabled(True)
-                self.updateFrameSlider()
-                self.addROI.setEnabled(True)
-            if os.path.isfile(os.path.join(self.folders[0], 'pupil-ROIs.npy')):
-                self.load_ROI(datafolder=self.folders[0])
-            self.show_fullframe()
-            self.plot_pupil_trace()
-
-            
     def make_buttons(self):
         
         # create frame slider
@@ -502,24 +485,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def jump_to_frame(self):
 
-        self.fullimg = self.FaceCamera.data[self.cframe,:,:]
+        if self.FaceCamera is not None:
+            self.fullimg = self.FaceCamera.data[self.cframe,:,:]
+        else:
+            self.fullimg = np.load(os.path.join(self.imgfolder, self.FILES[self.cframe]))
         self.pimg.setImage(self.fullimg)
         if self.ROI is not None:
             self.ROI.plot(self)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
+        if self.fit is not None:
+            self.fit.remove(self)
+            
         if self.data is not None:
             self.scatter.setData(self.cframe*np.ones(1),
                         self.data['diameter'][self.cframe]*np.ones(1),
                         size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
-            if self.fit is not None:
-                self.pPupil.removeItem(self.fit)
             coords = []
             if 'sx-corrected' in self.data:
-                for key in ['cx-corrected', 'cy-corrected', 'sx-corrected', 'sy-corrected']:
+                for key in ['cx-corrected', 'cy-corrected',
+                            'sx-corrected', 'sy-corrected']:
                     coords.append(self.data[key][self.cframe])
             else:
                 for key in ['cx', 'cy', 'sx', 'sy']:
@@ -540,9 +528,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
 
-    def build_data(self):
-
-        data = {}
+    def extract_ROI(self, data):
 
         if len(self.rROI)>0:
             data['reflectors'] = [r.extract_props() for r in self.rROI]
@@ -557,30 +543,27 @@ class MainWindow(QtWidgets.QMainWindow):
         for key in boundaries:
             data[key]=boundaries[key]
         
+        
+    def build_data(self):
+
+        data = {}
+        self.extract_ROI(data)
+        
         data['diameter'] = np.ones(self.nframes)
-        data['cx'] = np.ones(self.nframes)*.5*(data['xmin']+data['xmax'])
-        data['cy'] = np.ones(self.nframes)*.5*(data['ymin']+data['ymax'])
-        data['sx'] = np.ones(self.nframes)
-        data['sy'] = np.ones(self.nframes)
+        data['cx'] = np.ones(self.nframes)*.5*(data['xmax']-data['xmin'])
+        data['cy'] = np.ones(self.nframes)*.5*(data['ymax']-data['ymin'])
+        data['sx'] = 10*np.ones(self.nframes)
+        data['sy'] = 10*np.ones(self.nframes)
         
         return data
         
     def save_ROIs(self):
         """ """
         data = self.build_data()
-        fn = self.datafile.replace('.nwb', '.pupil.npy')
+        fn = os.path.join(self.datafolder, 'pupil.npy')
         np.save(fn, data)
         print('successfully save the ROIs as: "%s" ' % fn)
-        # if not self.batch:
-        #     fn = self.datafile.replace('.nwb', '.pupil.npy')
-        #     np.save(fn, data)
-        #     print('successfully save the ROIs as: "%s" ' % fn)
-        # else:
-        #     # loop over datafiles !
-        #     for datafolder in self.folders:
-        #         np.save(os.path.join(datafolder, 'pupil-ROIs.npy'), data)
-        #         print('successfully save the ROIs as:', os.path.join(datafolder, 'pupil-ROIs.npy'))
-        # self.genscript.setEnabled(True)
+        
 
     def gen_bash_script(self):
         if self.batch:
@@ -596,12 +579,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_pupil_data(self):
         """ """
-        np.save(self.datafile.replace('.nwb', '.pupil.npy'), self.data)
-        print('Data successfully saved as "%s"' % self.datafile.replace('.nwb', '.pupil.npy'))
-        # if not self.batch:
-        # else:
-        #     # loop over datafiles !
-        #     pass
+        np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
+        print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
+        
             
     def process_ROIs(self):
 

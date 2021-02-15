@@ -138,8 +138,10 @@ def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
 
 def preprocess(cls, ellipse=None, img=None):
 
-    if img is None:
+    if (img is None) and (cls.FaceCamera is not None):
         img = cls.FaceCamera.data[cls.cframe,:,:]
+    elif (img is None):
+        img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe]))
     else:
         img = img.copy()
 
