@@ -216,8 +216,9 @@ def build_NWB(args,
             insure_ordered_FaceCamera_picture_names(args.datafolder)
             FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
 
-            IMAGES = np.sort(os.listdir(os.path.join(args.datafolder,
-                                                     'FaceCamera-imgs')))
+            IMAGES = os.listdir(os.path.join(args.datafolder,
+                                             'FaceCamera-imgs'))
+            
             img = np.load(os.path.join(args.datafolder,
                              'FaceCamera-imgs', IMAGES[0])).astype(np.uint8)
             def FaceCamera_frame_generator():
@@ -300,9 +301,12 @@ def build_NWB(args,
                                  read_filename=os.path.join(Ca_subfolder, 'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                             Ca_Imaging_options['Suite2P-binary-filename']))
 
+            i, dI = 0, int(args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
             def Ca_frame_generator():
-                for i in range(Ca_data.shape[0]):
-                    yield Ca_data.data[i, :, :].astype(np.uint16)
+                while i<(Ca_data.shape[0]-dI):
+                    i+=dI
+                    yield Ca_data.data[i:i+dI, :, :].mean(axis=0).astype(np.uint8)
+                    
             Ca_dataI = DataChunkIterator(data=Ca_frame_generator(),
                                          maxshape=(None, Ca_data.shape[1], Ca_data.shape[2]),
                                          dtype=np.dtype(np.uint8))
@@ -320,8 +324,7 @@ def build_NWB(args,
                 image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                            dimension=[2],
                                                            data = Ca_dataI,
-                                                           # data = Ca_data.data[:].astype(np.uint16),
-                                                           # data = Ca_data.data[:].astype(np.uint16),
+                                                           # data = Ca_data.data[:].astype(np.uint8),
                                                            imaging_plane=imaging_plane,
                                                            unit='s',
                                                            timestamps = CaImaging_timestamps)
@@ -385,6 +388,10 @@ if __name__=='__main__':
     parser.add_argument('-e', "--export", type=str, default='FULL', help='export option [FULL / PROCESSED-ONLY]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
+    parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
+    parser.add_argument('-fcfs', "--FaceCamera_frame_sampling", default=0., type=float)
+    parser.add_argument('-pfs', "--Pupil_frame_sampling", default=1., type=float)
+    parser.add_argument('-sfs', "--Snout_frame_sampling", default=0.05, type=float)
     parser.add_argument("--silent", action="store_true")
     parser.add_argument('-lw', "--lightweight", action="store_true")
     parser.add_argument('-ndo', "--nidaq_only", action="store_true")
