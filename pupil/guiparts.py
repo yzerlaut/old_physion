@@ -9,7 +9,7 @@ import numpy as np
 class ListChooser(QtGui.QDialog):
     def __init__(self, title, parent):
         super(ListChooser, self).__init__(parent)
-        self.setGeometry(300,300,320,320)
+        self.setGeometry(300,300,320,200)
         self.setWindowTitle(title)
         self.win = QtGui.QWidget(self)
         layout = QtGui.QGridLayout()
