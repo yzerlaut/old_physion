@@ -46,8 +46,9 @@ def build_NWB(args,
                 int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
 
     # subject info
-    if 'subject_props' in metadata:
+    if 'subject_props' in metadata and (metadata['subject_props'] is not None):
         subject_props = metadata['subject_props']
+        print(subject_props)
         dob = subject_props['date_of_birth'].split('_')
     else:
         subject_props = {}
