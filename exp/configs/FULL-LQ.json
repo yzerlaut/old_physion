@@ -4,7 +4,7 @@
     "NIdaq-digital-input-channels":2,
     "Setup":"Bacci-2P-setup",
     "screen":"Dell-2020",
-    "FaceCamera-frame-rate":10,
+    "FaceCamera-frame-rate":30,
     "STEP_FOR_CA_IMAGING_TRIGGER":{"channel":0,
 				   "onset": 0.1,
 				   "duration":0.3,
