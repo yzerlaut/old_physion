@@ -299,7 +299,7 @@ if __name__=='__main__':
         from analyz.IO.npz import load_dict
 
         # prepare data
-        data = np.load('pupil.npz')
+        data = np.load('pupil.npy', allow_pickle=True).item()
         x, y = np.meshgrid(data['ximg'], data['yimg'], indexing='ij')
 
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)

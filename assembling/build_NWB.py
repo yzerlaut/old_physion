@@ -26,8 +26,9 @@ def compute_locomotion(binary_signal, acq_freq=1e4,
     return compute_position_from_binary_signals(A, B,
                                                 smoothing=int(speed_smoothing*acq_freq))
 
-ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']        
-LIGHT_MODALITIES = ['processed_CaImaging',  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']        
+ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
+LIGHT_MODALITIES = ['processed_CaImaging',  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
+
 
 def build_NWB(args,
               Ca_Imaging_options={'Suite2P-binary-filename':'data.bin',
@@ -203,7 +204,6 @@ def build_NWB(args,
     ####         FaceCamera Recording         #######
     #################################################
 
-    
     if metadata['FaceCamera'] and ('raw_FaceCamera' in args.modalities):
         
         if args.verbose:
@@ -236,6 +236,48 @@ def build_NWB(args,
                                                         unit='NA',
                                     timestamps=np.array(FaceCamera_times))
             nwbfile.add_acquisition(FaceCamera_frames)
+
+    #################################################
+    ####         Pupil from FaceCamera        #######
+    #################################################
+
+    if metadata['FaceCamera'] and ('Pupil' in args.modalities):
+        
+        if args.verbose:
+            print('=> Storing processed Pupil [...]')
+        if not os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
+            print(' /!\ No FaceCamera metadata found /!\ ')
+        else:
+            pupil = np.load(os.path.join(args.datafolder,
+                                         'pupil.npy'), allow_pickle=True).item()
+
+            # FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+
+            IMAGES = os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))
+            
+            # img = np.load(os.path.join(args.datafolder,
+            #                  'FaceCamera-imgs', IMAGES[0])).astype(np.uint8)
+            # def FaceCamera_frame_generator():
+            #     for fn in IMAGES:
+            #         yield np.load(os.path.join(args.datafolder,
+            #                     'FaceCamera-imgs', fn)).astype(np.uint8)
+            # FC_dataI = DataChunkIterator(data=FaceCamera_frame_generator(),
+            #                          maxshape=(None,img.shape[0], img.shape[1]),
+            #                          dtype=np.dtype(np.uint8))
+            # FC_dataC = H5DataIO(data=FC_dataI, # with COMPRESSION
+            #                     compression='gzip',
+            #                     compression_opts=args.compression)
+            # FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
+            #                                             data=FC_dataC,
+            #                                             unit='NA',
+            #                         timestamps=np.array(FaceCamera_times))
+            # nwbfile.add_acquisition(FaceCamera_frames)
+    
+    #################################################
+    ####      Whisking from FaceCamera        #######
+    #################################################
+    
+            
 
     #################################################
     ####    Electrophysiological Recording    #######
