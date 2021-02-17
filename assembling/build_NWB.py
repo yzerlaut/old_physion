@@ -89,6 +89,9 @@ def build_NWB(args,
     elif (args.export=='NIDAQ'):
         filename = os.path.join(args.datafolder, '%s-%s.NIDAQ.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                             args.datafolder.split(os.path.sep)[-1]))
+    elif args.export=='FROM_VISUALSTIM_SETUP':
+        filename = os.path.join(args.datafolder, '%s-%s.nwb' % (args.datafolder.split(os.path.sep)[-2],
+                                                                   args.datafolder.split(os.path.sep)[-1]))
     elif (args.modalities!=ALL_MODALITIES):
         filename = os.path.join(args.datafolder, '%s-%s.%s.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                    args.datafolder.split(os.path.sep)[-1],
@@ -160,8 +163,15 @@ def build_NWB(args,
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
             for key in VisualStim:
+                if key in ['protocol_id', 'index']:
+                    array = np.array(VisualStim[key])
+                else:
+                    # need to remove the None elements
+                    None_cond = (VisualStim[key]==None)
+                    VisualStim[key][None_cond] = 0*VisualStim[key][~None_cond][0]
+                    array = np.array(VisualStim[key], dtype=type(VisualStim[key][~None_cond][0]))
                 VisualStimProp = pynwb.TimeSeries(name=key,
-                                                  data = VisualStim[key],
+                                                  data = array,
                                                   unit='NA',
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
@@ -208,34 +218,43 @@ def build_NWB(args,
         
         if args.verbose:
             print('=> Storing FaceCamera acquisition [...]')
-        if not os.path.isfile(os.path.join(args.datafolder, 'FaceCamera-times.npy')):
-            print(' /!\ No FaceCamera metadata found /!\ ')
-        else:
-            FaceCamera_times = np.load(os.path.join(args.datafolder,
-                                          'FaceCamera-times.npy'))
-            insure_ordered_FaceCamera_picture_names(args.datafolder)
-            FaceCamera_times = FaceCamera_times-NIdaq_Tstart # times relative to NIdaq start
+        try:
+            FILES = os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))
+            times = np.array([float(f.replace('.npy', '')) for f in FILES])
+            times = times-NIdaq_Tstart # converted to times relative to NIdaq start
 
-            IMAGES = os.listdir(os.path.join(args.datafolder,
-                                             'FaceCamera-imgs'))
+            img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FILES[0]))
             
-            img = np.load(os.path.join(args.datafolder,
-                             'FaceCamera-imgs', IMAGES[0])).astype(np.uint8)
+            if args.FaceCamera_frame_sampling==0:
+                SUBSAMPLING = np.linspace(0, len(FILES)-1, 3).astype(np.int)
+            else:
+                SUBSAMPLING = np.arange(0, len(FILES), int(args.FaceCamera_frame_sampling*np.mean(np.diff(times))))
             def FaceCamera_frame_generator():
-                for fn in IMAGES:
-                    yield np.load(os.path.join(args.datafolder,
-                                'FaceCamera-imgs', fn)).astype(np.uint8)
+                for i in SUBSAMPLING:
+                    yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FILES[i])).astype(np.uint8)
+            
             FC_dataI = DataChunkIterator(data=FaceCamera_frame_generator(),
-                                     maxshape=(None,img.shape[0], img.shape[1]),
-                                     dtype=np.dtype(np.uint8))
-            FC_dataC = H5DataIO(data=FC_dataI, # with COMPRESSION
-                                compression='gzip',
-                                compression_opts=args.compression)
+                                         maxshape=(None, img.shape[0], img.shape[1]),
+                                         dtype=np.dtype(np.uint8))
             FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
-                                                        data=FC_dataC,
+                                                        data=FC_dataI,
                                                         unit='NA',
-                                    timestamps=np.array(FaceCamera_times))
+                                                        timestamps=times[SUBSAMPLING])
             nwbfile.add_acquisition(FaceCamera_frames)
+
+        except BaseException as be:
+            print(be)
+            print(' /!\ Problems with FaceCamera data /!\ ')
+            
+
+        if 'Pupil' in args.modalities:
+            if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
+                data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
+                               allow_pickle=True).item()
+                print(data)
+            
+            # img = np.load(os.path.join(args.datafolder,
+            #                  'FaceCamera-imgs', IMAGES[0])).astype(np.uint8)
 
     #################################################
     ####         Pupil from FaceCamera        #######
@@ -298,11 +317,10 @@ def build_NWB(args,
     ####         Calcium Imaging              #######
     #################################################
     
-    Ca_data = None
-    if metadata['CaImaging']:
-
+    Ca_data, Ca_folder = None, get_TSeries_folders(args.datafolder)
+    if metadata['CaImaging'] and (len(Ca_folder)>0):
+        Ca_subfolder = Ca_folder[0] # get Tseries folder
         try:
-            Ca_subfolder = get_TSeries_folders(args.datafolder)[0] # get Tseries folder
             CaFn = get_files_with_extension(Ca_subfolder, extension='.xml')[0] # get Tseries metadata
         except BaseException as be:
             print(be)
@@ -427,7 +445,7 @@ if __name__=='__main__':
     parser.add_argument('-m', "--modalities", nargs='*', type=str, default=ALL_MODALITIES)
     parser.add_argument('-d', "--day", type=str, default=datetime.datetime.today().strftime('%Y_%m_%d'))
     parser.add_argument('-t', "--time", type=str, default='')
-    parser.add_argument('-e', "--export", type=str, default='FULL', help='export option [FULL / PROCESSED-ONLY]')
+    parser.add_argument('-e', "--export", type=str, default='FROM_VISUALSTIM_SETUP', help='export option [FULL / LIGHTWEIGHT / FROM_VISUALSTIM_SETUP]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
@@ -436,6 +454,7 @@ if __name__=='__main__':
     parser.add_argument('-sfs', "--Snout_frame_sampling", default=0.05, type=float)
     parser.add_argument("--silent", action="store_true")
     parser.add_argument('-lw', "--lightweight", action="store_true")
+    parser.add_argument('-fvs', "--from_visualstim_setup", action="store_true")
     parser.add_argument('-ndo', "--nidaq_only", action="store_true")
     args = parser.parse_args()
 
@@ -448,7 +467,12 @@ if __name__=='__main__':
     if args.nidaq_only:
         args.export='NIDAQ'
         args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
+    if args.from_visualstim_setup or (args.export=='FROM_VISUALSTIM_SETUP'):
+        args.export='FROM_VISUALSTIM_SETUP'
+        args.modalities = ['VisualStim', 'Locomotion', 'Electrophy', 'raw_FaceCamera', 'Pupil', 'Whisking']
 
+    print(args.modalities)
+    
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
         
