@@ -105,6 +105,18 @@ def raw_data_plot(self, tzoom,
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
                                                    [0, y.max()], pen=pen, linewidth=0.5)
+
+    pen = pg.mkPen(color=self.settings['colors']['Pupil'])
+    if 'Pupil' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
+        img = self.nwbfile.acquisition['Pupil'].data[i0]
+        self.pPupilimg.setImage(img)
+        self.pPupilimg.setLevels([img.min(),img.max()])
+        if hasattr(self, 'PupilFrameLevel'):
+            self.plot.removeItem(self.PupilFrameLevel)
+        self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
+                                              [0, y.max()], pen=pen, linewidth=0.5)
+        
         # --- IF PUPIL IS PROCESSED ----
         if self.pupil_data is not None:
             i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.acquisition['FaceCamera'])
@@ -169,7 +181,6 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
-    print(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:])
     if (self.time==0) and ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
     elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
@@ -231,7 +242,6 @@ def raw_data_plot(self, tzoom,
             
 
     if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
-        
         # if visual-stim we highlight the stim periods
         icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
                             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()

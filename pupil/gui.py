@@ -6,8 +6,6 @@ from pyqtgraph import GraphicsScene
 from scipy.stats import zscore, skew
 from matplotlib import cm
 import pathlib
-from analyz.IO.npz import load_dict
-from analyz.workflow.shell import printProgressBar
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, roi
@@ -36,14 +34,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.compressed_version=False
 
         # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self)
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
         self.maxSc.activated.connect(self.showwindow)
-        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('F'), self)
+        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+F'), self)
         self.fitSc.activated.connect(self.fit_pupil_size)
-        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('O'), self)
+        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
         self.loadSc.activated.connect(self.load_data)
+        self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
+        self.refSc.activated.connect(self.jump_to_frame)
         self.minView = False
         self.showwindow()
         
@@ -54,10 +54,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         
-        # menus.mainmenu(self)
-        # self.online_mode=False
-        #menus.onlinemenu(self)
-
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
         self.l0 = QtGui.QGridLayout()
@@ -103,17 +99,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # adding blanks ("corneal reflections, ...")
         self.reflector = QtGui.QPushButton('add blank')
         self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
-        self.reflector.setEnabled(False)
+        self.reflector.setEnabled(True)
         self.reflector.clicked.connect(self.add_reflectROI)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
-        self.fit_pupil.setEnabled(False)
+        self.fit_pupil.setEnabled(True)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
         # choose pupil shape
         self.pupil_shape = QtGui.QComboBox(self)
-        self.pupil_shape.addItem("Circle fit")
         self.pupil_shape.addItem("Ellipse fit")
+        self.pupil_shape.addItem("Circle fit")
         self.l0.addWidget(self.pupil_shape, 1, 10+6, 1, 1)
         # reset
         self.reset_btn = QtGui.QPushButton('reset')
@@ -123,7 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # draw pupil
         self.pupil_draw = QtGui.QPushButton('draw Pupil')
         self.l0.addWidget(self.pupil_draw, 2, 10+6, 1, 1)
-        self.pupil_draw.setEnabled(False)
+        self.pupil_draw.setEnabled(True)
         self.pupil_draw.clicked.connect(self.draw_pupil)
         self.pupil_draw_save = QtGui.QPushButton('- Debug -')
         self.l0.addWidget(self.pupil_draw_save, 2, 11+6, 1, 1)
@@ -153,25 +149,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.movieLabel,0,1,1,5)
         self.nframes = 0
         self.cframe = 0
-        
         self.make_buttons()
 
-        #self.updateButtons()
         self.updateTimer = QtCore.QTimer()
-        # self.updateTimer.timeout.connect(self.next_frame)
         self.cframe = 0
-        self.loaded = False
-        self.Floaded = False
-        self.wraw = False
-        # self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         
         self.win.show()
         self.show()
         self.processed = False
 
         self.datafile = args.datafile
-        
-        # self.load_data()
 
     def showwindow(self):
         if self.minView:
@@ -190,12 +177,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.batch = False
         self.cframe = 0
         
-        # filename = os.path.join('D:\\', 'Fani', '2020_11_19', '11-40-32', 'metadata.npy') # a default for debugging
+        filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
         
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Pupil Data(through metadata file or NWB file) ",
-                        os.path.join(os.path.expanduser('~'),'DATA'),
-                                    filter="*.nwb, metadata.npy")
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Pupil Data(through metadata file or NWB file) ",
+        #                 os.path.join(os.path.expanduser('~'),'DATA'),
+        #                             filter="*.nwb, metadata.npy")
+
         
         if filename.endswith('.nwb'):
             self.reset()
@@ -209,24 +197,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.reset()
             self.datafolder, self.FaceCamera = os.path.dirname(filename), None
             self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
-            self.FILES = os.listdir(self.imgfolder)
-            self.nframes = len(self.FILES)
+            times = np.array([float(f.replace('.npy', '')) for f in os.listdir(self.imgfolder) if f.endswith('.npy')])
+            self.times = times[np.argsort(times)]
+            self.FILES = np.array([f for f in os.listdir(self.imgfolder) if f.endswith('.npy')])[np.argsort(times)]
+            self.nframes = len(self.times)
             self.Lx, self.Ly = np.load(os.path.join(self.imgfolder, self.FILES[0])).shape
-
-            if os.path.isfile(filename.replace('metadata.npy', 'FaceCamera-times.npy')):
-                self.times = np.load(filename.replace('metadata.npy', 'FaceCamera-times.npy'))
-            else:
-                self.times = np.array([float(f.replace('.npy', '')) for f in self.FILES])
-
             print('Sampling frequency: %.1f Hz' % (1./np.diff(self.times).mean()))
+
         else:
             print(' /!\ no FaceCamera data found ...')
             
-
         if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
             self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
                                 allow_pickle=True).item()
-            self.load_ROI()
+            self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
+            process.load_ROI(self)
             self.plot_pupil_trace()
             
         self.jump_to_frame()
@@ -291,15 +276,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.process = QtGui.QPushButton('process data')
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
-        self.process.setEnabled(False)
+        self.process.setEnabled(True)
+        
         self.savedata = QtGui.QPushButton('save data')
         self.savedata.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.savedata.clicked.connect(self.save_pupil_data)
-        self.savedata.setEnabled(False)
+        self.savedata.setEnabled(True)
+        
         self.genscript = QtGui.QPushButton('add to bash script')
         self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.genscript.clicked.connect(self.gen_bash_script)
-        self.genscript.setEnabled(False)
+        self.genscript.setEnabled(True)
 
         self.load = QtGui.QPushButton('  load data  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -309,7 +296,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_batch = QtGui.QPushButton('  load batch \u2b07')
         self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load_batch.clicked.connect(self.load_data_batch)
-        self.load_batch.setEnabled(True)
+        # self.load_batch.setEnabled(True)
 
         sampLabel = QtGui.QLabel("Subsampling          (frame)")
         sampLabel.setStyleSheet("color: gray;")
@@ -326,12 +313,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
-        self.addROI.setEnabled(False)
+        self.addROI.setEnabled(True)
 
         self.saverois = QtGui.QPushButton('save ROIs')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
-        self.saverois.setEnabled(False)
+        self.saverois.setEnabled(True)
 
         self.batchlist=[]
         self.batchname=[]
@@ -437,24 +424,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saverois.setEnabled(True)
         
 
-    def load_ROI(self):
+    # def load_ROI(self, with_plot=True):
 
-        self.saturation = self.data['ROIsaturation']
-        self.sl.setValue(int(self.saturation))
-        self.ROI = roi.sROI(parent=self,
-                            pos = roi.ellipse_props_to_ROI(self.data['ROIellipse']))
-        self.ROI.plot(self)
-        self.rROI = []
-        self.reflectors = []
-        if 'reflectors' in self.data:
-            for r in self.data['reflectors']:
-                self.rROI.append(roi.reflectROI(len(self.rROI),
-                                                pos = roi.ellipse_props_to_ROI(r),
-                                                moveable=True, parent=self))
+    #     self.saturation = self.data['ROIsaturation']
+    #     self.sl.setValue(int(self.saturation))
+    #     self.ROI = roi.sROI(parent=self,
+    #                         pos = roi.ellipse_props_to_ROI(self.data['ROIellipse']))
+    #     if with_plot:
+    #         self.ROI.plot(self)
+    #     self.rROI = []
+    #     self.reflectors = []
+    #     if 'reflectors' in self.data:
+    #         for r in self.data['reflectors']:
+    #             self.rROI.append(roi.reflectROI(len(self.rROI),
+    #                                             pos = roi.ellipse_props_to_ROI(r),
+    #                                             moveable=True, parent=self))
             
-        self.pupil_draw.setEnabled(True)
-        self.fit_pupil.setEnabled(True)
-        self.saverois.setEnabled(True)
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -465,7 +450,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def go_to_frame(self):
         i1, i2 = self.xaxis.range
-        self.cframe = int(i1+(i2-i1)*float(self.frameSlider.value()/200.))
+        self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -485,13 +470,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def jump_to_frame(self):
 
+        # full image 
         if self.FaceCamera is not None:
             self.fullimg = self.FaceCamera.data[self.cframe,:,:]
         else:
             self.fullimg = np.load(os.path.join(self.imgfolder, self.FILES[self.cframe]))
         self.pimg.setImage(self.fullimg)
+
+        # zoomed image
         if self.ROI is not None:
-            self.ROI.plot(self)
+            process.init_fit_area(self)
+            process.preprocess(self,\
+                    gaussian_smoothing=float(self.smoothBox.text()))
+            self.pPupilimg.setImage(self.img)
+            self.pPupilimg.setLevels([self.img.min(), self.img.max()])
+        
+            self.reflector.setEnabled(False)
+            self.reflector.setEnabled(True)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
@@ -500,8 +495,8 @@ class MainWindow(QtWidgets.QMainWindow):
             
         if self.data is not None:
             self.scatter.setData(self.cframe*np.ones(1),
-                        self.data['diameter'][self.cframe]*np.ones(1),
-                        size=10, brush=pg.mkBrush(255,255,255))
+                                 self.data['diameter'][self.cframe]*np.ones(1),
+                                 size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
             coords = []
@@ -516,6 +511,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                     parent=self,
                                     color=(0, 200, 0),
                                     pos = roi.ellipse_props_to_ROI(coords))
+            
         self.win.show()
         self.show()
             
@@ -559,17 +555,14 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def save_ROIs(self):
         """ """
-        data = self.build_data()
-        fn = os.path.join(self.datafolder, 'pupil.npy')
-        np.save(fn, data)
-        print('successfully save the ROIs as: "%s" ' % fn)
+        self.save_pupil_data()
+        # data = self.build_data()
+        # fn = os.path.join(self.datafolder, 'pupil.npy')
+        # np.save(fn, data)
+        # print('successfully save the ROIs as: "%s" ' % fn)
         
 
     def gen_bash_script(self):
-        if self.batch:
-            fs = self.folders
-        else:
-            fs = [self.datafolder]
             
         with open('./script.sh', 'a') as f:
             for fn in fs:
@@ -579,18 +572,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_pupil_data(self):
         """ """
+        if self.pupil_shape.currentText()=='Ellipse fit':
+            self.data['shape'] = 'ellipse'
+        else:
+            self.data['shape'] = 'circle'
+        self.data['gaussian_smoothing'] = int(self.smoothBox.text())
         np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
         print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         
             
     def process_ROIs(self):
-
-        for x in [self.playButton, self.pauseButton, self.addROI, self.process,
-                  self.reflector, self.load_batch, self.load,
-                  self.saverois, self.reset_btn, self.pupil_shape, self.pupil_draw, self.fit_pupil]:
-            x.setEnabled(False)
-        self.win.show()
-        self.show()
 
         self.data = self.build_data()
 
@@ -603,25 +594,11 @@ class MainWindow(QtWidgets.QMainWindow):
         print('processing pupil size over the whole recording [...]')
         print(' with %i frame subsampling' % self.subsampling)
 
-        temp = {} # temporary data in case of subsampling
-        for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'diameter', 'residual']:
-            temp[key] = []
-            
-        printProgressBar(0, self.nframes)
-        for self.cframe in list(range(self.nframes-1)[::self.subsampling])+[self.nframes-1]:
-            # preprocess image
-            process.preprocess(self)
-            coords, _, res = process.fit_pupil_size(self, shape=self.Pshape)
-            if self.Pshape=='circle':
-                coords = list(coords)+[coords[-1]] # form circle to ellipse
-            temp['frame'].append(self.cframe)
-            temp['residual'].append(res)
-            for key, val in zip(['cx', 'cy', 'sx', 'sy'], coords):
-                temp[key].append(val)
-            temp['diameter'].append(np.pi*coords[2]*coords[3])
-            printProgressBar(self.cframe, self.nframes)
-        printProgressBar(self.nframes, self.nframes)
-        print('Pupil size calculation over !')
+        temp = process.perform_loop(self,
+                                    subsampling=self.subsampling,
+                                    shape=self.Pshape,
+                                    gaussian_smoothing=int(self.smoothBox.text()),
+                                    with_ProgressBar=True)
 
         if self.subsampling==1: # we just take those data
             for key in ['cx', 'cy', 'sx', 'sy', 'diameter', 'residual']:
@@ -630,20 +607,13 @@ class MainWindow(QtWidgets.QMainWindow):
             from scipy.interpolate import interp1d
             # we interpolate the full data
             for key in ['cx', 'cy', 'sx', 'sy', 'diameter', 'residual']:
-                func = interp1d(temp['frame'], temp[key], kind='quadratic')
+                func = interp1d(temp['frame'], temp[key], kind='linear')
                 self.data[key] = func(np.arange(self.nframes))
 
         # removing outliers in the fit
         self.data = process.replace_outliers(self.data)
                 
-        self.savedata.setEnabled(True)
         self.plot_pupil_trace()
-        self.save_pupil_data()
-            
-        for x in [self.playButton, self.pauseButton, self.addROI, self.process,
-                  self.reflector, self.load_batch, self.load,
-                  self.saverois, self.reset_btn, self.pupil_shape, self.pupil_draw, self.fit_pupil]:
-            x.setEnabled(True)
             
         self.win.show()
         self.show()
@@ -671,17 +641,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pupil.remove(self)
 
         if self.pupil_shape.currentText()=='Ellipse fit':
-            coords, shape, res = process.fit_pupil_size(self, shape='ellipse')
+            coords, _, _ = process.perform_fit(self, shape='ellipse')
         else:
-            coords, shape, res = process.fit_pupil_size(self, shape='circle')
+            coords, _, _ = process.perform_fit(self, shape='circle')
             coords = list(coords)+[coords[-1]] # form circle to ellipse
 
         if not coords_only:
-            print(roi.ellipse_props_to_ROI(coords))
             self.pupil = roi.pupilROI(moveable=True,
                                       pos = roi.ellipse_props_to_ROI(coords),
                                       parent=self)
-            
+
         return coords
             
         
@@ -708,3 +677,7 @@ if __name__=='__main__':
     main = MainWindow(app,
                       args=args)
     sys.exit(app.exec_())
+
+
+
+    
