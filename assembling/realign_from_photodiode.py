@@ -35,7 +35,7 @@ def realign_from_photodiode(signal, metadata,
                                                           baseline=baseline, high_level=high_level)
             if debug and ((i<n_vis) or (i>Nepisodes-n_vis)):
                 fig, ax = plt.subplots()
-                ax.plot(t[cond], integral, label='integral')
+                ax.plot(t[cond], integral, label='smoothed')
                 ax.plot(t[cond], integral*0+threshold, label='threshold')
                 ax.plot((t0+tshift)*np.ones(2), ax.get_ylim(), 'k:', label='onset')
                 ax.plot((t0+tshift+metadata['time_duration'][i])*np.ones(2), ax.get_ylim(), 'k:', label='offset')
@@ -69,8 +69,8 @@ def realign_from_photodiode(signal, metadata,
 
 
 def find_onset_time(t, photodiode_signal,
-                    time_for_threshold=50e-3,
                     smoothing_time = 20e-3,
+                    advance_time = 15e-3,
                     baseline=0, high_level=1):
     """
     the threshold of integral increase corresponds to spending X-ms at half the maximum
@@ -79,7 +79,7 @@ def find_onset_time(t, photodiode_signal,
     threshold = np.max(smoothed)/2.
     cond = (smoothed[1:]>=threshold) & (smoothed[:-1]<=threshold)
     t0 = t[:-1][cond][0]
-    return t0-smoothing_time, smoothed, threshold
+    return t0-advance_time, smoothed, threshold
 
 def normalize_signal(x):
     # just to plot above

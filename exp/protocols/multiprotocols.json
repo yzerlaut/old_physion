@@ -3,15 +3,16 @@
   "shuffling" :"full",
   "shuffling-seed" :34,
   "Protocol-1": "gaussian-blobs.json",
-  "Protocol-2": "center-gratings.json",
+  "Protocol-2": "full-field-drifting-gratings-5-orientations-10-repeats.json",
+  "Protocol-3": "NI+Scene-Exploration-2-SE-trajectories-5-repeats.json",
   "presentation-prestim-period": 0.2,
   "presentation-poststim-period": 0.2,
   "presentation-prestim-screen": -1,
   "presentation-poststim-screen": -1,
-  "presentation-interstim-period": 0.1,
+  "presentation-interstim-period": 2,
   "presentation-interstim-screen": -1,
-  "Setup": "demo-mode",
+  "Setup": "Bacci-2P-Setup",
   "data-folder": "",
-  "screen" :"demo",
-  "protocol-folder": "C:\\Users\\yann.zerlaut\\work\\physion\\exp\\protocols"
+  "screen" :"Dell-2020",
+  "protocol-folder": "G:\\physion\\exp\\protocols"
 }

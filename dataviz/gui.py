@@ -17,7 +17,7 @@ settings = {
     'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'colors':{'Screen':(100, 100, 100, 255),#'grey',
               'Locomotion':(255,255,255,255),#'white',
-              'Whisking':(255,255,255,255),#'white',
+              'Whisking':(255,0,255,255),#'white',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
@@ -133,7 +133,7 @@ class MainWindow(guiparts.NewWindow):
     def load_file(self, filename):
 
         read_NWB(self, filename, verbose=True) # see ../analysis/read_NWB.py
-        
+
         self.tzoom = self.tlim
         self.notes.setText(self.description)
 
@@ -217,18 +217,9 @@ class MainWindow(guiparts.NewWindow):
         i = self.dbox.currentIndex()
         if i>0:
             self.datafolder = self.list_protocol_per_day[i-1]
-            self.metadata = np.load(os.path.join(self.datafolder,'metadata.npy'),
-                                    allow_pickle=True).item()
-            self.add_datafolder_annotation()
-            if self.raw_data_visualization:
-                self.load_data()
-                self.display_quantities(force=True)
-            else:
-                self.pbox.addItem('...       (select a visualization/analysis)')
-                self.pbox.addItem('-> Show Raw Data')
-                self.pbox.addItem('-> Trial-average')
-                self.load_data()
-            
+            self.datafile=os.path.join(self.datafolder, '%s-%s.nwb' % (self.datafolder.split(os.path.sep)[-2],self.datafolder.split(os.path.sep)[-1]))
+            self.load_file(self.datafile)
+            plots.raw_data_plot(self, self.tzoom)
         else:
             self.metadata = None
             self.notes.setText(20*'-'+5*'\n')

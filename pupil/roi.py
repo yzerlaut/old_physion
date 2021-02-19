@@ -9,8 +9,8 @@ from scipy.ndimage import gaussian_filter
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from pupil import process
+# sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+# from pupil import process
 
 def extract_ellipse_props(ROI):
     """ extract ellipse props from ROI (NEED TO RECENTER !)"""
@@ -113,7 +113,10 @@ class pupilROI():
         self.ROI = pg.EllipseROI(
             [imx, imy], [dx, dy],
             movable = self.moveable,
-            pen=roipen, removable=self.moveable)
+            rotatable=self.moveable,
+            resizable=self.moveable, 
+            pen=roipen,
+            removable=self.moveable)
         
         self.ROI.handleSize = 7
         self.ROI.handlePen = roipen
@@ -195,13 +198,10 @@ class sROI():
 
     def plot(self, parent):
 
-        process.preprocess(parent)
+        # process.preprocess(parent)
         
         parent.reflector.setEnabled(False)
         parent.reflector.setEnabled(True)
-        
-        parent.pPupilimg.setImage(parent.img)
-        parent.pPupilimg.setLevels([parent.img.min(), parent.img.max()])
         
         parent.win.show()
         parent.show()

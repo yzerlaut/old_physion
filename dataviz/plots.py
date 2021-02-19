@@ -3,10 +3,7 @@ import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore
 import os, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-
 from pupil import roi
-
-pupilpen = pg.mkPen((255,0,0), width=3, style=QtCore.Qt.SolidLine)
 
 def scale_and_position(self, y, value=None, i=0):
     if value is None:
@@ -97,7 +94,7 @@ def raw_data_plot(self, tzoom,
 
     ## -------- FaceCamera and Pupil-Size --------- ##
     
-    pen = pg.mkPen(color=self.settings['colors']['Pupil'])
+    pen = pg.mkPen(color=self.settings['colors']['Whisking'])
     if 'FaceCamera' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera'].data[i0])
@@ -105,53 +102,49 @@ def raw_data_plot(self, tzoom,
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
                                                    [0, y.max()], pen=pen, linewidth=0.5)
-        # --- IF PUPIL IS PROCESSED ----
-        if self.pupil_data is not None:
-            i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.acquisition['FaceCamera'])
-            i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.acquisition['FaceCamera'])
-            img = self.nwbfile.acquisition['FaceCamera'].data[i0][self.pupil_data['xmin']:self.pupil_data['xmax'],\
-                                                                  self.pupil_data['ymin']:self.pupil_data['ymax'],]
-            self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
-            y = scale_and_position(self, self.pupil_data['diameter'][i1:i2], i=iplot)
-            iplot+=1
-            self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i1:i2], y, pen=pen)
-            # self.pPupilimg.setLevels([np.min(img),np.max(img)])
-            coords = []
+        
+
+    pen = pg.mkPen(color=self.settings['colors']['Pupil'])
+    if 'Pupil' in self.nwbfile.acquisition:
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
+        img = self.nwbfile.acquisition['Pupil'].data[i0]
+        self.pPupilimg.setImage(img)
+        self.pPupilimg.setLevels([img.min(),img.max()])
+        if hasattr(self, 'PupilFrameLevel'):
+            self.plot.removeItem(self.PupilFrameLevel)
+        self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
+                                              [0, y.max()], pen=pen, linewidth=0.5)
+        t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
+    else:
+        t_pupil_frame = None
+        
+    if 'Pupil' in self.nwbfile.processing:
+
+        i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+        i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+
+        img = self.nwbfile.acquisition['Pupil'].data[i0]
+        self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
+        y = scale_and_position(self,
+                               self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
+                               self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2],
+                               i=iplot)
+        iplot+=1
+        self.plot.plot(self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[i1:i2], y, pen=pen)
+
+        coords = []
+        if hasattr(self, 'fit'):
+            self.fit.remove(self)
+
+        if t_pupil_frame is not None:
+            i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.pupil_data[key+'-corrected'][i0])
-            if hasattr(self, 'fit'):
-                self.fit.remove(self)
+                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
             self.fit = roi.pupilROI(moveable=False,
                                     parent=self,
                                     color=(125, 0, 0),
                                     pos = roi.ellipse_props_to_ROI(coords))
             
-    
-    # ## -------- Pupil --------- ##
-    # if self.Pupil is not None and self.Pupil.processed is not None:
-    #     # time-varying diameter
-    #     pt = self.Pupil.processed['times']
-    #     cond = (pt>=tzoom[0]) & (pt<=tzoom[1])
-    #     isampling = max([1,int(len(self.Pupil.processed['diameter'][cond])/self.settings['Npoints'])])
-    #     y = scale_and_position(self,
-    #                            self.Pupil.processed['diameter'][cond][::isampling], i=iplot)
-    #     iplot+=1
-    #     if plot_update:
-    #         self.plot.plot(pt[cond][::isampling], y,pen=pen)
-    #     if with_images:
-    #         # im_face = self.Face.grab_frame(self.time) # already loaded above
-    #         self.pFaceimg.setImage(im_face)
-    #         plot_pupil(self, im_face)
-    #     if with_scatter:
-    #         self.ipt = np.argmin((pt[cond]-self.time)**2) # used later
-    #         val = scale_and_position(self, y,
-    #                                  value=self.Pupil.processed['diameter'][cond][self.ipt],i=iplot)
-    #         scatter.append((pt[cond][self.ipt], val))
-    #     else:
-    #         self.ipt = 0
-    # else:
-    #     y = shift(self, 2)+np.zeros(2)
-    #     self.plot.plot([tzoom[0], tzoom[1]], y, pen=pen)
 
     # ## -------- Electrophy --------- ##
     if ('Electrophysiological-Signal' in self.nwbfile.acquisition):
@@ -169,7 +162,6 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Calcium --------- ##
     pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
-    print(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:])
     if (self.time==0) and ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
     elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
@@ -231,7 +223,6 @@ def raw_data_plot(self, tzoom,
             
 
     if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
-        
         # if visual-stim we highlight the stim periods
         icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
                             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()
@@ -263,34 +254,3 @@ def raw_data_plot(self, tzoom,
     self.frameSlider.setValue(int(self.settings['Npoints']*(self.time-tzoom[0])/(tzoom[1]-tzoom[0])))
     
     self.plot.show()
-
-
-def plot_pupil(self, img):
-
-    if self.Pupil.xmin is None:
-        x,y = np.meshgrid(np.arange(0,img.shape[0]),
-                          np.arange(0,img.shape[1]), indexing='ij')
-        cx, cy, sx, sy = self.Pupil.ROIellipse
-        ellipse = ((y - cy)**2 / (sy/2)**2 +
-                   (x - cx)**2 / (sx/2)**2) <= 1
-        self.Pupil.xmin = np.min(x[ellipse])
-        self.Pupil.xmax = np.max(x[ellipse])
-        self.Pupil.ymin = np.min(y[ellipse])
-        self.Pupil.ymax = np.max(y[ellipse])
-    
-    cropped_img = img[self.Pupil.xmin:self.Pupil.xmax,
-                      self.Pupil.ymin:self.Pupil.ymax]
-
-    self.pPupilimg.setImage(cropped_img)
-
-    if self.Pupil.processed is not None:
-        if self.PupilROI is not None:
-            self.pPupil.removeItem(self.PupilROI)
-        mx = self.Pupil.processed['cx'][self.ipt] - self.Pupil.xmin
-        my = self.Pupil.processed['cy'][self.ipt] - self.Pupil.ymin
-        sx = self.Pupil.processed['sx-corrected'][self.ipt]
-        sy = self.Pupil.processed['sy-corrected'][self.ipt]
-        
-        self.PupilROI = pg.EllipseROI([my-sy/2., mx-sx/2.], [2*sy, 2*sx],
-                                      pen=pupilpen)
-        self.pPupil.addItem(self.PupilROI)

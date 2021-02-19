@@ -1,0 +1,11 @@
+{
+    "Mouse1_V2":{"description":"Mouse1_V2",
+		      "sex":"Unknown",
+		      "genotype":"Unknown",
+		      "species":"Mouse",
+		      "subject_id":"Mouse1_V2",
+		      "weight":"Unknown",
+		      "virus":"Unknown",
+		      "surgery":"Unknown",
+  		      "date_of_birth":"2020_10_01"},
+}
