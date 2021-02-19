@@ -1,6 +1,5 @@
 import sys, os, pathlib
 import numpy as np
-import pyqtgraph as pg
 from scipy.optimize import minimize
 from scipy.ndimage import gaussian_filter
 from analyz.workflow.shell import printProgressBar
@@ -58,8 +57,8 @@ def perform_fit(cls,
                 maxiter=100):
 
     im0 = cls.img
-    im0[cls.img<cls.saturation] = 1
-    im0[cls.img>=cls.saturation] = 0
+    im0[cls.img<saturation] = 1
+    im0[cls.img>=saturation] = 0
 
     # center_of_mass
     c0 = [np.mean(cls.x[im0>0]),np.mean(cls.y[im0>0])]
@@ -91,18 +90,21 @@ def perform_loop(parent,
     temp = {} # temporary data in case of subsampling
     for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'diameter', 'residual']:
         temp[key] = []
-    
+
     if with_ProgressBar:
         printProgressBar(0, parent.nframes)
 
-    init_fit_area(parent)
     for parent.cframe in list(range(parent.nframes-1)[::subsampling])+[parent.nframes-1]:
         # preprocess image
-        preprocess(parent, with_reinit=False, gaussian_smoothing=gaussian_smoothing)
+        img = preprocess(parent,
+                         gaussian_smoothing=gaussian_smoothing,
+                         saturation=saturation,
+                         with_reinit=False)
+        
         coords, _, res = perform_fit(parent,
                                      saturation=saturation,
-                                     shape=parent.Pshape)
-        if parent.Pshape=='circle':
+                                     shape=shape)
+        if shape=='circle':
             coords = list(coords)+[coords[-1]] # form circle to ellipse
         temp['frame'].append(parent.cframe)
         temp['residual'].append(res)
@@ -116,6 +118,8 @@ def perform_loop(parent,
         
     print('Pupil size calculation over !')
 
+    for key in temp:
+        temp[key] = np.array(temp[key])
     return temp
     
 def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
@@ -160,43 +164,51 @@ def init_fit_area(cls,
             np.min(cls.ROI.x[cls.ROI.ellipse])+1
         Ny=np.max(cls.ROI.y[cls.ROI.ellipse])-\
             np.min(cls.ROI.y[cls.ROI.ellipse])+1
-        
+
+    cls.Nx, cls.Ny = Nx, Ny
+    
     cls.x, cls.y = cls.fullx[cls.zoom_cond].reshape(Nx,Ny),\
         cls.fully[cls.zoom_cond].reshape(Nx,Ny)
-    cls.x -= cls.x[0,0]
-    cls.y -= cls.y[0,0]
 
     if ellipse is not None:
         cls.fit_area = inside_ellipse_cond(cls.x, cls.y, *ellipse)
     else:
         cls.fit_area = cls.ROI.ellipse[cls.zoom_cond].reshape(Nx,Ny)
+        
+    cls.x, cls.y = cls.x-cls.x[0,0], cls.y-cls.y[0,0] # after
 
     if reflectors is None:
         reflectors = [r.extract_props() for r in cls.rROI]
     for r in reflectors:
         cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
-def preprocess(cls, with_reinit=True, img=None, gaussian_smoothing=0):
 
-    if (img is None) and (cls.FaceCamera is not None):
-        img = cls.FaceCamera.data[cls.cframe,:,:]
-    elif (img is None):
+    
+
+def preprocess(cls, with_reinit=True,
+               img=None,
+               gaussian_smoothing=0, saturation=100):
+
+    # if (img is None) and (cls.FaceCamera is not None):
+    #     img = cls.FaceCamera.data[cls.cframe,:,:]
+    if (img is None):
         img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe]))
     else:
         img = img.copy()
 
+
     if with_reinit:
         init_fit_area(cls)
-    cls.img = img[cls.zoom_cond].reshape(cls.x.shape)
+    cls.img = img[cls.zoom_cond].reshape(cls.Nx, cls.Ny)
     
     # first smooth
     if gaussian_smoothing>0:
         cls.img = gaussian_filter(cls.img, gaussian_smoothing)
 
     # # then threshold
-    cls.img[~cls.fit_area] = cls.saturation
-    cond = cls.img>=cls.saturation
-    cls.img[cond] = cls.saturation
+    cls.img[~cls.fit_area] = saturation
+    cond = cls.img>=saturation
+    cls.img[cond] = saturation
 
     return cls.img
 
@@ -263,8 +275,13 @@ if __name__=='__main__':
                     subsampling=args.subsampling,
                     shape=args.data['shape'],
                     gaussian_smoothing=args.data['gaussian_smoothing'],
+                    saturation=args.data['ROIsaturation'],
                     with_ProgressBar=True)
-            
+            temp['t'] = args.times[np.array(temp['frame'])]
+            for key in temp:
+                args.data[key] = temp[key]
+            np.save(os.path.join(args.datafolder, 'pupil.npy'), args.data)
+            print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'pupil.npy'))
 
         else:
             print('  /!\ "pupil.npy" file found, create one with the GUI  /!\ ')
