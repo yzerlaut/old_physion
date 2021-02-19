@@ -173,6 +173,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.process = QtGui.QPushButton('process data')
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
+
+        self.interpolate = QtGui.QPushButton('interpolate')
+        self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.interpolate.clicked.connect(self.interpolate_data)
         
         self.genscript = QtGui.QPushButton('add to bash script')
         self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -245,10 +249,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.process, 16, 0, 1, 3)
-        self.l0.addWidget(self.saverois, 17, 0, 1, 3)
-        self.l0.addWidget(self.genscript, 18, 0, 1, 3)
-        self.l0.addWidget(self.addOutlier, 20, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 21, 0, 1, 3)
+        self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
+        self.l0.addWidget(self.saverois, 18, 0, 1, 3)
+        self.l0.addWidget(self.genscript, 20, 0, 1, 3)
+        self.l0.addWidget(self.addOutlier, 21, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 22, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -324,12 +329,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
             self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
                                 allow_pickle=True).item()
-            for key in ['diameter', 'cx', 'cy', 'sx', 'sy']:
-                func = interp1d(self.data['frame'], self.data[key],
-                                kind='linear')
-                self.data[key] = func(np.arange(self.nframes))
-            self.data['frame'] = np.arange(self.nframes)
-            
             self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
             process.load_ROI(self)
             self.plot_pupil_trace()
@@ -567,18 +566,9 @@ class MainWindow(QtWidgets.QMainWindow):
                                     saturation=self.sl.value(),
                                     with_ProgressBar=True)
 
-        if self.subsampling==1: # we just take those data
-            for key in temp:
-                self.data[key] = temp[key]
-        else:
-            # we interpolate the full data
-            for key in temp:
-                func = interp1d(temp['frame'], temp[key], kind='linear')
-                self.data[key] = func(np.arange(self.nframes))
-        self.data['frame'] = np.arange(self.nframes)
-        
-        # # removing outliers in the fit
-        # self.data = process.replace_outliers(self.data)
+        for key in temp:
+            self.data[key] = temp[key]
+        self.data['times'] = self.times[self.data['frame']]
                 
         self.plot_pupil_trace()
             
@@ -616,7 +606,14 @@ class MainWindow(QtWidgets.QMainWindow):
                                       parent=self)
 
         return coords
-            
+
+    def interpolate_data(self):
+        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            func = interp1d(self.data['frame'], self.data[key],
+                            kind='linear')
+            self.data[key] = func(np.arange(self.nframes))
+        self.data['frame'] = np.arange(self.nframes)
+        self.data['times'] = self.times[self.data['frame']]
         
     def quit(self):
         QtWidgets.QApplication.quit()

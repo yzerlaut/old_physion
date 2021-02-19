@@ -276,12 +276,13 @@ def build_NWB(args,
                 data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                allow_pickle=True).item()
 
+                timestamps = data['times']-NIdaq_Tstart
+                
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                             description='processed quantities of Pupil dynamics')
                 
-                for key in data:
+                for key in ['cx', 'cy', 'sx', 'sy']:
                     if type(data[key]) is np.ndarray:
-                        print(data[key])
                         PupilProp = pynwb.TimeSeries(name=key,
                                                      data = data[key],
                                                      unit='seconds',
