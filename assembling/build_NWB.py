@@ -315,12 +315,6 @@ def build_NWB(args,
                 print(' /!\ No processed pupil data found /!\ ')
 
                 
-
-                
-
-
-        
-            
     
         #################################################
         ####      Whisking from FaceCamera        #######

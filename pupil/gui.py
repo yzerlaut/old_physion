@@ -296,13 +296,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.batch = False
         self.cframe = 0
         
-        filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
+        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
         
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Pupil Data(through metadata file or NWB file) ",
-        #                 os.path.join(os.path.expanduser('~'),'DATA'),
-        #                             filter="*.nwb, metadata.npy, pupil.npy")
-
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Pupil Data(through metadata file or NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                                    filter="*.nwb, metadata.npy, pupil.npy")
         
         if filename.endswith('.nwb'):
             self.reset()
