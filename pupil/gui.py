@@ -399,31 +399,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reflectors = []
 
     def set_as_outlier(self):
-        print(self.cframe)
+
+        i0 = np.argmin((self.cframe-self.data['frame'])**2)
+        self.data['diameter'][i0] = 0
 
     def process_outliers(self):
-        print(self.cframe)
+        cond = (self.data['diameter']>0)
+        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            func = interp1d(self.data['frame'][cond],
+                            self.data[key][cond],
+                            kind='linear')
+            self.data[key] = func(self.data['frame'])
+
+        i1, i2 = self.xaxis.range
+        self.p1.clear()
+        self.p1.plot(self.data['frame'],
+                     self.data['diameter'],
+                     pen=(0,255,0))
+        self.p1.setRange(xRange=(i1,i2), padding=0.0)
+        self.p1.show()
+
+        
         
     def debug(self):
         print('No debug function')
         pass
-
-    # def load_ROI(self, with_plot=True):
-
-    #     self.saturation = self.data['ROIsaturation']
-    #     self.sl.setValue(int(self.saturation))
-    #     self.ROI = roi.sROI(parent=self,
-    #                         pos = roi.ellipse_props_to_ROI(self.data['ROIellipse']))
-    #     if with_plot:
-    #         self.ROI.plot(self)
-    #     self.rROI = []
-    #     self.reflectors = []
-    #     if 'reflectors' in self.data:
-    #         for r in self.data['reflectors']:
-    #             self.rROI.append(roi.reflectROI(len(self.rROI),
-    #                                             pos = roi.ellipse_props_to_ROI(r),
-    #                                             moveable=True, parent=self))
-            
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -471,8 +471,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit.remove(self)
             
         if self.data is not None:
-            self.scatter.setData(self.cframe*np.ones(1),
-                                 self.data['diameter'][self.cframe]*np.ones(1),
+            self.iframe = np.argmin((self.cframe-self.data['frame'])**2)
+            
+            self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
+                                 self.data['diameter'][self.iframe]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
@@ -480,10 +482,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if 'sx-corrected' in self.data:
                 for key in ['cx-corrected', 'cy-corrected',
                             'sx-corrected', 'sy-corrected']:
-                    coords.append(self.data[key][self.cframe])
+                    coords.append(self.data[key][self.iframe])
             else:
                 for key in ['cx', 'cy', 'sx', 'sy']:
-                    coords.append(self.data[key][self.cframe])
+                    coords.append(self.data[key][self.iframe])
             self.fit = roi.pupilROI(moveable=True,
                                     parent=self,
                                     color=(0, 200, 0),
@@ -584,7 +586,6 @@ class MainWindow(QtWidgets.QMainWindow):
                              padding=0.0)
             self.p1.show()
 
-                
     def fit_pupil_size(self, value=0, coords_only=False):
         
         if not coords_only and (self.pupil is not None):
@@ -614,6 +615,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data[key] = func(np.arange(self.nframes))
         self.data['frame'] = np.arange(self.nframes)
         self.data['times'] = self.times[self.data['frame']]
+
+        self.plot_pupil_trace()
+        
         
     def quit(self):
         QtWidgets.QApplication.quit()
