@@ -113,7 +113,10 @@ class pupilROI():
         self.ROI = pg.EllipseROI(
             [imx, imy], [dx, dy],
             movable = self.moveable,
-            pen=roipen, removable=self.moveable)
+            rotatable=self.moveable,
+            resizable=self.moveable, 
+            pen=roipen,
+            removable=self.moveable)
         
         self.ROI.handleSize = 7
         self.ROI.handlePen = roipen

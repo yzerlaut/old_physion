@@ -231,7 +231,7 @@ def build_NWB(args,
     #################################################
     ####         FaceCamera Recording         #######
     #################################################
-
+    
     if metadata['FaceCamera']:
         
         if args.verbose:
@@ -275,20 +275,18 @@ def build_NWB(args,
                 
                 data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                allow_pickle=True).item()
-                print(data.keys())
-                
-                for key in []:
-                    PupilProp = pynwb.TimeSeries(name=key,
-                                                 data = metadata[key],
-                                                 unit='seconds',
-                                                 timestamps=timestamps)
-                    nwbfile.add_processing(PupilProp)
-            else:
-                print(' /!\ No processed pupil data found /!\ ')
 
+                pupil_module = nwbfile.create_processing_module(name='Pupil', 
+                            description='processed quantities of Pupil dynamics')
                 
-
-                
+                for key in data:
+                    if type(data[key]) is np.ndarray:
+                        print(data[key])
+                        PupilProp = pynwb.TimeSeries(name=key,
+                                                     data = data[key],
+                                                     unit='seconds',
+                                                     timestamps=timestamps)
+                        pupil_module.add(PupilProp)
 
                 # then add the frames subsampled
                 if FC_FILES is not None:
@@ -311,6 +309,14 @@ def build_NWB(args,
                                                            unit='NA',
                                                            timestamps=times[PUPIL_SUBSAMPLING])
                     nwbfile.add_acquisition(Pupil_frames)
+                        
+            else:
+                print(' /!\ No processed pupil data found /!\ ')
+
+                
+
+                
+
 
         
             

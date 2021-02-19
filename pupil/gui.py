@@ -148,9 +148,121 @@ class MainWindow(QtWidgets.QMainWindow):
         self.movieLabel = QtGui.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
+
+
+        # create frame slider
+        self.timeLabel = QtGui.QLabel("Current time (seconds):")
+        self.timeLabel.setStyleSheet("color: white;")
+        self.currentTime = QtGui.QLineEdit()
+        self.currentTime.setText('0')
+        self.currentTime.setValidator(QtGui.QDoubleValidator(0, 100000, 2))
+        self.currentTime.setFixedWidth(50)
+        self.currentTime.returnPressed.connect(self.set_precise_time)
+        
+        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.frameSlider.setMinimum(0)
+        self.frameSlider.setMaximum(200)
+        self.frameSlider.setTickInterval(1)
+        self.frameSlider.setTracking(False)
+        self.frameSlider.valueChanged.connect(self.go_to_frame)
+
+        istretch = 23
+        iplay = istretch+15
+        iconSize = QtCore.QSize(20, 20)
+
+        self.process = QtGui.QPushButton('process data')
+        self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.process.clicked.connect(self.process_ROIs)
+        
+        self.genscript = QtGui.QPushButton('add to bash script')
+        self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.genscript.clicked.connect(self.gen_bash_script)
+
+        self.load = QtGui.QPushButton('  load data  \u2b07')
+        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load.clicked.connect(self.load_data)
+
+        self.load_batch = QtGui.QPushButton('  load batch \u2b07')
+        self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load_batch.clicked.connect(self.load_data_batch)
+
+        sampLabel = QtGui.QLabel("Subsampling          (frame)")
+        sampLabel.setStyleSheet("color: gray;")
+        self.samplingBox = QtGui.QLineEdit()
+        self.samplingBox.setText(str(self.subsampling))
+        self.samplingBox.setFixedWidth(35)
+
+        smoothLabel = QtGui.QLabel("Smoothing              (px)")
+        smoothLabel.setStyleSheet("color: gray;")
+        self.smoothBox = QtGui.QLineEdit()
+        self.smoothBox.setText(str(self.gaussian_smoothing))
+        self.smoothBox.setFixedWidth(25)
+        
+        self.addROI = QtGui.QPushButton("add Pupil-ROI")
+        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI.clicked.connect(self.add_ROI)
+
+        self.saverois = QtGui.QPushButton('save data')
+        self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.saverois.clicked.connect(self.save_ROIs)
+
+        self.addOutlier = QtGui.QPushButton('set as outlier')
+        self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addOutlier.clicked.connect(self.set_as_outlier)
+
+        self.processOutliers = QtGui.QPushButton('process outliers')
+        self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.processOutliers.clicked.connect(self.process_outliers)
+
+        # self.batchlist=[]
+        # self.batchname=[]
+        # for k in range(6):
+        #     self.batchname.append(QtGui.QLabel(''))
+        #     self.batchname[-1].setStyleSheet("color: white;")
+        #     self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
+
+        iconSize = QtCore.QSize(30, 30)
+        self.playButton = QtGui.QToolButton()
+        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+        self.playButton.setIconSize(iconSize)
+        self.playButton.setToolTip("Play")
+        self.playButton.setCheckable(True)
+        self.pauseButton = QtGui.QToolButton()
+        self.pauseButton.setCheckable(True)
+        self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+        self.pauseButton.setIconSize(iconSize)
+        self.pauseButton.setToolTip("Pause")
+
+        btns = QtGui.QButtonGroup(self)
+        btns.addButton(self.playButton,0)
+        btns.addButton(self.pauseButton,1)
+
+        self.l0.addWidget(self.load,2,0,1,3)
+        self.l0.addWidget(self.load_batch,3,0,1,3)
+        self.l0.addWidget(sampLabel, 8, 0, 1, 3)
+        self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
+        self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
+        self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
+        self.l0.addWidget(self.addROI,14,0,1,3)
+        self.l0.addWidget(self.process, 16, 0, 1, 3)
+        self.l0.addWidget(self.saverois, 17, 0, 1, 3)
+        self.l0.addWidget(self.genscript, 18, 0, 1, 3)
+        self.l0.addWidget(self.addOutlier, 20, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 21, 0, 1, 3)
+
+        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.setRowStretch(istretch,1)
+        self.l0.addWidget(self.timeLabel, istretch+13,0,1,3)
+        self.l0.addWidget(self.currentTime, istretch+14,0,1,3)
+        self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
+
+        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
+        self.l0.setRowStretch(16,2)
+        # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
+        self.updateFrameSlider()
+        
         self.nframes = 0
         self.cframe = 0
-        self.make_buttons()
 
         self.updateTimer = QtCore.QTimer()
         self.cframe = 0
@@ -233,9 +345,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.movieLabel.setText(filename)
 
-        
-        
-
             
     def load_data_batch(self):
 
@@ -256,137 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if file_dialog.exec():
             paths = file_dialog.selectedFiles()
-
-    def make_buttons(self):
-        
-        # create frame slider
-        self.timeLabel = QtGui.QLabel("Current time (seconds):")
-        self.timeLabel.setStyleSheet("color: white;")
-        self.currentTime = QtGui.QLineEdit()
-        self.currentTime.setText('0.00')
-        self.currentTime.setValidator(QtGui.QDoubleValidator(0, 100000, 2))
-        self.currentTime.setFixedWidth(50)
-        self.currentTime.returnPressed.connect(self.set_precise_time)
-        
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        self.frameSlider.setMinimum(0)
-        self.frameSlider.setMaximum(200)
-        self.frameSlider.setTickInterval(1)
-        self.frameSlider.setTracking(False)
-        self.frameSlider.valueChanged.connect(self.go_to_frame)
-
-        istretch = 23
-        iplay = istretch+15
-        iconSize = QtCore.QSize(20, 20)
-
-        self.process = QtGui.QPushButton('process data')
-        self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.process.clicked.connect(self.process_ROIs)
-        
-        # self.savedata = QtGui.QPushButton('save data')
-        # self.savedata.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.savedata.clicked.connect(self.save_pupil_data)
-        # self.savedata.setEnabled(True)
-        
-        self.genscript = QtGui.QPushButton('add to bash script')
-        self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.genscript.clicked.connect(self.gen_bash_script)
-
-        self.load = QtGui.QPushButton('  load data  \u2b07')
-        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load.clicked.connect(self.load_data)
-
-        self.load_batch = QtGui.QPushButton('  load batch \u2b07')
-        self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load_batch.clicked.connect(self.load_data_batch)
-
-        sampLabel = QtGui.QLabel("Subsampling          (frame)")
-        sampLabel.setStyleSheet("color: gray;")
-        self.samplingBox = QtGui.QLineEdit()
-        self.samplingBox.setText(str(self.subsampling))
-        self.samplingBox.setFixedWidth(35)
-
-        smoothLabel = QtGui.QLabel("Smoothing              (px)")
-        smoothLabel.setStyleSheet("color: gray;")
-        self.smoothBox = QtGui.QLineEdit()
-        self.smoothBox.setText(str(self.gaussian_smoothing))
-        self.smoothBox.setFixedWidth(25)
-        
-        self.addROI = QtGui.QPushButton("add Pupil-ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addROI.clicked.connect(self.add_ROI)
-
-        self.saverois = QtGui.QPushButton('save data')
-        self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.saverois.clicked.connect(self.save_ROIs)
-
-        self.addOutlier = QtGui.QPushButton('set as outlier')
-        self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addOutlier.clicked.connect(self.set_as_outlier)
-
-        self.processOutliers = QtGui.QPushButton('process outliers')
-        self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.processOutliers.clicked.connect(self.process_outliers)
-
-        self.batchlist=[]
-        self.batchname=[]
-        for k in range(6):
-            self.batchname.append(QtGui.QLabel(''))
-            self.batchname[-1].setStyleSheet("color: white;")
-            self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
-
-        iconSize = QtCore.QSize(30, 30)
-        self.playButton = QtGui.QToolButton()
-        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
-        self.playButton.setIconSize(iconSize)
-        self.playButton.setToolTip("Play")
-        self.playButton.setCheckable(True)
-        # self.playButton.clicked.connect(self.start)
-        self.pauseButton = QtGui.QToolButton()
-        self.pauseButton.setCheckable(True)
-        self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
-        self.pauseButton.setIconSize(iconSize)
-        self.pauseButton.setToolTip("Pause")
-        # self.pauseButton.clicked.connect(self.pause)
-
-        btns = QtGui.QButtonGroup(self)
-        btns.addButton(self.playButton,0)
-        btns.addButton(self.pauseButton,1)
-        # btns.setExclusive(True)
-
-        self.l0.addWidget(self.load,2,0,1,3)
-        self.l0.addWidget(self.load_batch,3,0,1,3)
-        self.l0.addWidget(sampLabel, 8, 0, 1, 3)
-        self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
-        self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
-        self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
-        self.l0.addWidget(self.addROI,14,0,1,3)
-        self.l0.addWidget(self.process, 17, 0, 1, 3)
-        self.l0.addWidget(self.saverois, 18, 0, 1, 3)
-        self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        self.l0.addWidget(self.addOutlier, 23, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 24, 0, 1, 3)
-        # self.l0.addWidget(self.savedata, 23, 0, 1, 3)
-        # self.l0.addWidget(self.processbatch, 21, 0, 1, 3)
-        self.l0.addWidget(self.playButton,iplay,0,1,1)
-        self.l0.addWidget(self.pauseButton,iplay,1,1,1)
-
-        # self.playButton.setEnabled(False)
-        # self.pauseButton.setEnabled(False)
-        # self.pauseButton.setChecked(True)
-
-        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
-        self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.timeLabel, istretch+13,0,1,3)
-        self.l0.addWidget(self.currentTime, istretch+14,0,1,3)
-        self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
-
-        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
-        self.l0.setRowStretch(16,2)
-        # ll = QtGui.QLabel('play/pause [SPACE]')
-        # ll.setStyleSheet("color: gray;")
-        # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
-        self.updateFrameSlider()
+            
 
     def reset(self):
         for r in self.rROI:
@@ -541,11 +520,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def save_ROIs(self):
         """ """
+        self.extract_ROI(self.data)
         self.save_pupil_data()
-        # data = self.build_data()
-        # fn = os.path.join(self.datafolder, 'pupil.npy')
-        # np.save(fn, data)
-        # print('successfully save the ROIs as: "%s" ' % fn)
         
 
     def gen_bash_script(self):

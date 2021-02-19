@@ -107,6 +107,7 @@ def raw_data_plot(self, tzoom,
                                                    [0, y.max()], pen=pen, linewidth=0.5)
 
     pen = pg.mkPen(color=self.settings['colors']['Pupil'])
+    
     if 'Pupil' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
         img = self.nwbfile.acquisition['Pupil'].data[i0]
@@ -116,23 +117,31 @@ def raw_data_plot(self, tzoom,
             self.plot.removeItem(self.PupilFrameLevel)
         self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
                                               [0, y.max()], pen=pen, linewidth=0.5)
+        t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
+    else:
+        t_pupil_frame = None
         
-        # --- IF PUPIL IS PROCESSED ----
-        if self.pupil_data is not None:
-            i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.acquisition['FaceCamera'])
-            i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.acquisition['FaceCamera'])
-            img = self.nwbfile.acquisition['FaceCamera'].data[i0][self.pupil_data['xmin']:self.pupil_data['xmax'],\
-                                                                  self.pupil_data['ymin']:self.pupil_data['ymax'],]
-            self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
-            y = scale_and_position(self, self.pupil_data['diameter'][i1:i2], i=iplot)
-            iplot+=1
-            self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i1:i2], y, pen=pen)
-            # self.pPupilimg.setLevels([np.min(img),np.max(img)])
-            coords = []
+    if 'Pupil' in self.nwbfile.processing:
+
+        i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.processing['Pupil'].data_interfaces['diameter'])
+        i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.processing['Pupil'].data_interfaces['diameter'])
+
+        img = self.nwbfile.acquisition['Pupil'].data[i0]
+        self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
+        y = scale_and_position(self,
+                               self.nwbfile.processing['Pupil'].data_interfaces['diameter'].data[i1:i2],
+                               i=iplot)
+        iplot+=1
+        self.plot.plot(self.nwbfile.processing['Pupil'].data_interfaces['diameter'].timestamps[i1:i2], y, pen=pen)
+
+        coords = []
+        if hasattr(self, 'fit'):
+            self.fit.remove(self)
+
+        if t_pupil_frame is not None:
+            i0 = convert_time_to_index(self.tzoom[0], self.nwbfile.processing['Pupil'].data_interfaces['diameter'])
             for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.pupil_data[key+'-corrected'][i0])
-            if hasattr(self, 'fit'):
-                self.fit.remove(self)
+                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
             self.fit = roi.pupilROI(moveable=False,
                                     parent=self,
                                     color=(125, 0, 0),
