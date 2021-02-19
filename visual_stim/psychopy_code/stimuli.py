@@ -1,6 +1,6 @@
 from psychopy import visual, core, event, clock, monitors, tools # some libraries from PsychoPy
 import numpy as np
-import itertools, os, sys, pathlib, subprocess, time
+import itertools, os, sys, pathlib, subprocess, time, json
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
@@ -824,7 +824,7 @@ class natural_image_vse(visual_stim):
         else:
             seed = int(cls.experiment['VSE-seed'][index])
 
-        vse = generate_VSE(duration=cls.protocol['presentation-duration'],
+        vse = generate_VSE(duration=cls.experiment['time_duration'][index],
                            mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
                            std_saccade_duration=cls.experiment['std-saccade-duration'][index],
                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]), # in pixels, TO BE PUT IN DEGREES
@@ -846,7 +846,7 @@ class natural_image_vse(visual_stim):
             new_im[:ix,:] = img[sx-ix:,:]
             new_im[:,:iy] = img[:,sy-iy:]
             new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
-            FRAMES.append(new_im.T)
+            FRAMES.append(new_im.T-1)
             times[Times>=t] = int(i)
             
         return times, FRAMES
