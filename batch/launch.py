@@ -10,5 +10,8 @@ import subprocess
 #     # proc.set_nice(psutil.IDLE_PRIORITY_CLASS)           # Sets low priority
 # print(platform)
 
-subprocess.run('python pupil\process.py -d 2021_02_16 -t 15-41-13 -s 100',
+import time
+start = time.time()
+subprocess.run('python pupil\process.py -d 2021_02_16 -t 15-41-13 -s 1',
                creationflags=subprocess.HIGH_PRIORITY_CLASS)
+print('process took %is (%.1f min.)' % (time.time()-start, (time.time()-start)/60.))

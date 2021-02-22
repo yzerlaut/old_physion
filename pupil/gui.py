@@ -45,6 +45,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadSc.activated.connect(self.load_data)
         self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         self.refSc.activated.connect(self.jump_to_frame)
+        self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
+        self.refEx.activated.connect(self.exclude_outlier)
+        self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
+        self.refPr.activated.connect(self.process_outliers)
         self.minView = False
         self.showwindow()
         
@@ -103,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.reflector.setEnabled(True)
         self.reflector.clicked.connect(self.add_reflectROI)
         # fit pupil
-        self.fit_pupil = QtGui.QPushButton('fit Pupil')
+        self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
         # self.fit_pupil.setEnabled(True)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
@@ -182,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.genscript.clicked.connect(self.gen_bash_script)
 
-        self.load = QtGui.QPushButton('  load data  \u2b07')
+        self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
 
@@ -190,17 +194,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load_batch.clicked.connect(self.load_data_batch)
 
-        sampLabel = QtGui.QLabel("Subsampling          (frame)")
+        sampLabel = QtGui.QLabel("Subsampling (frame)")
         sampLabel.setStyleSheet("color: gray;")
         self.samplingBox = QtGui.QLineEdit()
         self.samplingBox.setText(str(self.subsampling))
-        self.samplingBox.setFixedWidth(35)
+        self.samplingBox.setFixedWidth(50)
 
-        smoothLabel = QtGui.QLabel("Smoothing              (px)")
+        smoothLabel = QtGui.QLabel("Smoothing (px)")
         smoothLabel.setStyleSheet("color: gray;")
         self.smoothBox = QtGui.QLineEdit()
         self.smoothBox.setText(str(self.gaussian_smoothing))
-        self.smoothBox.setFixedWidth(25)
+        self.smoothBox.setFixedWidth(30)
         
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -210,20 +214,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
 
-        self.addOutlier = QtGui.QPushButton('set as outlier')
+        self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
         self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addOutlier.clicked.connect(self.set_as_outlier)
+        self.addOutlier.clicked.connect(self.exclude_outlier)
 
-        self.processOutliers = QtGui.QPushButton('process outliers')
+        self.processOutliers = QtGui.QPushButton('process outliers [Ctrl+P]')
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
-
-        # self.batchlist=[]
-        # self.batchname=[]
-        # for k in range(6):
-        #     self.batchname.append(QtGui.QLabel(''))
-        #     self.batchname[-1].setStyleSheet("color: white;")
-        #     self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
 
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
@@ -397,7 +394,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rROI = []
         self.reflectors = []
 
-    def set_as_outlier(self):
+    def exclude_outlier(self):
 
         i0 = np.argmin((self.cframe-self.data['frame'])**2)
         self.data['diameter'][i0] = 0
