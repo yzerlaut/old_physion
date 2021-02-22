@@ -11,7 +11,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names, insure_ordered_FaceCamera_picture_names
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
-from assembling.process import compute_locomotion, build_subsampling_from_freq
+from assembling.tools import compute_locomotion, build_subsampling_from_freq
 from assembling.add_ophys import add_ophys
 
 

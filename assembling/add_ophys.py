@@ -9,7 +9,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.IO.binary import BinaryFile
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.saving import get_files_with_extension, get_TSeries_folders
-from assembling.process import build_subsampling_from_freq
+from assembling.tools import build_subsampling_from_freq
 from assembling.IO.suite2p_to_nwb import add_ophys_processing_from_suite2p
 
 def append_to_NWB(args):
@@ -76,7 +76,7 @@ def add_ophys(nwbfile, args,
 
         CA_SUBSAMPLING = build_subsampling_from_freq(args.CaImaging_frame_sampling,
                                                      float(xml['settings']['framePeriod']),
-                                                     Ca_data.shape[-1], Nmin=3)
+                                                     Ca_data.shape[0], Nmin=3)
 
 
         dI = int(args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))

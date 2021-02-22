@@ -109,7 +109,7 @@ class MainWindow(guiparts.NewWindow):
             plots.raw_data_plot(self, self.tzoom)
         else:
             print('"%s" filename not recognized ! ')
-        print(self.nwbfile)
+            
             
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
@@ -148,13 +148,7 @@ class MainWindow(guiparts.NewWindow):
         
         if 'ophys' in self.nwbfile.processing:
             self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
-            
-        if os.path.isfile(filename.replace('.nwb', '.pupil.npy')):
-            self.pupil_data = np.load(filename.replace('.nwb', '.pupil.npy'),
-                                      allow_pickle=True).item()
-        else:
-            self.pupil_data = None
-            
+
         
     def check_data_folder(self):
         

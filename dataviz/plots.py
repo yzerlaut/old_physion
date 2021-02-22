@@ -166,7 +166,7 @@ def raw_data_plot(self, tzoom,
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
     elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['CaImaging-TimeSeries'])
-        self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0])
+        self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0,:,:])
         if hasattr(self, 'CaFrameLevel'):
             self.plot.removeItem(self.CaFrameLevel)
         self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
