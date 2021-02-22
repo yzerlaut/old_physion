@@ -22,7 +22,8 @@ def append_to_NWB(args):
         
     add_ophys(nwbfile, args)
 
-    print(nwbfile)
+    io.write(nwbfile)
+    io.close()
 
 def add_ophys(nwbfile, args,
               metadata=None,
@@ -72,7 +73,7 @@ def add_ophys(nwbfile, args,
                              read_filename=os.path.join(args.CaImaging_folder,
                                         'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                         Ca_Imaging_options['Suite2P-binary-filename']))
-        print(Ca_data.shape[0])
+
         CA_SUBSAMPLING = build_subsampling_from_freq(args.CaImaging_frame_sampling,
                                                      float(xml['settings']['framePeriod']),
                                                      Ca_data.shape[-1], Nmin=3)
@@ -95,7 +96,7 @@ def add_ophys(nwbfile, args,
                                                        data = Ca_dataC,
                                                        imaging_plane=imaging_plane,
                                                        unit='s',
-                                                       timestamps = CaImaging_timestamps)
+                                                       timestamps = CaImaging_timestamps[CA_SUBSAMPLING])
         else:
             image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                        dimension=[2],
@@ -103,7 +104,7 @@ def add_ophys(nwbfile, args,
                                                        # data = Ca_data.data[:].astype(np.uint8),
                                                        imaging_plane=imaging_plane,
                                                        unit='s',
-                                                       timestamps = CaImaging_timestamps)
+                                                       timestamps = CaImaging_timestamps[CA_SUBSAMPLING])
     else:
         image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                    dimension=[2],
