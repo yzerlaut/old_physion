@@ -277,7 +277,7 @@ if __name__=='__main__':
                     shape=args.data['shape'],
                     gaussian_smoothing=args.data['gaussian_smoothing'],
                     saturation=args.data['ROIsaturation'],
-                    with_ProgressBar=True)
+                                with_ProgressBar=False)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
                 args.data[key] = temp[key]
