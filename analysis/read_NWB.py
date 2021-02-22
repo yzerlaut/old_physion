@@ -13,6 +13,8 @@ def read(self, filename, verbose=False):
 
     self.io = pynwb.NWBHDF5IO(filename, 'r')
     self.nwbfile = self.io.read()
+    if verbose:
+        print(self.nwbfile)
     
     if verbose:
         t0 = time.time()

@@ -122,7 +122,7 @@ class visual_stim:
         return 2*np.power(((level+1.)/2./self.k), 1./self.gamma)-1.
     def gamma_corrected_contrast(self, contrast):
         return np.power(contrast/self.k, 1./self.gamma)
-
+    
     
     ################################
     #  ---       Geometry      --- #
@@ -502,6 +502,13 @@ class full_field_grating_stim(visual_stim):
                                    sf=cls.angle_to_pix(cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
+
+    def get_image(self, index, time, parent=None):
+        """
+        Need to implement it 
+        """
+        return np.ones(2,2)
+    
                                  
             
 class drifting_full_field_grating_stim(visual_stim):

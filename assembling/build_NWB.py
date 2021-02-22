@@ -350,8 +350,6 @@ def build_NWB(args,
         shutil.move(filename, temp)
         print('---> done !')
 
-    print(nwbfile)
-    
     io = pynwb.NWBHDF5IO(filename, mode='w', manager=manager)
     print("""
     ---> Creating the NWB file: "%s"

@@ -180,8 +180,7 @@ class MainWindow(guiparts.NewWindow):
 
     def update_df_names(self):
         self.dbox.clear()
-        if not self.raw_data_visualization:
-            self.pbox.clear()
+        # self.pbox.clear()
         self.plot.clear()
         self.pScreenimg.setImage(np.ones((10,12))*50)
         self.pFaceimg.setImage(np.ones((10,12))*50)
@@ -205,8 +204,6 @@ class MainWindow(guiparts.NewWindow):
         return output
 
     def pick_datafolder(self):
-        if not self.raw_data_visualization:
-            self.pbox.clear()
         self.plot.clear()
         i = self.dbox.currentIndex()
         if i>0:
