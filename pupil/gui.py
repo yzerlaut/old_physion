@@ -45,6 +45,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadSc.activated.connect(self.load_data)
         self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         self.refSc.activated.connect(self.jump_to_frame)
+        self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
+        self.refEx.activated.connect(self.exclude_outlier)
+        self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
+        self.refPr.activated.connect(self.process_outliers)
         self.minView = False
         self.showwindow()
         
@@ -103,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.reflector.setEnabled(True)
         self.reflector.clicked.connect(self.add_reflectROI)
         # fit pupil
-        self.fit_pupil = QtGui.QPushButton('fit Pupil')
+        self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
         # self.fit_pupil.setEnabled(True)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
@@ -182,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.genscript.clicked.connect(self.gen_bash_script)
 
-        self.load = QtGui.QPushButton('  load data  \u2b07')
+        self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
 
@@ -190,17 +194,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load_batch.clicked.connect(self.load_data_batch)
 
-        sampLabel = QtGui.QLabel("Subsampling          (frame)")
+        sampLabel = QtGui.QLabel("Subsampling (frame)")
         sampLabel.setStyleSheet("color: gray;")
         self.samplingBox = QtGui.QLineEdit()
         self.samplingBox.setText(str(self.subsampling))
-        self.samplingBox.setFixedWidth(35)
+        self.samplingBox.setFixedWidth(50)
 
-        smoothLabel = QtGui.QLabel("Smoothing              (px)")
+        smoothLabel = QtGui.QLabel("Smoothing (px)")
         smoothLabel.setStyleSheet("color: gray;")
         self.smoothBox = QtGui.QLineEdit()
         self.smoothBox.setText(str(self.gaussian_smoothing))
-        self.smoothBox.setFixedWidth(25)
+        self.smoothBox.setFixedWidth(30)
         
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -210,20 +214,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
 
-        self.addOutlier = QtGui.QPushButton('set as outlier')
+        self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
         self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addOutlier.clicked.connect(self.set_as_outlier)
+        self.addOutlier.clicked.connect(self.exclude_outlier)
 
-        self.processOutliers = QtGui.QPushButton('process outliers')
+        self.processOutliers = QtGui.QPushButton('process outliers [Ctrl+P]')
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
-
-        # self.batchlist=[]
-        # self.batchname=[]
-        # for k in range(6):
-        #     self.batchname.append(QtGui.QLabel(''))
-        #     self.batchname[-1].setStyleSheet("color: white;")
-        #     self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
 
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
@@ -296,13 +293,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.batch = False
         self.cframe = 0
         
-        filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
+        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
         
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Pupil Data(through metadata file or NWB file) ",
-        #                 os.path.join(os.path.expanduser('~'),'DATA'),
-        #                             filter="*.nwb, metadata.npy, pupil.npy")
-
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Pupil Data(through metadata file or NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                                    filter="*.nwb, *.npy")
         
         if filename.endswith('.nwb'):
             self.reset()
@@ -398,32 +394,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rROI = []
         self.reflectors = []
 
-    def set_as_outlier(self):
-        print(self.cframe)
+    def exclude_outlier(self):
+
+        i0 = np.argmin((self.cframe-self.data['frame'])**2)
+        self.data['diameter'][i0] = 0
 
     def process_outliers(self):
-        print(self.cframe)
+        cond = (self.data['diameter']>0)
+        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            func = interp1d(self.data['frame'][cond],
+                            self.data[key][cond],
+                            kind='linear')
+            self.data[key] = func(self.data['frame'])
+
+        i1, i2 = self.xaxis.range
+        self.p1.clear()
+        self.p1.plot(self.data['frame'],
+                     self.data['diameter'],
+                     pen=(0,255,0))
+        self.p1.setRange(xRange=(i1,i2), padding=0.0)
+        self.p1.show()
+
+        
         
     def debug(self):
         print('No debug function')
         pass
-
-    # def load_ROI(self, with_plot=True):
-
-    #     self.saturation = self.data['ROIsaturation']
-    #     self.sl.setValue(int(self.saturation))
-    #     self.ROI = roi.sROI(parent=self,
-    #                         pos = roi.ellipse_props_to_ROI(self.data['ROIellipse']))
-    #     if with_plot:
-    #         self.ROI.plot(self)
-    #     self.rROI = []
-    #     self.reflectors = []
-    #     if 'reflectors' in self.data:
-    #         for r in self.data['reflectors']:
-    #             self.rROI.append(roi.reflectROI(len(self.rROI),
-    #                                             pos = roi.ellipse_props_to_ROI(r),
-    #                                             moveable=True, parent=self))
-            
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -435,6 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def go_to_frame(self):
         i1, i2 = self.xaxis.range
         self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
+        print(self.cframe, len(self.FILES))
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -471,8 +468,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit.remove(self)
             
         if self.data is not None:
-            self.scatter.setData(self.cframe*np.ones(1),
-                                 self.data['diameter'][self.cframe]*np.ones(1),
+            self.iframe = np.argmin((self.cframe-self.data['frame'])**2)
+            
+            self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
+                                 self.data['diameter'][self.iframe]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
@@ -480,10 +479,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if 'sx-corrected' in self.data:
                 for key in ['cx-corrected', 'cy-corrected',
                             'sx-corrected', 'sy-corrected']:
-                    coords.append(self.data[key][self.cframe])
+                    coords.append(self.data[key][self.iframe])
             else:
                 for key in ['cx', 'cy', 'sx', 'sy']:
-                    coords.append(self.data[key][self.cframe])
+                    coords.append(self.data[key][self.iframe])
             self.fit = roi.pupilROI(moveable=True,
                                     parent=self,
                                     color=(0, 200, 0),
@@ -492,14 +491,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
             
-
-    def show_fullframe(self):
-
-        self.pimg.setImage(self.fullimg)
-        self.pimg.setLevels([0,255])
-        # self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
-        self.win.show()
-        self.show()
 
     def extract_ROI(self, data):
 
@@ -584,7 +575,6 @@ class MainWindow(QtWidgets.QMainWindow):
                              padding=0.0)
             self.p1.show()
 
-                
     def fit_pupil_size(self, value=0, coords_only=False):
         
         if not coords_only and (self.pupil is not None):
@@ -614,6 +604,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data[key] = func(np.arange(self.nframes))
         self.data['frame'] = np.arange(self.nframes)
         self.data['times'] = self.times[self.data['frame']]
+
+        self.plot_pupil_trace()
+        print('[ok] interpolation successfull !')
         
     def quit(self):
         QtWidgets.QApplication.quit()

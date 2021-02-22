@@ -245,7 +245,7 @@ if __name__=='__main__':
     # parser.add_argument("--shape", default='ellipse')
     # parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--maxiter", type=int, default=100)
-    parser.add_argument("--subsampling", type=int, default=1000)
+    parser.add_argument('-s', "--subsampling", type=int, default=1000)
     # parser.add_argument("--ellipse", type=float, default=[], nargs=)
     # parser.add_argument("--gaussian_smoothing", type=float, default=0)
     # parser.add_argument('-df', "--datafolder", default='./')
@@ -261,6 +261,7 @@ if __name__=='__main__':
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day,
                                        args.time)
+
     if not args.debug:
         if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
             args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
@@ -276,7 +277,7 @@ if __name__=='__main__':
                     shape=args.data['shape'],
                     gaussian_smoothing=args.data['gaussian_smoothing'],
                     saturation=args.data['ROIsaturation'],
-                    with_ProgressBar=True)
+                                with_ProgressBar=False)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
                 args.data[key] = temp[key]
