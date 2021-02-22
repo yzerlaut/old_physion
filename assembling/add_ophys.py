@@ -17,11 +17,14 @@ def append_to_NWB(args):
     io = pynwb.NWBHDF5IO(args.nwb_file, mode='a')
     nwbfile = io.read()
 
+    print(nwbfile)
     if (not hasattr(args, 'datafolder')) or (args.datafolder==''):
         args.datafolder=os.path.dirname(args.nwb_file)
         
     add_ophys(nwbfile, args)
 
+    if args.verbose:
+        print('=> writing "%s" [...]' % args.nwb_file)
     io.write(nwbfile)
     io.close()
 
@@ -47,7 +50,9 @@ def add_ophys(nwbfile, args,
     CaImaging_timestamps = onset+xml['Ch1']['relativeTime']+\
         float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
 
+
     device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
+    print(nwbfile)
     nwbfile.add_device(device)
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
                                                  'Excitation 1',
@@ -122,7 +127,7 @@ def add_ophys(nwbfile, args,
                                           imaging_plane=imaging_plane,
                                           image_series=image_series)
     elif with_processed_CaImaging:
-        print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % Ca_subfolder)
+        print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % args.CaImaging_folder)
 
     return Ca_data
 
@@ -147,35 +152,10 @@ if __name__=='__main__':
     parser.add_argument("--silent", action="store_true")
     args = parser.parse_args()
 
-    # if not args.silent:
-    #     args.verbose = True
+    if not args.silent:
+        args.verbose = True
 
-    # if args.export=='LIGHTWEIGHT' or args.lightweight:
-    #     args.export='LIGHTWEIGHT'
-    #     args.modalities = LIGHT_MODALITIES
-    # if args.nidaq_only:
-    #     args.export='NIDAQ'
-    #     args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
-    # if args.from_visualstim_setup or (args.export=='FROM_VISUALSTIM_SETUP'):
-    #     args.export='FROM_VISUALSTIM_SETUP'
-    #     args.modalities = ['VisualStim', 'Locomotion', 'Electrophy', 'raw_FaceCamera', 'Pupil', 'Whisking']
-
-    # if args.time!='':
-    #     args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
+    if args.time!='':
+        args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
         
-    # if args.datafolder!='':
-    #     if os.path.isdir(args.datafolder):
-    #         if args.datafolder[-1]==os.path.sep:
-    #             args.datafolder = args.datafolder[:-1]
-    #         build_NWB(args)
-    #     else:
-    #         print('"%s" not a valid datafolder' % args.datafolder)
-    # elif args.root_datafolder!='':
-    #     FOLDERS = [l for l in os.listdir(args.root_datafolder) if len(l)==8]
-    #     for f in FOLDERS:
-    #         args.datafolder = os.path.join(args.root_datafolder, f)
-    #         try:
-    #             build_NWB(args)
-    #         except BaseException as e:
-    #             print(e)
     append_to_NWB(args)
