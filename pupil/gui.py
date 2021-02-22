@@ -301,7 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Pupil Data(through metadata file or NWB file) ",
                         os.path.join(os.path.expanduser('~'),'DATA'),
-                                    filter="*.nwb, metadata.npy, pupil.npy")
+                                    filter="*.nwb, *.npy")
         
         if filename.endswith('.nwb'):
             self.reset()
@@ -434,6 +434,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def go_to_frame(self):
         i1, i2 = self.xaxis.range
         self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
+        print(self.cframe, len(self.FILES))
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -493,14 +494,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
             
-
-    def show_fullframe(self):
-
-        self.pimg.setImage(self.fullimg)
-        self.pimg.setLevels([0,255])
-        # self.currentTime.setText('%.2f' % float(self.times[self.cframe]))
-        self.win.show()
-        self.show()
 
     def extract_ROI(self, data):
 
@@ -616,7 +609,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data['times'] = self.times[self.data['frame']]
 
         self.plot_pupil_trace()
-        
+        print('[ok] interpolation successfull !')
         
     def quit(self):
         QtWidgets.QApplication.quit()
