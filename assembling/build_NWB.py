@@ -11,34 +11,8 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names, insure_ordered_FaceCamera_picture_names
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
-from assembling.IO.binary import BinaryFile
-from assembling.IO.bruker_xml_parser import bruker_xml_parser
-from assembling.IO.suite2p_to_nwb import add_ophys_processing_from_suite2p
-from behavioral_monitoring.locomotion import compute_position_from_binary_signals
-
-def compute_locomotion(binary_signal, acq_freq=1e4,
-                       speed_smoothing=10e-3, # s
-                       t0=0):
-
-    A = binary_signal%2
-    B = np.round(binary_signal/2, 0)
-
-    return compute_position_from_binary_signals(A, B,
-                                                smoothing=int(speed_smoothing*acq_freq))
-
-
-def build_subsampling_from_freq(subsampled_freq, original_freq, N, Nmin=3):
-    """
-
-    """
-    if original_freq==0:
-        print('  /!\ problem with original sampling freq /!\ ')
-    if subsampled_freq==0:
-        SUBSAMPLING = np.linspace(0, N-1, Nmin).astype(np.int)
-    else:
-        SUBSAMPLING = np.arange(0, N, max([int(subsampled_freq/original_freq),Nmin]))
-
-    return SUBSAMPLING
+from assembling.process import compute_locomotion, build_subsampling_from_freq
+from assembling.add_ophys import add_ophys
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
@@ -346,96 +320,19 @@ def build_NWB(args,
     #################################################
     ####         Calcium Imaging              #######
     #################################################
+    # see: add_ophys.py script
+
+    if metadata['CaImaging']:
+        if args.CaImaging_folder=='':
+            folders = get_TSeries_folders(args.datafolder)
+        if os.path.isdir(folders[0]):
+            args.CaImaging_folder = folders[0] # needed in add_ophys
+        add_ophys(nwbfile, args,
+                  metadata=metadata,
+                  with_raw_CaImaging=('raw_CaImaging' in args.modalities),
+                  with_processed_CaImaging=('processed_CaImaging' in args.modalities),
+                  Ca_Imaging_options=Ca_Imaging_options)
     
-    Ca_data, Ca_folder = None, get_TSeries_folders(args.datafolder)
-    if metadata['CaImaging'] and (len(Ca_folder)>0):
-        Ca_subfolder = Ca_folder[0] # get Tseries folder
-        try:
-            CaFn = get_files_with_extension(Ca_subfolder, extension='.xml')[0] # get Tseries metadata
-        except BaseException as be:
-            print(be)
-            print('\n /!\  Problem with the CA-IMAGING data in %s  /!\ ' % args.datafolder)
-            raise Exception
-        
-        xml = bruker_xml_parser(CaFn) # metadata
-        # CaImaging_timestamps = STEP_FOR_CA_IMAGING['onset']+xml['Ch1']['relativeTime']+\
-        #     float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
-        onset = (metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset'] if 'STEP_FOR_CA_IMAGING_TRIGGER' in metadata else 0)
-        CaImaging_timestamps = onset+xml['Ch1']['relativeTime']+\
-            float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
-
-        
-        device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
-        nwbfile.add_device(device)
-        optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
-                                                     'Excitation 1',
-                                                     float(xml['settings']['laserWavelength']['Excitation 1']))
-        imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
-                                                     description='Depth=%.1f[um]' % float(xml['settings']['positionCurrent']['ZAxis']),
-                                                     device=device,
-                                                     excitation_lambda=float(xml['settings']['laserWavelength']['Excitation 1']),
-                                                     imaging_rate=1./float(xml['settings']['framePeriod']),
-                                                     indicator='GCamp',
-                                                     location='V1',
-                                                     # reference_frame='A frame to refer to',
-                                                     grid_spacing=(float(xml['settings']['micronsPerPixel']['YAxis']),
-                                                                   float(xml['settings']['micronsPerPixel']['XAxis'])))
-
-        if  'raw_CaImaging' in args.modalities:
-            
-            if args.verbose:
-                print('=> Storing Calcium Imaging data [...]')
-                
-            Ca_data = BinaryFile(Ly=int(xml['settings']['linesPerFrame']),
-                                 Lx=int(xml['settings']['pixelsPerLine']),
-                                 read_filename=os.path.join(Ca_subfolder, 'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
-                                                            Ca_Imaging_options['Suite2P-binary-filename']))
-
-            i, dI = 0, int(args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
-            def Ca_frame_generator():
-                while i<(Ca_data.shape[0]-dI):
-                    i+=dI
-                    yield Ca_data.data[i:i+dI, :, :].mean(axis=0).astype(np.uint8)
-                    
-            Ca_dataI = DataChunkIterator(data=Ca_frame_generator(),
-                                         maxshape=(None, Ca_data.shape[1], Ca_data.shape[2]),
-                                         dtype=np.dtype(np.uint8))
-            if args.compression>0:
-                Ca_dataC = H5DataIO(data=Ca_dataI, # with COMPRESSION
-                                    compression='gzip',
-                                    compression_opts=args.compression)
-                image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
-                                                           dimension=[2],
-                                                           data = Ca_dataC,
-                                                           imaging_plane=imaging_plane,
-                                                           unit='s',
-                                                           timestamps = CaImaging_timestamps)
-            else:
-                image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
-                                                           dimension=[2],
-                                                           data = Ca_dataI,
-                                                           # data = Ca_data.data[:].astype(np.uint8),
-                                                           imaging_plane=imaging_plane,
-                                                           unit='s',
-                                                           timestamps = CaImaging_timestamps)
-        else:
-            image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
-                                                       dimension=[2],
-                                                       data = np.ones((2,2,2)),
-                                                       imaging_plane=imaging_plane,
-                                                       unit='s',
-                                                       timestamps = np.arange(2))
-        nwbfile.add_acquisition(image_series)
-
-        if ('processed_CaImaging' in args.modalities) and os.path.isdir(os.path.join(Ca_subfolder, 'suite2p')):
-            print('=> Adding the suite2p processing [...]')
-            add_ophys_processing_from_suite2p(os.path.join(Ca_subfolder, 'suite2p'), nwbfile,
-                                              device=device,
-                                              optical_channel=optical_channel,
-                                              imaging_plane=imaging_plane,
-                                              image_series=image_series)
-        elif ('processed_CaImaging' in args.modalities):
-            print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % Ca_subfolder)
 
     #################################################
     ####         Writing NWB file             #######
