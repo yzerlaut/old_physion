@@ -323,16 +323,19 @@ def build_NWB(args,
     # see: add_ophys.py script
 
     if metadata['CaImaging']:
-        if args.CaImaging_folder=='':
-            folders = get_TSeries_folders(args.datafolder)
-        if os.path.isdir(folders[0]):
-            args.CaImaging_folder = folders[0] # needed in add_ophys
-        add_ophys(nwbfile, args,
-                  metadata=metadata,
-                  with_raw_CaImaging=('raw_CaImaging' in args.modalities),
-                  with_processed_CaImaging=('processed_CaImaging' in args.modalities),
-                  Ca_Imaging_options=Ca_Imaging_options)
-    
+        if not hasattr(args, 'CaImaging_folder') or (args.CaImaging_folder==''):
+            try:
+                args.CaImaging_folder = get_TSeries_folders(args.datafolder)
+                Ca_data = add_ophys(nwbfile, args,
+                                    metadata=metadata,
+                                    with_raw_CaImaging=('raw_CaImaging' in args.modalities),
+                                    with_processed_CaImaging=('processed_CaImaging' in args.modalities),
+                                    Ca_Imaging_options=Ca_Imaging_options)
+            except BaseException as be:
+                print(be)
+                print(' /!\ No Ca-Imaging data found, /!\ ')
+                print('             -> add them later with "add_ophys.py" \n')
+                Ca_data = None
 
     #################################################
     ####         Writing NWB file             #######
@@ -346,7 +349,9 @@ def build_NWB(args,
         """ % (filename, temp))
         shutil.move(filename, temp)
         print('---> done !')
-        
+
+    print(nwbfile)
+    
     io = pynwb.NWBHDF5IO(filename, mode='w', manager=manager)
     print("""
     ---> Creating the NWB file: "%s"
@@ -356,7 +361,7 @@ def build_NWB(args,
     print('---> done !')
     
     if Ca_data is not None:
-        Ca_data.close()
+        Ca_data.close() # can be closed only after having written
 
     return filename
     

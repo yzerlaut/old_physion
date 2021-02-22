@@ -124,7 +124,8 @@ def add_ophys(nwbfile, args,
     elif with_processed_CaImaging:
         print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % Ca_subfolder)
 
-    
+    return Ca_data
+
     
 if __name__=='__main__':
 
