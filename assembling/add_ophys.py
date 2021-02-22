@@ -52,7 +52,6 @@ def add_ophys(nwbfile, args,
 
 
     device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
-    print(nwbfile)
     nwbfile.add_device(device)
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
                                                  'Excitation 1',
@@ -79,12 +78,12 @@ def add_ophys(nwbfile, args,
                                         'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                         Ca_Imaging_options['Suite2P-binary-filename']))
 
-        CA_SUBSAMPLING = build_subsampling_from_freq(args.CaImaging_frame_sampling,
-                                                     float(xml['settings']['framePeriod']),
+        CA_SUBSAMPLING = build_subsampling_from_freq(1./float(xml['settings']['framePeriod']),
+                                                     args.CaImaging_frame_sampling,
                                                      Ca_data.shape[0], Nmin=3)
 
-
-        dI = int(args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
+        dI = int(1./args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
+        
         def Ca_frame_generator():
             for i in CA_SUBSAMPLING:
                 yield Ca_data.data[i:i+dI, :, :].mean(axis=0).astype(np.uint8)
