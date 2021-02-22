@@ -203,24 +203,6 @@ def raw_data_plot(self, tzoom,
                 self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
 
-    # if self.CaImaging is not None:
-    #     print(len(self.CaImaging.t))
-    #     print(self.CaImaging.Firing.shape)
-    #     cond = (self.CaImaging.t>=tzoom[0]) & (self.CaImaging.t<=tzoom[1])
-    #     isampling = max([1,int(len(self.CaImaging.t[cond])/self.settings['Npoints'])])
-    #     for n in range(self.CaImaging.Firing.shape[0]):
-    #         # y = scale_and_position(self, self.CaImaging.Fluo[n,cond][::isampling], i=iplot)+.1*n 
-    #         if plot_update:
-    #             self.plot.plot(self.CaImaging.t[cond][::isampling], y, pen=pen)
-    #     iplot+=1
-    #     # if with_scatter:
-    #     #     itime = np.argmin((self.CaImaging.t[cond]-self.time)**2)
-    #     #     val = scale_and_position(self, y, value=self.Electrophy.val[cond][itime], i=iplot)
-    #     #     scatter.append((self.Electrophy.t[cond][itime], val))
-    # else:
-    #     y = shift(self,3)+np.zeros(2)
-    #     self.plot.plot([tzoom[0], tzoom[1]],y, pen=pen)
-            
 
     if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
         # if visual-stim we highlight the stim periods

@@ -41,7 +41,7 @@ class MainWindow(guiparts.NewWindow):
         self.no_subsampling = False
         
         super(MainWindow, self).__init__(i=0,
-            title='Data Visualization -- Physiology of Visual Circuits')
+            title='Physion -- Data Visualization')
 
         # play button
         self.updateTimer = QtCore.QTimer()
@@ -109,7 +109,7 @@ class MainWindow(guiparts.NewWindow):
             plots.raw_data_plot(self, self.tzoom)
         else:
             print('"%s" filename not recognized ! ')
-
+        print(self.nwbfile)
             
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
