@@ -300,15 +300,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         os.path.join(os.path.expanduser('~'),'DATA'),
                                     filter="*.nwb, *.npy")
         
-        if filename.endswith('.nwb'):
-            self.reset()
-            self.datafile = filename
-            nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
-            self.FaceCamera = nwbfile.acquisition['FaceCamera']
-            self.nframes, self.Lx, self.Ly = self.FaceCamera.data.shape
-            self.FILES, self.times, self.imgfolder = None, None, None
-            self.datafolder = os.path.abspath(filename)
-        elif os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
+        if os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
             self.reset()
             self.datafolder, self.FaceCamera = os.path.dirname(filename), None
             self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
@@ -444,10 +436,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def jump_to_frame(self):
 
         # full image 
-        if self.FaceCamera is not None:
-            self.fullimg = self.FaceCamera.data[self.cframe,:,:]
-        else:
-            self.fullimg = np.load(os.path.join(self.imgfolder, self.FILES[self.cframe]))
+        self.fullimg = np.load(os.path.join(self.imgfolder,
+                                            self.FILES[self.cframe]))
         self.pimg.setImage(self.fullimg)
 
         # zoomed image
