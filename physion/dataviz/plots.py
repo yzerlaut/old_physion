@@ -4,41 +4,7 @@ from PyQt5 import QtGui, QtCore
 import os, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import roi
-
-def scale_and_position(self, y, value=None, i=0):
-    if value is None:
-        value=y
-    ymin, ymax = y.min(), y.max()
-    if ymin<ymax:
-        return shift(self, i)+\
-            self.settings['increase-factor']**i*\
-            (value-ymin)/(ymax-ymin)
-    else:
-        return shift(self, i)+value
-
-def shift(self, i):
-    return self.settings['blank-space']*i+\
-        np.sum(np.power(self.settings['increase-factor'], np.arange(i)))
-
-def convert_time_to_index(time, nwb_quantity, axis=0):
-    if nwb_quantity.timestamps is not None:
-        cond = nwb_quantity.timestamps[:]>=time
-        if np.sum(cond)>0:
-            return np.arange(nwb_quantity.timestamps.shape[0])[cond][0]
-        else:
-            return nwb_quantity.timestamps.shape[axis]-1
-    elif nwb_quantity.starting_time is not None:
-        t = time-nwb_quantity.starting_time
-        dt = 1./nwb_quantity.rate
-        imax = nwb_quantity.data.shape[axis]-1 # maybe shift to -1 to handle images
-        return max([1, min([int(t/dt), imax-1])]) # then we add +1 / -1 in the visualization
-    else:
-        return 0
-
-def convert_index_to_time(index, nwb_quantity):
-    """ index can be an array """
-    return nwb_quantity.starting_time+index/nwb_quantity.rate
-
+from dataviz.tools import *
 
 def raw_data_plot(self, tzoom,
                   plot_update=True,
@@ -53,13 +19,11 @@ def raw_data_plot(self, tzoom,
     ## -------- Screen --------- ##
     
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
-        
-        i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Photodiode-Signal'])+1
-        i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Photodiode-Signal'])-1
+        i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
-            isampling = np.arange(i1, i2)
+            isampling = np.arange(i1+1, i2-1)
         else:
-            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+            isampling = np.unique(np.linspace(i1+1, i2-1, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
@@ -69,23 +33,21 @@ def raw_data_plot(self, tzoom,
         
         i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
         self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
-        self.pScreenimg.setLevels([0,255])
         if hasattr(self, 'ScreenFrameLevel'):
             self.plot.removeItem(self.ScreenFrameLevel)
-        # self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2), [0, y.max()],
-        #                                        pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
+        self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2),
+                                               [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
 
 
     ## -------- Locomotion --------- ##
     
     if 'Running-Speed' in self.nwbfile.acquisition:
         
-        i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Running-Speed'])+1
-        i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Running-Speed'])-1
+        i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Running-Speed'])
         if self.no_subsampling:
-            isampling = np.arange(i1, i2)
+            isampling = np.arange(i1+1, i2-1)
         else:
-            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+            isampling = np.unique(np.linspace(i1+1, i2-1, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Running-Speed'].data[isampling], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y,
@@ -94,43 +56,40 @@ def raw_data_plot(self, tzoom,
 
     ## -------- FaceCamera and Pupil-Size --------- ##
     
-    pen = pg.mkPen(color=self.settings['colors']['Whisking'])
     if 'FaceCamera' in self.nwbfile.acquisition:
+        
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera'].data[i0])
         if hasattr(self, 'FaceCameraFrameLevel'):
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
-                                                   [0, y.max()], pen=pen, linewidth=0.5)
-        
+                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Whisking']), linewidth=0.5)
 
-    pen = pg.mkPen(color=self.settings['colors']['Pupil'])
     if 'Pupil' in self.nwbfile.acquisition:
+        
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
         img = self.nwbfile.acquisition['Pupil'].data[i0]
+        img = np.array(255.*(img-img.min())/(img.max()-img.min())).astype(np.int)
         self.pPupilimg.setImage(img)
-        self.pPupilimg.setLevels([img.min(),img.max()])
         if hasattr(self, 'PupilFrameLevel'):
             self.plot.removeItem(self.PupilFrameLevel)
         self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
-                                              [0, y.max()], pen=pen, linewidth=0.5)
+                                              [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Pupil']), linewidth=0.5)
         t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
     else:
         t_pupil_frame = None
         
     if 'Pupil' in self.nwbfile.processing:
 
-        i1 = convert_time_to_index(self.tzoom[0], self.nwbfile.processing['Pupil'].data_interfaces['cx'])
-        i2 = convert_time_to_index(self.tzoom[1], self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+        i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
 
-        img = self.nwbfile.acquisition['Pupil'].data[i0]
-        self.pPupilimg.setImage(np.array(255/np.exp(1.)*(1.-np.exp(1.-img/255.)), dtype=int))
         y = scale_and_position(self,
                                self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
                                self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2],
                                i=iplot)
         iplot+=1
-        self.plot.plot(self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[i1:i2], y, pen=pen)
+        self.plot.plot(self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[i1:i2], y,
+                       pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
         coords = []
         if hasattr(self, 'fit'):
@@ -148,6 +107,7 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Electrophy --------- ##
     if ('Electrophysiological-Signal' in self.nwbfile.acquisition):
+        
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Electrophysiological-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Electrophysiological-Signal'])-1
         if self.no_subsampling:
@@ -161,7 +121,6 @@ def raw_data_plot(self, tzoom,
 
 
     # ## -------- Calcium --------- ##
-    pen = pg.mkPen(color=self.settings['colors']['CaImaging'])
     if (self.time==0) and ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
     elif 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
@@ -169,7 +128,8 @@ def raw_data_plot(self, tzoom,
         self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0,:,:])
         if hasattr(self, 'CaFrameLevel'):
             self.plot.removeItem(self.CaFrameLevel)
-        self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps[i0]*np.ones(2), [0, y.max()], pen=pen, linewidth=0.5)
+        self.CaFrameLevel = self.plot.plot(self.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps[i0]*np.ones(2), [0, y.max()],
+                                           pen=pg.mkPen(color=self.settings['colors']['CaImaging']), linewidth=0.5)
         
     if ('ophys' in self.nwbfile.processing) and with_roi:
         if hasattr(self, 'ROIscatter'):

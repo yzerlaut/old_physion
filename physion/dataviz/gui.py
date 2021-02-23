@@ -118,10 +118,8 @@ class MainWindow(guiparts.NewWindow):
         self.pScreenimg.clear()
         self.pFaceimg.clear()
         self.pCaimg.clear()
-        self.pPupil.clear()
         self.pPupilimg.clear()
         self.roiIndices = None
-
 
         
     def select_ROI(self):
