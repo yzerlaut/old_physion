@@ -50,7 +50,7 @@ ops0 = {
     'nimg_init': 500, # (int, default: 200) how many frames to use to compute reference image for registration
     'batch_size': 1000, # (int, default: 200) how many frames to register simultaneously in each batch. This depends on memory constraints - it will be faster to run if the batch is larger, but it will require more RAM.
     'two_step_registration': False, # (bool, default: False) whether or not to run registration twice (for low SNR data). keep_movie_raw must be True for this to work.
-    'keep_movie_raw': True,
+    'keep_movie_raw': False,
     'maxregshift': 0.1, # (float, default: 0.1) the maximum shift as a fraction of the frame size. If the frame is Ly pixels x Lx pixels, then the maximum pixel shift in pixels will be max(Ly,Lx) * ops['maxregshift'].
     'reg_tif': False, # (bool, default: False) whether or not to write the registered binary to tiff files
     'reg_tif_chan2': False, # (bool, default: False) whether or not to write the registered binary of the non-functional channel to tiff files
@@ -72,8 +72,8 @@ ops0 = {
     # ROI detection
     # -------------
     'roidetect': True,
-    'spikedetect': True, # (bool, default: False) whether or not to use sparse_mode cell detection
-    'sparse_mode': True,
+    'spikedetect': True, 
+    'sparse_mode': True, # (bool, default: False) whether or not to use sparse_mode cell detection
     'diameter': 12,
     'spatial_scale': 0, # (int, default: 0), what the optimal scale of the recording is in pixels. if set to 0, then the algorithm determines it automatically (recommend this on the first try). If it seems off, set it yourself to the following values: 1 (=6 pixels), 2 (=12 pixels), 3 (=24 pixels), or 4 (=48 pixels).
     'connected': True,
@@ -113,11 +113,16 @@ def build_suite2p_options(folder):
 
     # acquisition frequency
     ops['fs'] = 1./float(bruker_data['settings']['framePeriod'])
-    # hint for spatial scale of ROI
-    um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])    
-    ops['diameter'] = int(10/um_per_pixel) # in pixels
-    ops['spatial_scale'] = int(10/6/um_per_pixel)
-    print(ops['spatial_scale'],ops['diameter'])
+
+    if True:
+        # PYRAMIDAL CELLS HERE
+        # hint for spatial scale of ROI
+        um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])    
+        ops['diameter'] = int(20/um_per_pixel) # in pixels (int 20um)
+        ops['spatial_scale'] = int(20/6/um_per_pixel)
+        ops['sparse_mode'] = False
+        ops['connected'] = True
+        ops['threshold_scaling'] = 0.8
     
     db = build_db(folder)
     for key in ['data_path', 'subfolders', 'save_path0',
