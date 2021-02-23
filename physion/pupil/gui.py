@@ -296,13 +296,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
         
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Pupil Data(through metadata file or NWB file) ",
+                     "Open Pupil Data (through metadata file or analysis file) )",
                         os.path.join(os.path.expanduser('~'),'DATA'),
-                                    filter="*.nwb, *.npy")
+                                    filter="*.npy")
         
         if os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
             self.reset()
-            self.datafolder, self.FaceCamera = os.path.dirname(filename), None
+            self.datafolder = os.path.dirname(filename)
             self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
             times = np.array([float(f.replace('.npy', '')) for f in os.listdir(self.imgfolder) if f.endswith('.npy')])
             self.times = times[np.argsort(times)]
