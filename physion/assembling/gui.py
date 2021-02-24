@@ -127,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
             script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
 
             with open(script, 'a') as f:
-                f.write('python %s -df %s --%s &\n' % (process_script, self.folder, self.cbc.currentText()))
+                f.write('python %s -df %s --%s \n' % (process_script, self.folder, self.cbc.currentText()))
         print('Script successfully written in "%s"' % script)
                 
     def quit(self):

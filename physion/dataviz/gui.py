@@ -96,11 +96,12 @@ class MainWindow(guiparts.NewWindow):
             self.tlim = [0, 50] # bad for movies
         
     def open_file(self):
-        
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                        os.path.join(os.path.expanduser('~'),'DATA'),
-                            filter="*.nwb")
+
+        filename = '/media/yann/Yann/2021_02_16/15-04-19/2021_02_16-15-04-19.nwb'
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #                 os.path.join(os.path.expanduser('~'),'DATA'),
+        #                     filter="*.nwb")
         
         if filename!='':
             self.reset()

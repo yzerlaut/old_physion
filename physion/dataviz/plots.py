@@ -17,14 +17,14 @@ def raw_data_plot(self, tzoom,
     self.plot.clear()
     
     ## -------- Screen --------- ##
-    
+    print(self.nwbfile.acquisition)
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
         i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
-            isampling = np.arange(i1+1, i2-1)
+            isampling = range(i1, i2)
         else:
-            isampling = np.unique(np.linspace(i1+1, i2-1, self.settings['Npoints'], dtype=int))
-        y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[isampling], i=iplot)
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[list(isampling)], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Screen']))
@@ -48,7 +48,7 @@ def raw_data_plot(self, tzoom,
             isampling = np.arange(i1+1, i2-1)
         else:
             isampling = np.unique(np.linspace(i1+1, i2-1, self.settings['Npoints'], dtype=int))
-        y = scale_and_position(self,self.nwbfile.acquisition['Running-Speed'].data[isampling], i=iplot)
+        y = scale_and_position(self,self.nwbfile.acquisition['Running-Speed'].data[list(isampling)], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Running-Speed']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Locomotion']))
@@ -114,7 +114,7 @@ def raw_data_plot(self, tzoom,
             isampling = np.arange(i1, i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
-        y = scale_and_position(self,self.nwbfile.acquisition['Electrophysiological-Signal'].data[isampling], i=iplot)
+        y = scale_and_position(self,self.nwbfile.acquisition['Electrophysiological-Signal'].data[list(isampling)], i=iplot)
         iplot+=1
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Electrophysiological-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Electrophy']))

@@ -189,6 +189,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.genscript.clicked.connect(self.gen_bash_script)
 
+        self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
+        self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
+
         self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
@@ -252,8 +256,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
         self.l0.addWidget(self.saverois, 18, 0, 1, 3)
         self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        self.l0.addWidget(self.addOutlier, 21, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 22, 0, 1, 3)
+        self.l0.addWidget(self.runAsSubprocess, 21, 0, 1, 3)
+        self.l0.addWidget(self.addOutlier, 22, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 23, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -402,10 +407,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.data is not None:
 
             # self.data = process.remove_outliers(self.data, std_criteria=2.)
-            
+
             if (self.cframe1!=0) and (self.cframe2!=-1):
-                self.data['diameter'][self.cframe1:self.cframe2] = 0
-            
+                i1 = np.argmin((self.cframe1-self.data['frame'])**2)
+                i2 = np.argmin((self.cframe2-self.data['frame'])**2)
+                self.data['diameter'][i1:i2] = 0
+                
             cond = (self.data['diameter']>0)
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
                 func = interp1d(self.data['frame'][cond],
@@ -421,7 +428,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.p1.setRange(xRange=(i1,i2), padding=0.0)
             self.p1.show()
         
-        self.cframe1, self.cframe2 = 0, -1
+            self.cframe1, self.cframe2 = 0, -1
     
         
     def debug(self):
@@ -430,9 +437,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
-
+        print('cursor 1 set to: %i' % self.cframe)
+        
     def set_cursor_2(self):
         self.cframe2 = self.cframe
+        print('cursor 2 set to: %i' % self.cframe)
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -444,7 +453,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def go_to_frame(self):
         i1, i2 = self.xaxis.range
         self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
-        print(self.cframe, len(self.FILES))
         self.jump_to_frame()
 
     def fitToWindow(self):
@@ -536,6 +544,16 @@ class MainWindow(QtWidgets.QMainWindow):
             
         print('Script successfully written in "%s"' % script)
 
+
+    def run_as_subprocess(self):
+
+        self.save_pupil_data()
+        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
+        import subprocess
+        p = subprocess.Popen('python %s -df %s -s 1' % (process_script, self.datafolder),
+                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print('Script successfully written in "%s"' % script)
+        
 
     def save_pupil_data(self):
         """ """

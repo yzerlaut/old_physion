@@ -38,7 +38,6 @@ def build_NWB(args,
     # subject info
     if 'subject_props' in metadata and (metadata['subject_props'] is not None):
         subject_props = metadata['subject_props']
-        print(subject_props)
         dob = subject_props['date_of_birth'].split('_')
     else:
         subject_props = {}
@@ -132,6 +131,7 @@ def build_NWB(args,
             print('   -----> Not able to build NWB file')
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
+
         # using the photodiod signal for the realignement
         if args.verbose:
             print('=> Performing realignement from photodiode [...]')
@@ -142,7 +142,6 @@ def build_NWB(args,
         success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
                                                     verbose=args.verbose)
         if success:
-            print(metadata['time_start_realigned'])
             timestamps = metadata['time_start_realigned']
             if args.verbose:
                 print('Realignement form photodiode successful')
@@ -156,13 +155,12 @@ def build_NWB(args,
                 None_cond = (VisualStim[key]==None)
                 if key in ['protocol_id', 'index']:
                     array = np.array(VisualStim[key])
-                elif (type(VisualStim[key]) in [list, np.array]) and np.sum(None_cond)>0:
+                elif (type(VisualStim[key]) in [list, np.ndarray, np.array]) and np.sum(None_cond)>0:
                     # need to remove the None elements
                     VisualStim[key][None_cond] = 0*VisualStim[key][~None_cond][0]
                     array = np.array(VisualStim[key], dtype=type(VisualStim[key][~None_cond][0]))
                 else:
                     array = VisualStim[key]
-                print(key, array)
                 VisualStimProp = pynwb.TimeSeries(name=key,
                                                   data = array,
                                                   unit='NA',
