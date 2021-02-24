@@ -41,7 +41,7 @@ def ellipse_residual(coords, cls):
     """
     im = ellipse_binary_func(cls.x, cls.y, *coords)
     im[~cls.fit_area] = 0
-    return np.mean((cls.img-im)**2)
+    return np.mean((cls.img_fit-im)**2)
 
 def circle_residual(coords, cls):
     """
@@ -49,21 +49,21 @@ def circle_residual(coords, cls):
     """
     im = circle_binary_func(cls.x, cls.y, *coords)
     im[~cls.fit_area] = 0
-    return np.mean((cls.img-im)**2)
+    return np.mean((cls.img_fit-im)**2)
     
 def perform_fit(cls,
                 shape='ellipse',
                 saturation=100,
                 maxiter=100):
 
-    im0 = cls.img
-    im0[cls.img<saturation] = 1
-    im0[cls.img>=saturation] = 0
-
+    cls.img_fit = cls.img
+    cls.img_fit[cls.img<saturation] = 1
+    cls.img_fit[cls.img>=saturation] = 0
+    
     # center_of_mass
-    c0 = [np.mean(cls.x[im0>0]),np.mean(cls.y[im0>0])]
+    c0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
     # std_of_mass
-    s0 = [4*np.std(cls.x[im0>0]),4*np.std(cls.y[im0>0])]
+    s0 = [4*np.std(cls.x[cls.img_fit>0]),4*np.std(cls.y[cls.img_fit>0])]
 
     if shape=='ellipse':
         residual = ellipse_residual
@@ -73,8 +73,12 @@ def perform_fit(cls,
         initial_guess = [c0[0], c0[1], np.mean(s0)]
 
     res = minimize(residual, initial_guess,
+                   bounds=[(c0[0]-s0[0],c0[0]+s0[0]),
+                           (c0[1]-s0[1],c0[1]+s0[1]),
+                           (1,2*s0[0]), (1,2*s0[1])],
                    args=(cls),
-                   method='Nelder-Mead',
+                   method='TNC',
+                   # method='Nelder-Mead',
                    tol=1e-8, options={'maxiter':maxiter})
 
     return res.x, None, res.fun
@@ -183,7 +187,14 @@ def init_fit_area(cls,
         cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
 
-    
+def clip_to_finite_values(data):
+    for key in data:
+    if type(key) in [np.ndarray, list]:
+        cond = np.isfinite(data[key]) # clipping to finite values
+        data[key] = np.clip(data[key],
+                            np.min(data[key]), np.max(data[key]))
+    return data
+
 
 def preprocess(cls, with_reinit=True,
                img=None,
@@ -264,6 +275,7 @@ if __name__=='__main__':
 
     if not args.debug:
         if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
+            print('Processing pupil for "%s" [...]' % os.path.join(args.datafolder, 'pupil.npy'))
             args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
             load_folder(args)
             args.data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
@@ -281,47 +293,11 @@ if __name__=='__main__':
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
                 args.data[key] = temp[key]
+            args.data = process.clip_to_finite_values(args.data)
             np.save(os.path.join(args.datafolder, 'pupil.npy'), args.data)
             print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'pupil.npy'))
-
         else:
             print('  /!\ "pupil.npy" file found, create one with the GUI  /!\ ')
-            
-        #     nwbfile = pynwb.NWBHDF5IO(args.datafile, 'r').read()
-        #     args.FaceCamera = nwbfile.acquisition['FaceCamera']
-        #     args.nframes, args.Lx, args.Ly = args.FaceCamera.data.shape
-
-        #     # -- loop over frames
-        #     print('\n Processing images to track pupil size and position in "%s"' % args.datafile)
-        #     if not args.non_verbose:
-        #         printProgressBar(0, args.nframes)
-            
-        #     for args.cframe in range(args.nframes):
-        #         # preprocess image
-        #         args.img = preprocess(args, ellipse=args.ellipse)
-        #         coords, _, res = fit_pupil_size(args,
-        #                                         reflectors=args.reflectors,
-        #                                         maxiter=args.maxiter,
-        #                                         shape=args.shape)
-        #         data['diameter'][args.cframe] = np.pi*coords[2]*coords[3]
-        #         for key, val in zip(['cx', 'cy', 'sx', 'sy'], coords):
-        #             data[key][args.cframe] = val
-        #         printProgressBar(args.cframe, args.nframes)
-        #     printProgressBar(args.nframes, args.nframes)
-        #     # adding min-max of picture
-        #     data['xmin'], data['xmax'] = args.xmin, args.xmax
-        #     data['ymin'], data['ymax'] = args.ymin, args.ymax
-        #     data = replace_outliers(data) # dealing with outliers
-        #     if not args.non_verbose:
-        #         printProgressBar(len(args.times), args.nframes)
-        #         print('Pupil size calculation over !')
-        #         print('Processed data saved as:', args.datafile.replace('.nwb', '.pupil.npy'))
-        #     # save analysis output
-        #     np.save(args.datafile.replace('.nwb', '.pupil.npy'), data)
-        # elif not os.path.isfile(args.datafile.replace('.nwb', '.pupil.npy')):
-        #     print('Need to save ROIs for this datafolder !')
-        # else:
-        #     print("ERROR: provide a valid NWB datafile !")
     else:
         """
         snippet of code to design/debug the fitting algorithm

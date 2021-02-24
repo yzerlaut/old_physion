@@ -29,11 +29,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         super(MainWindow, self).__init__()
 
+        self.setGeometry(400,100,400,400)
         
-        self.setGeometry(100,100,400,400)
-        
-        self.compressed_version=False
-
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -273,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.processed = False
 
-        self.datafile = args.datafile
+        # self.datafile = args.datafile
         self.show()
 
     def showwindow(self):
@@ -294,11 +291,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cframe = 0
         
         # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
+        # filename = '/media/yann/Yann/2021_02_19/14-45-21/metadata.npy'
         
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Pupil Data (through metadata file or analysis file) )",
-                        os.path.join(os.path.expanduser('~'),'DATA'),
-                                    filter="*.npy")
+                                        '/media/yann/Yann/',
+                                        # os.path.join(os.path.expanduser('~'),'DATA'),
+                                        filter="*.npy")
         
         if os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
             self.reset()
@@ -317,6 +316,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
             self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
                                 allow_pickle=True).item()
+            print(self.data)
             self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
             process.load_ROI(self)
             self.plot_pupil_trace()
@@ -506,10 +506,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def gen_bash_script(self):
 
+        self.save_pupil_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
         script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
+        # launch without subsampling !!
         with open(script, 'a') as f:
-            f.write('python %s -df %s &\n' % (process_script, self.datafolder))
+            f.write('python %s -df %s -s 1 &\n' % (process_script, self.datafolder))
             
         print('Script successfully written in "%s"' % script)
 
@@ -521,6 +523,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.data['shape'] = 'circle'
         self.data['gaussian_smoothing'] = int(self.smoothBox.text())
+        self.data = process.clip_to_finite_values(self.data)
         np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
         print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         
