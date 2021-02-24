@@ -46,6 +46,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refEx.activated.connect(self.exclude_outlier)
         self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
         self.refPr.activated.connect(self.process_outliers)
+        self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
+        self.refc1.activated.connect(self.set_cursor_1)
+        self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
+        self.refc2.activated.connect(self.set_cursor_2)
+        self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
+        self.refc3.activated.connect(self.process_outliers)
         self.minView = False
         self.showwindow()
         
@@ -316,7 +322,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
             self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
                                 allow_pickle=True).item()
-            print(self.data)
             self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
             process.load_ROI(self)
             self.plot_pupil_trace()
@@ -369,7 +374,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saturation = 255
         self.iROI=0
         self.nROIs=0
-
+        self.cframe1, self.cframe2 = 0, -1
+        
     def add_reflectROI(self):
         self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
 
@@ -392,26 +398,41 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data['diameter'][i0] = 0
 
     def process_outliers(self):
-        cond = (self.data['diameter']>0)
-        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
-            func = interp1d(self.data['frame'][cond],
-                            self.data[key][cond],
-                            kind='linear')
-            self.data[key] = func(self.data['frame'])
 
-        i1, i2 = self.xaxis.range
-        self.p1.clear()
-        self.p1.plot(self.data['frame'],
-                     self.data['diameter'],
-                     pen=(0,255,0))
-        self.p1.setRange(xRange=(i1,i2), padding=0.0)
-        self.p1.show()
+        if self.data is not None:
 
+            # self.data = process.remove_outliers(self.data, std_criteria=2.)
+            
+            if (self.cframe1!=0) and (self.cframe2!=-1):
+                self.data['diameter'][self.cframe1:self.cframe2] = 0
+            
+            cond = (self.data['diameter']>0)
+            for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+                func = interp1d(self.data['frame'][cond],
+                                self.data[key][cond],
+                                kind='linear')
+                self.data[key] = func(self.data['frame'])
+
+            i1, i2 = self.xaxis.range
+            self.p1.clear()
+            self.p1.plot(self.data['frame'],
+                         self.data['diameter'],
+                         pen=(0,255,0))
+            self.p1.setRange(xRange=(i1,i2), padding=0.0)
+            self.p1.show()
         
+        self.cframe1, self.cframe2 = 0, -1
+    
         
     def debug(self):
         print('No debug function')
         pass
+
+    def set_cursor_1(self):
+        self.cframe1 = self.cframe
+
+    def set_cursor_2(self):
+        self.cframe2 = self.cframe
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -562,9 +583,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def plot_pupil_trace(self):
         self.p1.clear()
         if self.data is not None:
-            self.p1.plot(self.data['frame'], self.data['diameter'], pen=(0,255,0))
-            self.p1.setRange(xRange=(0, self.data['frame'][-1]),
-                             yRange=(self.data['diameter'].min()-.1, self.data['diameter'].max()+.1),
+            # self.data = process.remove_outliers(self.data)
+            cond = np.isfinite(self.data['diameter'])
+            self.p1.plot(self.data['frame'][cond],
+                         self.data['diameter'][cond], pen=(0,255,0))
+            self.p1.setRange(xRange=(0, self.data['frame'][cond][-1]),
+                             yRange=(self.data['diameter'][cond].min()-.1,
+                                     self.data['diameter'][cond].max()+.1),
                              padding=0.0)
             self.p1.show()
 

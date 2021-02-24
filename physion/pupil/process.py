@@ -2,7 +2,10 @@ import sys, os, pathlib
 import numpy as np
 from scipy.optimize import minimize
 from scipy.ndimage import gaussian_filter
+from scipy.interpolate import interp1d
+
 from analyz.workflow.shell import printProgressBar
+
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.dataset import Dataset
@@ -189,10 +192,10 @@ def init_fit_area(cls,
 
 def clip_to_finite_values(data):
     for key in data:
-    if type(key) in [np.ndarray, list]:
-        cond = np.isfinite(data[key]) # clipping to finite values
-        data[key] = np.clip(data[key],
-                            np.min(data[key]), np.max(data[key]))
+        if type(key) in [np.ndarray, list]:
+            cond = np.isfinite(data[key]) # clipping to finite values
+            data[key] = np.clip(data[key],
+                                np.min(data[key]), np.max(data[key]))
     return data
 
 
@@ -246,7 +249,32 @@ def load_ROI(cls, with_plot=True):
             cls.rROI.append(roi.reflectROI(len(cls.rROI),
                                             pos = roi.ellipse_props_to_ROI(r),
                                             moveable=True, parent=cls))
+
+def remove_outliers(data, std_criteria=1.):
+    """
+    Nearest-neighbor interpolation of pupil properties
+    """
+    data = clip_to_finite_values(data)
+    times = np.arange(len(data['cx']))
+    product = np.ones(len(times))
+    std = 1
+    for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
+        product *= np.abs(data[key]-data[key].mean())
+        std *= std_criteria*data[key].std()
+    accept_cond =  (product<std)
+    print(np.sum(accept_cond))
     
+    dt = times[1]-times[0]
+    for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
+        # duplicating the first and last valid points to avoid boundary errors
+        x = np.concatenate([[times[0]-dt], times[accept_cond], [times[-1]+dt]])
+        y = np.concatenate([[data[key][accept_cond][0]],
+                            data[key][accept_cond], [data[key][accept_cond][-1]]])
+        func = interp1d(x, y, kind='nearest', assume_sorted=True)
+        data[key] = func(times)
+        
+    return data
+            
 if __name__=='__main__':
 
     import argparse, datetime

@@ -10,6 +10,7 @@ if not sys.argv[-1]=='no-stim':
 else:
     print('Experiment & Visual-Stim modules disabled !')
 
+CHILDREN_PROCESSES = []
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -25,15 +26,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) [S]timulus design",
-                  # "o) Assemble and [O]rganize data",
                   # "t) [T]ransfer data",
                   "p) [P]upil preprocessing",
                   "w) [W]hisking preprocessing",
                   "i) [I]maging preprocessing (suite2p)",
                   "e) [E]lectrophy preprocessing",
-                  "b) launch [B]atch processing",
+                  "b) run [B]ash script",
+                  "a) [A]ssemble data",
+                  "c) Add [C]a2+ data",
                   "v) [V]isualize data",
-                  # "a) [A]nalyze data",
                   "n) lab [N]otebook ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
@@ -46,7 +47,9 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_whisking,
                      self.launch_caimaging,
                      self.launch_electrophy,
-                     self.launch_batch,
+                     self.launch_bash_script,
+                     self.launch_assembling,
+                     self.launch_CaAddition,
                      self.launch_visualization,
                      # self.launch_analysis,
                      self.launch_notebook,
@@ -77,18 +80,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def launch_exp(self):
         from physion.exp.gui import run as RunExp
-        self.child = RunExp(self.app, self.args)
+        child = RunExp(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
     def launch_whisking(self):
         p = subprocess.Popen('python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         
     def launch_visual_stim(self):
         from physion.visual_stim.gui import run as RunVisualStim
-        self.child = RunVisualStim(self.app, self.args)
+        child = RunVisualStim(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
-    def launch_organize(self):
-        from physion.assemble.gui import run as RunOrganize
-        self.child = RunOrganize(self.app, self.args)
+    def launch_assembling(self):
+        from physion.assembling.gui import run as RunAssembling
+        child = RunAssembling(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
+        
+    def launch_CaAddition(self):
+        self.statusBar.showMessage('CaAddition module not implemented yet')
         
     def launch_transfer(self):
         self.statusBar.showMessage('Transfer module not implemented yet')
@@ -108,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_electrophy(self):
         self.statusBar.showMessage('Electrophy module not implemented yet')
 
-    def launch_batch(self):
+    def launch_bash_script(self):
         self.statusBar.showMessage('Batch processing launched !')
         import subprocess
         script = os.path.join(str(pathlib.Path(__file__).resolve().parent),'script.sh')
