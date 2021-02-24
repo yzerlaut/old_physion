@@ -162,6 +162,7 @@ def build_NWB(args,
                     array = np.array(VisualStim[key], dtype=type(VisualStim[key][~None_cond][0]))
                 else:
                     array = VisualStim[key]
+                print(key, array)
                 VisualStimProp = pynwb.TimeSeries(name=key,
                                                   data = array,
                                                   unit='NA',
@@ -386,14 +387,21 @@ if __name__=='__main__':
     parser.add_argument('-lw', "--lightweight", action="store_true")
     parser.add_argument('-fvs', "--from_visualstim_setup", action="store_true")
     parser.add_argument('-ndo', "--nidaq_only", action="store_true")
+    parser.add_argument("--full", action="store_true")
+    parser.add_argument("--standard", action="store_true")
     args = parser.parse_args()
 
     if not args.silent:
         args.verbose = True
 
+    if args.standard:
+        pass # means default options
     if args.export=='LIGHTWEIGHT' or args.lightweight:
         args.export='LIGHTWEIGHT'
         args.modalities = LIGHT_MODALITIES
+    if args.export=='FULL' or args.full:
+        args.export='FULL'
+        args.modalities = ALL_MODALITIES
     if args.nidaq_only:
         args.export='NIDAQ'
         args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
