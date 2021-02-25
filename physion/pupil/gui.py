@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import guiparts, process, roi
+from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
 
@@ -54,8 +55,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil-size tracking module -- Physion')
-        
+        self.setWindowTitle('Pupil tracking -- Physion')
+
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         
@@ -174,6 +175,13 @@ class MainWindow(QtWidgets.QMainWindow):
         iplay = istretch+15
         iconSize = QtCore.QSize(20, 20)
 
+        # HEIGHT += 10
+        # QtWidgets.QLabel("Root-folder:", self).move(10, HEIGHT)
+        self.folderB = QtWidgets.QComboBox(self)
+        self.folderB.setMinimumWidth(150)
+        # self.folderB.move(100, HEIGHT)
+        self.folderB.addItems(FOLDERS.keys())
+
         self.process = QtGui.QPushButton('process data')
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
@@ -193,10 +201,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_data)
-
-        self.load_batch = QtGui.QPushButton('  load batch \u2b07')
-        self.load_batch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load_batch.clicked.connect(self.load_data_batch)
 
         sampLabel = QtGui.QLabel("Subsampling (frame)")
         sampLabel.setStyleSheet("color: gray;")
@@ -242,8 +246,8 @@ class MainWindow(QtWidgets.QMainWindow):
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
 
+        self.l0.addWidget(self.folderB,0,0,1,3)
         self.l0.addWidget(self.load,2,0,1,3)
-        self.l0.addWidget(self.load_batch,3,0,1,3)
         self.l0.addWidget(sampLabel, 8, 0, 1, 3)
         self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
         self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
@@ -295,19 +299,19 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def load_data(self):
 
-        self.batch = False
         self.cframe = 0
         
-        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13', 'metadata.npy') # a default for debugging
+        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13',
+        #                         'metadata.npy') # a default for debugging
         # filename = '/media/yann/Yann/2021_02_19/14-45-21/metadata.npy'
         
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Pupil Data (through metadata file or analysis file) )",
-                                        '/media/yann/Yann/',
-                                        # os.path.join(os.path.expanduser('~'),'DATA'),
-                                        filter="*.npy")
+                                                        "Open Pupil Data (through metadata file or analysis file) )",
+                                                        FOLDERS[self.folderB.currentText()],
+                                                        filter="*.npy")
         
         if os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
+            
             self.reset()
             self.datafolder = os.path.dirname(filename)
             self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
@@ -318,48 +322,28 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Lx, self.Ly = np.load(os.path.join(self.imgfolder, self.FILES[0])).shape
             print('Sampling frequency: %.1f Hz' % (1./np.diff(self.times).mean()))
 
+            if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
+                self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
+                                    allow_pickle=True).item()
+                self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
+                process.load_ROI(self)
+                self.plot_pupil_trace()
+
+            self.jump_to_frame()
+
+            self.timeLabel.setEnabled(True)
+            self.frameSlider.setEnabled(True)
+            self.updateFrameSlider()
+            # self.updateButtons()
+            self.currentTime.setValidator(\
+                QtGui.QDoubleValidator(0, self.nframes, 2))
+
+            self.movieLabel.setText(filename)
+
         else:
             print(' /!\ no FaceCamera data found ...')
             
-        if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
-            self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
-                                allow_pickle=True).item()
-            self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
-            process.load_ROI(self)
-            self.plot_pupil_trace()
-            
-        self.jump_to_frame()
-            
-        self.timeLabel.setEnabled(True)
-        self.frameSlider.setEnabled(True)
-        self.updateFrameSlider()
-        # self.updateButtons()
-        self.currentTime.setValidator(\
-            QtGui.QDoubleValidator(0, self.nframes, 2))
 
-        self.movieLabel.setText(filename)
-
-            
-    def load_data_batch(self):
-
-        self.batch = True
-        self.reset()
-        
-        file_dialog = QtGui.QFileDialog()
-        file_dialog.setFileMode(QtGui.QFileDialog.DirectoryOnly)
-        file_dialog.setOption(QtGui.QFileDialog.DontUseNativeDialog, True)
-        file_view = file_dialog.findChild(QtGui.QListView, 'listView')
-
-        # to make it possible to select multiple directories:
-        if file_view:
-            file_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
-        f_tree_view = file_dialog.findChild(QtGui.QTreeView)
-        if f_tree_view:
-            f_tree_view.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
-
-        if file_dialog.exec():
-            paths = file_dialog.selectedFiles()
-            
 
     def reset(self):
         for r in self.rROI:

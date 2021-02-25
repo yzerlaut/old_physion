@@ -31,11 +31,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         HEIGHT += 10
         QtWidgets.QLabel("Root-folder:", self).move(10, HEIGHT)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.setMinimumWidth(150)
-        self.cbc.move(100, HEIGHT)
-        self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(FOLDERS.keys())
+        self.folderB = QtWidgets.QComboBox(self)
+        self.folderB.setMinimumWidth(150)
+        self.folderB.move(100, HEIGHT)
+        self.folderB.addItems(FOLDERS.keys())
         
         HEIGHT += 40
         self.load = QtWidgets.QPushButton('[L]oad datafolder  \u2b07', self)
@@ -102,7 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                      "Open datafile (through metadata file) )",
-                                        '/media/yann/Yann/',
+                                        FOLDERS[self.folderB.currentText()],
                                         # os.path.join(os.path.expanduser('~'),'DATA'),
                                         filter="*.npy")
         if filename!='':
