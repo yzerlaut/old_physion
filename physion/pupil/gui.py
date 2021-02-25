@@ -44,6 +44,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refEx.activated.connect(self.exclude_outlier)
         self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
         self.refPr.activated.connect(self.process_outliers)
+        self.refS = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
+        self.refS.activated.connect(self.save_pupil_data)
         self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
         self.refc1.activated.connect(self.set_cursor_1)
         self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
@@ -218,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
 
-        self.saverois = QtGui.QPushButton('save data')
+        self.saverois = QtGui.QPushButton('save data [Ctrl+S]')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
 
@@ -246,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
 
-        self.l0.addWidget(self.folderB,0,0,1,3)
+        self.l0.addWidget(self.folderB,1,0,1,3)
         self.l0.addWidget(self.load,2,0,1,3)
         self.l0.addWidget(sampLabel, 8, 0, 1, 3)
         self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)

@@ -321,7 +321,7 @@ if __name__=='__main__':
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
                 args.data[key] = temp[key]
-            args.data = process.clip_to_finite_values(args.data)
+            args.data = clip_to_finite_values(args.data)
             np.save(os.path.join(args.datafolder, 'pupil.npy'), args.data)
             print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'pupil.npy'))
         else:

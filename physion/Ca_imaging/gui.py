@@ -3,6 +3,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
+from misc.folders import FOLDERS
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -28,15 +29,32 @@ class MainWindow(QtWidgets.QMainWindow):
         HEIGHT = 0
 
         HEIGHT += 10
-        QtWidgets.QLabel("Root-folder:", self).move(10, HEIGHT)
+        QtWidgets.QLabel("Root Data:", self).move(10, HEIGHT)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(['home', 'drive', 'MsWin-from-LNX'])
+        self.cbc.addItems(FOLDERS.keys())
+
+        HEIGHT += 30
+        QtWidgets.QLabel("Root Imaging:", self).move(10, HEIGHT)
+        self.cbc = QtWidgets.QComboBox(self)
+        self.cbc.setMinimumWidth(150)
+        self.cbc.move(100, HEIGHT)
+        self.cbc.activated.connect(self.update_setting)
+        self.cbc.addItems(FOLDERS.keys())
         
         HEIGHT += 40
-        self.load = QtWidgets.QPushButton('[L]oad datafolder  \u2b07', self)
+        self.load = QtWidgets.QPushButton('Load data \u2b07', self)
+        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load.clicked.connect(self.load_folder)
+        self.load.setMinimumWidth(200)
+        self.load.move(50, HEIGHT)
+        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('L'), self)
+        self.loadSc.activated.connect(self.load_folder)
+
+        HEIGHT += 40
+        self.load = QtWidgets.QPushButton('Load imaging \u2b07', self)
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.load_folder)
         self.load.setMinimumWidth(200)
@@ -53,7 +71,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.addItems(['standard', 'lightweight', 'full', 'NIdaq-only', 'custom'])
 
         HEIGHT +=40 
-        s = QtWidgets.QLabel("Pupil-Sampling (Hz)    ", self)
+        s = QtWidgets.QLabel("CaImaging-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
         self.PsamplingBox = QtWidgets.QLineEdit('', self)
@@ -61,29 +79,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.PsamplingBox.setFixedWidth(40)
         self.PsamplingBox.move(200, HEIGHT)
 
-        
-        HEIGHT +=30 
-        s = QtWidgets.QLabel("Whisking-Sampling (Hz)    ", self)
-        s.move(10, HEIGHT)
-        s.setMinimumWidth(200)
-        self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('0.0')
-        self.PsamplingBox.setFixedWidth(40)
-        self.PsamplingBox.move(200, HEIGHT)
-        
-        HEIGHT +=30 
-        s = QtWidgets.QLabel("FaceCamera-Sampling (Hz)    ", self)
-        s.move(10, HEIGHT)
-        s.setMinimumWidth(200)
-        self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('0.0')
-        self.PsamplingBox.setFixedWidth(40)
-        self.PsamplingBox.move(200, HEIGHT)
-        
         HEIGHT +=50 
-        self.gen = QtWidgets.QPushButton('Add to bash script ', self)
+        self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.gen.clicked.connect(self.gen_script)
+        self.gen.clicked.connect(self.run)
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
@@ -99,10 +98,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_folder(self):
 
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-                     "Open datafile (through metadata file) )",
-                                        '/media/yann/Yann/',
-                                        # os.path.join(os.path.expanduser('~'),'DATA'),
-                                        filter="*.npy")
+                                                            "Open datafile (through metadata file) )",
+                                                            FOLDERS[self.folderB.currentText()],
+                                                            filter="*.npy")
         if filename!='':
             self.folder = os.path.dirname(filename)
         else:
@@ -117,17 +115,8 @@ class MainWindow(QtWidgets.QMainWindow):
             print(self.folder)
             
     
-    def gen_script(self):
-
-        if self.folder != '':
-            
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
-                                          'build_NWB.py')
-            script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
-
-            with open(script, 'a') as f:
-                f.write('python %s -df %s --%s \n' % (process_script, self.folder, self.cbc.currentText()))
-        print('Script successfully written in "%s"' % script)
+    def run(self):
+        pass
                 
     def quit(self):
         QtWidgets.QApplication.quit()
