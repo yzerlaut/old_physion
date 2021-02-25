@@ -1,10 +1,7 @@
-import sys, os, shutil, glob, time, pynwb
+import sys, os, shutil, glob, time
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-from pyqtgraph import GraphicsScene
-from scipy.stats import zscore, skew
-from matplotlib import cm
 import pathlib
 from scipy.interpolate import interp1d
 
@@ -29,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         super(MainWindow, self).__init__()
 
-        self.setGeometry(400,100,400,400)
+        self.setGeometry(500,150,400,400)
         
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)

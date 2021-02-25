@@ -15,12 +15,12 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(50, 700, 300, 400)
+        self.setGeometry(50, 700, 300, 300)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Physion -- Assemble data    ')
+        self.setWindowTitle('Physion -- Assembling')
         
         self.script = os.path.join(\
                 str(pathlib.Path(__file__).resolve().parents[1]),\

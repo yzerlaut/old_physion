@@ -22,12 +22,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.protocol = None # by default, can be loaded by the interface
         self.experiment = {} # storing the specifics of an experiment
         self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
-        self.demo = args.demo
+            
         self.params_window = None
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
                                             'protocols')
 
         self.root_datafolder = args.root_datafolder
+        self.demo = args.demo
         self.datafolder = mp_string('')
         
         # buttons and functions
@@ -35,8 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
         button_length = 100
         
-        self.setWindowTitle('Visual Stimulation Program')
-        self.setGeometry(50, 50, int(1.01*button_length*len(LABELS)), 310)
+        self.setWindowTitle('Physion -- Visual Stimulation module')
+        self.setGeometry(450, 100, int(1.01*button_length*len(LABELS)), 310)
 
         # protocol change
         label1 = QtWidgets.QLabel("/|===> Presentation <===|\\", self)

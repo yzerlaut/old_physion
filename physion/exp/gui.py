@@ -36,8 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         
-        self.setWindowTitle('Experimental module -- Vision Physiology')
-        self.setGeometry(50, 50, 550, 370)
+        self.setWindowTitle('Physion -- Experimental module')
+        self.setGeometry(400, 50, 550, 370)
 
         ##########################################################
         ######## Multiprocessing quantities

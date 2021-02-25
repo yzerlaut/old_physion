@@ -26,13 +26,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) [S]timulus design",
-                  # "t) [T]ransfer data",
                   "p) [P]upil preprocessing",
                   "w) [W]hisking preprocessing",
-                  "i) [I]maging preprocessing (suite2p)",
+                  "i) [I]maging preprocessing",
                   "e) [E]lectrophy preprocessing",
                   "b) run [B]ash script",
                   "a) [A]ssemble data",
+                  "t) [T]ransfer data",
                   "c) Add [C]a2+ data",
                   "v) [V]isualize data",
                   "n) lab [N]otebook ",
@@ -42,16 +42,15 @@ class MainWindow(QtWidgets.QMainWindow):
         FUNCTIONS = [self.launch_exp,
                      self.launch_visual_stim,
                      # self.launch_organize,
-                     # self.launch_transfer,
                      self.launch_pupil,
                      self.launch_whisking,
                      self.launch_caimaging,
                      self.launch_electrophy,
                      self.launch_bash_script,
                      self.launch_assembling,
+                     self.launch_transfer,
                      self.launch_CaAddition,
                      self.launch_visualization,
-                     # self.launch_analysis,
                      self.launch_notebook,
                      self.quit]
         
@@ -84,7 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
         CHILDREN_PROCESSES.append(child)
         
     def launch_whisking(self):
-        p = subprocess.Popen('python -m facemap', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        from physion.whisking.gui import run as RunWhisking
+        child = RunWhisking(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
     def launch_visual_stim(self):
         from physion.visual_stim.gui import run as RunVisualStim
@@ -97,15 +98,19 @@ class MainWindow(QtWidgets.QMainWindow):
         CHILDREN_PROCESSES.append(child)
         
     def launch_CaAddition(self):
-        self.statusBar.showMessage('CaAddition module not implemented yet')
+        from physion.Ca_imaging.gui import run as RunCaAddition
+        child = RunCaAddition(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
     def launch_transfer(self):
-        self.statusBar.showMessage('Transfer module not implemented yet')
+        from physion.transfer.gui import run as RunTransfer
+        child = RunTransfer(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
     def launch_pupil(self):
-        self.statusBar.showMessage('Loading Pupil-Tracking Module [...]')
         from physion.pupil.gui import run as RunPupilGui
-        self.child = RunPupilGui(self.app, self.args)
+        child = RunPupilGui(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
         
     def launch_caimaging(self):
         # p = subprocess.Popen('conda activate suite2p; python -m suite2p',
@@ -142,11 +147,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = RunAnalysisGui(self.app, self.args,
                                     raw_data_visualization=True)
         
-    def launch_analysis(self):
-        from physion.dataviz.gui import run as RunAnalysisGui
-        self.child = RunAnalysisGui(self.app, self.args)
-        pass
-    
     def launch_notebook(self):
         self.statusBar.showMessage('Notebook module not implemented yet')
         
@@ -159,5 +159,5 @@ def run(args):
     build_dark_palette(app)
     # set_dark_style(app)
     set_app_icon(app)
-    GUI = MainWindow(app)
+    GUI = MainWindow(app, args=args)
     sys.exit(app.exec_())
