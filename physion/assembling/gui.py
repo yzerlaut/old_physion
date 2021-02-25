@@ -1,4 +1,4 @@
-import sys, time, os, pathlib
+import sys, time, os, pathlib, subprocess
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -23,6 +23,8 @@ class MainWindow(QtWidgets.QMainWindow):
             
         self.setWindowTitle('Assembling -- Physion')
         
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                           'build_NWB.py')
         self.script = os.path.join(\
                 str(pathlib.Path(__file__).resolve().parents[1]),\
                 'script.sh')
@@ -82,9 +84,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.PsamplingBox.move(200, HEIGHT)
         
         HEIGHT +=50 
-        self.gen = QtWidgets.QPushButton('Add to bash script ', self)
+        self.gen = QtWidgets.QPushButton(' -= RUN =-  ', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.gen.clicked.connect(self.gen_script)
+        self.gen.clicked.connect(self.run)
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
@@ -108,30 +110,31 @@ class MainWindow(QtWidgets.QMainWindow):
             self.folder = os.path.dirname(filename)
         else:
             self.folder = ''
-            
 
-    def clean_folder(self):
-        
-        if len(self.folder[-8:].split('_'))==3:
-            print(list_dayfolder(self.folder))
+    def build_cmd(self):
+        return 'python %s -df %s --%s' % (self.process_script,
+                                          self.folder,
+                                          self.cbc.currentText())
+    def run(self):
+        if self.folder != '':
+            p = subprocess.Popen(self.build_cmd(),
+                                 shell=True)
+            print('"%s" launched as a subprocess' % self.build_cmd())
         else:
-            print(self.folder)
-            
-    
+            print(' /!\ Need a valid folder !  /!\ ')
+
     def gen_script(self):
 
-        if self.folder != '':
+        # launch without subsampling !!
+        with open(self.script, 'a') as f:
+            f.write(self.build_cmd())
+        print('Script successfully written in "%s"' % self.script)
             
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
-                                          'build_NWB.py')
-            script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
-
-            with open(script, 'a') as f:
-                f.write('python %s -df %s --%s \n' % (process_script, self.folder, self.cbc.currentText()))
-        print('Script successfully written in "%s"' % script)
                 
     def quit(self):
         QtWidgets.QApplication.quit()
+
+
         
 def run(app, args=None, parent=None):
     return MainWindow(app,

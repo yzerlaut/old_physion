@@ -97,11 +97,12 @@ class MainWindow(guiparts.NewWindow):
         
     def open_file(self):
 
-        filename = '/media/yann/Yann/2021_02_16/15-04-19/2021_02_16-15-04-19.nwb'
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #                 os.path.join(os.path.expanduser('~'),'DATA'),
-        #                     filter="*.nwb")
+        # filename = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
+        
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                            filter="*.nwb")
         
         if filename!='':
             self.reset()
@@ -110,7 +111,9 @@ class MainWindow(guiparts.NewWindow):
             plots.raw_data_plot(self, self.tzoom)
         else:
             print('"%s" filename not recognized ! ')
-            
+
+        print(np.argsort(self.nwbfile.acquisition['Pupil'].timestamps[:20]))
+        # print(np.argsort(self.nwbfile.acquisition['Pupil'].timestamps[:]))
             
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows

@@ -1,8 +1,9 @@
-import sys, time, os, pathlib
+import sys, time, os, pathlib, subprocess
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
+from assembling.tools import find_matching_CaImaging_data
 from misc.folders import FOLDERS
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -15,54 +16,65 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(350, 700, 300, 300)
+        self.setGeometry(350, 700, 300, 350)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Physion -- Assembling')
+        self.setWindowTitle('Adding [Ca2+] -- Physion')
         
-        self.script = os.path.join(\
-                str(pathlib.Path(__file__).resolve().parents[1]),\
-                'script.sh')
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
+                                           'assembling',  'add_ophys.py')
 
         HEIGHT = 0
 
         HEIGHT += 10
         QtWidgets.QLabel("Root Data:", self).move(10, HEIGHT)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.setMinimumWidth(150)
-        self.cbc.move(100, HEIGHT)
-        self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(FOLDERS.keys())
+        self.folderD = QtWidgets.QComboBox(self)
+        self.folderD.setMinimumWidth(150)
+        self.folderD.move(100, HEIGHT)
+        self.folderD.activated.connect(self.update_setting)
+        self.folderD.addItems(FOLDERS.keys())
 
         HEIGHT += 30
         QtWidgets.QLabel("Root Imaging:", self).move(10, HEIGHT)
-        self.cbc = QtWidgets.QComboBox(self)
-        self.cbc.setMinimumWidth(150)
-        self.cbc.move(100, HEIGHT)
-        self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(FOLDERS.keys())
+        self.folderI = QtWidgets.QComboBox(self)
+        self.folderI.setMinimumWidth(150)
+        self.folderI.move(100, HEIGHT)
+        self.folderI.activated.connect(self.update_setting)
+        self.folderI.addItems(FOLDERS.keys())
         
         HEIGHT += 40
         self.load = QtWidgets.QPushButton('Load data \u2b07', self)
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load.clicked.connect(self.load_folder)
+        self.load.clicked.connect(self.load_data)
         self.load.setMinimumWidth(200)
         self.load.move(50, HEIGHT)
         self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('L'), self)
-        self.loadSc.activated.connect(self.load_folder)
+        self.loadSc.activated.connect(self.load_data)
 
         HEIGHT += 40
         self.load = QtWidgets.QPushButton('Load imaging \u2b07', self)
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load.clicked.connect(self.load_folder)
+        self.load.clicked.connect(self.load_data)
         self.load.setMinimumWidth(200)
         self.load.move(50, HEIGHT)
         self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('L'), self)
-        self.loadSc.activated.connect(self.load_folder)
+        self.loadSc.activated.connect(self.load_imaging)
 
-        HEIGHT += 50
+        HEIGHT += 40
+        self.find = QtWidgets.QPushButton('-* Find imaging *-', self)
+        self.find.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.find.clicked.connect(self.find_imaging)
+        self.find.setMinimumWidth(200)
+        self.find.move(50, HEIGHT)
+
+        HEIGHT += 30
+        self.imagingF = QtWidgets.QLabel("...", self)
+        self.imagingF.move(10, HEIGHT)
+        self.imagingF.setMinimumWidth(400)
+        
+        HEIGHT += 40
         QtWidgets.QLabel("=> Setting :", self).move(10, HEIGHT)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(150)
@@ -70,23 +82,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.activated.connect(self.update_setting)
         self.cbc.addItems(['standard', 'lightweight', 'full', 'NIdaq-only', 'custom'])
 
-        HEIGHT +=40 
+        HEIGHT +=30 
         s = QtWidgets.QLabel("CaImaging-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
         self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('1.0')
+        self.PsamplingBox.setText('0.0')
         self.PsamplingBox.setFixedWidth(40)
         self.PsamplingBox.move(200, HEIGHT)
 
-        HEIGHT +=50 
+        HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.gen.clicked.connect(self.run)
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
-        self.folder = ''
+        self.filename, self.Ifolder = '', ''
         self.show()
 
     def update_setting(self):
@@ -95,18 +107,44 @@ class MainWindow(QtWidgets.QMainWindow):
             print('kjshdf')
 
     
-    def load_folder(self):
+    def load_data(self):
 
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                                                             "Open datafile (through metadata file) )",
-                                                            FOLDERS[self.folderB.currentText()],
-                                                            filter="*.npy")
+                                                            FOLDERS[self.folderD.currentText()],
+                                                            filter="*.nwb")
         if filename!='':
-            self.folder = os.path.dirname(filename)
+            self.filename = filename
         else:
-            self.folder = ''
+            self.filename = ''
             
 
+    def load_imaging(self):
+        print('deprecated, use the "find" engine for security')
+        # filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+        #                                                     "Open datafile (through metadata file) )",
+        #                                                     FOLDERS[self.folderI.currentText()],
+        #                                                     filter="*.xml")
+        # if filename!='':
+        #     self.Ifolder = os.path.dirname(filename)
+        # else:
+        #     self.Ifolder = ''
+
+    def find_imaging(self):
+
+        if self.filename!='':
+            print('searching for a match [...]')
+            success, folder = find_matching_CaImaging_data(self, self.filename,
+                                                FOLDERS[self.folderI.currentText()])
+            if success:
+                self.imagingF.setText('"%s"' % folder.split(os.path.sep)[-1])
+                self.Ifolder = folder
+            else:
+                self.imagingF.setText('not found')
+        else:
+            print(' /!\ need to provide a NWB file /!\ ')
+            
+            
     def clean_folder(self):
         
         if len(self.folder[-8:].split('_'))==3:
@@ -115,9 +153,20 @@ class MainWindow(QtWidgets.QMainWindow):
             print(self.folder)
             
     
+    def build_cmd(self):
+        return 'python %s --CaImaging_folder %s --nwb_file %s -v' % (self.process_script,
+                                                                     self.Ifolder,
+                                                                     self.filename)
     def run(self):
-        pass
-                
+        
+        if self.filename!='' and self.Ifolder!='':
+
+            p = subprocess.Popen(self.build_cmd(),
+                                 shell=True)
+            print('"%s" launched as a subprocess' % self.build_cmd())
+        else:
+            print(' /!\ Need a valid folder !  /!\ ')
+            
     def quit(self):
         QtWidgets.QApplication.quit()
         

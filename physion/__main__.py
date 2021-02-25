@@ -1,5 +1,6 @@
-from . import run
-import argparse
+import argparse, sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parent))
+from physion import run
 
 if __name__=='__main__':
     import argparse, os

@@ -10,7 +10,7 @@ from pupil import guiparts, process, roi
 from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from assembling.saving import from_folder_to_datetime, check_datafolder
-
+from assembling.tools import load_FaceCamera_data
 from dataviz.plots import convert_index_to_time
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -317,12 +317,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.reset()
             self.datafolder = os.path.dirname(filename)
             self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
-            times = np.array([float(f.replace('.npy', '')) for f in os.listdir(self.imgfolder) if f.endswith('.npy')])
-            self.times = times[np.argsort(times)]
-            self.FILES = np.array([f for f in os.listdir(self.imgfolder) if f.endswith('.npy')])[np.argsort(times)]
-            self.nframes = len(self.times)
-            self.Lx, self.Ly = np.load(os.path.join(self.imgfolder, self.FILES[0])).shape
-            print('Sampling frequency: %.1f Hz' % (1./np.diff(self.times).mean()))
+            self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
+                                                                                          t0=0, verbose=True)
 
             if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
                 self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
@@ -533,9 +529,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.save_pupil_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
         import subprocess
-        p = subprocess.Popen('python %s -df %s -s 1' % (process_script, self.datafolder),
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        print('Script successfully written in "%s"' % script)
+        cmd = 'python %s -df %s -s 1' % (process_script, self.datafolder)
+        p = subprocess.Popen(cmd,
+                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             shell=True)
+        print('"%s" launched as a subprocess' % cmd)
         
 
     def save_pupil_data(self):

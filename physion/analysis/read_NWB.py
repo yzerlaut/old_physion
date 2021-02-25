@@ -55,7 +55,6 @@ def read(self, filename, verbose=False):
 
     self.keys = []
     for key in self.nwbfile.stimulus.keys():
-        print(key)
         if key not in ['index', 'time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned', 'visual-stimuli', 'frame_run_type']:
             if len(np.unique(self.nwbfile.stimulus[key].data[:]))>1:
                 s = '-*  N-%s = %i' % (key,len(np.unique(self.nwbfile.stimulus[key].data[:])))

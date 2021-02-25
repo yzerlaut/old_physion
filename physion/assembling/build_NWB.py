@@ -11,7 +11,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names, insure_ordered_FaceCamera_picture_names
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
-from assembling.tools import compute_locomotion, build_subsampling_from_freq
+from assembling.tools import compute_locomotion, build_subsampling_from_freq, load_FaceCamera_data
 from assembling.add_ophys import add_ophys
 
 
@@ -43,7 +43,10 @@ def build_NWB(args,
         subject_props = {}
         print('subject properties not in metadata ...')
         dob = ['1988', '24', '4']
-    
+    # NIdaq tstart
+    if os.path.isfile(os.path.join(args.datafolder, 'NIdaq.start.npy')):
+        metadata['NIdaq_Tstart'] = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
+
     subject = pynwb.file.Subject(description=(subject_props['description'] if ('description' in subject_props) else 'Unknown'),
                                  sex=(subject_props['sex'] if ('sex' in subject_props) else 'Unknown'),
                                  genotype=(subject_props['genotype'] if ('genotype' in subject_props) else 'Unknown'),
@@ -69,6 +72,10 @@ def build_NWB(args,
     
     # deriving filename
     if args.export=='FULL' and (args.modalities==ALL_MODALITIES):
+        args.CaImaging_frame_sampling = 1e5
+        args.Pupil_frame_sampling = 1e5
+        args.Snout_frame_sampling = 1e5
+        args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
         filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(os.path.sep)[-2],
                                                                      args.datafolder.split(os.path.sep)[-1]))
     elif (args.export=='LIGHTWEIGHT'):
@@ -143,8 +150,6 @@ def build_NWB(args,
                                                     verbose=args.verbose)
         if success:
             timestamps = metadata['time_start_realigned']
-            if args.verbose:
-                print('Realignement form photodiode successful')
             for key in ['time_start_realigned', 'time_stop_realigned']:
                 VisualStimProp = pynwb.TimeSeries(name=key,
                                                   data = metadata[key],
@@ -211,14 +216,14 @@ def build_NWB(args,
             print('=> Storing FaceCamera acquisition [...]')
         if ('raw_FaceCamera' in args.modalities):
             try:
-                FC_FILES = os.listdir(os.path.join(args.datafolder, 'FaceCamera-imgs'))
-                times = np.array([float(f.replace('.npy', '')) for f in FC_FILES])
-                times = times-NIdaq_Tstart # converted to times relative to NIdaq start
+                FC_times, FC_FILES, _, _, _ = load_FaceCamera_data(os.path.join(args.datafolder, 'FaceCamera-imgs'),
+                                                                t0=NIdaq_Tstart,
+                                                                verbose=True)
 
                 img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
 
                 FC_SUBSAMPLING = build_subsampling_from_freq(args.FaceCamera_frame_sampling,
-                                                          1./np.mean(np.diff(times)), len(FC_FILES), Nmin=3)
+                                                             1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
                 def FaceCamera_frame_generator():
                     for i in FC_SUBSAMPLING:
                         yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)
@@ -229,7 +234,7 @@ def build_NWB(args,
                 FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
                                                             data=FC_dataI,
                                                             unit='NA',
-                                                            timestamps=times[FC_SUBSAMPLING])
+                                                            timestamps=FC_times[FC_SUBSAMPLING])
                 nwbfile.add_acquisition(FaceCamera_frames)
 
             except BaseException as be:
@@ -249,8 +254,6 @@ def build_NWB(args,
                 data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                allow_pickle=True).item()
 
-                timestamps = data['times']-NIdaq_Tstart
-                
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                             description='processed quantities of Pupil dynamics')
                 
@@ -259,7 +262,7 @@ def build_NWB(args,
                         PupilProp = pynwb.TimeSeries(name=key,
                                                      data = data[key],
                                                      unit='seconds',
-                                                     timestamps=timestamps)
+                                                     timestamps=FC_times)
                         pupil_module.add(PupilProp)
 
                 # then add the frames subsampled
@@ -269,7 +272,7 @@ def build_NWB(args,
                     cond = (x>=data['xmin']) & (x<=data['xmax']) & (y>=data['ymin']) & (y<=data['ymax'])
 
                     PUPIL_SUBSAMPLING = build_subsampling_from_freq(args.Pupil_frame_sampling,
-                                                                    1./np.mean(np.diff(times)), len(FC_FILES), Nmin=3)
+                                                                    1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
                     def Pupil_frame_generator():
                         for i in PUPIL_SUBSAMPLING:
                             yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)[cond].reshape(\
@@ -281,7 +284,7 @@ def build_NWB(args,
                     Pupil_frames = pynwb.image.ImageSeries(name='Pupil',
                                                            data=PUC_dataI,
                                                            unit='NA',
-                                                           timestamps=times[PUPIL_SUBSAMPLING])
+                                                           timestamps=FC_times[PUPIL_SUBSAMPLING])
                     nwbfile.add_acquisition(Pupil_frames)
                         
             else:
@@ -321,7 +324,10 @@ def build_NWB(args,
     #################################################
     # see: add_ophys.py script
 
+    Ca_data = None
     if metadata['CaImaging']:
+        if args.verbose:
+            print('=> Storing Calcium Imaging signal [...]')
         if not hasattr(args, 'CaImaging_folder') or (args.CaImaging_folder==''):
             try:
                 args.CaImaging_folder = get_TSeries_folders(args.datafolder)
@@ -334,7 +340,7 @@ def build_NWB(args,
                 print(be)
                 print(' /!\ No Ca-Imaging data found, /!\ ')
                 print('             -> add them later with "add_ophys.py" \n')
-                Ca_data = None
+
 
     #################################################
     ####         Writing NWB file             #######

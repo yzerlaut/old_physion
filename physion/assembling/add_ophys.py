@@ -17,11 +17,10 @@ def append_to_NWB(args):
     io = pynwb.NWBHDF5IO(args.nwb_file, mode='a')
     nwbfile = io.read()
 
-    print(nwbfile)
     if (not hasattr(args, 'datafolder')) or (args.datafolder==''):
         args.datafolder=os.path.dirname(args.nwb_file)
         
-    add_ophys(nwbfile, args)
+    add_ophys(nwbfile, args, with_raw_CaImaging=args.with_raw_CaImaging)
 
     if args.verbose:
         print('=> writing "%s" [...]' % args.nwb_file)
@@ -67,6 +66,7 @@ def add_ophys(nwbfile, args,
                                                  grid_spacing=(float(xml['settings']['micronsPerPixel']['YAxis']),
                                                                float(xml['settings']['micronsPerPixel']['XAxis'])))
 
+    Ca_data=None
     if with_raw_CaImaging:
             
         if args.verbose:
@@ -78,11 +78,15 @@ def add_ophys(nwbfile, args,
                                         'suite2p', 'plane%i' % Ca_Imaging_options['plane'],
                                                         Ca_Imaging_options['Suite2P-binary-filename']))
 
-        CA_SUBSAMPLING = build_subsampling_from_freq(1./float(xml['settings']['framePeriod']),
-                                                     args.CaImaging_frame_sampling,
-                                                     Ca_data.shape[0], Nmin=3)
+        CA_SUBSAMPLING = build_subsampling_from_freq(\
+                        subsampled_freq=args.CaImaging_frame_sampling,
+                        original_freq=1./float(xml['settings']['framePeriod']),
+                        N=Ca_data.shape[0], Nmin=3)
 
-        dI = int(1./args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
+        if args.CaImaging_frame_sampling>0:
+            dI = int(1./args.CaImaging_frame_sampling/float(xml['settings']['framePeriod']))
+        else:
+            dI = 1
         
         def Ca_frame_generator():
             for i in CA_SUBSAMPLING:
@@ -147,7 +151,8 @@ if __name__=='__main__':
     parser.add_argument('-t', "--time", type=str, default='')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
-    parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0.5, type=float)
+    parser.add_argument("--with_raw_CaImaging", action="store_true")
+    parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
     parser.add_argument("--silent", action="store_true")
     args = parser.parse_args()
 
@@ -158,3 +163,4 @@ if __name__=='__main__':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
         
     append_to_NWB(args)
+    print('--> done')
