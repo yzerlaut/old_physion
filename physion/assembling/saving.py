@@ -43,10 +43,12 @@ def generate_filename_path(root_folder,
     
     return os.path.join(Second_folder, filename+extension)
 
+
 def list_dayfolder(day_folder):
     folders = [os.path.join(day_folder, d) for d in sorted(os.listdir(day_folder)) if ((d[0] in string.digits) and (len(d)==8) and os.path.isdir(os.path.join(day_folder, d)) and os.path.isfile(os.path.join(day_folder, d, 'metadata.npy')) and os.path.isfile(os.path.join(day_folder, d, 'NIdaq.npy')) and os.path.isfile(os.path.join(day_folder, d, 'NIdaq.start.npy')))]
     return folders
-    
+
+
 def last_datafolder_in_dayfolder(day_folder):
     
     folders = list_dayfolder(day_folder)
