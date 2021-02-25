@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
 from assembling.FaceCamera_compress import compress_datafolder
+from misc.folders import FOLDERS
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -20,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Physion -- Assembling')
+        self.setWindowTitle('Assembling -- Physion')
         
         self.script = os.path.join(\
                 str(pathlib.Path(__file__).resolve().parents[1]),\
@@ -34,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(['home', 'drive', 'MsWin-from-LNX'])
+        self.cbc.addItems(FOLDERS.keys())
         
         HEIGHT += 40
         self.load = QtWidgets.QPushButton('[L]oad datafolder  \u2b07', self)
