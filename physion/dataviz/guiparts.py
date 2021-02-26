@@ -36,6 +36,15 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     self.cal.clicked.connect(self.pick_date)
     Layout.addWidget(self.cal)
 
+    # setting an highlight format
+    self.highlight_format = QtGui.QTextCharFormat()
+    self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Link))
+    self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.BrightText))
+
+    self.cal.setSelectedDate(datetime.date.today())
+    
+    
+
 def add_buttons(self, Layout):
 
     self.styleUnpressed = ("QPushButton {Text-align: left; "
@@ -135,7 +144,6 @@ def load_config1(self,
 
     self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
         
-    
     mainLayout = QtWidgets.QVBoxLayout()
 
     Layout1 = QtWidgets.QHBoxLayout()
@@ -146,12 +154,24 @@ def load_config1(self,
     create_calendar(self, Layout11)
     self.cal.setMaximumHeight(150)
 
+    # folder box
+    self.fbox = QtWidgets.QComboBox(self)
+    self.fbox.setFont(smallfont)
+    self.fbox.activated.connect(self.select_folder) # To be written !!
+    self.fbox.setMaximumHeight(selector_height)
+    self.folder_default_key = '  [root datafolder]'
+    self.fbox.addItem(self.folder_default_key)
+    self.fbox.setCurrentIndex(0)
+    Layout11.addWidget(self.fbox)
+    
     # subject box
     self.sbox = QtWidgets.QComboBox(self)
     self.sbox.setFont(smallfont)
-    # self.sbox.activated.connect(self.select_subject) # To be written !!
+    self.sbox.activated.connect(self.pick_subject) # To be written !!
     self.sbox.setMaximumHeight(selector_height)
-    self.sbox.addItem('  [subject] ')
+    self.subject_default_key = '  [subject] '
+    self.sbox.addItem(self.subject_default_key)
+    
     self.sbox.setCurrentIndex(0)
     Layout11.addWidget(self.sbox)
     
@@ -185,7 +205,7 @@ def load_config1(self,
     self.dbox.setMaximumWidth(win1_Wmax)
     self.dbox.setMinimumHeight(selector_height)
     self.dbox.setMaximumHeight(selector_height)
-    self.dbox.activated.connect(self.pick_datafolder)
+    self.dbox.activated.connect(self.pick_datafile)
     Layout12.addWidget(self.dbox)
 
     self.win1 = pg.GraphicsLayoutWidget()
@@ -384,6 +404,8 @@ class NewWindow(QtWidgets.QMainWindow):
             parent.CaImaging_key = string
         elif string=='subsampling':
             parent.no_subsampling = False
+        elif string=='subjects':
+            parent.compute_subjects()
         else:
             self.statusBar.showMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
 

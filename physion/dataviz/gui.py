@@ -3,12 +3,13 @@ import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, generate_filename_path, list_dayfolder
+from assembling.saving import day_folder, generate_filename_path, list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
 from dataviz import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
+from misc.folders import FOLDERS
 
 settings = {
     'window_size':(1000,600),
@@ -25,7 +26,6 @@ settings = {
     'Npoints':500}
 
 pg.setConfigOptions(imageAxisOrder='row-major')
-
 
 class MainWindow(guiparts.NewWindow):
     
@@ -48,6 +48,7 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer.timeout.connect(self.next_frame)
         
         guiparts.load_config1(self)
+        self.fbox.addItems(FOLDERS.keys())
         self.windowTA, self.windowBM = None, None # sub-windows
 
         if args is not None:
@@ -58,43 +59,12 @@ class MainWindow(guiparts.NewWindow):
         self.time, self.io, self.roiIndices, self.tzoom = 0, None, [], [0,50]
         self.CaImaging_bg_key = 'meanImg'
         self.CaImaging_key = 'Fluorescence'
-        self.check_data_folder()
+
+        self.FILES_PER_DAY, self.FILES_PER_SUBJECT, self.SUBJECTS = {}, {}, {}
         
         self.minView = False
         self.showwindow()
 
-        # ----------------------------------
-        # ========= for debugging ==========
-        # ----------------------------------
-        # self.datafolder = '/home/yann/DATA/2020_11_04/01-02-03/'
-        # date = 
-        # date = self.cal.setSelectedDate(datetime.date(2020, 11, 4))
-        # self.pick_date()
-        # self.preload_datafolder(self.datafolder)
-        # self.dbox.setCurrentIndex(1)
-        # self.pick_datafolder()
-        # self.display_quantities()
-        
-        # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-18-29-31.FULL.nwb')
-        # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2020_11_12', '2020_11_12-17-30-19.FULL.nwb')
-        # filename = os.path.join('D:', '2021_01_20', '16-42-18', '2021_01_20-16-42-18.FULL.nwb')
-        # self.load_file(filename)
-        # print(self.nwbfile.acquisition)
-        # plots.raw_data_plot(self, self.tzoom)
-
-    def try_to_find_time_extents(self):
-        self.tlim, safety_counter = None, 0
-        while (self.tlim is None) and (safety_counter<10):
-            for key in self.nwbfile.acquisition:
-                try:
-                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
-                                 self.nwbfile.acquisition[key].starting_time+\
-                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
-                except BaseException as be:
-                    pass
-        if self.tlim is None:
-            self.tlim = [0, 50] # bad for movies
-        
     def open_file(self):
 
         # filename = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
@@ -112,8 +82,6 @@ class MainWindow(guiparts.NewWindow):
         else:
             print('"%s" filename not recognized ! ')
 
-        print(np.argsort(self.nwbfile.acquisition['Pupil'].timestamps[:20]))
-        # print(np.argsort(self.nwbfile.acquisition['Pupil'].timestamps[:]))
             
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
@@ -140,9 +108,10 @@ class MainWindow(guiparts.NewWindow):
         self.notes.setText(self.description)
 
         self.cal.setSelectedDate(self.nwbfile.session_start_time.date())
-        self.dbox.clear()
-        self.dbox.addItem(self.df_name)
-        self.dbox.setCurrentIndex(0)
+        if self.dbox.currentIndex()==0:
+            self.dbox.clear()
+            self.dbox.addItem(self.df_name)
+            self.dbox.setCurrentIndex(0)
         self.sbox.clear()
         self.sbox.addItem(self.nwbfile.subject.description)
         self.sbox.setCurrentIndex(0)
@@ -151,71 +120,104 @@ class MainWindow(guiparts.NewWindow):
         if 'ophys' in self.nwbfile.processing:
             self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
 
-        
-    def check_data_folder(self):
-        
+
+    def select_folder(self):
+
         print('inspecting data folder [...]')
 
-        self.highlight_format = QtGui.QTextCharFormat()
-        self.highlight_format.setBackground(self.cal.palette().brush(QtGui.QPalette.Link))
-        self.highlight_format.setForeground(self.cal.palette().color(QtGui.QPalette.BrightText))
+        FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
+                                         extension='.nwb', recursive=True)
+        DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
 
-        date = datetime.date(2020, 9, 1)
-        while date!=(datetime.date.today()+datetime.timedelta(30)):
-            if os.path.isdir(os.path.join(self.root_datafolder, date.strftime("%Y_%m_%d"))):
-                self.cal.setDateTextFormat(QtCore.QDate(date), self.highlight_format)
-            date = date+datetime.timedelta(1)
-        date = self.cal.setSelectedDate(date+datetime.timedelta(1))
+        self.FILES_PER_DAY = {}
+        for d in np.unique(DATES):
+            
+            self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
+                                       self.highlight_format)
+
+            self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
+                                     for f in np.array(FILES)[DATES==d]]
+
+        print(' -> found n=%i datafiles ' % len(FILES))
         
+
+    def compute_subjects(self):
+
+        FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
+                                         extension='.nwb', recursive=True)
+
+        SUBJECTS, DISPLAY_NAMES = [], []
+        for fn in FILES:
+            infos = self.preload_datafolder(fn)
+            SUBJECTS.append(infos['subject'])
+            DISPLAY_NAMES.append(infos['display_name'])
+
+        self.SUBJECTS = {}
+        for s in np.unique(SUBJECTS):
+            cond = (np.array(SUBJECTS)==s)
+            self.SUBJECTS[s] = {'display_names':np.array(DISPLAY_NAMES)[cond],
+                                'datafiles':np.array(FILES)[cond]}
+
+        print(' -> found n=%i subjects ' % len(self.SUBJECTS.keys()))
+        self.sbox.clear()
+        self.sbox.addItems([self.subject_default_key]+\
+                           list(self.SUBJECTS.keys()))
+        self.sbox.setCurrentIndex(0)
+                                
+    def pick_subject(self):
+        self.plot.clear()
+        if self.sbox.currentText()==self.subject_default_key:
+            self.compute_subjects()
+        elif self.sbox.currentText() in self.SUBJECTS:
+            self.list_protocol = self.SUBJECTS[self.sbox.currentText()]['datafiles']
+            self.update_df_names()
+        else:
+            print(' /!\ subject not recognized /!\  ')
+                                
     def pick_date(self):
         date = self.cal.selectedDate()
         self.day = '%s_%02d_%02d' % (date.year(), date.month(), date.day())
         for i in string.digits:
             self.day = self.day.replace('_%s_' % i, '_0%s_' % i)
-        self.day_folder = os.path.join(self.root_datafolder,self.day)
-        if os.path.isdir(self.day_folder):
-            self.list_protocol_per_day = list_dayfolder(self.day_folder)
-        else:
-            self.list_protocol_per_day = []
-        self.update_df_names()
 
+        if self.day in self.FILES_PER_DAY:
+            self.list_protocol = self.FILES_PER_DAY[self.day]
+            self.update_df_names()
 
-    def update_df_names(self):
-        self.dbox.clear()
-        # self.pbox.clear()
-        self.plot.clear()
-        self.pScreenimg.setImage(np.ones((10,12))*50)
-        self.pFaceimg.setImage(np.ones((10,12))*50)
-        self.pPupilimg.setImage(np.ones((10,12))*50)
-        self.pCaimg.setImage(np.ones((50,50))*100)
-        if len(self.list_protocol_per_day)>0:
-            self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
-            for fn in self.list_protocol_per_day:
-                self.dbox.addItem(self.preload_datafolder(fn))
-
-                
-    def preload_datafolder(self, fn):
-        output = '   '+fn.split(os.path.sep)[-1].replace('-', ':')+' --------- '
-        try:
-            info = np.load(os.path.join(self.day_folder,fn,'metadata.npy'),
-                           allow_pickle=True).item()
-            # output += str(info['Stimulus'])
-            output += str(info['protocol'])
-        except Exception:
-            print('No metadata found')
-        return output
-
-    def pick_datafolder(self):
+    def pick_datafile(self):
         self.plot.clear()
         i = self.dbox.currentIndex()
         if i>0:
-            self.datafolder = self.list_protocol_per_day[i-1]
-            self.datafile=os.path.join(self.datafolder, '%s-%s.nwb' % (self.datafolder.split(os.path.sep)[-2],self.datafolder.split(os.path.sep)[-1]))
+            self.datafile=self.list_protocol[i-1]
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
             self.metadata = None
             self.notes.setText(20*'-'+5*'\n')
+        
+
+    def update_df_names(self):
+        self.dbox.clear()
+        # self.pbox.clear()
+        # self.sbox.clear()
+        self.plot.clear()
+        self.pScreenimg.setImage(np.ones((10,12))*50)
+        self.pFaceimg.setImage(np.ones((10,12))*50)
+        self.pPupilimg.setImage(np.ones((10,12))*50)
+        self.pCaimg.setImage(np.ones((50,50))*100)
+        if len(self.list_protocol)>0:
+            self.dbox.addItem(' ...' +70*' '+'(select a data-folder) ')
+            for fn in self.list_protocol:
+                self.dbox.addItem(self.preload_datafolder(fn)['display_name'])
+                
+    def preload_datafolder(self, fn):
+        read_NWB(self, fn, metadata_only=True)
+        day = fn.split(os.path.sep)[-1].split('-')[0]
+        time = fn.split(os.path.sep)[-1].replace(day+'-', '').replace('.nwb', '').replace('-', ':')
+        infos = {'display_name' : '  '+day.replace('_','/')+' '+time+' --------- '+self.metadata['protocol'],
+                 'subject': self.nwbfile.subject.description}
+        self.io.close()
+        return infos
 
     def add_datafolder_annotation(self):
         info = 20*'-'+'\n'
