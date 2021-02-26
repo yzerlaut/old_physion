@@ -362,7 +362,7 @@ class NewWindow(QtWidgets.QMainWindow):
             cls = self # so that 
 
         if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(self.Fluorescence.shape[0])
+            roiIndices = np.arange(np.sum(self.iscell))
         elif len(cls.roiPick.text().split('-'))>1:
             try:
                 roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
@@ -378,7 +378,7 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             try:
                 i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>self.Fluorescence.shape[0]):
+                if (i0<0) or (i0>len(self.validROI_indices)):
                     roiIndices = [0]
                     self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
                 else:
@@ -408,6 +408,43 @@ class NewWindow(QtWidgets.QMainWindow):
             parent.compute_subjects()
         else:
             self.statusBar.showMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
+
+    # Layout11 = QtWidgets.QVBoxLayout()
+    # Layout1.addLayout(Layout11)
+    # create_calendar(self, Layout11)
+    # self.notes = QtWidgets.QLabel(63*'-'+5*'\n', self)
+    # self.notes.setMinimumHeight(70)
+    # self.notes.setMaximumHeight(70)
+    # Layout11.addWidget(self.notes)
+
+    # self.pbox = QtWidgets.QComboBox(self)
+    # self.pbox.activated.connect(self.display_quantities)
+    # self.pbox.setMaximumHeight(selector_height)
+    # if self.raw_data_visualization:
+    #     self.pbox.addItem('')
+    #     self.pbox.addItem('-> Show Raw Data')
+    #     self.pbox.setCurrentIndex(1)
+    
+    
+#     def __init__(self, parent=None,
+#                  fullscreen=False):
+
+#         super(TrialAverageWindow, self).__init__()
+
+#         # adding a "quit" keyboard shortcut
+#         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+#         self.quitSc.activated.connect(self.close)
+#         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+#         self.refreshSc.activated.connect(self.refresh)
+#         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
+#         self.maxSc.activated.connect(self.showwindow)
+
+#         ####################################################
+#         # BASIC style config
+#         self.setWindowTitle('Analysis Program -- Physiology of Visual Circuits')
+
+#     def close(self):
+#         pass
 
     
     
