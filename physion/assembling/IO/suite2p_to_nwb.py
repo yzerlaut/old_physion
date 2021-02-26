@@ -129,6 +129,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile,
             data=traces[i],
             rois=rt_region,
             unit='lumens',
+            starting_time=0., # UPDATE HERE STARTING TIME
             rate=ops['fs']
         )
         fl = Fluorescence(roi_response_series=roi_resp_series, name=nstr)

@@ -128,7 +128,7 @@ def add_ophys(nwbfile, args,
                                           device=device,
                                           optical_channel=optical_channel,
                                           imaging_plane=imaging_plane,
-                                          image_series=image_series)
+                                          image_series=image_series) # ADD UPDATE OF starting_time
     elif with_processed_CaImaging:
         print('\n /!\  no "suite2p" folder found in "%s"  /!\ ' % args.CaImaging_folder)
 

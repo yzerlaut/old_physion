@@ -212,9 +212,7 @@ class MainWindow(guiparts.NewWindow):
                 
     def preload_datafolder(self, fn):
         read_NWB(self, fn, metadata_only=True)
-        day = fn.split(os.path.sep)[-1].split('-')[0]
-        time = fn.split(os.path.sep)[-1].replace(day+'-', '').replace('.nwb', '').replace('-', ':')
-        infos = {'display_name' : '  '+day.replace('_','/')+' '+time+' --------- '+self.metadata['protocol'],
+        infos = {'display_name' : self.df_name,
                  'subject': self.nwbfile.subject.description}
         self.io.close()
         return infos

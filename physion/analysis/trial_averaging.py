@@ -240,7 +240,10 @@ class TrialAverageWindow(NewWindow):
         #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
         #         self.pbox.addItem(k)
 
-def build_episodes(self, parent=None,
+        
+def build_episodes(self,
+                   parent=None,
+                   protocol_id=0,
                    quantity='Locomotion',
                    subquantity='',
                    dt_sampling=1, # ms
