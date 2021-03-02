@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         HEIGHT = 0
 
         HEIGHT += 10
-        QtWidgets.QLabel("Root-folder:", self).move(10, HEIGHT)
+        QtWidgets.QLabel("Source-folder:", self).move(10, HEIGHT)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
