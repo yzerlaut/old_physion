@@ -20,22 +20,29 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
         t0 = time.time()
     
     data = {}
-    self.description = ''
 
     self.metadata = ast.literal_eval(\
                     self.nwbfile.session_description)
 
+    if self.metadata['protocol']=='None':
+        self.description = 'Spont. Act.\n'
+    else:
+        self.description = 'Visual-Stim:\n'
+        
     # deal with multi-protocols
     if self.metadata['protocol']=='multiprotocols':
         self.protocols, ii = [], 1
         while ('Protocol-%i' % ii) in self.metadata:
             self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
+            self.description += '- %s \n' % self.protocols[ii-1]
             ii+=1
     else:
         self.protocols = [self.metadata['protocol']]
+        self.description += '- %s ' % self.metadata['protocol']
     self.protocols = np.array(self.protocols, dtype=str)
     
-    self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+self.nwbfile.experiment_description
+    self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+\
+        self.nwbfile.experiment_description
 
     if not metadata_only or with_tlim:
         self.tlim, safety_counter = None, 0
@@ -50,7 +57,6 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
         if self.tlim is None:
             self.tlim = [0, 50] # bad for movies
 
-
     if not metadata_only:
         
         if 'ophys' in self.nwbfile.processing:
@@ -64,35 +70,26 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
             self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
             self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
             self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
-            # self.Imaging = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
-            # def Fluorescence_func(nrn, time):
-            #     return self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence'].data[:,time][self.iscell[nrn],:]
-            # setattr(self, 'Fluorescence', Fluorescence_func)
-            # def Neuropil_func(nrn, time):
-            #     return self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil'].data[:,time][self.iscell[nrn],:]
-            # setattr(self, 'Neuropil', Neuropil_func)
-            # def Deconvolved_func(nrn, time):
-            #     return self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved'].data[:,time][self.iscell[nrn],:]
-            # setattr(self, 'Deconvolved', Deconvolved_func)
         else:
             self.Segmentation, self.Fluorescence, self.iscell,\
                 self.Neuropil, self.Deconvolved = None, None, None, None, None
 
-        self.description += 'Visual-Stim:\n'
         
-        self.keys = []
-        for key in self.nwbfile.stimulus.keys():
-            if key not in ['index', 'time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned', 'visual-stimuli', 'frame_run_type']:
-                if len(np.unique(self.nwbfile.stimulus[key].data[:]))>1:
-                    s = '-*  N-%s = %i' % (key,len(np.unique(self.nwbfile.stimulus[key].data[:])))
-                    self.description += s+(35-len(s))*' '+'[%.1f, %.1f]\n' % (np.min(self.nwbfile.stimulus[key].data[:]),
-                                                                            np.max(self.nwbfile.stimulus[key].data[:]))
-                    self.keys.append(key)
-                else:
-                    self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
+        if self.metadata['protocol']!='multiprotocols':
+            self.keys = []
+            for key in self.nwbfile.stimulus.keys():
+                if key not in ['index', 'time_start', 'time_start_realigned',
+                               'time_stop', 'time_stop_realigned', 'visual-stimuli', 'frame_run_type']:
+                    if len(np.unique(self.nwbfile.stimulus[key].data[:]))>1:
+                        s = '-*  N-%s = %i' % (key,len(np.unique(self.nwbfile.stimulus[key].data[:])))
+                        self.description += s+(35-len(s))*' '+'[%.1f, %.1f]\n' % (np.min(self.nwbfile.stimulus[key].data[:]),
+                                                                                np.max(self.nwbfile.stimulus[key].data[:]))
+                        self.keys.append(key)
+                    else:
+                        self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
 
         if 'time_start_realigned' in self.nwbfile.stimulus.keys():
-            self.description += '   =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+            self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                                self.nwbfile.stimulus['time_start'].data.shape[0])
 
 

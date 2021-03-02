@@ -11,9 +11,9 @@ if __name__=='__main__':
                                    formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-Nai', "--Nchannel_analog_rec", type=int, default=1)
     parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/facq", type=float, default=1e-5)
-    parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=5)
-    parser.add_argument("--on", help="on phase duration  (ms)", type=float, default=5000)
-    parser.add_argument("--off", help="off phase duration (ms)", type=float, default=5000)
+    parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=4)
+    parser.add_argument("--on", help="on phase duration  (ms)", type=float, default=2500)
+    parser.add_argument("--off", help="off phase duration (ms)", type=float, default=2500)
     parser.add_argument('-f', "--filename", help="filename",type=str, default='data.npy')
     parser.add_argument('-d', "--device", help="device name", type=str, default='')
     args = parser.parse_args()
@@ -33,7 +33,7 @@ if __name__=='__main__':
     analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
 
     array = 0*t_array
-    array[t_array%(1e-3*(args.on+args.off))<1e-3*args.on] = -5.
+    array[t_array%(1e-3*(args.on+args.off))<1e-3*args.on] = 5.
     array[0] = 0
     array[-1] = 0
     analog_outputs = np.array([array])

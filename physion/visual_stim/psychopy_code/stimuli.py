@@ -70,8 +70,12 @@ class visual_stim:
         self.store_frame = store_frame
         if ('store_frame' in protocol):
             self.store_frame = bool(protocol['store_frame'])
-        
-        self.screen = SCREENS[self.protocol['screen']]
+
+        if 'screen' in self.protocol:
+            self.screen = SCREENS[self.protocol['screen']]
+        else:
+            self.screen = SCREENS['demo']
+            
         
         if not ('no-window' in self.protocol):
             self.monitor = monitors.Monitor(self.screen['name'])
