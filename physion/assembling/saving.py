@@ -66,11 +66,12 @@ def get_files_with_extension(folder, extension='.txt',
     if recursive:
         for root, dirs, files in os.walk(folder):
             for file in files:
-                if file.endswith(extension):
-                     FILES.append(os.path.join(root, file))
+                if file.endswith(extension) and ('$RECYCLE.BIN' not in root):
+                    print(root, file)
+                    FILES.append(os.path.join(root, file))
     else:
         for file in os.listdir(folder):
-            if file.endswith(extension):
+            if file.endswith(extension) and ('$RECYCLE.BIN' not in folder):
                 FILES.append(os.path.join(folder, file))
     return FILES
 

@@ -124,7 +124,8 @@ def add_ophys(nwbfile, args,
 
     if with_processed_CaImaging and os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p')):
         print('=> Adding the suite2p processing [...]')
-        add_ophys_processing_from_suite2p(os.path.join(args.CaImaging_folder, 'suite2p'), nwbfile,
+        add_ophys_processing_from_suite2p(os.path.join(args.CaImaging_folder, 'suite2p'),
+                                          nwbfile, CaImaging_timestamps,
                                           device=device,
                                           optical_channel=optical_channel,
                                           imaging_plane=imaging_plane,

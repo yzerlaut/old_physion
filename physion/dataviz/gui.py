@@ -127,17 +127,21 @@ class MainWindow(guiparts.NewWindow):
 
         FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
                                          extension='.nwb', recursive=True)
+
+        
         DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
 
         self.FILES_PER_DAY = {}
         for d in np.unique(DATES):
+
+            try:
+                self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
+                                           self.highlight_format)
+                self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
+                                         for f in np.array(FILES)[DATES==d]]
+            except ValueError:
+                pass
             
-            self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
-                                       self.highlight_format)
-
-            self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
-                                     for f in np.array(FILES)[DATES==d]]
-
         print(' -> found n=%i datafiles ' % len(FILES))
         
 

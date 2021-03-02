@@ -14,7 +14,7 @@ from pynwb.ophys import Fluorescence
 from pynwb import NWBHDF5IO
 
 
-def add_ophys_processing_from_suite2p(save_folder, nwbfile,
+def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps,
                                       device=None,
                                       optical_channel=None,
                                       imaging_plane=None,
@@ -116,8 +116,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile,
 
     rt_region = ps.create_roi_table_region(
         region=list(np.arange(0, ncells_all)),
-        description='all ROIs'
-    )
+        description='all ROIs')
 
     # FLUORESCENCE (all are required)
     file_strs = ['F.npy', 'Fneu.npy', 'spks.npy']
@@ -129,9 +128,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile,
             data=traces[i],
             rois=rt_region,
             unit='lumens',
-            starting_time=0., # UPDATE HERE STARTING TIME
-            rate=ops['fs']
-        )
+            timestamps=CaImaging_timestamps) # CRITICAL TO HAVE IT HERE FOR RE-ALIGNEMENT
         fl = Fluorescence(roi_response_series=roi_resp_series, name=nstr)
         ophys_module.add(fl)
 
