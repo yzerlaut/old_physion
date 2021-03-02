@@ -104,7 +104,6 @@ class MainWindow(QtWidgets.QMainWindow):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                      "Open datafile (through metadata file) )",
                                         FOLDERS[self.folderB.currentText()],
-                                        # os.path.join(os.path.expanduser('~'),'DATA'),
                                         filter="*.npy")
         if filename!='':
             self.folder = os.path.dirname(filename)
