@@ -18,7 +18,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setGeometry(50, 700, 300, 300)
         # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
             
         self.setWindowTitle('Assembling -- Physion')
@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(['standard', 'lightweight', 'full', 'NIdaq-only', 'custom'])
+        self.cbc.addItems(['standard', 'lightweight', 'full', 'nidaq_only', 'custom'])
 
         HEIGHT +=40 
         s = QtWidgets.QLabel("Pupil-Sampling (Hz)    ", self)
@@ -101,14 +101,17 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def load_folder(self):
 
-        filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-                     "Open datafile (through metadata file) )",
-                                        FOLDERS[self.folderB.currentText()],
-                                        filter="*.npy")
-        if filename!='':
-            self.folder = os.path.dirname(filename)
-        else:
-            self.folder = ''
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        if folder!='':
+            if not os.path.isfile(os.path.join(folder, 'metadata.npy')) or\
+               not os.path.isfile(os.path.join(folder, 'NIdaq.npy')):
+                print(' /!\ Data-folder missing either "metadata" or "NIdaq" datafiles /!\ ')
+                print('  --> nothing to assemble !')
+            else:
+                self.folder = folder
+            
 
     def build_cmd(self):
         return 'python %s -df %s --%s' % (self.process_script,

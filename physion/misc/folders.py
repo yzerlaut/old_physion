@@ -6,7 +6,9 @@ FOLDERS = {
 }
 
 if os.name=='nt':
-    FOLDERS['usb-drive'] = 'F:\\'
+    FOLDERS['D-drive'] = 'D:\\'
+    FOLDERS['E-drive'] = 'E:\\'
+    FOLDERS['F-drive'] = 'F:\\'
 else:
     FOLDERS['usb-drive'] = '/media/yann/Yann/'
     FOLDERS['desktop-storage'] = '/media/yann/DATADRIVE1/DATA/'

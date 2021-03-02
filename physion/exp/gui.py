@@ -414,6 +414,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def save_experiment(self):
         # SAVING THE METADATA FILES
+        self.metadata['filename'] = str(self.datafolder.get())
         np.save(os.path.join(str(self.datafolder.get()), 'metadata.npy'), self.metadata)
         print('[ok] Metadata data saved as: %s ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))

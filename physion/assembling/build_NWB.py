@@ -29,7 +29,9 @@ def build_NWB(args,
     #################################################
     ####            BASIC metadata            #######
     #################################################
-    metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
+    metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
+                       allow_pickle=True).item()
+    # replace by day and time in metadata !!
     day = args.datafolder.split(os.path.sep)[-2].split('_')
     Time = args.datafolder.split(os.path.sep)[-1].split('-')
     start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]),

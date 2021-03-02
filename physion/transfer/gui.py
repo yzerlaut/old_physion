@@ -1,4 +1,4 @@
-import sys, time, os, pathlib
+import sys, time, os, pathlib, subprocess
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -17,10 +17,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setGeometry(650, 700, 300, 300)
         # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Physion -- Transfer')
+        self.setWindowTitle('Transfer -- Physion')
         
         self.script = os.path.join(\
                 str(pathlib.Path(__file__).resolve().parents[1]),\
@@ -35,7 +35,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.sourceBox = QtWidgets.QComboBox(self)
         self.sourceBox.setMinimumWidth(150)
         self.sourceBox.move(110, HEIGHT)
-        self.sourceBox.activated.connect(self.update_setting)
         self.sourceBox.addItems(FOLDERS)
         
         HEIGHT += 40
@@ -50,7 +49,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.destBox = QtWidgets.QComboBox(self)
         self.destBox.setMinimumWidth(150)
         self.destBox.move(110, HEIGHT)
-        self.destBox.activated.connect(self.set_destination_folder)
         self.destBox.addItems(FOLDERS)
         
         HEIGHT += 40
@@ -66,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox.setMinimumWidth(150)
         self.typeBox.move(100, HEIGHT)
         self.typeBox.activated.connect(self.update_setting)
-        self.typeBox.addItems(['NWB', 'FULL', 'FaceCamera'])
+        self.typeBox.addItems(['NWB', 'FULL'])
 
         HEIGHT +=50 
         self.gen = QtWidgets.QPushButton(' -= RUN =-  ', self)
@@ -77,12 +75,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.show()
 
-    def update_setting(self):
-        pass
-        if self.cbc.currentText()=='custom':
-            print('kjshdf')
-
-    
     def set_source_folder(self):
 
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
@@ -100,44 +92,42 @@ class MainWindow(QtWidgets.QMainWindow):
             self.destination_folder = folder
             
 
-    def clean_folder(self):
-        
-        if len(self.folder[-8:].split('_'))==3:
-            print(list_dayfolder(self.folder))
-        else:
-            print(self.folder)
-            
-    
-    def build_cmd(self):
-        return 'python %s -df %s --%s' % (self.process_script,
-                                          self.folder,
-                                          self.cbc.currentText())
-
-    def file_copy_command(source_file, destination_folder):
+    def file_copy_command(self, source_file, destination_folder):
         if sys.platform.startswith("win"):
-            return 'xcopy %s %s' % (source_file, destination_folder)
+            return 'xcopy %s %s &' % (source_file,
+                                               destination_folder)
         else:
-            return 'cp %s %s' % (source_file, destination_folder)
+            return 'cp %s %s &' % (source_file, destination_folder)
             
 
-    def folder_copy_command(source_folder, destination_folder):
-        pass
+    def folder_copy_command(self, source_folder, destination_folder):
+        if sys.platform.startswith("win"):
+            return 'xcopy %s %s /s /e &' % (source_file,
+                                            destination_folder)
+        else:
+            return 'rsync -avh %s %s &' % (source_file, destination_folder)
     
     def run(self):
 
+        print('starting copy [...]')
         if self.destination_folder=='':
-            self.destination_folder = FOLDERS[self.destBox.currentText()])
+            self.destination_folder = FOLDERS[self.destBox.currentText()]
         if self.source_folder=='':
-            self.source_folder = FOLDERS[self.sourceBox.currentText()])
+            self.source_folder = FOLDERS[self.sourceBox.currentText()]
             
         if self.typeBox.currentText()=='NWB':
             FILES = get_files_with_extension(self.source_folder,
                                              extension='.nwb', 
                                              recursive=True)
             for f in FILES:
-                cmd = file_copy_command(f, self.destination_folder)
-                # p = subprocess.Popen(cmd, shell=True)
+                cmd = self.file_copy_command(f, self.destination_folder)
                 print('"%s" launched as a subprocess' % cmd)
+                p = subprocess.Popen(cmd, shell=True)
+        else:
+            self.folder_copy_command(self.source_folder,
+                                     self.destination_folder)
+        print('done (but cmd likely still running as subprocesses)')
+                
         
     def quit(self):
         QtWidgets.QApplication.quit()
