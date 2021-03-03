@@ -79,7 +79,7 @@ class visual_stim:
         # we can initialize the angle
         self.x, self.z = self.angle_meshgrid()
         
-        if ('no-window' in self.protocol):
+        if not ('no-window' in self.protocol):
             
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
@@ -396,14 +396,13 @@ class visual_stim:
                                                   'screen-frames', 'frame.tiff'))
         
 
-        
 #####################################################
 ##  ----         MULTI-PROTOCOLS            --- #####           
 #####################################################
 
 class multiprotocol(visual_stim):
 
-    def __init__(self, protocol, load_from_protocol_data=False):
+    def __init__(self, protocol):
         
         super().__init__(protocol)
 
@@ -413,16 +412,14 @@ class multiprotocol(visual_stim):
             protocol['appearance_threshold'] = 2.5 # 
         self.frame_refresh = protocol['movie_refresh_freq']
                                                                                                         
-        
         self.STIM, i = [], 1
 
-        if load_from_protocol_data:
+        if 'load_from_protocol_data' in protocol:
             while 'Protocol-%i'%i in protocol:
                 subprotocol = {'screen':protocol['screen'],
                                'no-window':True}
                 for key in protocol:
                     if ('Protocol-%i-'%i in key):
-                        print(key)
                         subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
                 self.STIM.append(build_stim(subprotocol))
                 i+=1
@@ -478,7 +475,7 @@ class multiprotocol(visual_stim):
     def get_frames_sequence(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_Tstart=0, parent=None):
-        return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_Tstart=time_from_Tstart, parent=parent)
+        return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_Tstart=time_from_Tstart, parent=self)
 
 
 #####################################################
@@ -500,7 +497,11 @@ class light_level_single_stim(visual_stim):
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['light-level'][index]))]
-
+    
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return 0*self.x+cls.experiment['light-level'][index]
+    
             
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
@@ -545,6 +546,17 @@ class drifting_full_field_grating_stim(visual_stim):
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        angle = cls.experiment['angle'][episode]
+        spatial_freq = cls.experiment['spatial-freq'][episode]
+        contrast = cls.experiment['contrast'][episode]
+        x_rot = cls.x*np.cos(angle/180.*np.pi)+cls.z*np.sin(angle/180.*np.pi)
+        return np.cos(2*np.pi*spatial_freq*x_rot)
+                                 
 
         
 #####################################################
@@ -769,6 +781,17 @@ class gaussian_blobs(visual_stim):
             
         return times, FRAMES
 
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        contrast = cls.experiment['contrast'][episode]
+        xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
+        radius = cls.experiment['radius'][episode]
+        bg_color = cls.experiment['bg-color'][episode]
+        return np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*contrast+bg_color
+    
 
 #####################################################
 ##  ----    PRESENTING NATURAL IMAGES       --- #####
@@ -791,6 +814,11 @@ class natural_image(visual_stim):
         img = load(os.path.join(NI_directory, filename))
         return 2*img_after_hist_normalization(img).T-1.
 
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        cls = (parent if parent is not None else self)
+        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
+        img = load(os.path.join(NI_directory, filename))
+        return img_after_hist_normalization(img).T
             
 #####################################################
 ##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
@@ -876,6 +904,12 @@ class natural_image_vse(visual_stim):
             
         return times, FRAMES
 
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        cls = (parent if parent is not None else self)
+        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
+        img = load(os.path.join(NI_directory, filename))
+        # return np.rot90(img_after_hist_normalization(img))
+        return np.rot90(img)
     
 #####################################################
 ##  ----    PRESENTING BINARY NOISE         --- #####

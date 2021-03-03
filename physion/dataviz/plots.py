@@ -30,17 +30,6 @@ def raw_data_plot(self, tzoom,
                        pen=pg.mkPen(color=self.settings['colors']['Screen']))
 
 
-    # if self.visual_stim is not None:
-    # # if 'visual-stimuli' in self.nwbfile.stimulus:
-        
-    #     i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
-    #     self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
-    #     if hasattr(self, 'ScreenFrameLevel'):
-    #         self.plot.removeItem(self.ScreenFrameLevel)
-    #     self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2),
-    #                                            [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
-
-
     ## -------- Locomotion --------- ##
     
     if 'Running-Speed' in self.nwbfile.acquisition:
@@ -168,6 +157,8 @@ def raw_data_plot(self, tzoom,
         iplot += 1
 
 
+    # ## -------- Visual Stimulation --------- ##
+
     if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
         # if visual-stim we highlight the stim periods
         icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
@@ -187,6 +178,21 @@ def raw_data_plot(self, tzoom,
                 t1 = self.nwbfile.stimulus['time_stop_realigned'].data[i]
                 self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
                                 fillLevel=y.max(), brush=(150,150,150,80)))
+                
+    if self.visual_stim is not None:
+        
+        icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]<=self.time) & \
+                            (self.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
+        if len(icond)>0:
+            self.pScreenimg.setImage(255*self.visual_stim.get_image(icond[0],
+                                    self.time-self.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
+        elif self.time<=self.nwbfile.stimulus['time_start_realigned'].data[0]: # PRE-STIM
+            self.pScreenimg.setImage(255*((1+self.metadata['presentation-prestim-screen'])/2.+0*self.visual_stim.x))
+        elif self.time>=self.nwbfile.stimulus['time_stop_realigned'].data[-1]: # POST-STIM
+            self.pScreenimg.setImage(255*((1+self.metadata['presentation-poststim-screen'])/2.+0*self.visual_stim.x))
+        else: # INTER-STIM
+            self.pScreenimg.setImage(255*((1+self.metadata['presentation-interstim-screen'])/2.+0*self.visual_stim.x))
+
 
     # if with_scatter and hasattr(self, 'scatter'):
     #     self.plot.removeItem(self.scatter)
