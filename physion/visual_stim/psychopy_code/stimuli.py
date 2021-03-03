@@ -75,9 +75,12 @@ class visual_stim:
             self.screen = SCREENS[self.protocol['screen']]
         else:
             self.screen = SCREENS['demo']
-            
+
+        # we can initialize the angle
+        self.x, self.z = self.angle_meshgrid()
         
-        if not ('no-window' in self.protocol):
+        if ('no-window' in self.protocol):
+            
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
@@ -400,7 +403,7 @@ class visual_stim:
 
 class multiprotocol(visual_stim):
 
-    def __init__(self, protocol):
+    def __init__(self, protocol, load_from_protocol_data=False):
         
         super().__init__(protocol)
 
@@ -411,18 +414,28 @@ class multiprotocol(visual_stim):
         self.frame_refresh = protocol['movie_refresh_freq']
 
         
-        self.STIM = []
-        i=1
-        while 'Protocol-%i'%i in protocol:
-            Ppath = os.path.join(protocol['protocol-folder'], protocol['Protocol-%i'%i])
-            with open(Ppath, 'r') as fp:
-                subprotocol = json.load(fp)
-                subprotocol['screen'] = protocol['screen']
-                subprotocol['no-window'] = True
+        self.STIM, i = [], 1
+
+        if load_from_protocol_data:
+            while 'Protocol-%i'%i in protocol:
+                subprotocol = {'screen':protocol['screen'],
+                               'no-window':True}
+                for key in protocol:
+                    if ('Protocol-%i-'%i in key):
+                        subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
                 self.STIM.append(build_stim(subprotocol))
-                for key, val in subprotocol.items():
-                    protocol['Protocol-%i-%s'%(i,key)] = val
-            i+=1
+                i+=1
+        else:
+            while 'Protocol-%i'%i in protocol:
+                Ppath = os.path.join(protocol['protocol-folder'], protocol['Protocol-%i'%i])
+                with open(Ppath, 'r') as fp:
+                    subprotocol = json.load(fp)
+                    subprotocol['screen'] = protocol['screen']
+                    subprotocol['no-window'] = True
+                    self.STIM.append(build_stim(subprotocol))
+                    for key, val in subprotocol.items():
+                        protocol['Protocol-%i-%s'%(i,key)] = val
+                i+=1
 
         self.experiment = {'time_duration':[],
                            'protocol_id':[]}
@@ -463,6 +476,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_patterns(index, parent=self)
     def get_frames_sequence(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
+        return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_Tstart=time_from_Tstart, parent=parent)
 
 
 #####################################################
@@ -497,22 +512,23 @@ class full_field_grating_stim(visual_stim):
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast'], run_type='static')
 
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
                                    sf=cls.angle_to_pix(cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
-    def get_image(self, index, time, parent=None):
+    def get_image(self, episode, time_from_Tstart=0, parent=None):
         """
         Need to implement it 
         """
-        return np.ones(2,2)
-    
+        cls = (parent if parent is not None else self)
+        angle = cls.experiment['angle'][episode]
+        spatial_freq = cls.experiment['spatial-freq'][episode]
+        contrast = cls.experiment['contrast'][episode]
+        x_rot = cls.x*np.cos(angle/180.*np.pi)+cls.z*np.sin(angle/180.*np.pi)
+        return np.cos(2*np.pi*spatial_freq*x_rot)
                                  
             
 class drifting_full_field_grating_stim(visual_stim):
@@ -522,10 +538,7 @@ class drifting_full_field_grating_stim(visual_stim):
         super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast', 'speed'], run_type='drifting')
 
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
@@ -725,7 +738,7 @@ class gaussian_blobs(visual_stim):
         Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
         random samples of sin([0, 2pi]).
         """
-        x, z = cls.angle_meshgrid()
+        # x, z = cls.angle_meshgrid() # CAN BE REMOVED
         
         bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
@@ -745,12 +758,12 @@ class gaussian_blobs(visual_stim):
         FRAMES.append(2*bg_color-1.+0.*x)
         times[:itstart] = 0
         for iframe, it in enumerate(np.arange(itstart, itend)):
-            img = 2*(np.exp(-((x-xcenter)**2+(z-zcenter)**2)/2./radius**2)*\
+            img = 2*(np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
                      contrast*np.exp(-(it/cls.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
             FRAMES.append(img)
             times[it] = iframe
         # the post-time
-        FRAMES.append(2*bg_color-1.+0.*x)
+        FRAMES.append(2*bg_color-1.+0.*self.x)
         times[itend:] = len(FRAMES)-1
             
         return times, FRAMES
