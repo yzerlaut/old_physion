@@ -9,6 +9,8 @@ from dataviz import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
+from analysis.read_NWB import read as read_NWB
+from visual_stim.psychopy_code.stimuli import visual_stim
 from misc.folders import FOLDERS
 
 settings = {
@@ -67,12 +69,13 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        # filename = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
+        # filename = '/media/yann/Yann/2021_02_19/14-45-21/2021_02_19-14-45-21.nwb'
+        filename = '/home/yann/Desktop/2021_02_19-14-45-21.nwb'
         
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                        os.path.join(os.path.expanduser('~'),'DATA'),
-                            filter="*.nwb")
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #                 os.path.join(os.path.expanduser('~'),'DATA'),
+        #                     filter="*.nwb")
         
         if filename!='':
             self.reset()
@@ -116,6 +119,10 @@ class MainWindow(guiparts.NewWindow):
         self.sbox.addItem(self.nwbfile.subject.description)
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
+
+        
+        self.visual_stim = visual_stim(self.metadata)
+        print(self.visual_stim)
         
         if 'ophys' in self.nwbfile.processing:
             self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))

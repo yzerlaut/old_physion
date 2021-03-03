@@ -17,7 +17,7 @@ def raw_data_plot(self, tzoom,
     self.plot.clear()
     
     ## -------- Screen --------- ##
-    print(self.nwbfile.acquisition)
+
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
         i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
@@ -29,14 +29,16 @@ def raw_data_plot(self, tzoom,
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Screen']))
 
-    if 'visual-stimuli' in self.nwbfile.stimulus:
+
+    # if self.visual_stim is not None:
+    # # if 'visual-stimuli' in self.nwbfile.stimulus:
         
-        i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
-        self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
-        if hasattr(self, 'ScreenFrameLevel'):
-            self.plot.removeItem(self.ScreenFrameLevel)
-        self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2),
-                                               [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
+    #     i0 = convert_time_to_index(self.time, self.nwbfile.stimulus['visual-stimuli'])-1
+    #     self.pScreenimg.setImage(self.nwbfile.stimulus['visual-stimuli'].data[i0])
+    #     if hasattr(self, 'ScreenFrameLevel'):
+    #         self.plot.removeItem(self.ScreenFrameLevel)
+    #     self.ScreenFrameLevel = self.plot.plot(self.nwbfile.stimulus['visual-stimuli'].timestamps[i0]*np.ones(2),
+    #                                            [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Screen']), linewidth=0.5)
 
 
     ## -------- Locomotion --------- ##

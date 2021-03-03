@@ -412,7 +412,7 @@ class multiprotocol(visual_stim):
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
         self.frame_refresh = protocol['movie_refresh_freq']
-
+                                                                                                        
         
         self.STIM, i = [], 1
 
@@ -422,6 +422,7 @@ class multiprotocol(visual_stim):
                                'no-window':True}
                 for key in protocol:
                     if ('Protocol-%i-'%i in key):
+                        print(key)
                         subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
                 self.STIM.append(build_stim(subprotocol))
                 i+=1

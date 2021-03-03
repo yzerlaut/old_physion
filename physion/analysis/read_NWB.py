@@ -13,8 +13,8 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
 
     self.io = pynwb.NWBHDF5IO(filename, 'r')
     self.nwbfile = self.io.read()
-    if verbose:
-        print(self.nwbfile)
+    self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+\
+        self.nwbfile.experiment_description
     
     if verbose:
         t0 = time.time()
@@ -40,9 +40,6 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
         self.protocols = [self.metadata['protocol']]
         self.description += '- %s ' % self.metadata['protocol']
     self.protocols = np.array(self.protocols, dtype=str)
-    
-    self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+\
-        self.nwbfile.experiment_description
 
     if not metadata_only or with_tlim:
         self.tlim, safety_counter = None, 0
@@ -87,6 +84,7 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
                         self.keys.append(key)
                     else:
                         self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
+                    
 
         if 'time_start_realigned' in self.nwbfile.stimulus.keys():
             self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
@@ -95,4 +93,11 @@ def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
 
     if verbose:
         print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
+
+
+
+
+
+
+
 
