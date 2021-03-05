@@ -151,7 +151,8 @@ class visual_stim:
         z = np.linspace(self.cm_to_angle(-self.screen['width']/2.)*self.screen['resolution'][1]/self.screen['resolution'][0],
                         self.cm_to_angle(self.screen['width']/2.)*self.screen['resolution'][1]/self.screen['resolution'][0],
                         self.screen['resolution'][1])
-        return np.meshgrid(x, z)
+        X, Z = np.meshgrid(x, z)
+        return np.rot90(X, k=3).T, np.rot90(Z, k=3).T
 
     def angle_to_cm(self, value):
         return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
@@ -284,7 +285,6 @@ class visual_stim:
     ##########################################################
     #############      PRESENTING STIMULI    #################
     ##########################################################
-
     
     #####################################################
     # showing a single static pattern
@@ -394,8 +394,64 @@ class visual_stim:
         if self.store_frame:
             self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                                   'screen-frames', 'frame.tiff'))
-        
 
+    
+    def get_prestim_image(self):
+        return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
+    def get_interstim_image(self):
+        return (1+self.protocol['presentation-interstim-screen'])/2.+0*self.x
+    def get_poststim_image(self):
+        return (1+self.protocol['presentation-poststim-screen'])/2.+0*self.x
+
+    ##########################################################
+    #############    DRAWING STIMULI (offline)  ##############
+    ##########################################################
+    
+    def show_frame(self, episode, 
+                   time_from_episode_start=0,
+                   label={'degree':5,
+                          'shift_factor':0.02,
+                          'lw':2, 'fontsize':12},
+                   arrow=None,
+                   vse=None,
+                   ax=None):
+        """
+
+        display the visual stimulus at a given time in a given episode of a stimulation pattern
+
+        --> optional with angular label (switch to None to remove)
+                   label={'degree':5,
+                          'shift_factor':0.02,
+                          'lw':2, 'fontsize':12},
+        --> optional with arrow for direction propagation (switch to None to remove)
+                   arrow={'direction':90,
+                          'center':(0,0),
+                          'length':10,
+                          'width_factor':0.05,
+                          'color':'red'},
+        --> optional with virtual scene exploration trajectory (switch to None to remove)
+        """
+        if ax==None:
+            import matplotlib.pylab as plt
+            fig, ax = plt.subplots(1)
+        ax.imshow(self.get_image(episode, time_from_episode_start), cmap='gray')
+        ax.axis('off')
+        if label is not None:
+            nz, nx = self.x.shape
+            L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
+            ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
+            ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
+            ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='top')
+        if arrow is not None:
+            nz, nx = self.x.shape
+            ax.arrow(self.angle_to_pix(arrow['center'][0])+nx/2,
+                     self.angle_to_pix(arrow['center'][1])+nz/2,
+                     np.cos(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
+                     np.sin(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
+                     width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
+                     color=arrow['color'])
+        return ax
+            
 #####################################################
 ##  ----         MULTI-PROTOCOLS            --- #####           
 #####################################################
@@ -466,7 +522,6 @@ class multiprotocol(visual_stim):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period']
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
-        
     # functions implemented in child class
     def get_frame(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frame(index, parent=self)
@@ -474,8 +529,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_patterns(index, parent=self)
     def get_frames_sequence(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
-        return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_Tstart=time_from_Tstart, parent=self)
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
 
 
 #####################################################
@@ -498,14 +553,23 @@ class light_level_single_stim(visual_stim):
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['light-level'][index]))]
     
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return 0*self.x+cls.experiment['light-level'][index]
+        return 0*self.x+(1+cls.experiment['light-level'][index])/2.
     
-            
+
+
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
 #####################################################
+
+# some general grating functions
+def compute_xrot(x, z, angle=0, xcenter=0, zcenter=0):
+    return (x-xcenter)*np.cos(angle/180.*np.pi)+(z-zcenter)*np.sin(angle/180.*np.pi)
+
+def compute_grating(xrot, spatial_freq=0.1, contrast=1, time_phase=0.):
+    # return np.rot90(contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot-time_phase)))/2., k=3).T
+    return contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot-time_phase)))/2.
 
 class full_field_grating_stim(visual_stim):
 
@@ -521,23 +585,25 @@ class full_field_grating_stim(visual_stim):
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         """
         Need to implement it 
         """
         cls = (parent if parent is not None else self)
-        angle = cls.experiment['angle'][episode]
-        spatial_freq = cls.experiment['spatial-freq'][episode]
-        contrast = cls.experiment['contrast'][episode]
-        x_rot = cls.x*np.cos(angle/180.*np.pi)+cls.z*np.sin(angle/180.*np.pi)
-        return np.cos(2*np.pi*spatial_freq*x_rot)
+        xrot = compute_xrot(cls.x, cls.z,
+                            angle=cls.experiment['angle'][episode])
+        return compute_grating(xrot,
+                               spatial_freq=cls.experiment['spatial-freq'][episode],
+                               contrast=cls.experiment['contrast'][episode])
                                  
             
 class drifting_full_field_grating_stim(visual_stim):
 
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast', 'speed'], run_type='drifting')
+        super().init_experiment(protocol,
+                                ['spatial-freq', 'angle', 'contrast', 'speed'],
+                                run_type='drifting')
 
     def get_patterns(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -546,17 +612,18 @@ class drifting_full_field_grating_stim(visual_stim):
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         """
         Need to implement it 
         """
         cls = (parent if parent is not None else self)
-        angle = cls.experiment['angle'][episode]
-        spatial_freq = cls.experiment['spatial-freq'][episode]
-        contrast = cls.experiment['contrast'][episode]
-        x_rot = cls.x*np.cos(angle/180.*np.pi)+cls.z*np.sin(angle/180.*np.pi)
-        return np.cos(2*np.pi*spatial_freq*x_rot)
-                                 
+        xrot = compute_xrot(cls.x, cls.z,
+                            angle=cls.experiment['angle'][episode])
+        return compute_grating(xrot,
+                               spatial_freq=cls.experiment['spatial-freq'][episode],
+                               contrast=cls.experiment['contrast'][episode],
+                               time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
 
         
 #####################################################
@@ -567,7 +634,9 @@ class center_grating_stim(visual_stim):
     
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'], run_type='static')
+        super().init_experiment(protocol,
+                                ['bg-color', 'x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'],
+                                run_type='static')
 
     def get_patterns(self, index, parent=None):
         if parent is not None:
@@ -575,6 +644,9 @@ class center_grating_stim(visual_stim):
         else:
             cls = self
         return [visual.GratingStim(win=cls.win,
+                                   size=10000, pos=[0,0], sf=0, units='pix',
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
+                visual.GratingStim(win=cls.win,
                                    pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
                                         cls.angle_to_pix(cls.experiment['y-center'][index])],
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
@@ -582,6 +654,24 @@ class center_grating_stim(visual_stim):
                                    ori=cls.experiment['angle'][index], units='pix',
                                    mask='circle',
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
+    
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        img = cls.experiment['bg-color'][episode] + 0*cls.x
+        cond = (((self.x-cls.experiment['x-center'][episode])**2+\
+                 (self.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
+        img[cond] = compute_grating(xrot[cond],
+                                    cls.experiment['contrast'][episode],
+                                    cls.experiment['spatial-freq'][episode])
+        return img
+    
 
 class drifting_center_grating_stim(visual_stim):
     
@@ -603,6 +693,26 @@ class drifting_center_grating_stim(visual_stim):
                                    mask='circle',
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        img = cls.experiment['bg-color'][episode] + 0*cls.x
+        cond = (((self.x-cls.experiment['x-center'][episode])**2+\
+                 (self.z-cls.experiment['y-center'][episode])**2)<=(cls.experiment['radius'][episode]**2)) # circle mask
+        print(cls.experiment['spatial-freq'][episode])
+        img[cond] = compute_grating(xrot[cond],
+                                    cls.experiment['contrast'][episode],
+                                    cls.experiment['spatial-freq'][episode],
+                                    time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        # img = 0*cls.x+cls.experiment['bg-color'][episode]
+        # img[cond] = 1
+        return img
 
 #####################################################
 ##  ----    PRESENTING OFF-CENTERED GRATINGS    --- #####           
@@ -612,7 +722,9 @@ class off_center_grating_stim(visual_stim):
     
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color'], run_type='static')
+        super().init_experiment(protocol,
+                                ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'bg-color'],
+                                run_type='static')
 
         
     def get_patterns(self, index, parent=None):
@@ -660,6 +772,25 @@ class drifting_off_center_grating_stim(visual_stim):
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
 
 
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        img = (1+cls.experiment['bg-color'][episode])/2. + 0*cls.x
+        img = 0*cls.x
+        cond = (((self.x-xcenter)**2+(self.z-zcenter)**2)<=cls.experiment['radius'][episode]) # circle mask
+        # img[cond] = compute_grating(xrot[cond],
+        #                             cls.experiment['contrast'][episode],
+        #                             cls.experiment['spatial-freq'][episode],
+        #                             time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        img[cond] = 1
+        return img
+    
 #####################################################
 ##  ----    PRESENTING SURROUND GRATINGS    --- #####           
 #####################################################
@@ -781,7 +912,7 @@ class gaussian_blobs(visual_stim):
             
         return times, FRAMES
 
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         """
         Need to implement it 
         """
@@ -814,7 +945,7 @@ class natural_image(visual_stim):
         img = load(os.path.join(NI_directory, filename))
         return 2*img_after_hist_normalization(img).T-1.
 
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
         img = load(os.path.join(NI_directory, filename))
@@ -904,7 +1035,7 @@ class natural_image_vse(visual_stim):
             
         return times, FRAMES
 
-    def get_image(self, episode, time_from_Tstart=0, parent=None):
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
         img = load(os.path.join(NI_directory, filename))

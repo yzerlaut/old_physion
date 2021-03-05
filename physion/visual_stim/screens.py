@@ -23,8 +23,9 @@ SCREENS = {
         'name':'testMonitor',
         'screen_id':0,
         'resolution':[600, 338],
-        'width':10, # in cm
-        'distance_from_eye':10, # in cm
+        'width':48.0, # in cm
+        'height':27.0, # in cm
+        'distance_from_eye':15.0, # in cm
         'fullscreen':False,
         'monitoring_square':{'size':15,
                              'color-on':1,

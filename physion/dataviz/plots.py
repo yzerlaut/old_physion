@@ -21,7 +21,7 @@ def raw_data_plot(self, tzoom,
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
         i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
-            isampling = range(i1, i2)
+            isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Photodiode-Signal'].data[list(isampling)], i=iplot)
@@ -102,7 +102,7 @@ def raw_data_plot(self, tzoom,
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Electrophysiological-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Electrophysiological-Signal'])-1
         if self.no_subsampling:
-            isampling = np.arange(i1, i2)
+            isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         y = scale_and_position(self,self.nwbfile.acquisition['Electrophysiological-Signal'].data[list(isampling)], i=iplot)
@@ -137,22 +137,26 @@ def raw_data_plot(self, tzoom,
     if ('ophys' in self.nwbfile.processing) and (self.roiIndices is not None):
         i1 = convert_time_to_index(self.tzoom[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(self.tzoom[1], self.Neuropil, axis=1)
+        if self.no_subsampling:
+            isampling = np.arange(i1,i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
         if self.roiPick.text()=='sum':
-            y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0), i=iplot)
+            y = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
             tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
             self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
             if self.CaImaging_key=='Fluorescence':
-                nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0),
-                                      value=self.Neuropil.data[self.validROI_indices[self.roiIndices],i1:i2].sum(axis=0), i=iplot)
+                nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0),
+                                      value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
                 self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],i1:i2], i=iplot)+n
+                y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling], i=iplot)+n
                 tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
                 self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
                 if self.CaImaging_key=='Fluorescence':
-                    nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],i1:i2],
-                                          value=self.Neuropil.data[self.validROI_indices[ir],i1:i2], i=iplot)+n
+                    nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling],
+                                          value=self.Neuropil.data[self.validROI_indices[ir],isampling], i=iplot)+n
                     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
 
@@ -185,13 +189,13 @@ def raw_data_plot(self, tzoom,
                             (self.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
         if len(icond)>0:
             self.pScreenimg.setImage(255*self.visual_stim.get_image(icond[0],
-                                    self.time-self.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
+                                     self.time-self.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
         elif self.time<=self.nwbfile.stimulus['time_start_realigned'].data[0]: # PRE-STIM
-            self.pScreenimg.setImage(255*((1+self.metadata['presentation-prestim-screen'])/2.+0*self.visual_stim.x))
+            self.pScreenimg.setImage(255*self.visual_stim.get_prestim_image())
         elif self.time>=self.nwbfile.stimulus['time_stop_realigned'].data[-1]: # POST-STIM
-            self.pScreenimg.setImage(255*((1+self.metadata['presentation-poststim-screen'])/2.+0*self.visual_stim.x))
+            self.pScreenimg.setImage(255*self.visual_stim.get_poststim_image())
         else: # INTER-STIM
-            self.pScreenimg.setImage(255*((1+self.metadata['presentation-interstim-screen'])/2.+0*self.visual_stim.x))
+            self.pScreenimg.setImage(255*self.visual_stim.get_interstim_image())
 
 
     # if with_scatter and hasattr(self, 'scatter'):

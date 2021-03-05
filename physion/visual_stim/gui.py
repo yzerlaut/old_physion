@@ -87,7 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        LABELS = ["o) Load Protocol", " Save Protocol", "Set folders"]
+        LABELS = ["Load Protocol [Ctrl+O]", " Save Protocol", "Set folders"]
         FUNCTIONS = [self.load_protocol, self.save_protocol, self.set_folders]
         for func, label, shift, size in zip(FUNCTIONS, LABELS,\
                                             150*np.arange(len(LABELS)), [150, 150, 100]):
@@ -96,8 +96,9 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.setMinimumWidth(size)
             btn.move(shift, 250)
             action = QtWidgets.QAction(label, self)
-            if len(label.split(')'))>0:
-                action.setShortcut(label.split(')')[0])
+            if len(label.split('['))>1:
+                print(label.split('[')[0].replace(']',''))
+                action.setShortcut(label.split('[')[1].replace(']',''))
                 action.triggered.connect(func)
                 self.fileMenu.addAction(action)
 

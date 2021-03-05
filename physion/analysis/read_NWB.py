@@ -9,7 +9,8 @@ def init(self):
     self.keys = []
     
     
-def read(self, filename, verbose=False, with_tlim=True, metadata_only=False):
+def read(self, filename, verbose=False, with_tlim=True,
+         metadata_only=False):
 
     self.io = pynwb.NWBHDF5IO(filename, 'r')
     self.nwbfile = self.io.read()

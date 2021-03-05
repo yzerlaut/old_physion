@@ -20,7 +20,7 @@ settings = {
     'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'colors':{'Screen':(100, 100, 100, 255),#'grey',
               'Locomotion':(255,255,255,255),#'white',
-              'Whisking':(255,0,255,255),#'white',
+              'Whisking':(255,0,255,255),#'purple',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
@@ -43,7 +43,7 @@ class MainWindow(guiparts.NewWindow):
         self.no_subsampling = False
         
         super(MainWindow, self).__init__(i=0,
-            title='Physion -- Data Visualization')
+            title='Data Visualization -- Physion')
 
         # play button
         self.updateTimer = QtCore.QTimer()
@@ -104,7 +104,8 @@ class MainWindow(guiparts.NewWindow):
             
     def load_file(self, filename):
 
-        read_NWB(self, filename, verbose=True) # see ../analysis/read_NWB.py
+        read_NWB(self, filename,
+                 verbose=True) # see ../analysis/read_NWB.py
 
         self.tzoom = self.tlim
         self.notes.setText(self.description)
@@ -119,17 +120,21 @@ class MainWindow(guiparts.NewWindow):
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
 
+        # load visual stimulation
         if self.metadata['VisualStim']:
             self.metadata['load_from_protocol_data'] = True
             self.metadata['no-window'] = True
             self.visual_stim = build_stim(self.metadata)
         else:
-            self.visual_stim = None
+            self.visual_stim = None # by default
+            
 
+        
         if 'ophys' in self.nwbfile.processing:
             self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
 
 
+            
     def select_folder(self):
 
         print('inspecting data folder [...]')

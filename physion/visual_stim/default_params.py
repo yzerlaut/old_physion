@@ -37,7 +37,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         # range
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'angle-1':0., 'angle-2':180, 'N-angle':0,
+        'angle-1':0., 'angle-2':360, 'N-angle':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
     
     # center grating
@@ -47,7 +47,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
         'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
@@ -62,7 +62,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
         'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
@@ -78,7 +78,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
@@ -95,7 +95,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         # range
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
-        'angle-1':0., 'angle-2':180, 'N-angle':0,
+        'angle-1':0., 'angle-2':360, 'N-angle':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
     
@@ -107,7 +107,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
@@ -124,7 +124,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
@@ -142,7 +142,7 @@ STIMULI = {
         'contrast (norm.)':1.,
         'bg-color (lum.)':0., # not thought to be varied
         # range
-        'angle-1':0, 'angle-2':150., 'N-angle':0,
+        'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,

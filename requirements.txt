@@ -4,6 +4,6 @@ conda install mkl_fft
 pip install git+https://github.com/yzerlaut/suite2p
 # my data vizualization module that has a few handy tools (OPTIONAL)
 pip install git+https://github.com/yzerlaut/datavyz
-#
+# some problems with the ruamel and ruamel.yaml modules, need to be installed manually:
 conda install ruamel
 conda install ruamel.yaml
