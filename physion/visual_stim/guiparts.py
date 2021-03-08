@@ -14,10 +14,10 @@ def draw_window(parent, protocol):
                                         parent.cbs.currentText()))
 
     if parent.cbp.currentText()=='':
-        window.setGeometry(500, 100, 400, 40)
+        window.setGeometry(900, 100, 400, 40)
         QtWidgets.QLabel("\n"+10*' '+"Need to choose a presentation ! ", window)
     elif parent.cbs.currentText()=='':
-        window.setGeometry(500, 100, 400, 40)
+        window.setGeometry(900, 100, 400, 40)
         QtWidgets.QLabel("\n"+10*' '+"Need to choose a stimulus ! ", window)
         
     else:
@@ -51,7 +51,7 @@ def set_single_stim_params_window(parent, window, protocol):
 
     """
     params_keys = get_params_keys(protocol, stimulus=protocol['Stimulus'])
-    window.setGeometry(500, 100, 320, LS*(7+len(params_keys)))
+    window.setGeometry(900, 100, 320, LS*(7+len(params_keys)))
     QtWidgets.QLabel("  =======  Stimulus settings ======== ", window).move(5, LS)
     for i, key in enumerate(params_keys):
         new_key = key.split(' (')[0]
@@ -102,7 +102,7 @@ def set_multiple_stim_params_window(parent, window, protocol):
     """
     """
     params_keys = get_params_keys(protocol, stimulus=protocol['Stimulus'])
-    window.setGeometry(500, 100, 600, LS*(13+len(params_keys)))
+    window.setGeometry(900, 100, 600, LS*(13+len(params_keys)))
     QtWidgets.QLabel("  "+20*"="+" Set-of-Stimuli settings "+20*"=", window).move(5, LS)
     QtWidgets.QLabel("|| Params ", window).move(5, 2*LS)
     QtWidgets.QLabel("|| Low-value ", window).move(150, 2*LS)

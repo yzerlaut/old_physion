@@ -705,11 +705,11 @@ class drifting_center_grating_stim(visual_stim):
         img = cls.experiment['bg-color'][episode] + 0*cls.x
         cond = (((self.x-cls.experiment['x-center'][episode])**2+\
                  (self.z-cls.experiment['y-center'][episode])**2)<=(cls.experiment['radius'][episode]**2)) # circle mask
-        print(cls.experiment['spatial-freq'][episode])
-        img[cond] = compute_grating(xrot[cond],
-                                    cls.experiment['contrast'][episode],
-                                    cls.experiment['spatial-freq'][episode],
-                                    time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        print(cls.experiment['contrast'][episode])
+        img = compute_grating(xrot,
+                              cls.experiment['contrast'][episode],
+                              cls.experiment['spatial-freq'][episode],
+                              time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
         # img = 0*cls.x+cls.experiment['bg-color'][episode]
         # img[cond] = 1
         return img
