@@ -598,7 +598,7 @@ class full_field_grating_stim(visual_stim):
         cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
-                                   sf=cls.angle_to_pix(cls.experiment['spatial-freq'][index]),
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
@@ -657,8 +657,6 @@ class center_grating_stim(visual_stim):
 
     def get_patterns(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        print('diamter=%.1f, x=%.1f' % (2*cls.angle_to_pix(cls.experiment['radius'][index]),
-                                        cls.angle_to_pix(cls.experiment['x-center'][index])))
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
@@ -667,14 +665,11 @@ class center_grating_stim(visual_stim):
                                         cls.angle_to_pix(cls.experiment['y-center'][index])],
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
-                                   ori=cls.experiment['angle'][index], units='pix',
-                                   mask='circle',
+                                   ori=cls.experiment['angle'][index],
+                                   units='pix', mask='circle',
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
     
     def get_image(self, episode, time_from_episode_start=0, parent=None):
-        """
-        Need to implement it 
-        """
         cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
                             xcenter=cls.experiment['x-center'][episode],
@@ -695,17 +690,14 @@ class drifting_center_grating_stim(visual_stim):
         super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'], run_type='static')
 
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
                                         cls.angle_to_pix(cls.experiment['y-center'][index])],
                                    sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
-                                   ori=cls.experiment['angle'][index], units='pix',
-                                   mask='circle',
+                                   ori=cls.experiment['angle'][index],
+                                   units='pix', mask='circle',
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):

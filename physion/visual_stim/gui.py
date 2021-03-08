@@ -9,7 +9,7 @@ from assembling.saving import create_day_folder, generate_filename_path
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
 from psychopy_code.stimuli import build_stim
-from default_params import STIMULI, PRESENTATIONS, SETUP
+from default_params import STIMULI, PRESENTATIONS
 from screens import SCREENS
 from guiparts import *
 
