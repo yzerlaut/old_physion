@@ -9,9 +9,8 @@ from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
     from visual_stim.psychopy_code.stimuli import build_stim
-    from visual_stim.default_params import SETUP
 else:
-    SETUP = [None]
+    SCREEN = [None]
 
 from misc.style import set_app_icon, set_dark_style
 try:
@@ -54,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ##########################################################
         ######## class values
         ##########################################################
-        self.stim, self.acq, self.init, self.setup, self.stop_flag = None, None, False, SETUP[0], False
+        self.stim, self.acq, self.init, self.screen, self.stop_flag = None, None, False, None, False
         self.FaceCamera_process = None
         self.RigView_process = None
         self.params_window = None
@@ -215,7 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.get_protocol_list()
         self.get_subject_list()
         self.root_datafolder = os.path.join(os.path.expanduser('~'), self.config['root_datafolder'])
-        self.Setup = self.config['Setup']
+        self.Screen = self.config['Screen']
 
     def get_protocol_list(self):
         if self.config['protocols']=='all':
@@ -233,7 +232,7 @@ class MainWindow(QtWidgets.QMainWindow):
             fn = os.path.join(base_path, 'protocols', self.cbp.currentText()+'.json')
             with open(fn) as f:
                 self.protocol = json.load(f)
-            self.protocol['Setup'] = self.config['Setup'] # override params
+            self.protocol['Screen'] = self.config['Screen'] # override params
             self.protocol['data-folder'] = self.root_datafolder
         
     def get_subject_list(self):
@@ -253,7 +252,7 @@ class MainWindow(QtWidgets.QMainWindow):
                           args=(self.run_event , self.quit_event, self.datafolder))
         self.RigView_process.start()
         time.sleep(5)
-        self.statusBar.showMessage('Setup ready')
+        self.statusBar.showMessage('Screen ready')
         
     def initialize(self):
 
