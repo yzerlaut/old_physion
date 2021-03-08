@@ -81,9 +81,10 @@ class visual_stim:
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             
-            if ('demo' in self.protocol) and self.protocol['demo']:
+            if demo or (('demo' in self.protocol) and self.protocol['demo']):
                 # we override the parameters
-                self.screen['resolution'] = (600,338)
+                self.screen['monitoring_square']['size'] = int(600*self.screen['monitoring_square']['size']/self.screen['resolution'][0])
+                self.screen['resolution'] = (600,int(600*self.screen['resolution'][1]/self.screen['resolution'][0]))
                 self.screen['screen_id'] = 0
                 self.screen['fullscreen'] = False
                 self.protocol['movie_refresh_freq'] = 5.
@@ -96,12 +97,15 @@ class visual_stim:
 
             # blank screens
             self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                                  color=self.protocol['presentation-prestim-screen'], units='pix')
+                                                  color=self.gamma_corrected_lum(self.protocol['presentation-prestim-screen']),
+                                                  units='pix')
             if 'presentation-interstim-screen' in self.protocol:
                 self.blank_inter = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                                  color=self.protocol['presentation-interstim-screen'], units='pix')
+                                                      color=self.gamma_corrected_lum(self.protocol['presentation-interstim-screen']),
+                                                      units='pix')
             self.blank_end = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
-                                    color=self.protocol['presentation-poststim-screen'], units='pix')
+                                                color=self.gamma_corrected_lum(self.protocol['presentation-poststim-screen']),
+                                                units='pix')
 
             if self.screen['monitoring_square']['location']=='top-right':
                 pos = [int(x/2.-self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
@@ -162,9 +166,17 @@ class visual_stim:
     def angle_to_cm(self, value):
         return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
     
-    def angle_to_pix(self, value):
-        return self.screen['resolution'][0]/self.screen['width']*\
-            self.angle_to_cm(value)
+    def angle_to_pix(self, value, from_center=False, starting_angle=0):
+        """
+        We deal here with the non-linear transformation of angle to distance on the screen (see "tan" function toward 90deg)
+        we introduce a "starting_angle" so that a size-on-screen can be taken 
+        """
+        if starting_angle==0:
+            return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)
+        else:
+            pix1 = self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(np.abs(starting_angle)+value)
+            pix2 = self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(np.abs(starting_angle))
+            return np.abs(pix2-pix1)
 
                            
     ################################
@@ -439,7 +451,7 @@ class visual_stim:
         if ax==None:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
-        ax.imshow(self.get_image(episode, time_from_episode_start), cmap='gray')
+        ax.imshow(self.get_image(episode, time_from_episode_start), cmap='gray', vmin=0, vmax=1, aspect='equal')
         ax.axis('off')
         if label is not None:
             nz, nx = self.x.shape
@@ -644,10 +656,9 @@ class center_grating_stim(visual_stim):
                                 run_type='static')
 
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
+        print('diamter=%.1f, x=%.1f' % (2*cls.angle_to_pix(cls.experiment['radius'][index]),
+                                        cls.angle_to_pix(cls.experiment['x-center'][index])))
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
@@ -665,16 +676,15 @@ class center_grating_stim(visual_stim):
         Need to implement it 
         """
         cls = (parent if parent is not None else self)
-        cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
                             xcenter=cls.experiment['x-center'][episode],
                             zcenter=cls.experiment['y-center'][episode])
-        img = cls.experiment['bg-color'][episode] + 0*cls.x
+        img = (1+cls.experiment['bg-color'][episode])/2. + 0*cls.x
         cond = (((self.x-cls.experiment['x-center'][episode])**2+\
                  (self.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
         img[cond] = compute_grating(xrot[cond],
-                                    cls.experiment['contrast'][episode],
-                                    cls.experiment['spatial-freq'][episode])
+                                    contrast=cls.experiment['contrast'][episode],
+                                    spatial_freq=cls.experiment['spatial-freq'][episode])
         return img
     
 
@@ -710,13 +720,10 @@ class drifting_center_grating_stim(visual_stim):
         img = cls.experiment['bg-color'][episode] + 0*cls.x
         cond = (((self.x-cls.experiment['x-center'][episode])**2+\
                  (self.z-cls.experiment['y-center'][episode])**2)<=(cls.experiment['radius'][episode]**2)) # circle mask
-        print(cls.experiment['contrast'][episode])
-        img = compute_grating(xrot,
-                              cls.experiment['contrast'][episode],
-                              cls.experiment['spatial-freq'][episode],
-                              time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
-        # img = 0*cls.x+cls.experiment['bg-color'][episode]
-        # img[cond] = 1
+        img[cond] = compute_grating(xrot[cond],
+                                    contrast=cls.experiment['contrast'][episode],
+                                    spatial_freq=cls.experiment['spatial-freq'][episode],
+                                    time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
         return img
 
 #####################################################
