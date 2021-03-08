@@ -1,0 +1,17 @@
+{
+  "Presentation": "multiprotocol",
+  "shuffling" :"full",
+  "shuffling-seed" :34,
+  "Protocol-1": "Pakan-et-al-static.json",
+  "Protocol-2": "Pakan-et-al-drifting.json",
+  "presentation-prestim-period": 1,
+  "presentation-poststim-period": 1,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "presentation-interstim-period": 2,
+  "presentation-interstim-screen": 0,
+  "Screen": "Dell-2020",
+  "data-folder": "",
+  "screen" :"Dell-2020",
+  "protocol-folder": "F:\\physion\\physion\\exp\\protocols"
+}
