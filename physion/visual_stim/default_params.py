@@ -4,7 +4,6 @@ PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
 
 BLANK_SCREENS = ['Black Screen' ,'Grey Screen', 'White Screen']
 NAME_TO_COLOR = {'Black Screen':-1, 'Grey Screen':0, 'White Screen':1}
-SETUP = ['demo-mode', 'Bacci-2P-setup']
 
 PRESENTATION = {
     # duration
@@ -50,8 +49,8 @@ STIMULI = {
         'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -65,8 +64,8 @@ STIMULI = {
         'angle-1':0, 'angle-2':360., 'N-angle':0,
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -82,8 +81,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -111,8 +110,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -128,8 +127,8 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 
@@ -147,8 +146,8 @@ STIMULI = {
         'radius-start-1':2., 'radius-start-2':120, 'N-radius-start':0,
         'radius-end-1':0., 'radius-end-2':20., 'N-radius-end':0,
         'speed-1':0.1, 'speed-2':50, 'N-speed':5,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
     
@@ -165,8 +164,8 @@ STIMULI = {
         'center-time-1':0., 'center-time-2':15., 'N-center-time':0,
         'extent-time-1':0., 'extent-time-2':15., 'N-extent-time':0,
         'radius-1':0, 'radius-2':150., 'N-radius':0,
-        'x-center-1':-50, 'x-center-2':50, 'N-x-center':0,
-        'y-center-1':-40., 'y-center-2':40., 'N-y-center':0,
+        'x-center-1':-200, 'x-center-2':200, 'N-x-center':0,
+        'y-center-1':-200., 'y-center-2':200., 'N-y-center':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'bg-color-1':-1., 'bg-color-2':1., 'N-bg-color':0},
 

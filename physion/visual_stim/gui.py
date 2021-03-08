@@ -163,13 +163,17 @@ class MainWindow(QtWidgets.QMainWindow):
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file',
                                                              self.protocol_folder, "Protocol files (*.json)")
             if filename[0]!='':
-                with open(filename[0], 'w') as fp:
+                if len(filename[0].split('.json'))>0:
+                    filename = filename[0]
+                else:
+                    filename = filename[0]+'.json'
+                with open(filename, 'w') as fp:
                     json.dump(self.protocol, fp, indent=2)
-                    self.statusBar.showMessage('protocol saved as "%s"' % filename[0])
+                    self.statusBar.showMessage('protocol saved as "%s"' % filename)
             else:
-                self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
+                self.statusBar.showMessage('protocol file "%s" not valid' % filename)
         else:
-            self.statusBar.showMessage('protocol file "%s" not valid' % filename[0])
+            self.statusBar.showMessage('protocol file "%s" not valid' % filename)
             
     def load_protocol(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open protocol file', self.protocol_folder,"Protocol files (*.json)")
