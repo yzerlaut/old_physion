@@ -70,8 +70,7 @@ class visual_stim:
         self.store_frame = store_frame
         if ('store_frame' in protocol):
             self.store_frame = bool(protocol['store_frame'])
-        if ('demo' in self.protocol) and self.protocol['demo']:
-            demo = True
+
         self.screen = SCREENS[self.protocol['Screen']]
 
         # we can initialize the angle
@@ -82,10 +81,12 @@ class visual_stim:
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             
-            if demo:
+            if ('demo' in self.protocol) and self.protocol['demo']:
+                # we override the parameters
                 self.screen['resolution'] = (600,338)
                 self.screen['screen_id'] = 0
                 self.screen['fullscreen'] = False
+                self.protocol['movie_refresh_freq'] = 5.
 
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
                                      screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
@@ -471,7 +472,7 @@ class multiprotocol(visual_stim):
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
         self.frame_refresh = protocol['movie_refresh_freq']
-                                                                                                        
+        
         self.STIM, i = [], 1
 
         if 'load_from_protocol_data' in protocol:
@@ -865,29 +866,25 @@ class gaussian_blobs(visual_stim):
     
     def __init__(self, protocol):
 
+        super().__init__(protocol)
+        
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 30.
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
         self.frame_refresh = protocol['movie_refresh_freq']
         
-        super().__init__(protocol)
         super().init_experiment(self.protocol,
                                 ['x-center', 'y-center', 'radius','center-time', 'extent-time', 'contrast', 'bg-color'],
                                 run_type='images_sequence')
         
             
     def get_frames_sequence(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
         """
         Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
         random samples of sin([0, 2pi]).
         """
-        # x, z = cls.angle_meshgrid() # CAN BE REMOVED
-        
+        cls = (parent if parent is not None else self)
         bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
 
@@ -903,7 +900,7 @@ class gaussian_blobs(visual_stim):
 
         times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
         # the pre-time
-        FRAMES.append(2*bg_color-1.+0.*x)
+        FRAMES.append(2*bg_color-1.+0.*self.x)
         times[:itstart] = 0
         for iframe, it in enumerate(np.arange(itstart, itend)):
             img = 2*(np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
@@ -1072,12 +1069,13 @@ class sparse_noise(visual_stim):
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         
     def get_frame(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return self.noise_gen.get_frame(index).T
-            
+
+    def get_image(self, index, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return np.rot90(self.noise_gen.get_frame(index), k=3).T
+    
 
 class dense_noise(visual_stim):
 
@@ -1099,11 +1097,12 @@ class dense_noise(visual_stim):
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         
     def get_frame(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return self.noise_gen.get_frame(index).T
+
+    def get_image(self, index, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return np.rot90(self.noise_gen.get_frame(index), k=3).T
             
 
 if __name__=='__main__':
