@@ -1,7 +1,7 @@
 {
   "Presentation": "Single-Stimulus",
   "Stimulus": "sparse-noise",
-  "Setup": "demo-mode",
+  "Screen": "Dell-2020",
   "presentation-duration": 99.99,
   "presentation-prestim-period": 1.0,
   "presentation-poststim-period": 1.0,

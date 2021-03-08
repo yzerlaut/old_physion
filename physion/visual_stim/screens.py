@@ -19,23 +19,6 @@ SCREENS = {
         'gamma_correction':{'k':1.03,
                             'gamma':1.77},
     },
-    'demo':{
-        'name':'testMonitor',
-        'screen_id':0,
-        'resolution':[600, 338],
-        'width':48.0, # in cm
-        'height':27.0, # in cm
-        'distance_from_eye':15.0, # in cm
-        'fullscreen':False,
-        'monitoring_square':{'size':15,
-                             'color-on':1,
-                             'color-off':-1,
-                             'time-on':0.2,
-                             'time-off':0.8,
-                             'location':'top-right'},
-        'gamma_correction':{'k':1.03,
-                            'gamma':1.77},
-    },
     'Dell-P2018H':{
         'name':'Dell-P2018H',
         'screen_id':1,

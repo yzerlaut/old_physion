@@ -70,11 +70,9 @@ class visual_stim:
         self.store_frame = store_frame
         if ('store_frame' in protocol):
             self.store_frame = bool(protocol['store_frame'])
-
-        if 'screen' in self.protocol:
-            self.screen = SCREENS[self.protocol['screen']]
-        else:
-            self.screen = SCREENS['demo']
+        if ('demo' in self.protocol) and self.protocol['demo']:
+            demo = True
+        self.screen = SCREENS[self.protocol['Screen']]
 
         # we can initialize the angle
         self.x, self.z = self.angle_meshgrid()
@@ -83,9 +81,15 @@ class visual_stim:
             
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
+            
+            if demo:
+                self.screen['resolution'] = (600,338)
+                self.screen['screen_id'] = 0
+                self.screen['fullscreen'] = False
+
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
                                      screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
-                                     units='pix', color=-1)
+                                     units='pix', color=0)
 
             self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
 
@@ -472,7 +476,7 @@ class multiprotocol(visual_stim):
 
         if 'load_from_protocol_data' in protocol:
             while 'Protocol-%i'%i in protocol:
-                subprotocol = {'screen':protocol['screen'],
+                subprotocol = {'Screen':protocol['Screen'],
                                'no-window':True}
                 for key in protocol:
                     if ('Protocol-%i-'%i in key):
@@ -484,7 +488,7 @@ class multiprotocol(visual_stim):
                 Ppath = os.path.join(protocol['protocol-folder'], protocol['Protocol-%i'%i])
                 with open(Ppath, 'r') as fp:
                     subprotocol = json.load(fp)
-                    subprotocol['screen'] = protocol['screen']
+                    subprotocol['Screen'] = protocol['Screen']
                     subprotocol['no-window'] = True
                     self.STIM.append(build_stim(subprotocol))
                     for key, val in subprotocol.items():

@@ -1,7 +1,7 @@
 {
   "Presentation": "Single-Stimulus",
   "Stimulus": "dense-noise",
-  "Setup": "Bacci-2P-setup",
+  "Screen": "Dell-2020",
   "presentation-duration": 600.0,
   "presentation-prestim-period": 5.0,
   "presentation-poststim-period": 5.0,

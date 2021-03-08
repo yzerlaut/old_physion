@@ -10,6 +10,7 @@ from assembling.saving import create_day_folder, generate_filename_path
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
 from psychopy_code.stimuli import build_stim
 from default_params import STIMULI, PRESENTATIONS, SETUP
+from screens import SCREENS
 from guiparts import *
 
 
@@ -21,7 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.protocol = None # by default, can be loaded by the interface
         self.experiment = {} # storing the specifics of an experiment
-        self.stim, self.init, self.setup, self.stop_flag = None, False, SETUP[0], False
+        self.stim, self.init, self.screen, self.stop_flag = None, False, '', False
             
         self.params_window = None
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
@@ -59,15 +60,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbs.setMinimumWidth(250)
         self.cbs.move(70, 140)
 
-        # setup pick
-        label3 = QtWidgets.QLabel("     /|===>  Setup  <===|\\", self)
+        # screen pick
+        label3 = QtWidgets.QLabel("     /|===>  Screen  <===|\\", self)
         label3.setMinimumWidth(320)
         label3.move(100, 170)
-        self.cbst = QtWidgets.QComboBox(self)
-        self.cbst.addItems(SETUP)
-        self.cbst.currentIndexChanged.connect(self.change_setup)
-        self.cbst.setMinimumWidth(250)
-        self.cbst.move(70, 200)
+        self.cbsc = QtWidgets.QComboBox(self)
+        self.cbsc.addItems(['']+list(SCREENS.keys()))
+        self.cbsc.currentIndexChanged.connect(self.change_screen)
+        self.cbsc.setMinimumWidth(250)
+        self.cbsc.move(70, 200)
 
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('&File')
@@ -112,8 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('[...] preparing stimulation')
             self.protocol = extract_params_from_window(self)
-            if self.demo:
-                self.protocol['Setup']=='demo-mode'
+            self.protocol['demo'] = True
             self.stim = build_stim(self.protocol)
             # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
             self.statusBar.showMessage('stimulation ready !')
@@ -159,7 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.protocol = extract_params_from_window(self)
             self.protocol['data-folder'] = self.datafolder.get()
             self.protocol['protocol-folder'] = self.protocol_folder
-            self.protocol['Setup'] = self.setup
+            self.protocol['Screen'] = self.screen
             filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save protocol file',
                                                              self.protocol_folder, "Protocol files (*.json)")
             if filename[0]!='':
@@ -177,18 +177,15 @@ class MainWindow(QtWidgets.QMainWindow):
             with open(filename[0], 'r') as fp:
                 self.protocol = json.load(fp)
             # self.protocol_folder = self.protocol['protocol-folder']
-            self.setup = self.protocol['Setup']
-            if self.demo:
-                self.protocol['Setup'] = 'demo-mode'
+            self.screen = self.protocol['Screen']
             # update main window
-            s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Setup']
+            s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Screen']
             self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
             self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
-            self.cbst.setCurrentIndex(np.argwhere(s3==np.array(SETUP))[0][0])
+            self.cbsc.setCurrentIndex(np.argwhere(s3==np.array(list(['']+list(SCREENS.keys()))))[0][0])
             self.statusBar.showMessage('successfully loaded "%s"' % filename[0])
             # draw params window
             self.params_window = draw_window(self, self.protocol)
-            # self.params_window = draw_window(self, self.protocol)
             self.params_window.show()
         except FileNotFoundError:
             self.statusBar.showMessage('protocol file "%s" not found !' % filename[0])
@@ -210,8 +207,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.params_window = draw_window(self, None)
         self.params_window.show()
 
-    def change_setup(self):
-        self.setup = self.cbst.currentText()
+    def change_screen(self):
+        self.screen = self.cbsc.currentText()
         
     def create_params_window(self):
         window = QtWidgets.QDialog()

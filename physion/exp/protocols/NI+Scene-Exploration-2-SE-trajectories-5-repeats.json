@@ -1,7 +1,7 @@
 {
   "Presentation": "Randomized-Sequence",
   "Stimulus": "Natural-Image+VSE",
-  "Setup": "Bacci-2P-setup",
+  "Screen": "Dell-2020",
   "presentation-duration": 8.0,
   "presentation-prestim-period": 2.0,
   "presentation-poststim-period": 2.0,
