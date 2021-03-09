@@ -3,11 +3,7 @@ import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
-from assembling.saving import from_folder_to_datetime, check_datafolder, get_files_with_given_exts
 
-# folder = '/home/yann/DATA/2020.09.25/M_1/TSeries-25092020-200-00-001'
-
-# fn = get_files_with_given_exts(dir=folder, EXTS=['xml'])[0]
 
 """
 From the documentatoin for the suite2p processing options:
@@ -47,8 +43,8 @@ ops0 = {
     'do_registration': 1,
     'nonrigid': False, #  (bool, default: True) whether or not to perform non-rigid registration, which splits the field of view into blocks and computes registration offsets in each block separately. MOSTLY USEFUL FOR SLOW MULTIPLACE RECORDINGS !!
     'align_by_chan': 1, # (int, default: 1) which channel to use for alignment (1-based, so 1 means 1st channel and 2 means 2nd channel). If you have a non-functional channel with something like td-Tomato expression, you may want to use this channel for alignment rather than the functional channel.
-    'nimg_init': 500, # (int, default: 200) how many frames to use to compute reference image for registration
-    'batch_size': 1000, # (int, default: 200) how many frames to register simultaneously in each batch. This depends on memory constraints - it will be faster to run if the batch is larger, but it will require more RAM.
+    'nimg_init': 1000, # (int, default: 200) how many frames to use to compute reference image for registration
+    'batch_size': 2000, # (int, default: 200) how many frames to register simultaneously in each batch. This depends on memory constraints - it will be faster to run if the batch is larger, but it will require more RAM.
     'two_step_registration': False, # (bool, default: False) whether or not to run registration twice (for low SNR data). keep_movie_raw must be True for this to work.
     'keep_movie_raw': False,
     'maxregshift': 0.1, # (float, default: 0.1) the maximum shift as a fraction of the frame size. If the frame is Ly pixels x Lx pixels, then the maximum pixel shift in pixels will be max(Ly,Lx) * ops['maxregshift'].
@@ -104,7 +100,8 @@ def build_db(folder):
 def build_ops(folder):
     return ops
 
-def build_suite2p_options(folder):
+def build_suite2p_options(folder,
+                          settings_dict):
 
     xml_file = os.path.join(folder, os.path.join(folder.split('/')[-1]+'.xml'))
     
@@ -114,15 +111,14 @@ def build_suite2p_options(folder):
     # acquisition frequency
     ops['fs'] = 1./float(bruker_data['settings']['framePeriod'])
 
-    if True:
-        # PYRAMIDAL CELLS HERE
-        # hint for spatial scale of ROI
-        um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])    
-        ops['diameter'] = int(20/um_per_pixel) # in pixels (int 20um)
-        ops['spatial_scale'] = int(20/6/um_per_pixel)
-        ops['sparse_mode'] = False
-        ops['connected'] = True
-        ops['threshold_scaling'] = 0.8
+    # hints for the size of the ROI
+    um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])
+    ops['diameter'] = int(settings_dict['cell_diameter']/um_per_pixel) # in pixels (int 20um)
+    ops['spatial_scale'] = int(settings_dict['cell_diameter']/6/um_per_pixel)
+
+    # all other keys here
+    for key in ['sparse_mode', 'connected', 'threshold_scaling'] = 
+        ops[key] = settings_dict[key]
     
     db = build_db(folder)
     for key in ['data_path', 'subfolders', 'save_path0',
@@ -133,6 +129,7 @@ def build_suite2p_options(folder):
     np.save(os.path.join(folder,'ops.npy'), ops)
 
     
+
 if __name__=='__main__':
     
     folder = sys.argv[-1] # '/media/yann/Yann/2020_11_10/TSeries-11102020-1605-016'
