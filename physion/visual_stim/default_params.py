@@ -1,6 +1,6 @@
 import numpy as np
 
-PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence']
+PRESENTATIONS = ['Single-Stimulus', 'Stimuli-Sequence', 'Randomized-Sequence', 'multiprotocol']
 
 BLANK_SCREENS = ['Black Screen' ,'Grey Screen', 'White Screen']
 NAME_TO_COLOR = {'Black Screen':-1, 'Grey Screen':0, 'White Screen':1}

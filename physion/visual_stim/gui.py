@@ -22,8 +22,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.protocol = None # by default, can be loaded by the interface
         self.experiment = {} # storing the specifics of an experiment
-        self.stim, self.init, self.screen, self.stop_flag = None, False, '', False
-            
+        self.stim, self.init, self.stop_flag = None, False, False
+        self.screen = '' # N.B. self.screen is a string here, it is a dictionary in "stimuli.py"
         self.params_window = None
         self.protocol_folder = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
                                             'protocols')

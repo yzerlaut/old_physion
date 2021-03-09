@@ -499,7 +499,9 @@ class multiprotocol(visual_stim):
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
-                Ppath = os.path.join(protocol['protocol-folder'], protocol['Protocol-%i'%i])
+                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]), 'exp', 'protocols', protocol['Protocol-%i'%i])
+                if not os.path.isfile(Ppath):
+                    print(' /!\ "%s" not found in Protocol folder /!\  ' % protocol['Protocol-%i'%i])
                 with open(Ppath, 'r') as fp:
                     subprotocol = json.load(fp)
                     subprotocol['Screen'] = protocol['Screen']
