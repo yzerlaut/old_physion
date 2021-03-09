@@ -27,7 +27,7 @@ SCREENS = {
         'height':23.6, # in cm
         'distance_from_eye':15.0, # in cm
         'fullscreen':True,
-        'monitoring_square':{'size':40.,
+        'monitoring_square':{'size':56.,
                              'location':'top-right',
                              'color-on':1,
                              'color-off':-1,

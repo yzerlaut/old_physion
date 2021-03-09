@@ -293,7 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
-            self.protocol['screen'] = self.metadata['screen']
+            self.protocol['screen'] = self.metadata['Screen']
             self.stim = build_stim(self.protocol)
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
