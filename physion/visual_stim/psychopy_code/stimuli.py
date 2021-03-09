@@ -98,14 +98,14 @@ class visual_stim:
             # blank screens
             self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
                                                   color=self.gamma_corrected_lum(self.protocol['presentation-prestim-screen']),
-                                                  units='pix')
+                                                  contrast=0, units='pix')
             if 'presentation-interstim-screen' in self.protocol:
                 self.blank_inter = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
                                                       color=self.gamma_corrected_lum(self.protocol['presentation-interstim-screen']),
-                                                      units='pix')
+                                                      contrast=0, units='pix')
             self.blank_end = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
                                                 color=self.gamma_corrected_lum(self.protocol['presentation-poststim-screen']),
-                                                units='pix')
+                                                contrast=0, units='pix')
 
             if self.screen['monitoring_square']['location']=='top-right':
                 pos = [int(x/2.-self.screen['monitoring_square']['size']/2.) for x in self.screen['resolution']]
@@ -451,7 +451,8 @@ class visual_stim:
         if ax==None:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
-        ax.imshow(self.get_image(episode, time_from_episode_start), cmap='gray', vmin=0, vmax=1, aspect='equal')
+        ax.imshow(self.get_image(episode, time_from_episode_start=time_from_episode_start),
+                  cmap='gray', vmin=0, vmax=1, aspect='equal')
         ax.axis('off')
         if label is not None:
             nz, nx = self.x.shape
@@ -603,15 +604,12 @@ class full_field_grating_stim(visual_stim):
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
-        """
-        Need to implement it 
-        """
         cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z,
                             angle=cls.experiment['angle'][episode])
-        return compute_grating(xrot,
-                               spatial_freq=cls.experiment['spatial-freq'][episode],
-                               contrast=cls.experiment['contrast'][episode])
+        return np.rot90(compute_grating(xrot,
+                                        spatial_freq=cls.experiment['spatial-freq'][episode],
+                                        contrast=cls.experiment['contrast'][episode]), k=3).T
                                  
             
 class drifting_full_field_grating_stim(visual_stim):
@@ -631,16 +629,14 @@ class drifting_full_field_grating_stim(visual_stim):
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
     
     def get_image(self, episode, time_from_episode_start=0, parent=None):
-        """
-        Need to implement it 
-        """
         cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z,
                             angle=cls.experiment['angle'][episode])
-        return compute_grating(xrot,
-                               spatial_freq=cls.experiment['spatial-freq'][episode],
-                               contrast=cls.experiment['contrast'][episode],
-                               time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        print(cls.experiment['speed'][episode]*time_from_episode_start)
+        return np.rot90(compute_grating(xrot,
+                                        spatial_freq=cls.experiment['spatial-freq'][episode],
+                                        contrast=cls.experiment['contrast'][episode],
+                                        time_phase=cls.experiment['speed'][episode]*time_from_episode_start), k=3).T
 
         
 #####################################################
@@ -687,7 +683,9 @@ class drifting_center_grating_stim(visual_stim):
     
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'], run_type='static')
+        super().init_experiment(protocol,
+                                ['x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast', 'speed', 'bg-color'],
+                                run_type='drifting')
 
     def get_patterns(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -698,13 +696,13 @@ class drifting_center_grating_stim(visual_stim):
                                    size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
                                    ori=cls.experiment['angle'][index],
                                    units='pix', mask='circle',
+                                   color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]),
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         """
         Need to implement it 
         """
-        cls = (parent if parent is not None else self)
         cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
                             xcenter=cls.experiment['x-center'][episode],
