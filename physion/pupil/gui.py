@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil tracking -- Physion')
+        self.setWindowTitle('Pupil tracking')
 
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling

@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.args = args
         set_app_icon(app)
         super(MainWindow, self).__init__()
-        self.setWindowTitle('Physion - Vision Physiology ')
+        self.setWindowTitle('Physion ')
 
         # buttons and functions
         LABELS = ["r) [R]un experiments",
@@ -30,11 +30,11 @@ class MainWindow(QtWidgets.QMainWindow):
                   "w) [W]hisking preprocessing",
                   "i) [I]maging preprocessing",
                   "e) [E]lectrophy preprocessing",
-                  "b) run [B]ash script",
-                  "a) [A]ssemble data",
-                  "t) [T]ransfer data",
-                  "c) Add [C]a2+ data",
                   "v) [V]isualize data",
+                  # "b) run [B]ash script",
+                  "a) [A]ssemble data",
+                  "c) Add [C]a2+ data",
+                  "t) [T]ransfer data",
                   "n) lab [N]otebook ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
@@ -44,13 +44,13 @@ class MainWindow(QtWidgets.QMainWindow):
                      # self.launch_organize,
                      self.launch_pupil,
                      self.launch_whisking,
-                     self.launch_caimaging,
+                     self.launch_CaProprocessing,
                      self.launch_electrophy,
-                     self.launch_bash_script,
-                     self.launch_assembling,
-                     self.launch_transfer,
-                     self.launch_CaAddition,
                      self.launch_visualization,
+                     # self.launch_bash_script,
+                     self.launch_assembling,
+                     self.launch_CaAddition,
+                     self.launch_transfer,
                      self.launch_notebook,
                      self.quit]
         
@@ -97,11 +97,6 @@ class MainWindow(QtWidgets.QMainWindow):
         child = RunAssembling(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
-    def launch_CaAddition(self):
-        from physion.Ca_imaging.gui import run as RunCaAddition
-        child = RunCaAddition(self.app, self.args)
-        CHILDREN_PROCESSES.append(child)
-        
     def launch_transfer(self):
         from physion.transfer.gui import run as RunTransfer
         child = RunTransfer(self.app, self.args)
@@ -112,33 +107,36 @@ class MainWindow(QtWidgets.QMainWindow):
         child = RunPupilGui(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
-    def launch_caimaging(self):
-        # p = subprocess.Popen('conda activate suite2p; python -m suite2p',
-        p = subprocess.Popen('python -m suite2p',
-                             shell=True,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
+    def launch_CaProprocessing(self):
+        from physion.Ca_imaging.guiPP import run as RunCaPreprocessing
+        child = RunCaPreprocessing(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
 
+    def launch_CaAddition(self):
+        from physion.Ca_imaging.guiAdd import run as RunCaAddition
+        child = RunCaAddition(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
+        
     def launch_electrophy(self):
         self.statusBar.showMessage('Electrophy module not implemented yet')
 
-    def launch_bash_script(self):
-        self.statusBar.showMessage('Batch processing launched !')
-        import subprocess
-        script = os.path.join(str(pathlib.Path(__file__).resolve().parent),'script.sh')
-        fileS = open(script, 'r')
-        Lines = fileS.readlines()
-        # subprocess.run('bash %s' % script, shell=True)
-        PROCESSES = []
-        for i, l in enumerate(Lines):
-            print(""" %i) launching process:
-            %s """ % (i+1, l))
-            subprocess.Popen(l, shell=True,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
-        # then clean batch file
-        fileS.close()
-        open(script, 'w').close()
+    # def launch_bash_script(self):
+    #     self.statusBar.showMessage('Batch processing launched !')
+    #     import subprocess
+    #     script = os.path.join(str(pathlib.Path(__file__).resolve().parent),'script.sh')
+    #     fileS = open(script, 'r')
+    #     Lines = fileS.readlines()
+    #     # subprocess.run('bash %s' % script, shell=True)
+    #     PROCESSES = []
+    #     for i, l in enumerate(Lines):
+    #         print(""" %i) launching process:
+    #         %s """ % (i+1, l))
+    #         subprocess.Popen(l, shell=True,
+    #                          stdout=subprocess.PIPE,
+    #                          stderr=subprocess.STDOUT)
+    #     # then clean batch file
+    #     fileS.close()
+    #     open(script, 'w').close()
 
         
     def launch_visualization(self):

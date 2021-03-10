@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Transfer -- Physion')
+        self.setWindowTitle('File Transfer')
         
         self.script = os.path.join(\
                 str(pathlib.Path(__file__).resolve().parents[1]),\
@@ -63,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox = QtWidgets.QComboBox(self)
         self.typeBox.setMinimumWidth(150)
         self.typeBox.move(100, HEIGHT)
-        self.typeBox.activated.connect(self.update_setting)
+        # self.typeBox.activated.connect(self.update_setting)
         self.typeBox.addItems(['NWB', 'FULL'])
 
         HEIGHT +=50 

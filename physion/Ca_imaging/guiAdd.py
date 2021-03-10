@@ -16,12 +16,12 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(350, 700, 300, 350)
+        self.setGeometry(350, 680, 300, 350)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Adding [Ca2+] -- Physion')
+        self.setWindowTitle('Adding Ca-Imaging')
         
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
                                            'assembling',  'add_ophys.py')

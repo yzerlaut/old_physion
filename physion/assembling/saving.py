@@ -74,19 +74,9 @@ def get_files_with_extension(folder, extension='.txt',
                 FILES.append(os.path.join(folder, file))
     return FILES
 
-# def get_list_of_datafiles(data_folder):
-
-#     list_of_folders = [os.path.join(day_folder(data_folder), d)\
-#                        for d in os.listdir(day_folder(data_folder)) if os.path.isdir(os.path.join(day_folder(data_folder), d))]
-    
-#     return [os.path.join(d,'visual-stim.npz')\
-#               for d in list_of_folders if os.path.isfile(os.path.join(d,'visual-stim.npz'))]
-
-# def last_datafile(data_folder):
-#     return get_list_of_datafiles(data_folder)[-1]
 
 def get_files_with_given_exts(dir='./', EXTS=['npz','abf','bin']):
-    """ get files of a given extension and sort them..."""
+    """  DEPRECATED, use the function above !!"""
     FILES = []
     for ext in EXTS:
         for file in os.listdir(dir):

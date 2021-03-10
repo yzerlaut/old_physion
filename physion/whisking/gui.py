@@ -52,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Physion -- Whisking tracking module')
+        self.setWindowTitle('Whisking tracking')
         
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling

@@ -37,7 +37,7 @@ class MainWindow(QtWidgets.QMainWindow):
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
         button_length = 100
         
-        self.setWindowTitle('Physion -- Visual Stimulation module')
+        self.setWindowTitle('Stimulation Design')
         self.setGeometry(450, 100, int(1.01*button_length*len(LABELS)), 310)
 
         # protocol change

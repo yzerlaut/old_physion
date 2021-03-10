@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
             
-        self.setWindowTitle('Assembling -- Physion')
+        self.setWindowTitle('Assembling')
         
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                            'build_NWB.py')

@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         
-        self.setWindowTitle('Physion -- Experimental module')
+        self.setWindowTitle('Experimental module')
         self.setGeometry(400, 50, 550, 370)
 
         ##########################################################
