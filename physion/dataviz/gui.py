@@ -69,8 +69,7 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename = '/home/yann/DATA/2021_02_22-15-44-55.nwb'
-        
+        filename = '/home/yann/DATA/2021_03_09/2021_03_09-13-05-09.NIDAQ.nwb'
         # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
         #              "Open Multimodal Experimental Recording (NWB file) ",
         #                 os.path.join(os.path.expanduser('~'),'DATA'),
@@ -84,7 +83,6 @@ class MainWindow(guiparts.NewWindow):
         else:
             print('"%s" filename not recognized ! ')
 
-            
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
         self.no_subsampling = False

@@ -8,7 +8,7 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from dateutil.tz import tzlocal
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders, insure_ordered_frame_names, insure_ordered_FaceCamera_picture_names
+from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
 from assembling.tools import compute_locomotion, build_subsampling_from_freq, load_FaceCamera_data
@@ -31,6 +31,7 @@ def build_NWB(args,
     #################################################
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
                        allow_pickle=True).item()
+    print(metadata)
     # replace by day and time in metadata !!
     if os.path.sep in args.datafolder:
         sep = os.path.sep
@@ -49,9 +50,11 @@ def build_NWB(args,
         subject_props = {}
         print('subject properties not in metadata ...')
         dob = ['1988', '24', '4']
+        
     # NIdaq tstart
     if os.path.isfile(os.path.join(args.datafolder, 'NIdaq.start.npy')):
         metadata['NIdaq_Tstart'] = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
+
 
     subject = pynwb.file.Subject(description=(subject_props['description'] if ('description' in subject_props) else 'Unknown'),
                                  sex=(subject_props['sex'] if ('sex' in subject_props) else 'Unknown'),
@@ -59,8 +62,8 @@ def build_NWB(args,
                                  species=(subject_props['species'] if ('species' in subject_props) else 'Unknown'),
                                  subject_id=(subject_props['subject_id'] if ('subject_id' in subject_props) else 'Unknown'),
                                  weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
-	                         date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1])))
-        
+                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1])))
+                                 
     nwbfile = pynwb.NWBFile(identifier='%s-%s' % (args.datafolder.split(sep)[-2],args.datafolder.split(sep)[-1]),
                             session_description=str(metadata),
                             experiment_description=metadata['protocol'],
@@ -421,7 +424,8 @@ if __name__=='__main__':
 
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
-        
+
+    
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):
             if (args.datafolder[-1]==os.path.sep) or (args.datafolder[-1]=='/'):

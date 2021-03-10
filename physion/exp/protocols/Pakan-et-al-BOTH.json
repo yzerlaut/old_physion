@@ -1,5 +1,6 @@
 {
   "Presentation": "multiprotocol",
+  "protocol": "Pakan-et-al-Elife-2016",
   "shuffling" :"full",
   "shuffling-seed" :34,
   "Protocol-1": "Pakan-et-al-static.json",

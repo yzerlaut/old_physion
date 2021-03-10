@@ -261,7 +261,8 @@ class MainWindow(QtWidgets.QMainWindow):
                          'protocol':self.cbp.currentText(),
                          'notes':self.qmNotes.toPlainText(),
                          'subject_ID':self.cbs.currentText(),
-                         'subject_props':self.subjects[self.cbs.currentText()]}
+                         'subject
+_props':self.subjects[self.cbs.currentText()]}
 
         for d in [self.config, self.protocol]:
             for key in d:

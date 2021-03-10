@@ -98,7 +98,6 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.move(shift, 250)
             action = QtWidgets.QAction(label, self)
             if len(label.split('['))>1:
-                print(label.split('[')[0].replace(']',''))
                 action.setShortcut(label.split('[')[1].replace(']',''))
                 action.triggered.connect(func)
                 self.fileMenu.addAction(action)
@@ -112,10 +111,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Need to set parameters in the GUI or to load a protocol !')
         else:
             self.statusBar.showMessage('[...] preparing stimulation')
-            self.protocol = extract_params_from_window(self)
+            if self.protocol['Presentation']!='multiprotocol':            
+                self.protocol = extract_params_from_window(self)
             self.protocol['demo'] = True
             self.stim = build_stim(self.protocol)
-            # self.statusBar.showMessage('stimulation ready. WAITING FOR THE USB TRIGGER !!')
             self.statusBar.showMessage('stimulation ready !')
             self.init = True
             
@@ -183,10 +182,15 @@ class MainWindow(QtWidgets.QMainWindow):
             # self.protocol_folder = self.protocol['protocol-folder']
             self.screen = self.protocol['Screen']
             # update main window
-            s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Screen']
-            self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
-            self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
-            self.cbsc.setCurrentIndex(np.argwhere(s3==np.array(list(['']+list(SCREENS.keys()))))[0][0])
+            try:
+                s1, s2, s3 = self.protocol['Presentation'], self.protocol['Stimulus'], self.protocol['Screen']
+                self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
+                self.cbs.setCurrentIndex(np.argwhere(s2==np.array(list(['']+list(STIMULI.keys()))))[0][0])
+                self.cbsc.setCurrentIndex(np.argwhere(s3==np.array(list(['']+list(SCREENS.keys()))))[0][0])
+            except KeyError:
+                s1 = self.protocol['Presentation']
+                self.cbp.setCurrentIndex(np.argwhere(s1==np.array(list(['']+PRESENTATIONS)))[0][0])
+                
             self.statusBar.showMessage('successfully loaded "%s"' % filename[0])
             # draw params window
             self.params_window = draw_window(self, self.protocol)
