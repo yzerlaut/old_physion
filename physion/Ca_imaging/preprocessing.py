@@ -18,8 +18,9 @@ PREPROCESSING_SETTINGS = {
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):
         shutil.rmtree(os.path.join(args.CaImaging_folder, 'suite2p'))
-    build_suite2p_options(args.CaImaging_folder, args.setting_key)
-    cmd = 'suite2p --db %s/db.npy --ops %s/ops.npy &' % (f, f)
+    build_suite2p_options(args.CaImaging_folder, PREPROCESSING_SETTINGS[args.setting_key])
+    cmd = 'suite2p --db %s --ops %s &' % (os.path.join(args.CaImaging_folder,'db.npy'),
+                                          os.path.join(args.CaImaging_folder,'ops.npy'))
     subprocess.run(cmd, shell=True)
     
 
@@ -39,7 +40,7 @@ if __name__=='__main__':
 
     if os.path.isdir(args.CaImaging_folder) and ('TSeries' in str(args.CaImaging_folder)):
         run_preprocessing(args)
-        print('--> preprocessing of "%s" done !' % args.CaImaging_folder)
+        # print('--> preprocessing of "%s" done !' % args.CaImaging_folder)
     else:
         print('/!\ Need to provide a valid "TSeries" folder /!\ ')
         

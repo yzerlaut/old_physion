@@ -65,13 +65,15 @@ def get_files_with_extension(folder, extension='.txt',
     FILES = []
     if recursive:
         for root, dirs, files in os.walk(folder):
-            for file in files:
-                if file.endswith(extension) and ('$RECYCLE.BIN' not in root):
-                    FILES.append(os.path.join(root, file))
+            for f in files:
+                if f.endswith(extension) and ('$RECYCLE.BIN' not in root):
+                    FILES.append(os.path.join(root, f))
     else:
-        for file in os.listdir(folder):
-            if file.endswith(extension) and ('$RECYCLE.BIN' not in folder):
-                FILES.append(os.path.join(folder, file))
+        for f in os.listdir(folder):
+            if not type(f) is str:
+                f = f.decode('ascii')
+            if f.endswith(extension) and ('$RECYCLE.BIN' not in folder):
+                FILES.append(os.path.join(folder, f))
     return FILES
 
 
@@ -85,15 +87,19 @@ def get_files_with_given_exts(dir='./', EXTS=['npz','abf','bin']):
     return np.array(FILES)
 
 
-def get_TSeries_folders(folder, frame_limit=0):
+def get_TSeries_folders(folder, frame_limit=0, limit_to_subdirectories=False):
+    
     """ get files of a given extension and sort them..."""
     FOLDERS = []
-    for root, subdirs, files in os.walk(folder):
-        if 'TSeries' in root.split(os.path.sep)[-1] and len(files)>frame_limit:
-            FOLDERS.append(os.path.join(folder, root))
-        elif 'TSeries' in root.split(os.path.sep)[-1]:
-            print('"%s" ignored' % root)
-            print('   ----> data should be at least %i frames !' % frame_limit)
+    if limit_to_subdirectories:
+        FOLDERS = [f for f in next(os.walk(folder))[1] if ('TSeries' in str(f)) and (len(os.listdir(f))>frame_limit)]
+    else:
+        for root, subdirs, files in os.walk(folder):
+            if 'TSeries' in root.split(os.path.sep)[-1] and len(files)>frame_limit:
+                FOLDERS.append(os.path.join(folder, root))
+            elif 'TSeries' in root.split(os.path.sep)[-1]:
+                print('"%s" ignored' % root)
+                print('   ----> data should be at least %i frames !' % frame_limit)
     return np.array(FOLDERS)
 
 def insure_ordered_frame_names(df):

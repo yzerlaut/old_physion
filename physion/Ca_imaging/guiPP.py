@@ -87,7 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if ('Tseries' in str(folder)):
                 self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
             else:
-                folders = get_TSeries_folders(folder)
+                folders = get_TSeries_folders(folder, limit_to_subdirectories=False)
                 for f in folders:
                     self.CMDS.append(self.build_cmd(f, self.cbc.currentText()))
             for cmd in self.CMDS:
