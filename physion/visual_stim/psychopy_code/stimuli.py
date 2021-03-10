@@ -94,7 +94,7 @@ class visual_stim:
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
                                      screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
                                      units='pix',
-                                     color=self.gamma_corrected_lum(self.protocol['presentation-interstim-screen']))
+                                     color=self.gamma_corrected_lum(self.protocol['presentation-prestim-screen']))
 
             # blank screens
             self.blank_start = visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
@@ -273,7 +273,7 @@ class visual_stim:
 
     # screen for interstim
     def inter_screen(self, parent):
-        if not parent.stop_flag:
+        if not parent.stop_flag and hasattr(self, 'blank_inter'):
             self.blank_inter.draw()
             self.off.draw()
             try:
@@ -461,7 +461,7 @@ class visual_stim:
             L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
             ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
-            ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='top')
+            ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
         if arrow is not None:
             nz, nx = self.x.shape
             ax.arrow(self.angle_to_pix(arrow['center'][0])+nx/2,
@@ -588,18 +588,14 @@ class light_level_single_stim(visual_stim):
 #####################################################
 
 # some general grating functions
-def compute_xrot(x, z, angle=0, xcenter=0, zcenter=0):
+def compute_xrot(x, z,
+                 angle=0, xcenter=0, zcenter=0):
     return (x-xcenter)*np.cos(angle/180.*np.pi)-(z-zcenter)*np.sin(angle/180.*np.pi)
 
-def compute_grating(xrot, spatial_freq=0.1, contrast=1, time_phase=0.,
-                    mask=None, bg=0.):
-    """ with mask possibly """
-    if mask is None:
-        return contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot-time_phase)))/2.
-    else:
-        img = bg+0*xrot
-        img[mask] = contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot[mask]-time_phase)))/2.
-        return img
+def compute_grating(xrot,
+                    spatial_freq=0.1, contrast=1, time_phase=0.):
+    return contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot-time_phase)))/2.
+
 
 class full_field_grating_stim(visual_stim):
 
@@ -681,11 +677,10 @@ class center_grating_stim(visual_stim):
                             zcenter=cls.experiment['y-center'][episode])
         mask = (((cls.x-cls.experiment['x-center'][episode])**2+\
                  (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
-        return compute_grating(xrot, 
-                               contrast=cls.experiment['contrast'][episode],
-                               spatial_freq=cls.experiment['spatial-freq'][episode],
-                               mask=mask,
-                               bg=(1+cls.experiment['bg-color'][episode])/2.)
+        img = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x
+        img[mask] = compute_grating(xrot[mask], 
+                                    contrast=cls.experiment['contrast'][episode],
+                                    spatial_freq=cls.experiment['spatial-freq'][episode])
         return img
     
 
@@ -719,12 +714,12 @@ class drifting_center_grating_stim(visual_stim):
                             zcenter=cls.experiment['y-center'][episode])
         mask = (((cls.x-cls.experiment['x-center'][episode])**2+\
                  (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
-        return compute_grating(xrot, 
-                               contrast=cls.experiment['contrast'][episode],
-                               spatial_freq=cls.experiment['spatial-freq'][episode],
-                               mask=mask,
-                               bg=(1+cls.experiment['bg-color'][episode])/2.,
-                               time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        img = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x
+        img[mask] = compute_grating(xrot[mask], 
+                                    contrast=cls.experiment['contrast'][episode],
+                                    spatial_freq=cls.experiment['spatial-freq'][episode],
+                                    time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        return img
 
 #####################################################
 ##  ----    PRESENTING OFF-CENTERED GRATINGS    --- #####           
@@ -757,7 +752,24 @@ class off_center_grating_stim(visual_stim):
                                    mask='circle', units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
 
-            
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        mask = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                 (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
+        img = compute_grating(xrot, 
+                              contrast=cls.experiment['contrast'][episode],
+                              spatial_freq=cls.experiment['spatial-freq'][episode])
+        img[mask] = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x[mask]
+        return img
+    
+    
 class drifting_off_center_grating_stim(visual_stim):
     
     def __init__(self, protocol):
@@ -789,19 +801,18 @@ class drifting_off_center_grating_stim(visual_stim):
         Need to implement it 
         """
         cls = (parent if parent is not None else self)
-        cls = (parent if parent is not None else self)
         xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
                             xcenter=cls.experiment['x-center'][episode],
                             zcenter=cls.experiment['y-center'][episode])
-        img = (1+cls.experiment['bg-color'][episode])/2. + 0*cls.x
-        img = 0*cls.x
-        cond = (((self.x-xcenter)**2+(self.z-zcenter)**2)<=cls.experiment['radius'][episode]) # circle mask
-        # img[cond] = compute_grating(xrot[cond],
-        #                             cls.experiment['contrast'][episode],
-        #                             cls.experiment['spatial-freq'][episode],
-        #                             time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
-        img[cond] = 1
+        mask = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                 (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius'][episode]**2) # circle mask
+        img = compute_grating(xrot, 
+                              contrast=cls.experiment['contrast'][episode],
+                              spatial_freq=cls.experiment['spatial-freq'][episode],
+                              time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        img[mask] = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x[mask]
         return img
+    
     
 #####################################################
 ##  ----    PRESENTING SURROUND GRATINGS    --- #####           
@@ -818,8 +829,7 @@ class surround_grating_stim(visual_stim):
             cls = parent
         else:
             cls = self
-        return [\
-                visual.GratingStim(win=cls.win,
+        return [visual.GratingStim(win=cls.win,
                                    size=1000, pos=[0,0], sf=0,
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
                 visual.GratingStim(win=cls.win,
@@ -835,7 +845,25 @@ class surround_grating_stim(visual_stim):
                                    mask='circle', sf=0,
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
     
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        mask1 = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                  (cls.z-cls.experiment['y-center'][episode])**2)>=cls.experiment['radius-start'][episode]**2) # circle mask
+        mask2 = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                  (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius-end'][episode]**2) # circle mask
+        img = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x
+        img[mask1 & mask2] = compute_grating(xrot[mask1 & mask2], 
+                                             contrast=cls.experiment['contrast'][episode],
+                                             spatial_freq=cls.experiment['spatial-freq'][episode])
+        return img
 
+    
 class drifting_surround_grating_stim(visual_stim):
 
     def __init__(self, protocol):
@@ -847,8 +875,7 @@ class drifting_surround_grating_stim(visual_stim):
             cls = parent
         else:
             cls = self
-        return [\
-                visual.GratingStim(win=cls.win,
+        return [visual.GratingStim(win=cls.win,
                                    size=1000, pos=[0,0], sf=0,contrast=0,
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index])),
                 visual.GratingStim(win=cls.win,
@@ -863,7 +890,26 @@ class drifting_surround_grating_stim(visual_stim):
                                    size=cls.experiment['radius-start'][index],
                                    mask='circle', sf=0,contrast=0,
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
-        
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        """
+        Need to implement it 
+        """
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode],
+                            xcenter=cls.experiment['x-center'][episode],
+                            zcenter=cls.experiment['y-center'][episode])
+        mask1 = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                  (cls.z-cls.experiment['y-center'][episode])**2)>=cls.experiment['radius-start'][episode]**2) # circle mask
+        mask2 = (((cls.x-cls.experiment['x-center'][episode])**2+\
+                  (cls.z-cls.experiment['y-center'][episode])**2)<=cls.experiment['radius-end'][episode]**2) # circle mask
+        img = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x
+        img[mask1 & mask2] = compute_grating(xrot[mask1 & mask2], 
+                                             contrast=cls.experiment['contrast'][episode],
+                                             spatial_freq=cls.experiment['spatial-freq'][episode],
+                                             time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        return img
+    
 
 #####################################################
 ##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
@@ -921,15 +967,13 @@ class gaussian_blobs(visual_stim):
         return times, FRAMES
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
-        """
-        Need to implement it 
-        """
         cls = (parent if parent is not None else self)
-        contrast = cls.experiment['contrast'][episode]
         xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
         radius = cls.experiment['radius'][episode]
-        bg_color = cls.experiment['bg-color'][episode]
-        return np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*contrast+bg_color
+        t0, sT = cls.experiment['center-time'][index], cls.experiment['extent-time'][index]
+        return np.exp(-((cls.x-xcenter)**2+(cls.z-zcenter)**2)/2./radius**2)*\
+            np.exp(-(time_from_episode_start-t0)**2/2./sT**2)*\
+            cls.experiment['contrast'][episode]+cls.experiment['bg-color'][episode]
     
 
 #####################################################
@@ -943,21 +987,20 @@ class natural_image(visual_stim):
     def __init__(self, protocol):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'], run_type='image')
+        self.NIarray = []
+        for filename in os.listdir(NI_directory):
+            img = load(os.path.join(NI_directory, filename))
+            self.NIarray.append(2*img_after_hist_normalization(img).T-1.)
+        
 
     def get_frame(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
-        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][index])]
-        img = load(os.path.join(NI_directory, filename))
-        return 2*img_after_hist_normalization(img).T-1.
+        cls = (parent if parent is not None else self)
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+                       
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
-        img = load(os.path.join(NI_directory, filename))
-        return img_after_hist_normalization(img).T
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
             
 #####################################################
 ##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
@@ -1003,52 +1046,60 @@ class natural_image_vse(visual_stim):
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 30.
         self.frame_refresh = protocol['movie_refresh_freq']
+
+        # initializing set of NI
+        self.NIarray = []
+        for filename in os.listdir(NI_directory):
+            img = load(os.path.join(NI_directory, filename))
+            self.NIarray.append(2*img_after_hist_normalization(img).T-1.)
+
+        # VSE
         
+
+    def compute_shifted_image(self, img, ix, iy):
+        sx, sy = img.shape
+        new_im = np.zeros(img.shape)
+        new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+        new_im[:ix,:] = img[sx-ix:,:]
+        new_im[:,:iy] = img[:,sy-iy:]
+        new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
+        return new_im
+    
+
+    def get_seed(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        if cls.experiment['vary-VSE-with-Image'][index]==1:
+            return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
+            return int(cls.experiment['VSE-seed'][index])
+
         
     def get_frames_sequence(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
-
-        if cls.experiment['vary-VSE-with-Image'][index]==1:
-            seed = int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
-        else:
-            seed = int(cls.experiment['VSE-seed'][index])
+        cls = (parent if parent is not None else self)
+        seed = cls.get_seed(index)
 
         vse = generate_VSE(duration=cls.experiment['time_duration'][index],
                            mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
                            std_saccade_duration=cls.experiment['std-saccade-duration'][index],
-                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]), # in pixels, TO BE PUT IN DEGREES
+                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
                            seed=seed)
 
-        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][index])]
-        img0 = load(os.path.join(NI_directory, filename))
-        img = 2*img_after_hist_normalization(img0)-1 # normalization + gamma_correction
-        sx, sy = img.shape
+        img = cls.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
         times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
         Times = np.arange(int(1.2*interval*cls.protocol['movie_refresh_freq']))/cls.protocol['movie_refresh_freq']
 
         for i, t in enumerate(vse['t']):
-            ix, iy = int(vse['x'][i]), int(vse['y'][i])
-            new_im = np.zeros(img.shape)
-            new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
-            new_im[:ix,:] = img[sx-ix:,:]
-            new_im[:,:iy] = img[:,sy-iy:]
-            new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
-            FRAMES.append(new_im.T-1)
+            FRAMES.append(cls.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
             times[Times>=t] = int(i)
             
         return times, FRAMES
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        filename = os.listdir(NI_directory)[int(cls.experiment['Image-ID'][episode])]
-        img = load(os.path.join(NI_directory, filename))
-        # return np.rot90(img_after_hist_normalization(img))
-        return np.rot90(img)
+        return (1.+cls.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+
     
 #####################################################
 ##  ----    PRESENTING BINARY NOISE         --- #####
@@ -1059,8 +1110,6 @@ class sparse_noise(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol,
-                                ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'], run_type='image')
 
         self.noise_gen = sparse_noise_generator(duration=protocol['presentation-duration'],
                                                 screen=self.screen,
@@ -1072,8 +1121,13 @@ class sparse_noise(visual_stim):
                                                 noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                                 seed=protocol['noise-seed (#)'])
 
+
+        self.experiment = {}
+        self.experiment['index'] = np.arange(len(self.noise_gen.events))
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
+        self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
         
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1081,7 +1135,7 @@ class sparse_noise(visual_stim):
 
     def get_image(self, index, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return np.rot90(self.noise_gen.get_frame(index), k=3).T
+        return (1+self.noise_gen.get_frame(index).T)/2.
     
 
 class dense_noise(visual_stim):
@@ -1100,8 +1154,12 @@ class dense_noise(visual_stim):
                                                 noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                                 seed=protocol['noise-seed (#)'])
 
+        self.experiment = {}
+        self.experiment['index'] = np.arange(len(self.noise_gen.events))
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
+        self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
         
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1109,7 +1167,7 @@ class dense_noise(visual_stim):
 
     def get_image(self, index, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return np.rot90(self.noise_gen.get_frame(index), k=3).T
+        return (1+self.noise_gen.get_frame(index).T)/2.
             
 
 if __name__=='__main__':
