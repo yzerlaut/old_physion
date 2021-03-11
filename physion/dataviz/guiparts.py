@@ -396,18 +396,19 @@ class NewWindow(QtWidgets.QMainWindow):
             string = self.guiKeywords.text()
         if parent is None:
             parent = self
+        
         if string in ['Stim', 'stim', 'VisualStim', 'Stimulation', 'stimulation']:
-            parent.load_VisualStim()
+            cls.load_VisualStim()
         elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
-            parent.CaImaging_bg_key = string
+            cls.CaImaging_bg_key = string
         elif string=='no_subsampling':
-            parent.no_subsampling = True
+            cls.no_subsampling = True
         elif string in ['Fluorescence', 'Neuropil', 'Deconvolved']:
-            parent.CaImaging_key = string
+            cls.CaImaging_key = string
         elif string=='subsampling':
-            parent.no_subsampling = False
+            cls.no_subsampling = False
         elif string=='subjects':
-            parent.compute_subjects()
+            cls.compute_subjects()
         else:
             self.statusBar.showMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
 
