@@ -8,5 +8,15 @@
 		 "weight":"Unknown",
 		 "virus":"Unknown",
 		 "surgery":"Unknown",
+  		 "date_of_birth":"2020_10_01"},
+    "Mouse1_NDNF":{"description":"Mouse1_NDNF",
+		 "anibio":"Unknown",
+		 "sex":"Unknown",
+		 "genotype":"Unknown",
+		 "species":"Mouse",
+		 "subject_id":"Mouse1_NDNF",
+		 "weight":"Unknown",
+		 "virus":"Unknown",
+		 "surgery":"Unknown",
   		 "date_of_birth":"2020_10_01"}
 }
