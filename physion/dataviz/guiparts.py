@@ -394,8 +394,8 @@ class NewWindow(QtWidgets.QMainWindow):
 
         if string is None:
             string = self.guiKeywords.text()
-        if parent is None:
-            parent = self
+
+        cls = (parent if parent is not None else self)
         
         if string in ['Stim', 'stim', 'VisualStim', 'Stimulation', 'stimulation']:
             cls.load_VisualStim()

@@ -69,7 +69,7 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename = '/home/yann/DATA/2021_03_09/2021_03_09-13-05-09.NIDAQ.nwb'
+        filename = '/home/yann/DATA/2021_03_11-09-31-06.NIDAQ.nwb'
         # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
         #              "Open Multimodal Experimental Recording (NWB file) ",
         #                 os.path.join(os.path.expanduser('~'),'DATA'),

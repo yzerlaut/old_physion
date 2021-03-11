@@ -31,14 +31,16 @@ def build_NWB(args,
     #################################################
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
                        allow_pickle=True).item()
-    print(metadata)
+    
     # replace by day and time in metadata !!
     if os.path.sep in args.datafolder:
         sep = os.path.sep
     else:
         sep = '/' # a weird behavior on Windows
-    day = args.datafolder.split(sep)[-2].split('_')
-    Time = args.datafolder.split(sep)[-1].split('-')
+
+    day = metadata['filename'].split('\\')[-2].split('_')
+    Time = metadata['filename'].split('\\')[-1].split('-')
+    identifier = metadata['filename'].split('\\')[-2]+'-'+metadata['filename'].split('\\')[-1]
     start_time = datetime.datetime(int(day[0]),int(day[1]),int(day[2]),
                 int(Time[0]),int(Time[1]),int(Time[2]),tzinfo=tzlocal())
 
@@ -64,7 +66,7 @@ def build_NWB(args,
                                  weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
                                  date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1])))
                                  
-    nwbfile = pynwb.NWBFile(identifier='%s-%s' % (args.datafolder.split(sep)[-2],args.datafolder.split(sep)[-1]),
+    nwbfile = pynwb.NWBFile(identifier=identifier,
                             session_description=str(metadata),
                             experiment_description=metadata['protocol'],
                             experimenter=(metadata['experimenter'] if ('experimenter' in metadata) else 'Unknown'),
@@ -85,21 +87,15 @@ def build_NWB(args,
         args.Pupil_frame_sampling = 1e5
         args.Snout_frame_sampling = 1e5
         args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
-        filename = os.path.join(args.datafolder, '%s-%s.FULL.nwb' % (args.datafolder.split(sep)[-2],
-                                                                     args.datafolder.split(sep)[-1]))
+        filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.FULL.nwb' % identifier)
     elif (args.export=='LIGHTWEIGHT'):
-        filename = os.path.join(args.datafolder, '%s-%s.LIGHTWEIGHT.nwb' % (args.datafolder.split(sep)[-2],
-                                                                            args.datafolder.split(sep)[-1]))
+        filename = os.path.join(args.datafolder, '%s.LIGHTWEIGHT.nwb' % identifier)
     elif (args.export=='NIDAQ'):
-        filename = os.path.join(args.datafolder, '%s-%s.NIDAQ.nwb' % (args.datafolder.split(sep)[-2],
-                                                                            args.datafolder.split(sep)[-1]))
+        filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.NIDAQ.nwb' % identifier)
     elif args.export=='FROM_VISUALSTIM_SETUP':
-        filename = os.path.join(args.datafolder, '%s-%s.nwb' % (args.datafolder.split(sep)[-2],
-                                                                   args.datafolder.split(sep)[-1]))
+        filename = os.path.join(args.datafolder, '%s.nwb' % identifier)
     elif (args.modalities!=ALL_MODALITIES):
-        filename = os.path.join(args.datafolder, '%s-%s.%s.nwb' % (args.datafolder.split(sep)[-2],
-                                                                   args.datafolder.split(sep)[-1],
-                                                                   str(args.modalities)))
+        filename = os.path.join(args.datafolder, '%s.%s.nwb' % (identifier, str(args.modalities)))
     else:
         raise BaseException(2*'\n'+10*' '+ '===> Export format not recognized !')
     
