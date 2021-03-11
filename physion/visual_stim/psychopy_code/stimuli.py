@@ -1,4 +1,7 @@
-# from psychopy import visual, core, event, clock, monitors, tools # We actually do it below so that we can use the code without psychopy
+try:
+    from psychopy import visual, core, event, clock, monitors, tools # We actually do it below so that we can use the code without psychopy
+except ModuleNotFoundError:
+    pass
 import numpy as np
 import itertools, os, sys, pathlib, time, json
  
@@ -81,7 +84,6 @@ class visual_stim:
         
         if not ('no-window' in self.protocol):
 
-            
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             

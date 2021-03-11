@@ -261,8 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
                          'protocol':self.cbp.currentText(),
                          'notes':self.qmNotes.toPlainText(),
                          'subject_ID':self.cbs.currentText(),
-                         'subject
-_props':self.subjects[self.cbs.currentText()]}
+                         'subject_props':self.subjects[self.cbs.currentText()]}
 
         for d in [self.config, self.protocol]:
             for key in d:
@@ -290,7 +289,6 @@ _props':self.subjects[self.cbs.currentText()]}
                 self.protocol = json.load(fp)
         else:
                 self.protocol = {}
-
                 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
@@ -415,6 +413,8 @@ _props':self.subjects[self.cbs.currentText()]}
     def save_experiment(self):
         # SAVING THE METADATA FILES
         self.metadata['filename'] = str(self.datafolder.get())
+        for key in self.protocol:
+            self.metadata[key] = self.protocol[key]
         np.save(os.path.join(str(self.datafolder.get()), 'metadata.npy'), self.metadata)
         print('[ok] Metadata data saved as: %s ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
