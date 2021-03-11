@@ -244,7 +244,7 @@ class TrialAverageWindow(NewWindow):
 def build_episodes(self,
                    parent=None,
                    protocol_id=0,
-                   quantity='Locomotion',
+                   quantity='Photodiode-Signal',
                    subquantity='',
                    dt_sampling=1, # ms
                    interpolation='linear',
@@ -256,19 +256,29 @@ def build_episodes(self,
     if parent is None:
         parent = self
 
+    # choosing protocol (if multiprotocol)
+    if len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1:
+        Pcond = (parent.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
+    else:
+        Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+    if verbose:
+        print('Number of episodse over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
+        
     # new sampling
     interstim = parent.metadata['presentation-interstim-period']
     ipre = int(interstim/dt_sampling/1e-3*3./4.) # 3/4 of prestim
-    idur = int(parent.metadata['presentation-duration']/dt_sampling/1e-3)
+    duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
+    idur = int(duration/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     EPISODES[quantity] = []
-    
-    key = None
+    for key in parent.nwbfile.stimulus.keys():
+        EPISODES[key] = parent.nwbfile.stimulus[key].data[Pcond]
+        
     if quantity=='CaImaging':
         if 'CaImaging-TimeSeries' in parent.nwbfile.acquisition and len(parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps)>2:
             tfull = parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
         else:
-            dt = 1./parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].rate
+            dt = parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[1]-parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[0]
             tfull = np.arange(parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
         if len(parent.roiIndices)>1:
             valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[np.array(parent.roiIndices)], :].mean(axis=0)
@@ -276,19 +286,18 @@ def build_episodes(self,
             valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices[0]], :]
         else:
             valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices], :].sum(axis=0)
-    elif quantity=='Photodiode':
-        key = 'Photodiode-Signal'
-    elif quantity=='Electrophy':
-        key = 'Electrophysiological-Signal'
     else:
-        print(quantity, 'not recognized')
+        try:
+            tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate
+            valfull = parent.nwbfile.acquisition[quantity].data[:]
+        except BaseException as be:
+            print(be)
+            print(30*'-')
+            print(quantity, 'not recognized')
+            print(30*'-')
         
-    if key is not None:
-        tfull = np.arange(parent.nwbfile.acquisition[key].data.shape[0])/parent.nwbfile.acquisition[key].rate
-        valfull = parent.nwbfile.acquisition[key].data
-    
-    for tstart, tstop in zip(parent.nwbfile.stimulus['time_start_realigned'].data[:],\
-                             parent.nwbfile.stimulus['time_stop_realigned'].data[:]):
+    for tstart, tstop in zip(parent.nwbfile.stimulus['time_start_realigned'].data[Pcond],
+                             parent.nwbfile.stimulus['time_stop_realigned'].data[Pcond]):
 
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
         func = interp1d(tfull[cond]-tstart, valfull[cond],
@@ -306,15 +315,34 @@ def build_episodes(self,
     
 if __name__=='__main__':
 
-    folder = os.path.join(os.path.expanduser('~'),\
-                          'DATA', '2020_11_04', '01-02-03')
+    # folder = os.path.join(os.path.expanduser('~'),\
+    #                       'DATA', '2020_11_04', '01-02-03')
     
-    dataset = Dataset(folder,
-                      with_CaImaging_stat=False,
-                      modalities=['Screen', 'Locomotion', 'CaImaging'])
+    # dataset = Dataset(folder,
+    #                   with_CaImaging_stat=False,
+    #                   modalities=['Screen', 'Locomotion', 'CaImaging'])
     
-    app = QtWidgets.QApplication(sys.argv)
-    from misc.colors import build_dark_palette
-    build_dark_palette(app)
-    window = TrialAverageWindow(app, dataset=dataset)
-    sys.exit(app.exec_())
+    # app = QtWidgets.QApplication(sys.argv)
+    # from misc.colors import build_dark_palette
+    # build_dark_palette(app)
+    # window = TrialAverageWindow(app, dataset=dataset)
+    # sys.exit(app.exec_())
+    import sys
+    sys.path.append('/home/yann/work/physion')
+    from physion.analysis.read_NWB import read as read_NWB
+
+    class Data:
+        def __init__(self, filename):
+            read_NWB(self, filename, verbose=False)
+            self.CaImaging_key = 'Fluorescence'
+            self.roiIndices = [0]
+
+    key = 'CaImaging'
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
+    data = Data(filename)
+    EPISODES = build_episodes(data, quantity=key, protocol_id=1, verbose=True)
+
+    import matplotlib.pylab as plt
+    for i in range(10):
+        plt.plot(EPISODES['t'], EPISODES[key][i])
+    plt.show()
