@@ -10,8 +10,8 @@ from analysis.trial_averaging import TrialAverageWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
 from analysis.read_NWB import read as read_NWB
-from visual_stim.psychopy_code.stimuli import build_stim
 from misc.folders import FOLDERS
+from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
 settings = {
     'window_size':(1000,600),
@@ -101,7 +101,7 @@ class MainWindow(guiparts.NewWindow):
 
             
     def load_file(self, filename):
-
+        """ should be a minimal processing so that the loading is fast"""
         read_NWB(self, filename,
                  verbose=True) # see ../analysis/read_NWB.py
 
@@ -117,21 +117,22 @@ class MainWindow(guiparts.NewWindow):
         self.sbox.addItem(self.nwbfile.subject.description)
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
+        self.visual_stim = None
+
+        if 'ophys' in self.nwbfile.processing:
+            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
+
+    def load_VisualStim(self):
 
         # load visual stimulation
         if self.metadata['VisualStim']:
             self.metadata['load_from_protocol_data'] = True
             self.metadata['no-window'] = True
-            self.visual_stim = build_stim(self.metadata)
+            self.visual_stim = build_stim(self.metadata, no_psychopy=True)
         else:
-            self.visual_stim = None # by default
+            self.visual_stim = None
+            print(' /!\ No stimulation in this recording /!\  ')
             
-
-        
-        if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
-
-
             
     def select_folder(self):
 

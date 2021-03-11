@@ -1,17 +1,20 @@
-from psychopy import visual, core, event, clock, monitors, tools # some libraries from PsychoPy
+# from psychopy import visual, core, event, clock, monitors, tools # We actually do it below so that we can use the code without psychopy
 import numpy as np
-import itertools, os, sys, pathlib, subprocess, time, json
+import itertools, os, sys, pathlib, time, json
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
 from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
 from psychopy_code.preprocess_NI import load, img_after_hist_normalization
 
-def build_stim(protocol):
+def build_stim(protocol, no_psychopy=False):
     """
     """
+    if not no_psychopy:
+        from psychopy import visual, core, event, clock, monitors, tools # some libraries from PsychoPy
+    
     if (protocol['Presentation']=='multiprotocol'):
-        return multiprotocol(protocol)
+        return multiprotocol(protocol, no_psychopy=no_psychopy)
     elif (protocol['Stimulus']=='light-level'):
         return light_level_single_stim(protocol)
     elif (protocol['Stimulus']=='full-field-grating'):
@@ -77,6 +80,7 @@ class visual_stim:
         self.x, self.z = self.angle_meshgrid()
         
         if not ('no-window' in self.protocol):
+
             
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
@@ -478,7 +482,7 @@ class visual_stim:
 
 class multiprotocol(visual_stim):
 
-    def __init__(self, protocol):
+    def __init__(self, protocol, no_psychopy=False):
         
         super().__init__(protocol)
 
@@ -499,7 +503,7 @@ class multiprotocol(visual_stim):
                     print(key)
                     if ('Protocol-%i-'%i in key):
                         subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
-                self.STIM.append(build_stim(subprotocol))
+                self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
@@ -510,7 +514,7 @@ class multiprotocol(visual_stim):
                     subprotocol = json.load(fp)
                     subprotocol['Screen'] = protocol['Screen']
                     subprotocol['no-window'] = True
-                    self.STIM.append(build_stim(subprotocol))
+                    self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))
                     for key, val in subprotocol.items():
                         protocol['Protocol-%i-%s'%(i,key)] = val
                 i+=1
@@ -1076,7 +1080,7 @@ class natural_image_vse(visual_stim):
         
     def get_frames_sequence(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        seed = cls.get_seed(index)
+        seed = self.get_seed(index)
 
         vse = generate_VSE(duration=cls.experiment['time_duration'][index],
                            mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
@@ -1084,21 +1088,21 @@ class natural_image_vse(visual_stim):
                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
                            seed=seed)
 
-        img = cls.NIarray[int(cls.experiment['Image-ID'][index])]
+        img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
         times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
         Times = np.arange(int(1.2*interval*cls.protocol['movie_refresh_freq']))/cls.protocol['movie_refresh_freq']
 
         for i, t in enumerate(vse['t']):
-            FRAMES.append(cls.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
+            FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
             times[Times>=t] = int(i)
             
         return times, FRAMES
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return (1.+cls.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+        return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
 
     
 #####################################################

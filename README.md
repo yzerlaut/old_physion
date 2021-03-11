@@ -47,7 +47,7 @@ Example of the full process from the Anaconda prompt:
 
 The master program for experiments is launched from the "Anaconda prompt" by typing:
 ```
-python main.py
+python -m physion
 ```
 
 <p align="center">
