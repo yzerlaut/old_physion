@@ -39,8 +39,16 @@ class TrialAverageWindow(NewWindow):
         self.notes.setMaximumWidth(noteBoxsize[0])
         self.Layout11.addWidget(self.notes)
         
-        # controls
+
         self.Layout12 = QtWidgets.QVBoxLayout()
+        # -- protocol
+        self.Layout12.addWidget(QtWidgets.QLabel('Protocol', self))
+        self.pbox = QtWidgets.QComboBox(self)
+        self.pbox.addItems(self.parent.protocols)
+        # self.pbox.activated.connect(self.update_protocol)
+        self.Layout12.addWidget(self.pbox)
+        
+        # -- quantity
         Layout1.addLayout(self.Layout12)
         self.Layout12.addWidget(QtWidgets.QLabel('Quantity', self))
         self.qbox = QtWidgets.QComboBox(self)
@@ -56,9 +64,7 @@ class TrialAverageWindow(NewWindow):
             self.qbox.addItem('CaImaging')
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
-        
 
-        
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.guiKeywords = QtGui.QLineEdit()
         self.guiKeywords.setText('  [GUI keywords]  ')
@@ -251,7 +257,8 @@ def build_episodes(self,
                    verbose=True):
 
     EPISODES = {'dt_sampling':dt_sampling,
-                'quantity':quantity}
+                'quantity':quantity,
+                'resp':[]}
 
     if parent is None:
         parent = self
@@ -262,24 +269,21 @@ def build_episodes(self,
     else:
         Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
     if verbose:
-        print('Number of episodse over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
+        print('Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
         
     # new sampling
     interstim = parent.metadata['presentation-interstim-period']
-    ipre = int(interstim/dt_sampling/1e-3*3./4.) # 3/4 of prestim
+    ipre = int(interstim/dt_sampling*1e3*9./10.) # 3/4 of prestim
     duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
     idur = int(duration/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
-    EPISODES[quantity] = []
+    
+    # adding the parameters
     for key in parent.nwbfile.stimulus.keys():
         EPISODES[key] = parent.nwbfile.stimulus[key].data[Pcond]
         
     if quantity=='CaImaging':
-        if 'CaImaging-TimeSeries' in parent.nwbfile.acquisition and len(parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps)>2:
-            tfull = parent.nwbfile.acquisition['CaImaging-TimeSeries'].timestamps
-        else:
-            dt = parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[1]-parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[0]
-            tfull = np.arange(parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].data.shape[1])*dt
+        tfull = parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[:]
         if len(parent.roiIndices)>1:
             valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[np.array(parent.roiIndices)], :].mean(axis=0)
         elif len(parent.roiIndices)==1:
@@ -304,11 +308,13 @@ def build_episodes(self,
                         kind=interpolation)
         
         try:
-            EPISODES[quantity].append(func(EPISODES['t']))
+            EPISODES['resp'].append(func(EPISODES['t']))
         except ValueError:
             print(tstart, tstop)
             pass
 
+    EPISODES['resp'] = np.array(EPISODES['resp'])
+    
     if verbose:
         print('[ok] episodes ready !')
     return EPISODES
@@ -321,28 +327,31 @@ if __name__=='__main__':
     # dataset = Dataset(folder,
     #                   with_CaImaging_stat=False,
     #                   modalities=['Screen', 'Locomotion', 'CaImaging'])
-    
-    # app = QtWidgets.QApplication(sys.argv)
-    # from misc.colors import build_dark_palette
-    # build_dark_palette(app)
-    # window = TrialAverageWindow(app, dataset=dataset)
-    # sys.exit(app.exec_())
     import sys
     sys.path.append('/home/yann/work/physion')
     from physion.analysis.read_NWB import read as read_NWB
-
-    class Data:
-        def __init__(self, filename):
-            read_NWB(self, filename, verbose=False)
-            self.CaImaging_key = 'Fluorescence'
-            self.roiIndices = [0]
-
-    key = 'CaImaging'
+    
     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
-    data = Data(filename)
-    EPISODES = build_episodes(data, quantity=key, protocol_id=1, verbose=True)
+    
+    class Parent:
+        def __init__(self, filename=''):
+            read_NWB(self, filename, verbose=False)
+            self.app = QtWidgets.QApplication(sys.argv)
+            self.description=''
+    cls = Parent(filename)
+    window = TrialAverageWindow(cls)
+    sys.exit(cls.app.exec_())
+    
 
-    import matplotlib.pylab as plt
-    for i in range(10):
-        plt.plot(EPISODES['t'], EPISODES[key][i])
-    plt.show()
+    # class Data:
+    #     def __init__(self, filename):
+    #         read_NWB(self, filename, verbose=False)
+    #         self.CaImaging_key = 'Fluorescence'
+    #         self.roiIndices = np.arange(100)
+
+    # data = Data(filename)
+    # EPISODES = build_episodes(data, quantity='CaImaging', protocol_id=0, verbose=True)
+
+    # import matplotlib.pylab as plt
+    # plt.plot(EPISODES['t'], EPISODES['resp'].mean(axis=0))
+    # plt.show()
