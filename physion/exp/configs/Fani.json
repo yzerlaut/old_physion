@@ -1,0 +1,17 @@
+{
+    "NIdaq-acquisition-frequency":1000,
+    "NIdaq-analog-input-channels":1,
+    "NIdaq-digital-input-channels":2,
+    "Screen":"Dell-P2018H",
+    "FaceCamera-frame-rate":30,
+    "STEP_FOR_CA_IMAGING_TRIGGER":{"channel":0,
+				   "onset": 0.1,
+				   "duration":0.3,
+				   "value":5.0},
+    "root_datafolder":"DATA",
+    "subjects_file":"mice_fani.json",
+    "experimenter":"Fani Koukouli",
+    "lab":"Rebola and Bacci labs",
+    "institution":"Institut du Cerveau et de la Moelle, Paris",
+    "protocols":["Pakan-et-al-Elife-2016"]
+}
