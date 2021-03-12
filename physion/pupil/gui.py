@@ -125,15 +125,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reset_btn.clicked.connect(self.reset)
         # self.reset_btn.setEnabled(True)
         # draw pupil
-        self.pupil_draw = QtGui.QPushButton('draw Pupil')
-        self.l0.addWidget(self.pupil_draw, 2, 10+6, 1, 1)
-        # self.pupil_draw.setEnabled(True)
-        self.pupil_draw.clicked.connect(self.draw_pupil)
-        self.pupil_draw_save = QtGui.QPushButton('- Debug -')
-        self.l0.addWidget(self.pupil_draw_save, 2, 11+6, 1, 1)
-        # self.pupil_draw_save.setEnabled(False)
-        # self.pupil_draw_save.setEnabled(True)
-        self.pupil_draw_save.clicked.connect(self.debug)
+        self.refresh_pupil = QtGui.QPushButton('Refresh [Ctrl+R]')
+        self.l0.addWidget(self.refresh_pupil, 2, 11+6, 1, 1)
+        self.refresh_pupil.setEnabled(True)
+        self.refresh_pupil.clicked.connect(self.jump_to_frame)
+        # self.refresh_pupil_save = QtGui.QPushButton('- Debug -')
+        # self.l0.addWidget(self.refresh_pupil_save, 2, 11+6, 1, 1)
+        # self.refresh_pupil_save.clicked.connect(self.refresh)
 
         self.data = None
         self.rROI= []
@@ -306,40 +304,44 @@ class MainWindow(QtWidgets.QMainWindow):
         # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13',
         #                         'metadata.npy') # a default for debugging
         # filename = '/media/yann/Yann/2021_02_19/14-45-21/metadata.npy'
-        
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                                                        "Open Pupil Data (through metadata file or analysis file) )",
-                                                        FOLDERS[self.folderB.currentText()],
-                                                        filter="*.npy")
-        
-        if os.path.isdir(os.path.join(os.path.dirname(filename), 'FaceCamera-imgs')):
+
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        if folder!='':
             
-            self.reset()
-            self.datafolder = os.path.dirname(filename)
-            self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
-            self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
-                                                                                          t0=0, verbose=True)
+            self.datafolder = folder
+            
+            if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
+                
+                # self.reset()
+                self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
+                self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
+                                                                                              t0=0, verbose=True)
+            else:
+                self.imgfolder, self.nframes, self.FILES = None, None, None
+                self.jump_to_frame()
+                print(' /!\ no raw FaceCamera data found ...')
 
-            if os.path.isfile(os.path.join(os.path.dirname(filename), 'pupil.npy')):
-                self.data = np.load(os.path.join(os.path.dirname(filename), 'pupil.npy'),
+            if os.path.isfile(os.path.join(self.datafolder, 'pupil.npy')):
+                self.data = np.load(os.path.join(self.datafolder, 'pupil.npy'),
                                     allow_pickle=True).item()
+                if self.nframes is None:
+                    self.nframes = self.data['frame'].max()
                 self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
-                process.load_ROI(self)
                 self.plot_pupil_trace()
-
-            self.jump_to_frame()
-
+            else:
+                self.data = None
+                
             self.timeLabel.setEnabled(True)
             self.frameSlider.setEnabled(True)
             self.updateFrameSlider()
             # self.updateButtons()
             self.currentTime.setValidator(\
-                QtGui.QDoubleValidator(0, self.nframes, 2))
+                                          QtGui.QDoubleValidator(0, self.nframes, 2))
 
-            self.movieLabel.setText(filename)
+            self.movieLabel.setText(folder)
 
-        else:
-            print(' /!\ no FaceCamera data found ...')
             
 
 
@@ -388,8 +390,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # self.data = process.remove_outliers(self.data, std_criteria=2.)
 
             if (self.cframe1!=0) and (self.cframe2!=-1):
-                i1 = np.argmin((self.cframe1-self.data['frame'])**2)
-                i2 = np.argmin((self.cframe2-self.data['frame'])**2)
+                i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
+                i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
                 self.data['diameter'][i1:i2] = 0
                 
             cond = (self.data['diameter']>0)
@@ -443,22 +445,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def jump_to_frame(self):
 
-        # full image 
-        self.fullimg = np.load(os.path.join(self.imgfolder,
-                                            self.FILES[self.cframe]))
-        self.pimg.setImage(self.fullimg)
+        if self.FILES is not None:
+            # full image 
+            self.fullimg = np.load(os.path.join(self.imgfolder,
+                                                self.FILES[self.cframe]))
+            self.pimg.setImage(self.fullimg)
 
-        # zoomed image
-        if self.ROI is not None:
-            process.init_fit_area(self)
-            process.preprocess(self,\
-                            gaussian_smoothing=float(self.smoothBox.text()),
-                            saturation=self.sl.value())
-            self.pPupilimg.setImage(self.img)
-            self.pPupilimg.setLevels([self.img.min(), self.img.max()])
-        
-            self.reflector.setEnabled(False)
-            self.reflector.setEnabled(True)
+            # zoomed image
+            if self.ROI is not None:
+                process.init_fit_area(self)
+                process.preprocess(self,\
+                                gaussian_smoothing=float(self.smoothBox.text()),
+                                saturation=self.sl.value())
+                self.pPupilimg.setImage(self.img)
+                self.pPupilimg.setLevels([self.img.min(), self.img.max()])
+
+                self.reflector.setEnabled(False)
+                self.reflector.setEnabled(True)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
@@ -466,8 +469,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit.remove(self)
             
         if self.data is not None:
-            self.iframe = np.argmin((self.cframe-self.data['frame'])**2)
-            
+            self.iframe = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe][0]
             self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
                                  self.data['diameter'][self.iframe]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))

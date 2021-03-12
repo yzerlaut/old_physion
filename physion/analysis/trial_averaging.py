@@ -20,6 +20,11 @@ class TrialAverageWindow(NewWindow):
 
         self.parent = parent
         self.EPISODES, self.AX, self.l = None, None, None
+
+        self.computeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+C'), self)
+        self.computeSc.activated.connect(self.compute_episodes)
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
+        self.refreshSc.activated.connect(self.refresh)
         
         mainLayout = QtWidgets.QHBoxLayout(self.cwidget)
         Layout1 = QtWidgets.QVBoxLayout()
@@ -32,7 +37,7 @@ class TrialAverageWindow(NewWindow):
 
         # description
         self.notes = QtWidgets.QLabel(parent.description, self)
-        noteBoxsize = (200, 200)
+        noteBoxsize = (200, 100)
         self.notes.setMinimumHeight(noteBoxsize[1])
         self.notes.setMaximumHeight(noteBoxsize[1])
         self.notes.setMinimumWidth(noteBoxsize[0])
@@ -41,17 +46,19 @@ class TrialAverageWindow(NewWindow):
         
 
         self.Layout12 = QtWidgets.QVBoxLayout()
+        Layout1.addLayout(self.Layout12)
         # -- protocol
         self.Layout12.addWidget(QtWidgets.QLabel('Protocol', self))
         self.pbox = QtWidgets.QComboBox(self)
+        self.pbox.addItem('')
         self.pbox.addItems(self.parent.protocols)
-        # self.pbox.activated.connect(self.update_protocol)
+        self.pbox.activated.connect(self.update_protocol)
         self.Layout12.addWidget(self.pbox)
-        
+
         # -- quantity
-        Layout1.addLayout(self.Layout12)
         self.Layout12.addWidget(QtWidgets.QLabel('Quantity', self))
         self.qbox = QtWidgets.QComboBox(self)
+        self.qbox.addItem('')
         if 'Photodiode-Signal' in self.parent.nwbfile.acquisition:
             self.qbox.addItem('Photodiode')
         if 'Electrophysiological-Signal' in self.parent.nwbfile.acquisition:
@@ -65,7 +72,6 @@ class TrialAverageWindow(NewWindow):
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
 
-        self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.guiKeywords = QtGui.QLineEdit()
         self.guiKeywords.setText('  [GUI keywords]  ')
         self.guiKeywords.setFixedWidth(250)
@@ -73,7 +79,6 @@ class TrialAverageWindow(NewWindow):
         self.guiKeywords.setFont(smallfont)
         self.Layout12.addWidget(self.guiKeywords)
         
-        self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.roiPick = QtGui.QLineEdit()
         self.roiPick.setText('  [select ROI]  ')
         self.roiPick.setFixedWidth(250)
@@ -82,33 +87,86 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(self.roiPick)
 
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
-        self.Layout12.addWidget(QtWidgets.QLabel(9*'-'+\
+        self.computeBtn = QtWidgets.QPushButton('[C]ompute episodes', self)
+        self.computeBtn.clicked.connect(self.compute_episodes)
+        self.Layout12.addWidget(self.computeBtn)
+        self.Layout12.addWidget(QtWidgets.QLabel('', self))
+        
+        # self.Layout12 = QtWidgets.QVBoxLayout()
+        # # -- protocol
+        # self.Layout12.addWidget(QtWidgets.QLabel('Protocol', self))
+        # self.pbox = QtWidgets.QComboBox(self)
+        # self.pbox.addItems('')
+        # self.pbox.addItems(self.parent.protocols)
+        # # self.pbox.activated.connect(self.update_protocol)
+        # self.Layout12.addWidget(self.pbox)
+
+        # then parameters
+        self.Layout13 = QtWidgets.QVBoxLayout()
+        Layout1.addLayout(self.Layout13)
+        self.Layout13.addWidget(QtWidgets.QLabel('', self))
+        self.Layout13.addWidget(QtWidgets.QLabel(9*'-'+\
                                                  ' Display options '+\
                                                  9*'-', self))
-        for key in self.parent.keys:
-            setattr(self, "c"+key, QtWidgets.QComboBox(self))
-            self.Layout12.addWidget(getattr(self, "c"+key))
-            for k in ['(merge)', '(color-code)', '(row)', '(column)']:
-                getattr(self, "c"+key).addItem(key+\
-                            ((30-len(k)-len(key))*' ')+k)
-        for i in range(4-len(self.parent.keys)):
-            self.Layout12.addWidget(QtWidgets.QLabel('', self))
+
+        for i in range(5):
+            setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
+            self.Layout13.addWidget(getattr(self, "label%i"%i))
+            setattr(self, "box%i"%i, QtWidgets.QComboBox(self))
+            self.Layout13.addWidget(getattr(self, "box%i"%i))
+            
+        # for key in self.parent.keys:
+        #     setattr(self, "c"+key, QtWidgets.QComboBox(self))
+        #     self.Layout13.addWidget(getattr(self, "c"+key))
+        #     for k in ['(merge)', '(color-code)', '(row)', '(column)']:
+        #         getattr(self, "c"+key).addItem(key+\
+        #                     ((30-len(k)-len(key))*' ')+k)
+        # for i in range(4-len(self.parent.keys)):
+        #     self.Layout13.addWidget(QtWidgets.QLabel('', self))
 
         self.refreshBtn = QtWidgets.QPushButton('[R]efresh plots', self)
-        self.Layout12.addWidget(self.refreshBtn)
-        self.Layout12.addWidget(QtWidgets.QLabel('', self))
+        self.refreshBtn.clicked.connect(self.refresh)
+        self.Layout13.addWidget(self.refreshBtn)
+        self.Layout13.addWidget(QtWidgets.QLabel('', self))
+        
         self.samplingBox = QtWidgets.QDoubleSpinBox(self)
         self.samplingBox.setValue(dt_sampling)
         self.samplingBox.setMaximum(500)
         self.samplingBox.setMinimum(0.1)
         self.samplingBox.setSuffix(' (ms) sampling')
-        self.Layout12.addWidget(self.samplingBox)
+        self.Layout13.addWidget(self.samplingBox)
 
         self.plots = pg.GraphicsLayoutWidget()
         Layout2.addWidget(self.plots)
         
         self.show()
 
+    def update_params_choice(self):
+        pass
+
+    def update_protocol(self):
+        self.EPISODES = None
+        self.qbox.setCurrentIndex(0)
+        self.Layout13.clear()
+        
+
+    def refresh(self):
+        pass
+    
+    def update_quantity(self):
+        pass
+        # if self.qbox.currentText()=='CaImaging':
+        #     self.sqbox.addItem('[sum]')
+        #     self.sqbox.addItem('[all] (row)')
+        #     self.sqbox.addItem('[all] (color-code)')
+        #     for i in range(np.sum(self.parent.iscell)):
+        #         self.sqbox.addItem('ROI-%i' % (i+1))
+        #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
+        #         self.pbox.addItem(k)
+
+    def compute_episodes(self):
+        pass
+    
     def select_ROI(self):
         """ see dataviz/gui.py """
         roiIndices = self.parent.select_ROI_from_pick(cls=self)
@@ -153,13 +211,13 @@ class TrialAverageWindow(NewWindow):
             for icol, col_cond in enumerate(COL_CONDS):
                 self.AX[irow].append(self.l.addPlot())
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    cond = np.array(col_cond & row_cond & color_cond)[:len(self.EPISODES[quantity])]
+                    cond = np.array(col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
                     pen = pg.mkPen(color=COLORS[icolor], width=2)
-                    my = np.array(self.EPISODES[quantity])[cond,:].mean(axis=0)
+                    my = self.EPISODES['resp'][cond,:].mean(axis=0)
                     if np.sum(cond)>1:
                         spen = pg.mkPen(color=(0,0,0,0), width=0)
                         spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
-                        sy = np.array(self.EPISODES[quantity])[cond,:].std(axis=0)
+                        sy = self.EPISODES['resp'][cond,:].std(axis=0)
                         phigh = pg.PlotCurveItem(self.EPISODES['t'], my+sy, pen = spen)
                         plow = pg.PlotCurveItem(self.EPISODES['t'], my-sy, pen = spen)
                         pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)
@@ -186,7 +244,7 @@ class TrialAverageWindow(NewWindow):
         self.quantity = self.qbox.currentText()
         if self.quantity=='CaImaging':
             self.statusBar.showMessage('rebuilding episodes for "%s" and ROI "%s" [...]' % (self.quantity,\
-                                                                              self.parent.roiIndices))
+                                                                                            self.parent.roiIndices))
         else:
             self.statusBar.showMessage('rebuilding episodes for "%s" [...]' % self.quantity)
         self.EPISODES = build_episodes(self, parent=self.parent,
@@ -234,17 +292,6 @@ class TrialAverageWindow(NewWindow):
                 K.append(key)
         return self.build_conditions(X, K)
 
-    
-    def update_quantity(self):
-        pass
-        # if self.qbox.currentText()=='CaImaging':
-        #     self.sqbox.addItem('[sum]')
-        #     self.sqbox.addItem('[all] (row)')
-        #     self.sqbox.addItem('[all] (color-code)')
-        #     for i in range(np.sum(self.parent.iscell)):
-        #         self.sqbox.addItem('ROI-%i' % (i+1))
-        #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
-        #         self.pbox.addItem(k)
 
         
 def build_episodes(self,
