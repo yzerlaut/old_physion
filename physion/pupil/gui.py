@@ -190,14 +190,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cursor2.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.cursor2.clicked.connect(self.set_cursor_2)
         
-        # self.interpolate = QtGui.QPushButton('interpolate')
-        # self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.interpolate.clicked.connect(self.interpolate_data)
-        
-        # self.genscript = QtGui.QPushButton('add to bash script')
-        # self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.genscript.clicked.connect(self.gen_bash_script)
-
         self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
         self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
@@ -259,12 +251,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.process, 16, 0, 1, 3)
         self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
-        # self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
         self.l0.addWidget(self.saverois, 19, 0, 1, 3)
-        # self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        self.l0.addWidget(self.cursor1, 22, 0, 1, 3)
-        self.l0.addWidget(self.cursor2, 23, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 24, 0, 1, 3)
+        self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
+        self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -380,11 +370,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ROI = roi.sROI(parent=self)
         self.rROI = []
         self.reflectors = []
-
-    # def exclude_outlier(self):
-
-    #     i0 = np.argmin((self.cframe-self.data['frame'])**2)
-    #     self.data['diameter'][i0] = 0
 
     def process_outliers(self):
 
@@ -525,18 +510,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.extract_ROI(self.data)
         self.save_pupil_data()
         
-
-    def gen_bash_script(self):
-
-        self.save_pupil_data()
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
-        # launch without subsampling !!
-        with open(script, 'a') as f:
-            f.write('python %s -df %s -s 1 &\n' % (process_script, self.datafolder))
-            
-        print('Script successfully written in "%s"' % script)
-
 
     def run_as_subprocess(self):
 

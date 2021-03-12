@@ -87,7 +87,7 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(self.roiPick)
 
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
-        self.computeBtn = QtWidgets.QPushButton('[C]ompute episodes', self)
+        self.computeBtn = QtWidgets.QPushButton('[Ctrl+C]ompute episodes', self)
         self.computeBtn.clicked.connect(self.compute_episodes)
         self.Layout12.addWidget(self.computeBtn)
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
@@ -109,10 +109,13 @@ class TrialAverageWindow(NewWindow):
                                                  ' Display options '+\
                                                  9*'-', self))
 
-        for i in range(5):
-            setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
-            self.Layout13.addWidget(getattr(self, "label%i"%i))
+        for i in range(5): # controls the max number of parameters varied
+            # setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
+            # self.Layout13.addWidget(getattr(self, "label%i"%i))
             setattr(self, "box%i"%i, QtWidgets.QComboBox(self))
+            # key = '' # the key is empty for now
+            # for k in ['(merge)', '(color-code)', '(row)', '(column)']:
+            #     getattr(self, "box%i"%i).addItem(key+((30-len(k)-len(key))*' ')+k)
             self.Layout13.addWidget(getattr(self, "box%i"%i))
             
         # for key in self.parent.keys:
@@ -123,8 +126,10 @@ class TrialAverageWindow(NewWindow):
         #                     ((30-len(k)-len(key))*' ')+k)
         # for i in range(4-len(self.parent.keys)):
         #     self.Layout13.addWidget(QtWidgets.QLabel('', self))
+            setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
+        self.Layout13.addWidget(QtWidgets.QLabel(' ', self))
 
-        self.refreshBtn = QtWidgets.QPushButton('[R]efresh plots', self)
+        self.refreshBtn = QtWidgets.QPushButton('[Ctrl+R]efresh plots', self)
         self.refreshBtn.clicked.connect(self.refresh)
         self.Layout13.addWidget(self.refreshBtn)
         self.Layout13.addWidget(QtWidgets.QLabel('', self))
@@ -147,7 +152,6 @@ class TrialAverageWindow(NewWindow):
     def update_protocol(self):
         self.EPISODES = None
         self.qbox.setCurrentIndex(0)
-        self.Layout13.clear()
         
 
     def refresh(self):
