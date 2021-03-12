@@ -427,7 +427,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def debug(self):
         print('No debug function')
-        pass
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
