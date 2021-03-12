@@ -40,10 +40,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadSc.activated.connect(self.load_data)
         self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         self.refSc.activated.connect(self.jump_to_frame)
-        self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
-        self.refEx.activated.connect(self.exclude_outlier)
+        # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
+        # self.refEx.activated.connect(self.exclude_outlier)
         self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
-        self.refPr.activated.connect(self.process_outliers)
+        self.refPr.activated.connect(self.process_ROIs)
         self.refS = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
         self.refS.activated.connect(self.save_pupil_data)
         self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
@@ -73,8 +73,10 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,border=[100,100,100])
-        # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
+        self.p0 = self.win.addViewBox(lockAspect=False,
+                                      row=0,col=0,
+                                      invertY=True,border=[100,100,100])
+
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
@@ -129,9 +131,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.refresh_pupil, 2, 11+6, 1, 1)
         self.refresh_pupil.setEnabled(True)
         self.refresh_pupil.clicked.connect(self.jump_to_frame)
-        # self.refresh_pupil_save = QtGui.QPushButton('- Debug -')
-        # self.l0.addWidget(self.refresh_pupil_save, 2, 11+6, 1, 1)
-        # self.refresh_pupil_save.clicked.connect(self.refresh)
 
         self.data = None
         self.rROI= []
@@ -175,25 +174,22 @@ class MainWindow(QtWidgets.QMainWindow):
         iplay = istretch+15
         iconSize = QtCore.QSize(20, 20)
 
-        # HEIGHT += 10
-        # QtWidgets.QLabel("Root-folder:", self).move(10, HEIGHT)
         self.folderB = QtWidgets.QComboBox(self)
         self.folderB.setMinimumWidth(150)
-        # self.folderB.move(100, HEIGHT)
         self.folderB.addItems(FOLDERS.keys())
 
-        self.process = QtGui.QPushButton('process data')
+        self.process = QtGui.QPushButton('process data [Ctrl+P]')
         self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
 
-        self.interpolate = QtGui.QPushButton('interpolate')
-        self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.interpolate.clicked.connect(self.interpolate_data)
-        
-        self.genscript = QtGui.QPushButton('add to bash script')
-        self.genscript.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.genscript.clicked.connect(self.gen_bash_script)
+        self.cursor1 = QtGui.QPushButton('Set Cursor 1 [Ctrl+1]')
+        self.cursor1.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.cursor1.clicked.connect(self.set_cursor_1)
 
+        self.cursor2 = QtGui.QPushButton('Set Cursor 2 [Ctrl+2]')
+        self.cursor2.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.cursor2.clicked.connect(self.set_cursor_2)
+        
         self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
         self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
@@ -222,11 +218,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
 
-        self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
-        self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.addOutlier.clicked.connect(self.exclude_outlier)
+        # self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
+        # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        # self.addOutlier.clicked.connect(self.exclude_outlier)
 
-        self.processOutliers = QtGui.QPushButton('process outliers [Ctrl+P]')
+        self.processOutliers = QtGui.QPushButton('Set blinking interval')
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
 
@@ -254,12 +250,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.process, 16, 0, 1, 3)
-        self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
-        self.l0.addWidget(self.saverois, 18, 0, 1, 3)
-        self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        self.l0.addWidget(self.runAsSubprocess, 21, 0, 1, 3)
-        self.l0.addWidget(self.addOutlier, 22, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 23, 0, 1, 3)
+        self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
+        self.l0.addWidget(self.saverois, 19, 0, 1, 3)
+        self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
+        self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -376,23 +371,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rROI = []
         self.reflectors = []
 
-    def exclude_outlier(self):
-
-        i0 = np.argmin((self.cframe-self.data['frame'])**2)
-        self.data['diameter'][i0] = 0
-
     def process_outliers(self):
 
         if self.data is not None:
-
-            # self.data = process.remove_outliers(self.data, std_criteria=2.)
 
             if (self.cframe1!=0) and (self.cframe2!=-1):
                 i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
                 i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
                 self.data['diameter'][i1:i2] = 0
-                
-            cond = (self.data['diameter']>0)
+                if i1>0:
+                    new_i1 = i1-1
+                else:
+                    new_i1 = i2
+                if i2<len(self.data['frame'])-1:
+                    new_i2 = i2+1
+                else:
+                    new_i2 = i1
+                    
+            if 'blinking' not in self.data:
+                self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
+            self.data['blinking'][i1:i2] = 1
+
+            cond = (self.data['blinking']>0)
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
                 func = interp1d(self.data['frame'][cond],
                                 self.data[key][cond],
@@ -412,7 +412,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def debug(self):
         print('No debug function')
-        pass
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
@@ -511,18 +510,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.extract_ROI(self.data)
         self.save_pupil_data()
         
-
-    def gen_bash_script(self):
-
-        self.save_pupil_data()
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
-        # launch without subsampling !!
-        with open(script, 'a') as f:
-            f.write('python %s -df %s -s 1 &\n' % (process_script, self.datafolder))
-            
-        print('Script successfully written in "%s"' % script)
-
 
     def run_as_subprocess(self):
 

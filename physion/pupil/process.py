@@ -46,6 +46,7 @@ def ellipse_residual(coords, cls):
     im[~cls.fit_area] = 0
     return np.mean((cls.img_fit-im)**2)
 
+
 def circle_residual(coords, cls):
     """
     Residual function: 1/CorrelationCoefficient ! (after blanking)
@@ -53,6 +54,7 @@ def circle_residual(coords, cls):
     im = circle_binary_func(cls.x, cls.y, *coords)
     im[~cls.fit_area] = 0
     return np.mean((cls.img_fit-im)**2)
+
     
 def perform_fit(cls,
                 shape='ellipse',
@@ -125,8 +127,10 @@ def perform_loop(parent,
         
     print('Pupil size calculation over !')
 
+    
     for key in temp:
         temp[key] = np.array(temp[key])
+    temp['blinking'] = np.zeros(len(temp['cx']), dtype=np.uint)
     return temp
     
 def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
