@@ -13,5 +13,5 @@
     "experimenter":"Fani Koukouli",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
-    "protocols":["Pakan-et-al-Elife-2016"]
+    "protocols":["Pakan-et-al-Elife-2016","sparse-noise-30-min-large-square"]
 }
