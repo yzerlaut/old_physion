@@ -319,8 +319,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
             else:
-                self.imgfolder, self.nframes, self.FILES = None, None, None
-                self.jump_to_frame()
+                self.times, self.imgfolder, self.nframes, self.FILES = None, None, None, None
                 print(' /!\ no raw FaceCamera data found ...')
 
             if os.path.isfile(os.path.join(self.datafolder, 'pupil.npy')):
@@ -333,6 +332,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.data = None
                 
+            self.jump_to_frame()
             self.timeLabel.setEnabled(True)
             self.frameSlider.setEnabled(True)
             self.updateFrameSlider()
@@ -341,8 +341,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                           QtGui.QDoubleValidator(0, self.nframes, 2))
 
             self.movieLabel.setText(folder)
-
-            
 
 
     def reset(self):
@@ -546,6 +544,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data['shape'] = 'circle'
         self.data['gaussian_smoothing'] = int(self.smoothBox.text())
         self.data = process.clip_to_finite_values(self.data)
+        # if self.times is not None:
+            
         np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
         print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         

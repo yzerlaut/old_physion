@@ -1082,7 +1082,7 @@ class natural_image_vse(visual_stim):
         
     def get_frames_sequence(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        seed = self.get_seed(index)
+        seed = self.get_seed(index, parent=cls)
 
         vse = generate_VSE(duration=cls.experiment['time_duration'][index],
                            mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],

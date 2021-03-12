@@ -95,7 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def file_copy_command(self, source_file, destination_folder):
         if sys.platform.startswith("win"):
-            return 'xcopy %s %s &' % (source_file,
+            return 'xcopy %s %s' % (source_file,
                                                destination_folder)
         else:
             return 'cp %s %s' % (source_file, destination_folder)
@@ -105,7 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print('Full copy from ', source_folder, ' to ', destination_folder)
         print('can be long [...]')
         if sys.platform.startswith("win"):
-            return 'xcopy %s %s /s /e &' % (source_folder,
+            return 'xcopy %s %s /s /e' % (source_folder,
                                             destination_folder)
         else:
             return 'cp -r %s %s &' % (source_folder, destination_folder)

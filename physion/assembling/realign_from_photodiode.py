@@ -18,7 +18,7 @@ def realign_from_photodiode(signal, metadata,
     
     tlim, tnew = [0, t[-1]], 0
 
-    pre_window = np.min([metadata['presentation-interstim-period'], metadata['presentation-prestim-period']])
+    pre_window = np.min(metadata['time_stop']-metadata['time_start'])
     t0 = metadata['time_start'][0]
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
@@ -29,7 +29,7 @@ def realign_from_photodiode(signal, metadata,
 
     i=0
     while (i<Nepisodes) and (t0<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=t0-pre_window) & (t<=t0+metadata['time_duration'][i]+metadata['presentation-interstim-period'])
+        cond = (t>=t0-pre_window) & (t<=t0+2*metadata['time_duration'][i]) # long for security
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-t0, signal[cond],
                                                           baseline=baseline, high_level=high_level)
@@ -50,7 +50,10 @@ def realign_from_photodiode(signal, metadata,
             print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(t0+tshift)
-        t0=t0+tshift+metadata['time_duration'][i]+metadata['presentation-interstim-period']
+        try:
+            t0=t0+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
+        except IndexError:
+            t0=t0+tshift+metadata['time_duration'][i]+pre_window
         i+=1
 
     if verbose:

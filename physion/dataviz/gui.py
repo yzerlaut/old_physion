@@ -69,11 +69,11 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename = '/home/yann/DATA/data.nwb'
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #                 os.path.join(os.path.expanduser('~'),'DATA'),
-        #                     filter="*.nwb")
+        # filename = '/home/yann/DATA/data.nwb'
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                        os.path.join(os.path.expanduser('~'),'DATA'),
+                            filter="*.nwb")
         
         if filename!='':
             self.reset()
