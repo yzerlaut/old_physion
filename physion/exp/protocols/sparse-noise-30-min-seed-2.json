@@ -9,7 +9,7 @@
   "presentation-poststim-screen": 0,
   "square-size (deg)": 8.0,
   "sparseness (%)": 5.0,
-  "mean-refresh-time (s)": 2.0,
+  "mean-refresh-time (s)": 3.0,
   "jitter-refresh-time (s)": 0.5,
   "noise-seed (#)": 1000.0,
   "contrast (norm.)": 1.0,

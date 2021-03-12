@@ -1,7 +1,7 @@
 {
     "Presentation": "Randomized-Sequence",
     "Stimulus": "drifting-full-field-grating",
-	"Screen": "Dell-2020",
+    "Screen": "Dell-P2018H",
     "presentation-duration": 4.0,
     "presentation-prestim-period": 5.0,
     "presentation-poststim-period": 3.0,
@@ -13,19 +13,15 @@
     "starting-index": 0,
     "shuffling-seed": 1,
     "angle-1": 0.0,
-    "angle-2": 150.0,
-    "N-angle": 5,
-    "spatial-freq-1": 0.05,
-    "spatial-freq-2": 0.05,
+    "angle-2": 315.0,
+    "N-angle": 8,
+    "spatial-freq-1": 0.03,
+    "spatial-freq-2": 0.03,
     "N-spatial-freq": 1,
     "speed-1": 2.0,
     "speed-2": 2.0,
     "N-speed": 0,
     "contrast-1": 1.0,
     "contrast-2": 1.0,
-    "N-contrast": 0,
-    "movie_refresh_freq": 15.0,
-    "protocol-folder": "/home/yann/work/cortical-physio-icm/visual_stim/protocols",
-    "filename": "full-field-drifting-gratings-5-orientations-10-repeats.json",
-    "movie_filename": "full-field-drifting-gratings-5-orientations-10-repeats_2021-01-26-19-46-02.nwb"
+    "N-contrast": 0
 }
