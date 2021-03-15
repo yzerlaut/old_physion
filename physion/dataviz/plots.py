@@ -163,6 +163,23 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Visual Stimulation --------- ##
 
+    if self.visual_stim is not None:
+        
+        icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]<=self.time) & \
+                            (self.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
+        if len(icond)>0:
+            self.pScreenimg.setImage(255*self.visual_stim.get_image(icond[0],
+                                     self.time-self.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
+        elif self.time<=self.nwbfile.stimulus['time_start_realigned'].data[0]: # PRE-STIM
+            self.pScreenimg.setImage(255*self.visual_stim.get_prestim_image())
+        elif self.time>=self.nwbfile.stimulus['time_stop_realigned'].data[-1]: # POST-STIM
+            self.pScreenimg.setImage(255*self.visual_stim.get_poststim_image())
+        else: # INTER-STIM
+            self.pScreenimg.setImage(255*self.visual_stim.get_interstim_image())
+            
+        self.pScreenimg.setLevels([0,255])
+
+
     if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
         # if visual-stim we highlight the stim periods
         icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
@@ -182,21 +199,6 @@ def raw_data_plot(self, tzoom,
                 t1 = self.nwbfile.stimulus['time_stop_realigned'].data[i]
                 self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
                                 fillLevel=y.max(), brush=(150,150,150,80)))
-                
-    if self.visual_stim is not None:
-        
-        icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]<=self.time) & \
-                            (self.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
-        if len(icond)>0:
-            self.pScreenimg.setImage(255*self.visual_stim.get_image(icond[0],
-                                     self.time-self.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
-        elif self.time<=self.nwbfile.stimulus['time_start_realigned'].data[0]: # PRE-STIM
-            self.pScreenimg.setImage(255*self.visual_stim.get_prestim_image())
-        elif self.time>=self.nwbfile.stimulus['time_stop_realigned'].data[-1]: # POST-STIM
-            self.pScreenimg.setImage(255*self.visual_stim.get_poststim_image())
-        else: # INTER-STIM
-            self.pScreenimg.setImage(255*self.visual_stim.get_interstim_image())
-
 
     # if with_scatter and hasattr(self, 'scatter'):
     #     self.plot.removeItem(self.scatter)

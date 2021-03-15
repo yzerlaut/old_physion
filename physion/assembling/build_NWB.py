@@ -81,23 +81,13 @@ def build_NWB(args,
                             source_script_file_name=str(pathlib.Path(__file__).resolve()),
                             file_create_date=datetime.datetime.today())
     
-    # deriving filename
     if args.export=='FULL' and (args.modalities==ALL_MODALITIES):
         args.CaImaging_frame_sampling = 1e5
         args.Pupil_frame_sampling = 1e5
         args.Snout_frame_sampling = 1e5
         args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
-        filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.FULL.nwb' % identifier)
-    elif (args.export=='LIGHTWEIGHT'):
-        filename = os.path.join(args.datafolder, '%s.LIGHTWEIGHT.nwb' % identifier)
-    elif (args.export=='NIDAQ'):
-        filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.NIDAQ.nwb' % identifier)
-    elif args.export=='FROM_VISUALSTIM_SETUP':
-        filename = os.path.join(args.datafolder, '%s.nwb' % identifier)
-    elif (args.modalities!=ALL_MODALITIES):
-        filename = os.path.join(args.datafolder, '%s.%s.nwb' % (identifier, str(args.modalities)))
-    else:
-        raise BaseException(2*'\n'+10*' '+ '===> Export format not recognized !')
+        
+    filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.nwb' % identifier)
     
     manager = pynwb.get_manager() # we need a manager to link raw and processed data
     
@@ -143,7 +133,6 @@ def build_NWB(args,
             print('   -----> Not able to build NWB file')
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
-
         # using the photodiod signal for the realignement
         if args.verbose:
             print('=> Performing realignement from photodiode [...]')
@@ -253,6 +242,8 @@ def build_NWB(args,
         #################################################
         
         if 'Pupil' in args.modalities:
+
+            # add_pupil_data(nwbfile, FC_FILES, args)
             
             if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
                 
@@ -262,7 +253,7 @@ def build_NWB(args,
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                             description='processed quantities of Pupil dynamics')
                 
-                for key in ['cx', 'cy', 'sx', 'sy']:
+                for key in ['cx', 'cy', 'sx', 'sy', 'blinking']:
                     if type(data[key]) is np.ndarray:
                         PupilProp = pynwb.TimeSeries(name=key,
                                                      data = data[key],

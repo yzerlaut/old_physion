@@ -157,7 +157,7 @@ def load_config1(self,
     # folder box
     self.fbox = QtWidgets.QComboBox(self)
     self.fbox.setFont(smallfont)
-    self.fbox.activated.connect(self.select_folder) # To be written !!
+    # self.fbox.activated.connect(self.select_folder)
     self.fbox.setMaximumHeight(selector_height)
     self.folder_default_key = '  [root datafolder]'
     self.fbox.addItem(self.folder_default_key)
@@ -399,6 +399,8 @@ class NewWindow(QtWidgets.QMainWindow):
         
         if string in ['Stim', 'stim', 'VisualStim', 'Stimulation', 'stimulation']:
             cls.load_VisualStim()
+        elif string in ['scan', 'Scan']:
+            cls.scan_folder()
         elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
             cls.CaImaging_bg_key = string
         elif string=='no_subsampling':

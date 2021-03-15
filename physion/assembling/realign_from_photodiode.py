@@ -19,7 +19,7 @@ def realign_from_photodiode(signal, metadata,
     tlim, tnew = [0, t[-1]], 0
 
     pre_window = np.min(metadata['time_stop']-metadata['time_start'])
-    t0 = metadata['time_start'][0]
+    tstart, tend_previous = metadata['time_start'][0], 0
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
 
@@ -28,17 +28,17 @@ def realign_from_photodiode(signal, metadata,
     high_level = np.max(signal)
 
     i=0
-    while (i<Nepisodes) and (t0<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=t0-pre_window) & (t<=t0+2*metadata['time_duration'][i]) # long for security
+    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
+        cond = (t>=tstart-(tend_previous-tstart)/2.) & (t<=tstart+metadata['time_duration'][i])
         try:
-            tshift, integral, threshold = find_onset_time(t[cond]-t0, signal[cond],
+            tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           baseline=baseline, high_level=high_level)
             if debug and ((i<n_vis) or (i>Nepisodes-n_vis)):
                 fig, ax = plt.subplots()
                 ax.plot(t[cond], integral, label='smoothed')
                 ax.plot(t[cond], integral*0+threshold, label='threshold')
-                ax.plot((t0+tshift)*np.ones(2), ax.get_ylim(), 'k:', label='onset')
-                ax.plot((t0+tshift+metadata['time_duration'][i])*np.ones(2), ax.get_ylim(), 'k:', label='offset')
+                ax.plot((tstart+tshift)*np.ones(2), ax.get_ylim(), 'k:', label='onset')
+                ax.plot((tstart+tshift+metadata['time_duration'][i])*np.ones(2), ax.get_ylim(), 'k:', label='offset')
                 ax.plot(t[cond], normalize_signal(signal[cond])[0]*.8*np.diff(ax.get_ylim())[0],
                         label='photodiode-signal', lw=0.5, alpha=.3)
                 plt.xlabel('time (s)')
@@ -49,13 +49,14 @@ def realign_from_photodiode(signal, metadata,
             print(be)
             print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
-        metadata['time_start_realigned'].append(t0+tshift)
+        metadata['time_start_realigned'].append(tstart+tshift)
         try:
-            t0=t0+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
+            tstart=tstart+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
         except IndexError:
-            t0=t0+tshift+metadata['time_duration'][i]+pre_window
+            tstart=tstart+tshift+metadata['time_duration'][i]+pre_window
+        tend_previous=tstart+metadata['time_duration'][i]
         i+=1
-
+        
     if verbose:
         if success:
             print('[ok]          --> succesfully realigned')

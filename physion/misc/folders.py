@@ -12,6 +12,7 @@ if os.name=='nt':
     FOLDERS['G-drive'] = 'G:\\'
 else:
     FOLDERS['usb (YANN)'] = '/media/yann/YANN/'
+    FOLDERS['usb (Yann)'] = '/media/yann/Yann/'
     FOLDERS['desktop-storage'] = '/media/yann/DATADRIVE1/DATA/'
     # FOLDERS['MsWin-data'] = '/media/yann/Windows/home/yann/DATA/'
     # FOLDERS['MsWin-cygwin'] = '/media/yann/Windows/Users/yann.zerlaut/DATA/'

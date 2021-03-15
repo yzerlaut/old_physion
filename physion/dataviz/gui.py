@@ -72,7 +72,7 @@ class MainWindow(guiparts.NewWindow):
         # filename = '/home/yann/DATA/data.nwb'
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Multimodal Experimental Recording (NWB file) ",
-                        os.path.join(os.path.expanduser('~'),'DATA'),
+                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
                             filter="*.nwb")
         
         if filename!='':
@@ -109,7 +109,7 @@ class MainWindow(guiparts.NewWindow):
         self.notes.setText(self.description)
 
         self.cal.setSelectedDate(self.nwbfile.session_start_time.date())
-        if self.dbox.currentIndex()==0:
+        if self.dbox.currentIndex()<1:
             self.dbox.clear()
             self.dbox.addItem(self.df_name)
             self.dbox.setCurrentIndex(0)
@@ -134,19 +134,18 @@ class MainWindow(guiparts.NewWindow):
             print(' /!\ No stimulation in this recording /!\  ')
             
             
-    def select_folder(self):
+    def scan_folder(self):
 
-        print('inspecting data folder [...]')
+        print('inspecting the folder "%s" [...]' % FOLDERS[self.fbox.currentText()])
 
         FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
                                          extension='.nwb', recursive=True)
 
-        
         DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
 
         self.FILES_PER_DAY = {}
+        
         for d in np.unique(DATES):
-
             try:
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
                                            self.highlight_format)
