@@ -129,6 +129,7 @@ def set_multiple_stim_params_window(parent, window, protocol):
         setattr(window, 'N-'+new_key, QtWidgets.QSpinBox(window))
         getattr(window, 'N-'+new_key).move(450, LS*(3+i)-.15*LS)
         getattr(window, 'N-'+new_key).setValue(protocol['N-'+new_key])
+        getattr(window, 'N-'+new_key).setRange(0, 1000)
         
     QtWidgets.QLabel('   '+125*'-', window).move(0, LS*(3+len(params_keys)))
     QtWidgets.QLabel("  "+20*"="+" Presentation settings "+20*"=", window).move(5, LS*(4+len(params_keys)))
