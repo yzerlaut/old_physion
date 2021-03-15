@@ -332,16 +332,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 
             else:
                 self.data = None
-                
-            self.jump_to_frame()
-            self.timeLabel.setEnabled(True)
-            self.frameSlider.setEnabled(True)
-            self.updateFrameSlider()
 
-            self.currentTime.setValidator(\
-                                          QtGui.QDoubleValidator(0, self.nframes, 2))
-
-            self.movieLabel.setText(folder)
+            if self.times is not None:
+                self.jump_to_frame()
+                self.timeLabel.setEnabled(True)
+                self.frameSlider.setEnabled(True)
+                self.updateFrameSlider()
+                self.currentTime.setValidator(\
+                                              QtGui.QDoubleValidator(0, self.nframes, 2))
+                self.movieLabel.setText(folder)
 
 
     def reset(self):
