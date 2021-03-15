@@ -74,13 +74,22 @@ def raw_data_plot(self, tzoom,
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
 
+        t = self.nwbfile.processing['Pupil'].data_interfaces['blinking'].timestamps[i1:i2]
         y = scale_and_position(self,
                                self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
                                self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2],
                                i=iplot)
+        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
         iplot+=1
-        self.plot.plot(self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[i1:i2], y,
-                       pen=pg.mkPen(color=self.settings['colors']['Pupil']))
+
+        # adding blinking flag (a thick line at the bottom)
+        if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
+            cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1)
+            self.plot.plot(t[cond],y.min()+0*t[cond], pen=None,
+                           symbol='o',
+                           # name="BEP",
+                           symbolPen=color=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
+                           symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
 
         coords = []
         if hasattr(self, 'fit'):
