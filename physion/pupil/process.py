@@ -210,7 +210,13 @@ def preprocess(cls, with_reinit=True,
     # if (img is None) and (cls.FaceCamera is not None):
     #     img = cls.FaceCamera.data[cls.cframe,:,:]
     if (img is None):
-        img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe]))
+        try:
+            img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe]))
+        except ValueError:
+            print(' /!\ Problem with frame #%i: %s' % (cls.cframe, cls.FILES[cls.cframe]))
+            print(' replaced with #%i ' % (cls.cframe-1))
+            img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe-1]))
+            
     else:
         img = img.copy()
 

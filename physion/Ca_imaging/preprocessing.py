@@ -28,11 +28,14 @@ if __name__=='__main__':
 
     import argparse, os
     parser=argparse.ArgumentParser(description="""
-    Building NWB file from mutlimodal experimental recordings
+    Launch preprocessing of Ca-Imaging data with Suite2P
     """,formatter_class=argparse.RawTextHelpFormatter)
     # main
-    parser.add_argument('-cf', "--CaImaging_folder", type=str, default='')
-    parser.add_argument('-sk', "--setting_key", type=str, default='')
+    parser.add_argument('-cf', "--CaImaging_folder", type=str)
+    descr = 'Available keys :\n'
+    for s in PREPROCESSING_SETTINGS.keys():
+        descr += ' - %s \n' % s
+    parser.add_argument('-sk', "--setting_key", type=str, default='', help=descr)
     parser.add_argument('-v', "--verbose", action="store_true")
     parser.add_argument("--remove_previous", action="store_true")
     parser.add_argument("--silent", action="store_true")

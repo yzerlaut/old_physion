@@ -309,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
             if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
                 
-                # self.reset()
+                self.reset()
                 self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
@@ -322,8 +322,14 @@ class MainWindow(QtWidgets.QMainWindow):
                                     allow_pickle=True).item()
                 if self.nframes is None:
                     self.nframes = self.data['frame'].max()
+                
                 self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
+
+                self.sl.setValue(self.data['ROIsaturation'])
+                self.ROI = roi.sROI(parent=self,
+                                    pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
                 self.plot_pupil_trace()
+                
             else:
                 self.data = None
                 
@@ -331,7 +337,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.timeLabel.setEnabled(True)
             self.frameSlider.setEnabled(True)
             self.updateFrameSlider()
-            # self.updateButtons()
+
             self.currentTime.setValidator(\
                                           QtGui.QDoubleValidator(0, self.nframes, 2))
 
@@ -387,17 +393,21 @@ class MainWindow(QtWidgets.QMainWindow):
                     new_i2 = i2+1
                 else:
                     new_i2 = i1
-                    
+
             if 'blinking' not in self.data:
                 self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
             self.data['blinking'][i1:i2] = 1
-
-            cond = (self.data['blinking']>0)
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
-                func = interp1d(self.data['frame'][cond],
-                                self.data[key][cond],
-                                kind='linear')
-                self.data[key] = func(self.data['frame'])
+                I = np.arange(i1, i2)
+                self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
+
+            # FOR MORE FANCY INTERPOLATION
+            # cond = (self.data['blinking']>0)
+            # for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            #     func = interp1d(self.data['frame'][cond],
+            #                     self.data[key][cond],
+            #                     kind='linear')
+            #     self.data[key] = func(self.data['frame'])
 
             i1, i2 = self.xaxis.range
             self.p1.clear()

@@ -29,7 +29,7 @@ def realign_from_photodiode(signal, metadata,
 
     i=0
     while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart-(tend_previous-tstart)/2.) & (t<=tstart+metadata['time_duration'][i])
+        cond = (t>=tstart-(tend_previous-tstart)/4.) & (t<=tstart+metadata['time_duration'][i])
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           baseline=baseline, high_level=high_level)
@@ -53,6 +53,7 @@ def realign_from_photodiode(signal, metadata,
         try:
             tstart=tstart+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
         except IndexError:
+            print('last index')
             tstart=tstart+tshift+metadata['time_duration'][i]+pre_window
         tend_previous=tstart+metadata['time_duration'][i]
         i+=1
