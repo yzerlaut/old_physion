@@ -53,14 +53,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(['standard', 'lightweight', 'full', 'nidaq_only', 'custom'])
+        self.cbc.addItems(['custom', 'nidaq_only', 'lightweight', 'full'])
 
         HEIGHT +=40 
         s = QtWidgets.QLabel("Pupil-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
         self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('1.0')
+        self.PsamplingBox.setText('0.5')
         self.PsamplingBox.setFixedWidth(40)
         self.PsamplingBox.move(200, HEIGHT)
 
@@ -69,19 +69,19 @@ class MainWindow(QtWidgets.QMainWindow):
         s = QtWidgets.QLabel("Whisking-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
-        self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('0.0')
-        self.PsamplingBox.setFixedWidth(40)
-        self.PsamplingBox.move(200, HEIGHT)
+        self.WsamplingBox = QtWidgets.QLineEdit('', self)
+        self.WsamplingBox.setText('0.05')
+        self.WsamplingBox.setFixedWidth(40)
+        self.WsamplingBox.move(200, HEIGHT)
         
         HEIGHT +=30 
         s = QtWidgets.QLabel("FaceCamera-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
-        self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('0.0')
-        self.PsamplingBox.setFixedWidth(40)
-        self.PsamplingBox.move(200, HEIGHT)
+        self.FsamplingBox = QtWidgets.QLineEdit('', self)
+        self.FsamplingBox.setText('0.001')
+        self.FsamplingBox.setFixedWidth(40)
+        self.FsamplingBox.move(200, HEIGHT)
         
         HEIGHT +=50 
         self.gen = QtWidgets.QPushButton(' -= RUN =-  ', self)
@@ -95,10 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_setting(self):
         pass
-        if self.cbc.currentText()=='custom':
-            print('kjshdf')
 
-    
     def load_folder(self):
 
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
@@ -114,11 +111,20 @@ class MainWindow(QtWidgets.QMainWindow):
             
 
     def build_cmd(self):
-        return 'python %s -df %s --%s' % (self.process_script,
-                                          self.folder,
-                                          self.cbc.currentText())
+        if self.cbc.currentText()=='custom':
+            return 'python %s -df %s --Pupil_frame_sampling %s --Snout_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
+                                                                       self.folder,
+                                                                       self.PsamplingBox.text(),
+                                                                       self.WsamplingBox.text(),
+                                                                       self.FsamplingBox.text())
+
+        else:
+            return 'python %s -df %s --%s' % (self.process_script,
+                                              self.folder,
+                                              self.cbc.currentText())
     def run(self):
         if self.folder != '':
+            print(self.build_cmd())
             p = subprocess.Popen(self.build_cmd(),
                                  shell=True)
             print('"%s" launched as a subprocess' % self.build_cmd())

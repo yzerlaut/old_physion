@@ -16,7 +16,6 @@ from assembling.add_ophys import add_ophys
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
-LIGHT_MODALITIES = ['processed_CaImaging',  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
 
 
 def build_NWB(args,
@@ -24,7 +23,7 @@ def build_NWB(args,
                                   'plane':0}):
     
     if args.verbose:
-        print('Initializing NWB file [...]')
+        print('Initializing NWB file for "%s" [...]' % args.datafolder)
 
     #################################################
     ####            BASIC metadata            #######
@@ -81,12 +80,6 @@ def build_NWB(args,
                             source_script_file_name=str(pathlib.Path(__file__).resolve()),
                             file_create_date=datetime.datetime.today())
     
-    if args.export=='FULL' and (args.modalities==ALL_MODALITIES):
-        args.CaImaging_frame_sampling = 1e5
-        args.Pupil_frame_sampling = 1e5
-        args.Snout_frame_sampling = 1e5
-        args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
-        
     filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.nwb' % identifier)
     
     manager = pynwb.get_manager() # we need a manager to link raw and processed data
@@ -95,13 +88,13 @@ def build_NWB(args,
     ####         IMPORTING NI-DAQ data        #######
     #################################################
     if args.verbose:
-        print('Loading NIdaq data [...]')
+        print('Loading NIdaq data for "%s" [...]' % args.datafolder)
     try:
         NIdaq_data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
         NIdaq_Tstart = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
     except FileNotFoundError:
         print(' /!\ No NI-DAQ data found /!\ ')
-        print('   -----> Not able to build NWB file')
+        print('   -----> Not able to build NWB file for "%s"' % args.datafolder)
         raise BaseException
 
     
@@ -116,7 +109,7 @@ def build_NWB(args,
     if metadata['Locomotion'] and ('Locomotion' in args.modalities):
         # compute running speed from binary NI-daq signal
         if args.verbose:
-            print('Computing and storing running-speed [...]')
+            print('Computing and storing running-speed for "%s" [...]' % args.datafolder)
         running = pynwb.TimeSeries(name='Running-Speed',
                                    data = compute_locomotion(NIdaq_data['digital'][0],
                                                              acq_freq=metadata['NIdaq-acquisition-frequency']),
@@ -130,12 +123,12 @@ def build_NWB(args,
     if metadata['VisualStim'] and ('VisualStim' in args.modalities):
         if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
             print(' /!\ No VisualStim metadata found /!\ ')
-            print('   -----> Not able to build NWB file')
+            print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
         # using the photodiod signal for the realignement
         if args.verbose:
-            print('=> Performing realignement from photodiode [...]')
+            print('=> Performing realignement from photodiode for "%s" [...]  ' % args.datafolder)
         if 'time_duration' not in VisualStim:
             VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
         for key in ['time_start', 'time_stop', 'time_duration']:
@@ -173,7 +166,7 @@ def build_NWB(args,
             print('       --> using the default time_start / time_stop values ')
     
         if args.verbose:
-            print('=> Storing the photodiode signal [...]')
+            print('=> Storing the photodiode signal for "%s" [...]' % args.datafolder)
         photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
                                       data = NIdaq_data['analog'][0],
                                       starting_time=0.,
@@ -207,7 +200,7 @@ def build_NWB(args,
     if metadata['FaceCamera']:
         
         if args.verbose:
-            print('=> Storing FaceCamera acquisition [...]')
+            print('=> Storing FaceCamera acquisition for "%s" [...]' % args.datafolder)
         if ('raw_FaceCamera' in args.modalities):
             try:
                 FC_times, FC_FILES, _, _, _ = load_FaceCamera_data(os.path.join(args.datafolder, 'FaceCamera-imgs'),
@@ -234,7 +227,7 @@ def build_NWB(args,
             except BaseException as be:
                 print(be)
                 FC_FILES = None
-                print(' /!\ Problems with FaceCamera data /!\ ')
+                print(' /!\ Problems with FaceCamera data for "%s" /!\ ' % args.datafolder)
             
 
         #################################################
@@ -247,6 +240,9 @@ def build_NWB(args,
             
             if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
                 
+                if args.verbose:
+                    print('=> Adding processed pupil data for "%s" [...]' % args.datafolder)
+                    
                 data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                allow_pickle=True).item()
 
@@ -284,7 +280,7 @@ def build_NWB(args,
                     nwbfile.add_acquisition(Pupil_frames)
                         
             else:
-                print(' /!\ No processed pupil data found /!\ ')
+                print(' /!\ No processed pupil data found for "%s" /!\ ' % args.datafolder)
 
                 
     
@@ -296,6 +292,9 @@ def build_NWB(args,
             
             if os.path.isfile(os.path.join(args.datafolder, 'whisking.npy')):
                 
+                if args.verbose:
+                    print('=> Adding processed whisking data for "%s" [...]' % args.datafolder)
+                    
                 data = np.load(os.path.join(args.datafolder, 'whisking.npy'),
                                allow_pickle=True).item()
             
@@ -307,7 +306,8 @@ def build_NWB(args,
     if metadata['Electrophy'] and ('Electrophy' in args.modalities):
     
         if args.verbose:
-            print('=> Storing electrophysiological signal [...]')
+            print('=> Storing electrophysiological signal for "%s" [...]' % args.datafolder)
+            
         electrophy = pynwb.TimeSeries(name='Electrophysiological-Signal',
                                       data = NIdaq_data['analog'][1],
                                       starting_time=0.,
@@ -323,7 +323,7 @@ def build_NWB(args,
     Ca_data = None
     if metadata['CaImaging']:
         if args.verbose:
-            print('=> Storing Calcium Imaging signal [...]')
+            print('=> Storing Calcium Imaging signal for "%s" [...]' % args.datafolder)
         if not hasattr(args, 'CaImaging_folder') or (args.CaImaging_folder==''):
             try:
                 args.CaImaging_folder = get_TSeries_folders(args.datafolder)
@@ -394,25 +394,31 @@ if __name__=='__main__':
     if not args.silent:
         args.verbose = True
 
-    if args.standard:
-        pass # means default options
+
+    # some pre-defined settings here
     if args.export=='LIGHTWEIGHT' or args.lightweight:
         args.export='LIGHTWEIGHT'
         args.modalities = LIGHT_MODALITIES
+        # 0 values for all (means 3 frame, start-middle-end)
+        args.Pupil_frame_sampling = 0
+        args.Snout_frame_sampling = 0
+        args.FaceCamera_frame_sampling = 0
+        args.CaImaging_frame_sampling = 0
     if args.export=='FULL' or args.full:
         args.export='FULL'
         args.modalities = ALL_MODALITIES
+        # push all to very high values
+        args.CaImaging_frame_sampling = 1e5
+        args.Pupil_frame_sampling = 1e5
+        args.Snout_frame_sampling = 1e5
+        args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
     if args.nidaq_only:
         args.export='NIDAQ'
         args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
-    if args.from_visualstim_setup or (args.export=='FROM_VISUALSTIM_SETUP'):
-        args.export='FROM_VISUALSTIM_SETUP'
-        args.modalities = ['VisualStim', 'Locomotion', 'Electrophy', 'raw_FaceCamera', 'Pupil', 'Whisking']
 
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
 
-    
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):
             if (args.datafolder[-1]==os.path.sep) or (args.datafolder[-1]=='/'):
