@@ -8,6 +8,8 @@ from dataviz.guiparts import NewWindow, smallfont
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 
+NMAX_PARAMS = 5
+
 class TrialAverageWindow(NewWindow):
 
     def __init__(self, 
@@ -23,8 +25,6 @@ class TrialAverageWindow(NewWindow):
 
         self.computeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+C'), self)
         self.computeSc.activated.connect(self.compute_episodes)
-        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
-        self.refreshSc.activated.connect(self.refresh)
         
         mainLayout = QtWidgets.QHBoxLayout(self.cwidget)
         Layout1 = QtWidgets.QVBoxLayout()
@@ -62,7 +62,8 @@ class TrialAverageWindow(NewWindow):
         if 'ophys' in self.parent.nwbfile.processing:
             self.qbox.addItem('CaImaging')
         for key in parent.nwbfile.acquisition:
-            self.qbox.addItem(key)
+            if len(parent.nwbfile.acquisition[key].data.shape)==1:
+                self.qbox.addItem(key) # only for scalar variables
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
 
@@ -86,41 +87,15 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(self.computeBtn)
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         
-        # self.Layout12 = QtWidgets.QVBoxLayout()
-        # # -- protocol
-        # self.Layout12.addWidget(QtWidgets.QLabel('Protocol', self))
-        # self.pbox = QtWidgets.QComboBox(self)
-        # self.pbox.addItems('')
-        # self.pbox.addItems(self.parent.protocols)
-        # # self.pbox.activated.connect(self.update_protocol)
-        # self.Layout12.addWidget(self.pbox)
-
         # then parameters
         self.Layout13 = QtWidgets.QVBoxLayout()
         Layout1.addLayout(self.Layout13)
         self.Layout13.addWidget(QtWidgets.QLabel('', self))
-        self.Layout13.addWidget(QtWidgets.QLabel(9*'-'+\
-                                                 ' Display options '+\
-                                                 9*'-', self))
+        self.Layout13.addWidget(QtWidgets.QLabel(9*'-'+' Display options '+9*'-', self))
 
-        for i in range(5): # controls the max number of parameters varied
-            # setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
-            # self.Layout13.addWidget(getattr(self, "label%i"%i))
+        for i in range(NMAX_PARAMS): # controls the max number of parameters varied
             setattr(self, "box%i"%i, QtWidgets.QComboBox(self))
-            # key = '' # the key is empty for now
-            # for k in ['(merge)', '(color-code)', '(row)', '(column)']:
-            #     getattr(self, "box%i"%i).addItem(key+((30-len(k)-len(key))*' ')+k)
             self.Layout13.addWidget(getattr(self, "box%i"%i))
-            
-        # for key in self.parent.keys:
-        #     setattr(self, "c"+key, QtWidgets.QComboBox(self))
-        #     self.Layout13.addWidget(getattr(self, "c"+key))
-        #     for k in ['(merge)', '(color-code)', '(row)', '(column)']:
-        #         getattr(self, "c"+key).addItem(key+\
-        #                     ((30-len(k)-len(key))*' ')+k)
-        # for i in range(4-len(self.parent.keys)):
-        #     self.Layout13.addWidget(QtWidgets.QLabel('', self))
-            setattr(self, "label%i"%i, QtWidgets.QLabel('---- :', self))
         self.Layout13.addWidget(QtWidgets.QLabel(' ', self))
 
         self.refreshBtn = QtWidgets.QPushButton('[Ctrl+R]efresh plots', self)
@@ -146,21 +121,18 @@ class TrialAverageWindow(NewWindow):
     def update_protocol(self):
         self.EPISODES = None
         # self.qbox.setCurrentIndex(0)
-        
 
+    def hitting_space(self):
+        self.refresh()
+        
     def refresh(self):
-        self.plot_row_column_of_quantity(self.qbox.currentText())
-    
+        self.plots.clear()
+        if self.l is not None:
+            self.l.setParent(None) # this is how you remove a layout
+        self.plot_row_column_of_quantity()
+        
     def update_quantity(self):
         pass
-        # if self.qbox.currentText()=='CaImaging':
-        #     self.sqbox.addItem('[sum]')
-        #     self.sqbox.addItem('[all] (row)')
-        #     self.sqbox.addItem('[all] (color-code)')
-        #     for i in range(np.sum(self.parent.iscell)):
-        #         self.sqbox.addItem('ROI-%i' % (i+1))
-        #     for k in ['Fluorescence', 'Neuropil', 'Deconvolved', 'dF (F-0.7*Fneu)']:
-        #         self.pbox.addItem(k)
 
     def compute_episodes(self):
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
@@ -177,6 +149,8 @@ class TrialAverageWindow(NewWindow):
             print(' /!\ Pick a protocol an a quantity')
 
     def update_selection(self):
+        for i in range(NMAX_PARAMS):
+            getattr(self, "box%i"%i).clear()
         for i, key in enumerate(self.varied_parameters.keys()):
             for k in ['(merge)', '(color-code)', '(row)', '(column)']:
                 getattr(self, "box%i"%i).addItem(key+((30-len(k)-len(key))*' ')+k)
@@ -193,16 +167,8 @@ class TrialAverageWindow(NewWindow):
     def keyword_update2(self):
         self.keyword_update(string=self.guiKeywords.text(), parent=self.parent)
 
-        # if self.guiKeywords.text() in ['F', 'meanImgE', 'Vcorr', 'max_proj']:
-        #     self.CaImaging_bg_key = self.guiKeywords.text()
-        # else:
-        #     self.statusBar.showMessage('  /!\ keyword not recognized /!\ ')
-        # plots.raw_data_plot(self, self.tzoom, with_roi=True)
-        
+    def plot_row_column_of_quantity(self):
 
-    def plot_row_column_of_quantity(self, quantity):
-
-        
         COL_CONDS = self.build_column_conditions()
         ROW_CONDS = self.build_row_conditions()
         COLOR_CONDS = self.build_color_conditions()
@@ -227,18 +193,21 @@ class TrialAverageWindow(NewWindow):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
                     cond = np.array(col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
                     pen = pg.mkPen(color=COLORS[icolor], width=2)
-                    my = self.EPISODES['resp'][cond,:].mean(axis=0)
-                    if np.sum(cond)>1:
-                        spen = pg.mkPen(color=(0,0,0,0), width=0)
-                        spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
-                        sy = self.EPISODES['resp'][cond,:].std(axis=0)
-                        phigh = pg.PlotCurveItem(self.EPISODES['t'], my+sy, pen = spen)
-                        plow = pg.PlotCurveItem(self.EPISODES['t'], my-sy, pen = spen)
-                        pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)
-                        self.AX[irow][icol].addItem(phigh)
-                        self.AX[irow][icol].addItem(plow)
-                        self.AX[irow][icol].addItem(pfill)                    
-                    self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
+                    if self.EPISODES['resp'][cond,:].shape[0]>0:
+                        my = self.EPISODES['resp'][cond,:].mean(axis=0)
+                        if np.sum(cond)>1:
+                            spen = pg.mkPen(color=(0,0,0,0), width=0)
+                            spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
+                            sy = self.EPISODES['resp'][cond,:].std(axis=0)
+                            phigh = pg.PlotCurveItem(self.EPISODES['t'], my+sy, pen = spen)
+                            plow = pg.PlotCurveItem(self.EPISODES['t'], my-sy, pen = spen)
+                            pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)
+                            self.AX[irow][icol].addItem(phigh)
+                            self.AX[irow][icol].addItem(plow)
+                            self.AX[irow][icol].addItem(pfill)
+                        self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
+                    else:
+                        print(' /!\ Problem with episode (%i, %i, %i)' % (irow, icol, icolor))
                 if icol>0:
                     self.AX[irow][icol].hideAxis('left')
                     self.AX[irow][icol].setYLink(self.AX[irow][0])
@@ -249,43 +218,25 @@ class TrialAverageWindow(NewWindow):
                     self.AX[irow][icol].hideAxis('bottom')
                     self.AX[irow][icol].setXLink(self.AX[-1][icol])
         
-    def refresh(self):
-
-        self.plots.clear()
-        if self.l is not None:
-            self.l.setParent(None) # this is how you remove a layout
-        
-        self.quantity = self.qbox.currentText()
-        if self.quantity=='CaImaging':
-            self.statusBar.showMessage('rebuilding episodes for "%s" and ROI "%s" [...]' % (self.quantity,\
-                                                                                            self.parent.roiIndices))
-        else:
-            self.statusBar.showMessage('rebuilding episodes for "%s" [...]' % self.quantity)
-        self.EPISODES = build_episodes(self, parent=self.parent,
-                                       quantity=self.quantity,
-                                       dt_sampling=self.samplingBox.value())
-        self.statusBar.showMessage('-> done !')
-        self.plot_row_column_of_quantity(self.quantity)
-        
     def build_conditions(self, X, K):
         if len(K)>0:
             CONDS = []
             XK = np.meshgrid(*X)
             for i in range(len(XK[0].flatten())): # looping over joint conditions
-                cond = np.ones(self.parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+                cond = np.ones(np.sum(self.Pcond), dtype=bool)
                 for k, xk in zip(K, XK):
-                    cond = cond & (self.parent.nwbfile.stimulus[k].data[:]==xk.flatten()[i])
+                    cond = cond & (self.parent.nwbfile.stimulus[k].data[self.Pcond]==xk.flatten()[i])
                 CONDS.append(cond)
             return CONDS
         else:
-            return [np.ones(self.parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)]
+            return [np.ones(np.sum(self.Pcond), dtype=bool)]
             
     
     def build_column_conditions(self):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('column'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -294,7 +245,7 @@ class TrialAverageWindow(NewWindow):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('row'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -302,7 +253,7 @@ class TrialAverageWindow(NewWindow):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('color'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
+                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
         return self.build_conditions(X, K)
 
@@ -338,7 +289,9 @@ def build_episodes(self,
             unique = np.unique(parent.nwbfile.stimulus[key].data[Pcond])
             if len(unique)>1:
                 EPISODES['varied_parameters'][key] = unique
+    # for the parent class
     self.varied_parameters = EPISODES['varied_parameters'] # adding this as a shortcut
+    self.Pcond = Pcond # protocol condition
     
     # new sampling
     interstim = parent.metadata['presentation-interstim-period']
@@ -387,6 +340,9 @@ def build_episodes(self,
     
     if verbose:
         print('[ok] episodes ready !')
+        print(EPISODES['resp'].shape)
+        print(self.varied_parameters)
+        
     return EPISODES
     
 if __name__=='__main__':
@@ -409,6 +365,7 @@ if __name__=='__main__':
             self.app = QtWidgets.QApplication(sys.argv)
             self.description=''
             self.roiIndices = [0]
+            self.CaImaging_key = 'Fluorescence'
             
     cls = Parent(filename)
     window = TrialAverageWindow(cls)
