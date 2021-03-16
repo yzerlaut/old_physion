@@ -30,11 +30,12 @@ setup(
     keywords='vision physiology',
     packages=find_packages(),
     install_requires=[
+        "pynwb",
         "matplotlib",
         "numpy",
         "scipy",
         "argparse",
-        "scikit-image",
+        # "scikit-image",
         "scikit-learn",
         # "scikit-video",
         # "numba",
@@ -43,7 +44,7 @@ setup(
         # "psychopy",
         "pyqt5",
         "pyqtgraph",
-        "imageio",
+        # "imageio",
         # "opencv-python",
         # "scanimage-tiff-reader>=1.4.1",
         # "opencv_python_headless",
@@ -54,7 +55,6 @@ setup(
         # "natsort",
         # "paramiko",
         # "rastermap>0.1.0",
-        "temp",
-        "pynwb"
+        "temp"
     ]
 )
