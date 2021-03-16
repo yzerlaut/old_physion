@@ -1,9 +1,16 @@
 <div><img src="https://github.com/yzerlaut/physion/raw/master/doc/physion.png" alt="physion logo" width="35%" align="right" style="margin-left: 10px"></div>
 
-# Vision Physiology
+# physion -- Vision Physiology
 
 > *Code for experimental setups and analysis pipelines to study cellular and network physiology in visual cortical circuits*
 
+## Install
+
+1. Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
+2. For a minimal install (), run:
+   ```
+   pip install git+https://github.com/yzerlaut/physion
+   ```
 ## Modules
 
 - [Multimodal recordings](exp/README.md)
@@ -21,7 +28,6 @@
 
 #### 1) Get a scientific python distribution
 
-Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
 
 #### 2) Download this repository
 
