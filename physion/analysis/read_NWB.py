@@ -72,19 +72,19 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Segmentation, self.Fluorescence, self.iscell,\
                 self.Neuropil, self.Deconvolved = None, None, None, None, None
 
-        
-        if self.metadata['protocol']!='multiprotocols':
-            self.keys = []
-            for key in self.nwbfile.stimulus.keys():
-                if key not in ['index', 'time_start', 'time_start_realigned',
-                               'time_stop', 'time_stop_realigned', 'visual-stimuli', 'frame_run_type']:
-                    if len(np.unique(self.nwbfile.stimulus[key].data[:]))>1:
-                        s = '-*  N-%s = %i' % (key,len(np.unique(self.nwbfile.stimulus[key].data[:])))
-                        self.description += s+(35-len(s))*' '+'[%.1f, %.1f]\n' % (np.min(self.nwbfile.stimulus[key].data[:]),
-                                                                                np.max(self.nwbfile.stimulus[key].data[:]))
-                        self.keys.append(key)
-                    else:
-                        self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
+        # FIND A BETTER WAY TO DESCRIBE
+        # if self.metadata['protocol']!='multiprotocols':
+        #     self.keys = []
+        #     for key in self.nwbfile.stimulus.keys():
+        #         if key not in ['index', 'time_start', 'time_start_realigned',
+        #                        'time_stop', 'time_stop_realigned', 'visual-stimuli', 'frame_run_type']:
+        #             if len(np.unique(self.nwbfile.stimulus[key].data[:]))>1:
+        #                 s = '-*  N-%s = %i' % (key,len(np.unique(self.nwbfile.stimulus[key].data[:])))
+        #                 self.description += s+(35-len(s))*' '+'[%.1f, %.1f]\n' % (np.min(self.nwbfile.stimulus[key].data[:]),
+        #                                                                         np.max(self.nwbfile.stimulus[key].data[:]))
+        #                 self.keys.append(key)
+        #             else:
+        #                 self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
                     
 
         if 'time_start_realigned' in self.nwbfile.stimulus.keys():

@@ -59,16 +59,10 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(QtWidgets.QLabel('Quantity', self))
         self.qbox = QtWidgets.QComboBox(self)
         self.qbox.addItem('')
-        if 'Photodiode-Signal' in self.parent.nwbfile.acquisition:
-            self.qbox.addItem('Photodiode')
-        if 'Electrophysiological-Signal' in self.parent.nwbfile.acquisition:
-            self.qbox.addItem('Electrophy')
-        if 'Running-Speed' in self.parent.nwbfile.acquisition:
-            self.qbox.addItem('Running-Speed')
-        if 'Pupil' in self.parent.nwbfile.processing:
-            self.qbox.addItem('Pupil')
         if 'ophys' in self.parent.nwbfile.processing:
             self.qbox.addItem('CaImaging')
+        for key in parent.nwbfile.acquisition:
+            self.qbox.addItem(key)
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
 
@@ -151,11 +145,11 @@ class TrialAverageWindow(NewWindow):
 
     def update_protocol(self):
         self.EPISODES = None
-        self.qbox.setCurrentIndex(0)
+        # self.qbox.setCurrentIndex(0)
         
 
     def refresh(self):
-        pass
+        self.plot_row_column_of_quantity(self.qbox.currentText())
     
     def update_quantity(self):
         pass
@@ -169,8 +163,24 @@ class TrialAverageWindow(NewWindow):
         #         self.pbox.addItem(k)
 
     def compute_episodes(self):
-        pass
-    
+        if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
+            self.EPISODES = build_episodes(self,
+                                       parent=self.parent,
+                                       protocol_id=self.pbox.currentIndex()-1,
+                                       quantity=self.qbox.currentText(),
+                                       subquantity='',
+                                       dt_sampling=1, # ms
+                                       interpolation='linear',
+                                       verbose=True)
+            self.update_selection()
+        else:
+            print(' /!\ Pick a protocol an a quantity')
+
+    def update_selection(self):
+        for i, key in enumerate(self.varied_parameters.keys()):
+            for k in ['(merge)', '(color-code)', '(row)', '(column)']:
+                getattr(self, "box%i"%i).addItem(key+((30-len(k)-len(key))*' ')+k)
+        
     def select_ROI(self):
         """ see dataviz/gui.py """
         roiIndices = self.parent.select_ROI_from_pick(cls=self)
@@ -273,8 +283,8 @@ class TrialAverageWindow(NewWindow):
     
     def build_column_conditions(self):
         X, K = [], []
-        for key in self.parent.keys:
-            if len(getattr(self, "c"+key).currentText().split('column'))>1:
+        for i, key in enumerate(self.varied_parameters.keys()):
+            if len(getattr(self, 'box%i'%i).currentText().split('column'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
@@ -282,20 +292,19 @@ class TrialAverageWindow(NewWindow):
     
     def build_row_conditions(self):
         X, K = [], []
-        for key in self.parent.keys:
-            if len(getattr(self, "c"+key).currentText().split('row'))>1:
+        for i, key in enumerate(self.varied_parameters.keys()):
+            if len(getattr(self, 'box%i'%i).currentText().split('row'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
 
     def build_color_conditions(self):
         X, K = [], []
-        for key in self.parent.keys:
-            if len(getattr(self, "c"+key).currentText().split('color'))>1:
+        for i, key in enumerate(self.varied_parameters.keys()):
+            if len(getattr(self, 'box%i'%i).currentText().split('color'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[:])))
                 K.append(key)
         return self.build_conditions(X, K)
-
 
         
 def build_episodes(self,
@@ -311,8 +320,7 @@ def build_episodes(self,
                 'quantity':quantity,
                 'resp':[]}
 
-    if parent is None:
-        parent = self
+    parent = (parent if parent is not None else self)
 
     # choosing protocol (if multiprotocol)
     if len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1:
@@ -321,7 +329,17 @@ def build_episodes(self,
         Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
     if verbose:
         print('Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
-        
+
+    # find the parameter(s) varied within that specific protocol
+    EPISODES['varied_parameters'] =  {}
+    for key in parent.nwbfile.stimulus.keys():
+        if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
+                       'time_start_realigned', 'time_stop', 'time_stop_realigned']:
+            unique = np.unique(parent.nwbfile.stimulus[key].data[Pcond])
+            if len(unique)>1:
+                EPISODES['varied_parameters'][key] = unique
+    self.varied_parameters = EPISODES['varied_parameters'] # adding this as a shortcut
+    
     # new sampling
     interstim = parent.metadata['presentation-interstim-period']
     ipre = int(interstim/dt_sampling*1e3*9./10.) # 3/4 of prestim
@@ -352,6 +370,7 @@ def build_episodes(self,
             print(30*'-')
         
     for tstart, tstop in zip(parent.nwbfile.stimulus['time_start_realigned'].data[Pcond],
+
                              parent.nwbfile.stimulus['time_stop_realigned'].data[Pcond]):
 
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
@@ -389,6 +408,8 @@ if __name__=='__main__':
             read_NWB(self, filename, verbose=False)
             self.app = QtWidgets.QApplication(sys.argv)
             self.description=''
+            self.roiIndices = [0]
+            
     cls = Parent(filename)
     window = TrialAverageWindow(cls)
     sys.exit(cls.app.exec_())
