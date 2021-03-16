@@ -1,6 +1,6 @@
-<div><img src="https://github.com/yzerlaut/physion/raw/master/doc/physion.png" alt="physion logo" width="45%" align="right" style="margin-left: 10px"></div>
+<div><img src="https://github.com/yzerlaut/physion/raw/master/doc/physion.png" alt="physion logo" width="35%" align="right" style="margin-left: 10px"></div>
 
-# physion - Vision Physiology
+# Vision Physiology
 
 > *Code for experimental setups and analysis pipelines to study cellular and network physiology in visual cortical circuits*
 
