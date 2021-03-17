@@ -19,6 +19,7 @@ def raw_data_plot(self, tzoom,
     ## -------- Screen --------- ##
 
     if 'Photodiode-Signal' in self.nwbfile.acquisition:
+        
         i1, i2 = convert_times_to_indices(*tzoom, self.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
             isampling = np.arange(i1,i2)
@@ -60,8 +61,8 @@ def raw_data_plot(self, tzoom,
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
         img = self.nwbfile.acquisition['Pupil'].data[i0]
-        img = np.array(255.*(img-img.min())/(img.max()-img.min())).astype(np.int)
-        self.pPupilimg.setImage(img)
+        img = (img-img.min())/(img.max()-img.min())
+        self.pPupilimg.setImage(255*(1-np.exp(-img/0.2)))
         if hasattr(self, 'PupilFrameLevel'):
             self.plot.removeItem(self.PupilFrameLevel)
         self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
@@ -74,20 +75,28 @@ def raw_data_plot(self, tzoom,
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
 
-        t = self.nwbfile.processing['Pupil'].data_interfaces['blinking'].timestamps[i1:i2]
+        t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
+
         y = scale_and_position(self,
                                self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
                                self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2],
                                i=iplot)
-        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
+        try:
+            
+            self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
+
+            # adding blinking flag (a thick line at the bottom)
+            if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
+                cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1)
+                self.plot.plot(t[cond],y.min()+0*t[cond], pen=None, symbol='o',
+                               symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
+                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+            
+        except BaseException:
+            pass
+        
         iplot+=1
 
-        # adding blinking flag (a thick line at the bottom)
-        if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
-            cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1)
-            self.plot.plot(t[cond],y.min()+0*t[cond], pen=None, symbol='o',
-                           symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
-                           symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
 
         coords = []
         if hasattr(self, 'fit'):
@@ -104,6 +113,7 @@ def raw_data_plot(self, tzoom,
             
 
     # ## -------- Electrophy --------- ##
+    
     if ('Electrophysiological-Signal' in self.nwbfile.acquisition):
         
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Electrophysiological-Signal'])+1
@@ -119,6 +129,7 @@ def raw_data_plot(self, tzoom,
 
 
     # ## -------- Calcium --------- ##
+    
     # if (self.time==0) and ('ophys' in self.nwbfile.processing):
     if ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
@@ -160,27 +171,12 @@ def raw_data_plot(self, tzoom,
                 self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, [ir], sum=True), i=iplot)
-                self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
+                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, [ir], sum=True), i=iplot)+n/2.
+                self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
                 if self.CaImaging_key=='Fluorescence':
-                    nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)
+                    nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)+n/2.
                     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
-        
-        # if self.CaImaging_key=='Fluorescence':
-        #     nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0),
-        #                               value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
-        #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
-        # else:
-        #     for n, ir in enumerate(self.roiIndices):
-        #         y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling], i=iplot)+n
-        #         tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
-        #         self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
-        #         if self.CaImaging_key=='Fluorescence':
-        #             nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling],
-        #                                   value=self.Neuropil.data[self.validROI_indices[ir],isampling], i=iplot)+n
-        #             self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
-
 
     # ## -------- Visual Stimulation --------- ##
 
@@ -200,8 +196,7 @@ def raw_data_plot(self, tzoom,
             
         self.pScreenimg.setLevels([0,255])
 
-
-    if ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
+    if (self.visual_stim is not None) and ('time_start_realigned' in self.nwbfile.stimulus) and ('time_stop_realigned' in self.nwbfile.stimulus):
         # if visual-stim we highlight the stim periods
         icond = np.argwhere((self.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
                             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()

@@ -399,6 +399,8 @@ class NewWindow(QtWidgets.QMainWindow):
         
         if string in ['Stim', 'stim', 'VisualStim', 'Stimulation', 'stimulation']:
             cls.load_VisualStim()
+        elif string in ['no_stim', 'no_VisualStim']:
+            cls.visual_stim = None
         elif string in ['scan_folder', 'scanF', 'scan']:
             cls.scan_folder()
         elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
