@@ -5,10 +5,12 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from misc.style import set_dark_style, set_app_icon
 from misc.colors import build_dark_palette
 
-if not sys.argv[-1]=='no-stim':
+try:
     from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
-else:
+    no_psychopy = False
+except ModuleNotFoundError:
     print('Experiment & Visual-Stim modules disabled !')
+    no_psychopy = True
 
 CHILDREN_PROCESSES = []
 class MainWindow(QtWidgets.QMainWindow):
@@ -78,9 +80,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def launch_exp(self):
-        from physion.exp.gui import run as RunExp
-        child = RunExp(self.app, self.args)
-        CHILDREN_PROCESSES.append(child)
+        if not no_psychopy:
+            from physion.exp.gui import run as RunExp
+            child = RunExp(self.app, self.args)
+            CHILDREN_PROCESSES.append(child)
+        else:
+            self.statusBar.showMessage('Module cant be launched, PsychoPy is missing !')
+            
         
     def launch_whisking(self):
         from physion.whisking.gui import run as RunWhisking

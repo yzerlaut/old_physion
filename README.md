@@ -4,25 +4,51 @@
 
 > *Code for experimental setups and analysis pipelines to study cellular and network physiology in visual cortical circuits*
 
+--------------------
+
+<p align="center">
+  <img src="docs/screenshot.jpg"/>
+</p>
+
+--------------------
+
 ## Install
 
-1. Install a python distribution for scientific analysis, [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
-2. For a minimal install (), run:
+1. Install a python distribution for scientific analysis:
+   [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
+   
+2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
    ```
+   conda install numpy 
+   conda install scipy
+   conda install matplotlib
+   conda install pyqtgraph
+   conda install xmltodict
    pip install git+https://github.com/yzerlaut/physion
    ```
-## Modules
+   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md)
 
-- [Multimodal recordings](exp/README.md)
-- [Visual stimulation](visual_stim/README.md)
-- [Assembling pipeline](assembling/README.md)
-- [Electrophysiology](electrophy/README.md)
-- [Calcium imaging](Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
-- [Pupil tracking](pupil/README.md)
-- [Behavioral monitoring](behavioral_monitoring/README.md) -- forked from [FaceMap](https://github.com/MouseLand/facemap)
-- [Hardware control](hardware_control/README.md)
-- [Visualization](dataviz/README.md)
-- [Analysis](analysis/README.md)
+## Getting started
+
+3. The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
+   ```
+   python -m physion
+   ```
+
+## Documentation and modules
+
+The different modules of the software are documented in the following links:
+
+- [Visual stimulation](physion/visual_stim/README.md)
+- [Performing multimodal recordings](physion/exp/README.md)
+- [Electrophysiology](physion/electrophy/README.md)
+- [Calcium imaging](physion/Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
+- [Pupil tracking](physion/pupil/README.md)
+- [Behavioral monitoring](physion/behavioral_monitoring/README.md) -- adapted from [FaceMap](https://github.com/MouseLand/facemap)
+- [Assembling pipeline](physion/assembling/README.md)
+- [Hardware control](physion/hardware_control/README.md)
+- [Visualization](physion/dataviz/README.md)
+- [Analysis](physion/analysis/README.md)
 
 ## How do I get set up ?
 

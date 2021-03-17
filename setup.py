@@ -55,6 +55,6 @@ setup(
         # "natsort",
         # "paramiko",
         # "rastermap>0.1.0",
-        "temp"
+        # "temp"
     ]
 )
