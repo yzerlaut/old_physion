@@ -4,54 +4,35 @@
 
 > *Code for experimental setups and analysis pipelines to study cellular and network physiology in visual cortical circuits*
 
---------------------
 
-The software is organized into several modules to perform the acquisition, the preprocessing, the visualization and the analysis of multimodal recordings (see [Documentation below](README.md#modules-and-documentation)).
+## Demo
 
-### Software screenshot
-
-<p align="center">
-  <img src="doc/screenshot.jpg"/>
-</p>
-
---------------------
 
 ## Install
 
 1. Install a python distribution for scientific analysis:
-
    [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
-   
-2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
-
+2. For a minimal install, run the following in the [Anaconda Prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
    ```
-   conda install numpy scipy pyqtgraph xmltodict
+   conda install numpy 
+   conda install scipy
+   conda install pyqtgraph
+   conda install xmltodict
+   pip install psychopy
    pip install git+https://github.com/yzerlaut/physion
    ```
-   
-   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
-   
-## Getting started
+## Modules
 
-The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
-   ```
-   python -m physion
-   ```
-
-## Modules and documentation
-
-The different modules of the software are documented in the following links:
-
-- [Visual stimulation](physion/visual_stim/README.md)
-- [Performing multimodal recordings](physion/exp/README.md)
-- [Electrophysiology](physion/electrophy/README.md)
-- [Calcium imaging](physion/Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
-- [Pupil tracking](physion/pupil/README.md)
-- [Behavioral monitoring](physion/behavioral_monitoring/README.md) -- adapted from [FaceMap](https://github.com/MouseLand/facemap)
-- [Assembling pipeline](physion/assembling/README.md)
-- [Hardware control](physion/hardware_control/README.md)
-- [Visualization](physion/dataviz/README.md)
-- [Analysis](physion/analysis/README.md)
+- [Multimodal recordings](exp/README.md)
+- [Visual stimulation](visual_stim/README.md)
+- [Assembling pipeline](assembling/README.md)
+- [Electrophysiology](electrophy/README.md)
+- [Calcium imaging](Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
+- [Pupil tracking](pupil/README.md)
+- [Behavioral monitoring](behavioral_monitoring/README.md) -- forked from [FaceMap](https://github.com/MouseLand/facemap)
+- [Hardware control](hardware_control/README.md)
+- [Visualization](dataviz/README.md)
+- [Analysis](analysis/README.md)
 
 ## How do I get set up ?
 
