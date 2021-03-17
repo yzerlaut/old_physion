@@ -6,6 +6,10 @@
 
 --------------------
 
+The software is organized into several modules to perform the acquisition, the preprocessing, the visualization and the analysis of multimodal recordings (see [Documentation below](README.md#modules-and-documentation)).
+
+### Software screenshot
+
 <p align="center">
   <img src="doc/screenshot.jpg"/>
 </p>
@@ -25,8 +29,8 @@
    pip install git+https://github.com/yzerlaut/physion
    ```
    
-   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md)
-
+   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
+   
 ## Getting started
 
 The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
@@ -34,7 +38,7 @@ The program is the launched from the [Anaconda prompt](https://docs.anaconda.com
    python -m physion
    ```
 
-## Documentation and modules
+## Modules and documentation
 
 The different modules of the software are documented in the following links:
 
