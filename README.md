@@ -7,7 +7,7 @@
 --------------------
 
 <p align="center">
-  <img src="docs/screenshot.jpg"/>
+  <img src="doc/screenshot.jpg"/>
 </p>
 
 --------------------
@@ -15,22 +15,21 @@
 ## Install
 
 1. Install a python distribution for scientific analysis:
+
    [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
    
 2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
+
    ```
-   conda install numpy 
-   conda install scipy
-   conda install matplotlib
-   conda install pyqtgraph
-   conda install xmltodict
+   conda install numpy scipy pyqtgraph xmltodict
    pip install git+https://github.com/yzerlaut/physion
    ```
+   
    For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md)
 
 ## Getting started
 
-3. The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
+The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
    ```
    python -m physion
    ```

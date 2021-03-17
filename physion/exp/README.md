@@ -1,5 +1,11 @@
 # Interface for experimental protocols
 
+## Full install for experimental setups
+
+```
+pip install psychopy
+```
+
 ## GUI
 
 The interface is minimal:
