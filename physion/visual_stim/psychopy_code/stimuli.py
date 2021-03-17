@@ -1,9 +1,9 @@
-try:
-    from psychopy import visual, core, event, clock, monitors, tools # We actually do it below so that we can use the code without psychopy
-except ModuleNotFoundError:
-    pass
 import numpy as np
 import itertools, os, sys, pathlib, time, json
+try:
+    from psychopy import visual, core, event, clock, monitors # We actually do it below so that we can use the code without psychopy
+except ModuleNotFoundError:
+    pass
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
@@ -14,7 +14,7 @@ def build_stim(protocol, no_psychopy=False):
     """
     """
     if not no_psychopy:
-        from psychopy import visual, core, event, clock, monitors, tools # some libraries from PsychoPy
+        from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
     
     if (protocol['Presentation']=='multiprotocol'):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
@@ -502,7 +502,6 @@ class multiprotocol(visual_stim):
                                'Presentation':'',
                                'no-window':True}
                 for key in protocol:
-                    print(key)
                     if ('Protocol-%i-'%i in key):
                         subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
                 self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))

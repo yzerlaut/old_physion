@@ -122,6 +122,7 @@ def raw_data_plot(self, tzoom,
     # if (self.time==0) and ('ophys' in self.nwbfile.processing):
     if ('ophys' in self.nwbfile.processing):
         self.pCaimg.setImage(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
+        
     if 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['CaImaging-TimeSeries'])
         # self.pCaimg.setImage(self.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0,:,:]) # REMOVE NOW, MAYBE REINTRODUCE
@@ -149,23 +150,35 @@ def raw_data_plot(self, tzoom,
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
-        if self.roiPick.text()=='sum':
-            y = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
-            tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
+        tt = self.Neuropil.timestamps[isampling]
+
+        if self.roiPick.text()=='sum' or (len(self.roiIndices)==1):
+            y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, self.roiIndices, sum=True), i=iplot)
             self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
             if self.CaImaging_key=='Fluorescence':
-                nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0),
-                                      value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
+                nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
                 self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling], i=iplot)+n
-                tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
+                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, [ir], sum=True), i=iplot)
                 self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
                 if self.CaImaging_key=='Fluorescence':
-                    nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling],
-                                          value=self.Neuropil.data[self.validROI_indices[ir],isampling], i=iplot)+n
+                    nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)
                     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+        
+        # if self.CaImaging_key=='Fluorescence':
+        #     nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0),
+        #                               value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
+        #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+        # else:
+        #     for n, ir in enumerate(self.roiIndices):
+        #         y = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling], i=iplot)+n
+        #         tt = np.linspace(np.max([self.tlim[0], self.tzoom[0]]), np.min([self.tlim[1], self.tzoom[1]]), len(y)) # TEMPORARY
+        #         self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
+        #         if self.CaImaging_key=='Fluorescence':
+        #             nrnp = scale_and_position(self, getattr(self, self.CaImaging_key).data[self.validROI_indices[ir],isampling],
+        #                                   value=self.Neuropil.data[self.validROI_indices[ir],isampling], i=iplot)+n
+        #             self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
 
 

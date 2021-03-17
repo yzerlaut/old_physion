@@ -378,7 +378,7 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             try:
                 i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>len(self.validROI_indices)):
+                if (i0<0) or (i0>=len(self.validROI_indices)):
                     roiIndices = [0]
                     self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
                 else:
@@ -399,14 +399,19 @@ class NewWindow(QtWidgets.QMainWindow):
         
         if string in ['Stim', 'stim', 'VisualStim', 'Stimulation', 'stimulation']:
             cls.load_VisualStim()
-        elif string in ['scan', 'Scan']:
+        elif string in ['scan_folder', 'scanF', 'scan']:
             cls.scan_folder()
         elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
             cls.CaImaging_bg_key = string
         elif string=='no_subsampling':
             cls.no_subsampling = True
-        elif string in ['Fluorescence', 'Neuropil', 'Deconvolved']:
-            cls.CaImaging_key = string
+        elif string in ['F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'Fneu'] or ('F-' in string):
+            if string=='F':
+                cls.CaImaging_key = 'Fluorescence'
+            elif string=='Fneu':
+                cls.CaImaging_key = 'Neuropil'
+            else:
+                cls.CaImaging_key = string
         elif string=='subsampling':
             cls.no_subsampling = False
         elif string=='subjects':

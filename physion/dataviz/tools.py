@@ -1,4 +1,8 @@
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter1d # for gaussian smoothing
+
+#########################
+#########################
 
 def scale_and_position(self, y, value=None, i=0):
     if value is None:
@@ -76,3 +80,65 @@ def extract_from_times(t1, t2, nwb_quantity, axis=0):
 def convert_index_to_time(index, nwb_quantity):
     """ index can be an array """
     return nwb_quantity.starting_time+index/nwb_quantity.rate
+
+#########################
+#########################
+
+# numpy code for ~efficiently evaluating the distrib percentile over a sliding window
+def strided_app(a, L, S ):  # Window len = L, Stride len/stepsize = S
+    nrows = ((a.size-L)//S)+1
+    n = a.strides[0]
+    return np.lib.stride_tricks.as_strided(a, shape=(nrows,L), strides=(S*n,n))
+
+
+def sliding_percentile(array, percentile, Window):
+
+    x = np.zeros(len(array))
+    y0 = strided_app(array, Window, 1)
+
+    y = np.percentile(y0, percentile, axis=-1)
+    
+    x[:int(Window/2)] = y[0]
+    x[-int(Window/2):] = y[-1]
+    x[int(Window/2)-1:-int(Window/2)] = y
+    
+    return x
+
+def compute_CaImaging_trace(cls, CaImaging_key, isampling, roiIndices,
+                            sum=False):
+
+    if CaImaging_key=='dF/F':
+        
+        if sum or len(roiIndices)==1:
+            y = getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)
+        else:
+            y = getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:]
+        sliding_min = sliding_percentile(y, 10., int(120/(cls.Neuropil.timestamps[1]-cls.Neuropil.timestamps[0]))+1) # 2 min sliding window !!
+        return (y-sliding_min)/sliding_min
+
+    elif CaImaging_key=='d(F-Fneu)/(F-Fneu)':
+        
+        if sum or len(roiIndices)==1:
+            y2 = getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)
+            y1 = getattr(cls, 'Neuropil').data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)
+        else:
+            y2 = getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:]
+            y1 = getattr(cls, 'Neuropil').data[:,isampling][cls.validROI_indices[roiIndices],:]
+        y = y2-y1
+        sliding_min = sliding_percentile(y, 10., int(120/(cls.Neuropil.timestamps[1]-cls.Neuropil.timestamps[0]))+1) # 2 min sliding window !!
+        return (y-sliding_min)/sliding_min
+    
+    elif 'F-' in CaImaging_key:
+        coef = float(CaImaging_key.replace('F-', '').replace('*Fneu', ''))
+        if sum or len(roiIndices)==1:
+            return getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)-\
+                coef*getattr(cls, 'Neuropil').data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)
+        else:
+            return getattr(cls, 'Fluorescence').data[:,isampling][cls.validROI_indices[roiIndices],:]-\
+                coef*getattr(cls, 'Neuropil').data[:,isampling][cls.validROI_indices[roiIndices],:]
+
+    else:
+        if sum or len(roiIndices)==1:
+            return getattr(cls, CaImaging_key).data[:,isampling][cls.validROI_indices[roiIndices],:].sum(axis=0)
+        else:
+            return getattr(cls, CaImaging_key).data[:,isampling][cls.validROI_indices[roiIndices],:]

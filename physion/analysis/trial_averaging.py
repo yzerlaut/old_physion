@@ -5,6 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from dataviz.guiparts import NewWindow, smallfont
+from dataviz.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 
@@ -140,7 +141,6 @@ class TrialAverageWindow(NewWindow):
                                        parent=self.parent,
                                        protocol_id=self.pbox.currentIndex()-1,
                                        quantity=self.qbox.currentText(),
-                                       subquantity='',
                                        dt_sampling=1, # ms
                                        interpolation='linear',
                                        verbose=True)
@@ -262,7 +262,6 @@ def build_episodes(self,
                    parent=None,
                    protocol_id=0,
                    quantity='Photodiode-Signal',
-                   subquantity='',
                    dt_sampling=1, # ms
                    interpolation='linear',
                    verbose=True):
@@ -300,18 +299,9 @@ def build_episodes(self,
     idur = int(duration/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     
-    # adding the parameters
-    for key in parent.nwbfile.stimulus.keys():
-        EPISODES[key] = parent.nwbfile.stimulus[key].data[Pcond]
-        
     if quantity=='CaImaging':
         tfull = parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[:]
-        if len(parent.roiIndices)>1:
-            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[np.array(parent.roiIndices)], :].mean(axis=0)
-        elif len(parent.roiIndices)==1:
-            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices[0]], :]
-        else:
-            valfull = getattr(parent, parent.CaImaging_key).data[parent.validROI_indices[parent.roiIndices], :].sum(axis=0)
+        valfull = compute_CaImaging_trace(parent, parent.CaImaging_key, np.arange(len(tfull)), parent.roiIndices, sum=True)
     else:
         try:
             tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate
@@ -322,26 +312,32 @@ def build_episodes(self,
             print(quantity, 'not recognized')
             print(30*'-')
         
-    for tstart, tstop in zip(parent.nwbfile.stimulus['time_start_realigned'].data[Pcond],
+    # adding the parameters
+    for key in parent.nwbfile.stimulus.keys():
+        EPISODES[key] = []
 
-                             parent.nwbfile.stimulus['time_stop_realigned'].data[Pcond]):
+    for iEp in np.arange(parent.nwbfile.stimulus['time_start_realigned'].num_samples)[Pcond]:
+        tstart = parent.nwbfile.stimulus['time_start_realigned'].data[iEp]
+        tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
+        # compute time and interpolate
         cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
         
         try:
             EPISODES['resp'].append(func(EPISODES['t']))
+            for key in parent.nwbfile.stimulus.keys():
+                EPISODES[key].append(parent.nwbfile.stimulus[key].data[iEp])
         except ValueError:
-            print(tstart, tstop)
-            pass
+            print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
     EPISODES['resp'] = np.array(EPISODES['resp'])
+    for key in parent.nwbfile.stimulus.keys():
+        EPISODES[key] = np.array(EPISODES[key])
     
     if verbose:
         print('[ok] episodes ready !')
-        print(EPISODES['resp'].shape)
-        print(self.varied_parameters)
         
     return EPISODES
     
