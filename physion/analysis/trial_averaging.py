@@ -293,8 +293,8 @@ def build_episodes(self,
     self.Pcond = Pcond # protocol condition
     
     # new sampling
-    interstim = parent.metadata['presentation-interstim-period']
-    ipre = int(interstim/dt_sampling*1e3*9./10.) # 3/4 of prestim
+    interstim = np.min(parent.nwbfile.stimulus['time_duration'].data[:])
+    ipre = int(interstim/dt_sampling*1e3) # 3/4 of prestim
     duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
     idur = int(duration/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
@@ -321,15 +321,16 @@ def build_episodes(self,
         tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
         # compute time and interpolate
-        cond = (tfull>=(tstart-interstim)) & (tfull<(tstop+interstim))
+        cond = (tfull>=(tstart-1.5*interstim)) & (tfull<(tstop+1.5*interstim)) # higher range of interpolation to avoid boundary problems
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
-        
         try:
             EPISODES['resp'].append(func(EPISODES['t']))
             for key in parent.nwbfile.stimulus.keys():
                 EPISODES[key].append(parent.nwbfile.stimulus[key].data[iEp])
-        except ValueError:
+        except BaseException as be:
+            print('----')
+            print(be)
             print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
     EPISODES['resp'] = np.array(EPISODES['resp'])
