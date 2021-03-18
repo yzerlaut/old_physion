@@ -25,7 +25,8 @@ The software is organized into several modules to perform the acquisition, the p
 2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
 
    ```
-   conda install numpy scipy pyqtgraph xmltodict
+   conda install pip numpy scipy pyqtgraph
+   pip install pynwb
    pip install git+https://github.com/yzerlaut/physion
    ```
    
@@ -33,7 +34,7 @@ The software is organized into several modules to perform the acquisition, the p
    
 ## Getting started
 
-The program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
+After the installation, the program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
    ```
    python -m physion
    ```
@@ -52,6 +53,10 @@ The different modules of the software are documented in the following links:
 - [Hardware control](physion/hardware_control/README.md)
 - [Visualization](physion/dataviz/README.md) -- relying on the excellent [PyQtGraph](http://pyqtgraph.org/)
 - [Analysis](physion/analysis/README.md)
+
+## Troubleshooting / Issues
+
+Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
 
 ## Troubleshooting / Issues
 
