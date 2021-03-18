@@ -6,7 +6,7 @@ A few examples, that were used to design and calibrate the stimuli, can be found
 
 ## Running the visual stimulation program
 
-If not starting from the main GUI (see [README](../README.md)), open the Anaconda prompt and run:
+If not starting from the main GUI (see [README](../../README.md)), open the Anaconda prompt and run:
 
 ```
 python visual_stim\gui.py
@@ -15,15 +15,17 @@ python visual_stim\gui.py
 There is a `"demo"` mode to adjust and build the protocols.
 
 <p align="center">
-  <img src="../doc/gui-visual-stim.png"/>
+  <img src="../../doc/gui-visual-stim.png"/>
 </p>
+
+A list of protocols are available in the [protocol folder of the repository](../exp/protocols/).
 
 ## Mouse visual field and screen position
 
 The setup corresponds to the following setting:
 
 <p align="center">
-  <img src="../doc/visual-field.png"/>
+  <img src="../../doc/visual-field.png"/>
 </p>
 
 ## Screen settings
@@ -37,19 +39,19 @@ We need to set the following settings:
 #### Display
 
 <p align="center">
-  <img src="../doc/display.png" width="400">
+  <img src="../../doc/display.png" width="400">
 </p>
 
 #### Behavior of the taskbar
 
 <p align="center">
-  <img src="../doc/taskbar.png" width="400" >
+  <img src="../../doc/taskbar.png" width="400" >
 </p>
 
 #### Background
 
 <p align="center">
-  <img src="../doc/background.png" width="400">
+  <img src="../../doc/background.png" width="400">
 </p>
 
 ### 2) Psychopy level
@@ -57,7 +59,7 @@ We need to set the following settings:
 In the "Monitor center", we need to have the following settings:
 
 <p align="center">
-  <img src="../doc/monitor.png">
+  <img src="../../doc/monitor.png">
 </p>
 
 N.B. we don't use the gamma correction of psychopy, it doesn't work, we deal with it below.
@@ -73,12 +75,12 @@ We show below the measurements before and after the correction
 
 ### Before correction
 <p align="center">
-  <img src="../doc/gamma-correction-before.png"/>
+  <img src="../../doc/gamma-correction-before.png"/>
 </p>
 
 ### After correction
 <p align="center">
-  <img src="../doc/gamma-correction-after.png"/>
+  <img src="../../doc/gamma-correction-after.png"/>
 </p>
 
 The measurements and fitting procedure are described in the script: [gamma-correction.py](./gamma-correction.py).
