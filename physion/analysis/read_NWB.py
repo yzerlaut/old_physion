@@ -7,7 +7,15 @@ def init(self):
     self.df_name = ''
     self.description = ''
     self.keys = []
-    
+
+class Data:
+    """
+    a basic class to be the parent of specific applications
+    """
+    def __init__(self, filename,
+                 verbose=False):
+        read(self, filename, verbose=verbose)
+        
     
 def read(self, filename, verbose=False, with_tlim=True,
          metadata_only=False):
