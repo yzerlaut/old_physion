@@ -2,7 +2,7 @@
 import pynwb, os, sys
 import numpy as np
 import matplotlib.pylab as plt
-    
+from scipy.ndimage import gaussian_filter    
 # custom modules
 sys.path.append('.')
 from physion.analysis.read_NWB import Data
@@ -35,9 +35,13 @@ class DataWithStim(Data):
 
 filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
 data = DataWithStim(filename)
+
 for i in range(np.sum(data.iscell)):
     fig, ax = plt.subplots(1, figsize=(7,4))
-    plt.imshow(data.reverse_correlation(i))
+    img = data.reverse_correlation(i)
+    img = img-np.mean(img)
+    plt.imshow(gaussian_filter(img, (40,40)),
+               vmin=-np.max(np.abs(img)), vmax=np.max(np.abs(img)), cmap=plt.cm.PiYG)
     ax.axis('off')
     fig.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'RF', 'ROI#%i.png' % (i+1)))    
-    fig.close()
+    plt.close()
