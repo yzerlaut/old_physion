@@ -38,7 +38,7 @@ class sparse_noise_generator:
         self.Nx = np.floor(width_deg/self.square_size)+1
         self.Ny = np.floor(height_deg/self.square_size)+1
 
-        self.Ntot_square = self.Nx*self.Ny
+        self.Ntot_square = self.Nx*(self.Ny+1)
 
         # an estimate of the number of shifts needed
         nshift = int(duration/noise_mean_refresh_time)+50
@@ -62,9 +62,8 @@ class sparse_noise_generator:
         grid_shift = np.random.uniform()*self.square_size # so that the square do not always fall on the same grid
         
         for r, v in zip(Loc, Val):
-            x0, y0 = (r % self.Nx)*self.square_size, int(r / self.Nx)*self.square_size
-            cond = (self.x>=(x0+grid_shift)) & (self.x<(x0+grid_shift)+self.square_size) &\
-                (self.y>=(y0+grid_shift)) & (self.y<(y0+grid_shift)+self.square_size)
+            x0, y0 = (r % self.Nx)*self.square_size-grid_shift, int(r / self.Nx)*self.square_size-grid_shift
+            cond = (self.x>=x0) & (self.x<x0+self.square_size) & (self.y>=y0) & (self.y<y0+self.square_size)
             array[:,:][cond] = self.contrast*v
             
         return array
@@ -96,7 +95,7 @@ class dense_noise_generator:
         self.Nx = np.floor(width_deg/self.square_size)+1
         self.Ny = np.floor(height_deg/self.square_size)+1
 
-        self.Ntot_square = self.Nx*self.Ny
+        self.Ntot_square = self.Nx*(self.Ny+1)
 
         # an estimate of the number of shifts needed
         nshift = int(duration/noise_mean_refresh_time)+10
@@ -116,11 +115,12 @@ class dense_noise_generator:
 
         Loc = np.arange(int(self.Ntot_square))
         Val = np.random.choice([-1, 1], int(self.Ntot_square)) # either black or white
+        grid_shift = np.random.uniform()*self.square_size # so that the square do not always fall on the same grid
         
         array = np.zeros((int(self.pix[0]), int(self.pix[1])))
         
         for r, v in zip(Loc, Val):
-            x0, y0 = (r % self.Nx)*self.square_size, int(r / self.Nx)*self.square_size
+            x0, y0 = (r % self.Nx)*self.square_size-grid_shift, int(r / self.Nx)*self.square_size-grid_shift
             cond = (self.x>=x0) & (self.x<x0+self.square_size) & (self.y>=y0) & (self.y<y0+self.square_size)
             array[:,:][cond] = self.contrast*v
             
