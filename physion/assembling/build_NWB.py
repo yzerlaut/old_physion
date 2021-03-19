@@ -394,11 +394,9 @@ if __name__=='__main__':
     if not args.silent:
         args.verbose = True
 
-
     # some pre-defined settings here
     if args.export=='LIGHTWEIGHT' or args.lightweight:
         args.export='LIGHTWEIGHT'
-        args.modalities = LIGHT_MODALITIES
         # 0 values for all (means 3 frame, start-middle-end)
         args.Pupil_frame_sampling = 0
         args.Snout_frame_sampling = 0
@@ -406,7 +404,6 @@ if __name__=='__main__':
         args.CaImaging_frame_sampling = 0
     if args.export=='FULL' or args.full:
         args.export='FULL'
-        args.modalities = ALL_MODALITIES
         # push all to very high values
         args.CaImaging_frame_sampling = 1e5
         args.Pupil_frame_sampling = 1e5

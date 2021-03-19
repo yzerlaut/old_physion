@@ -309,7 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
             if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
                 
-                self.reset()
+                # self.reset()
                 self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
