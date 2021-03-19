@@ -32,15 +32,15 @@ class DataWithStim(Data):
             cum_weight += weight
         return full_img/cum_weight
 
-
 filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
 data = DataWithStim(filename)
 
 for i in range(np.sum(data.iscell)):
+    print('ROI#', i+1)
     fig, ax = plt.subplots(1, figsize=(7,4))
     img = data.reverse_correlation(i)
     img = img-np.mean(img)
-    plt.imshow(gaussian_filter(img, (40,40)),
+    plt.imshow(gaussian_filter(img, (20,20)),
                vmin=-np.max(np.abs(img)), vmax=np.max(np.abs(img)), cmap=plt.cm.PiYG)
     ax.axis('off')
     fig.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'RF', 'ROI#%i.png' % (i+1)))    

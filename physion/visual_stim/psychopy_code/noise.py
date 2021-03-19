@@ -41,7 +41,7 @@ class sparse_noise_generator:
         self.Ntot_square = self.Nx*self.Ny
 
         # an estimate of the number of shifts needed
-        nshift = int(duration/noise_mean_refresh_time)+10
+        nshift = int(duration/noise_mean_refresh_time)+50
 
         # generating the events
         events = np.cumsum(np.abs(noise_mean_refresh_time+\
@@ -59,10 +59,12 @@ class sparse_noise_generator:
         array = np.ones((int(self.pix[0]), int(self.pix[1])))*self.bg_color
         Loc = np.random.choice(np.arange(self.Ntot_square), int(self.sparseness*self.Ntot_square), replace=False)
         Val = np.random.choice([-1, 1], int(self.sparseness*self.Ntot_square)) # either white or black
-
+        grid_shift = np.random.uniform()*self.square_size # so that the square do not always fall on the same grid
+        
         for r, v in zip(Loc, Val):
             x0, y0 = (r % self.Nx)*self.square_size, int(r / self.Nx)*self.square_size
-            cond = (self.x>=x0) & (self.x<x0+self.square_size) & (self.y>=y0) & (self.y<y0+self.square_size)
+            cond = (self.x>=(x0+grid_shift)) & (self.x<(x0+grid_shift)+self.square_size) &\
+                (self.y>=(y0+grid_shift)) & (self.y<(y0+grid_shift)+self.square_size)
             array[:,:][cond] = self.contrast*v
             
         return array
