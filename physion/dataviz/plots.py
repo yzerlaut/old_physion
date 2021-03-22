@@ -30,7 +30,6 @@ def raw_data_plot(self, tzoom,
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Photodiode-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Screen']))
 
-
     ## -------- Locomotion --------- ##
     
     if 'Running-Speed' in self.nwbfile.acquisition:
@@ -173,9 +172,9 @@ def raw_data_plot(self, tzoom,
             for n, ir in enumerate(self.roiIndices):
                 y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, [ir], sum=True), i=iplot)+n/2.
                 self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
-                if self.CaImaging_key=='Fluorescence':
-                    nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)+n/2.
-                    self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+                # if self.CaImaging_key=='Fluorescence':
+                #     nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)+n/2.
+                #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
 
     # ## -------- Visual Stimulation --------- ##
@@ -224,7 +223,6 @@ def raw_data_plot(self, tzoom,
     #     self.plot.addItem(self.scatter)
 
     self.plot.setRange(xRange=tzoom, yRange=[0,y.max()], padding=0.0)
-    
     self.frameSlider.setValue(int(self.settings['Npoints']*(self.time-tzoom[0])/(tzoom[1]-tzoom[0])))
     
     self.plot.show()
