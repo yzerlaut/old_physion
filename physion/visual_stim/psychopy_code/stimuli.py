@@ -541,6 +541,7 @@ class multiprotocol(visual_stim):
         if (protocol['shuffling']=='full'):
             np.random.seed(protocol['shuffling-seed'])
             np.random.shuffle(indices)
+            
         for key in self.experiment:
             self.experiment[key] = np.array(self.experiment[key])[indices]
 
@@ -548,7 +549,12 @@ class multiprotocol(visual_stim):
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
         for i in range(1, len(self.experiment['index'])):
-            self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period']
+            if protocol['shuffling'] in ['none', 'None']:
+                self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+\
+                    protocol['Protocol-%i-%s'%(self.experiment['protocol_id'][i],'presentation-interstim-period')] # we keep each interstim period
+            else:
+                self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period']
+            self.experiment['time_duration'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
     # functions implemented in child class
