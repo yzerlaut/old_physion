@@ -1,0 +1,14 @@
+{
+  "Presentation": "multiprotocol",
+  "shuffling" :"none",
+  "shuffling-seed" :34,
+  "Protocol-1": "drifting-demo.json",
+  "Protocol-2": "noise-demo.json",
+   "presentation-prestim-period": 2.0,
+  "presentation-poststim-period": 2.0,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "presentation-interstim-period": 10,
+  "presentation-interstim-screen": 0,
+  "Screen": "Dell-P2018H"
+}

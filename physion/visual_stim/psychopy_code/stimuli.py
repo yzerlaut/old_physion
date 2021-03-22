@@ -205,6 +205,7 @@ class visual_stim:
                     self.experiment['time_start'] = [protocol['presentation-prestim-period']]
                     self.experiment['time_stop'] = [protocol['presentation-duration']+protocol['presentation-prestim-period']]
                     self.experiment['time_duration'] = [protocol['presentation-duration']]
+                    self.experiment['interstim'] = [protocol['presentation-interstim-period']]
         else: # MULTIPLE STIMS
             VECS, FULL_VECS = [], {}
             for key in keys:
@@ -218,7 +219,8 @@ class visual_stim:
                     FULL_VECS[key].append(vec[i])
                     
             self.experiment['index'], self.experiment['repeat'] = [], []
-            self.experiment['time_start'], self.experiment['time_stop'], self.experiment['time_duration'] = [], [], []
+            self.experiment['time_start'], self.experiment['time_stop'] = [], []
+            self.experiment['interstim'], self.experiment['time_duration'] = [], [] # relevant for multi-protocols
             self.experiment['frame_run_type'] = []
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
@@ -241,6 +243,7 @@ class visual_stim:
                                                      n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
                 self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
                                                      (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                self.experiment['interstim'].append(protocol['presentation-interstim-period'])
                 self.experiment['time_duration'].append(protocol['presentation-duration'])
                 self.experiment['frame_run_type'].append(run_type)
 
@@ -278,8 +281,8 @@ class visual_stim:
             clock.wait(self.protocol['presentation-poststim-period'])
 
     # screen for interstim
-    def inter_screen(self, parent):
-        if not parent.stop_flag and hasattr(self, 'blank_inter'):
+    def inter_screen(self, parent, duration=1.):
+        if not parent.stop_flag and hasattr(self, 'blank_inter') and duration>0:
             self.blank_inter.draw()
             self.off.draw()
             try:
@@ -288,7 +291,7 @@ class visual_stim:
                     self.win.getMovieFrame() # we store the last frame
             except AttributeError:
                 pass
-            clock.wait(self.protocol['presentation-interstim-period'])
+            clock.wait(duration)
 
     # blinking in one corner
     def add_monitoring_signal(self, new_t, start):
@@ -411,7 +414,7 @@ class visual_stim:
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
-                self.inter_screen(parent)
+                self.inter_screen(parent, duration=self.experiment['interstim'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
@@ -421,6 +424,10 @@ class visual_stim:
                                                   'screen-frames', 'frame.tiff'))
 
     
+    ##########################################################
+    #############    DRAWING STIMULI (offline)  ##############
+    ##########################################################
+    
     def get_prestim_image(self):
         return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
     def get_interstim_image(self):
@@ -428,10 +435,6 @@ class visual_stim:
     def get_poststim_image(self):
         return (1+self.protocol['presentation-poststim-screen'])/2.+0*self.x
 
-    ##########################################################
-    #############    DRAWING STIMULI (offline)  ##############
-    ##########################################################
-    
     def show_frame(self, episode, 
                    time_from_episode_start=0,
                    label={'degree':5,
@@ -1137,10 +1140,12 @@ class sparse_noise(visual_stim):
 
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events)-1) 
+        self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
         self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
+
         
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1169,6 +1174,7 @@ class dense_noise(visual_stim):
 
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events))
+        self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
