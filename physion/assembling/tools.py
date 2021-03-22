@@ -40,9 +40,11 @@ def build_subsampling_from_freq(subsampled_freq=1.,
 
 def load_FaceCamera_data(imgfolder, t0=0, verbose=True):
 
-    times = np.array([float(f.replace('.npy', '')) for f in os.listdir(imgfolder) if f.endswith('.npy')])
-    times = times[np.argsort(times)]-t0
-    FILES = np.array([f for f in os.listdir(imgfolder) if f.endswith('.npy')], dtype=str)[np.argsort(times)]
+    file_list = [f for f in os.listdir(imgfolder) if f.endswith('.npy')]
+    _times = np.array([float(f.replace('.npy', '')) for f in file_list])
+    _isorted = np.argsort(_times)
+    times = _times[_isorted]-t0
+    FILES = np.array(file_list)[_isorted]
     nframes = len(times)
     Lx, Ly = np.load(os.path.join(imgfolder, FILES[0])).shape
     if verbose:

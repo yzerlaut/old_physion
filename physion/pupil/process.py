@@ -9,6 +9,7 @@ from analyz.workflow.shell import printProgressBar
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.dataset import Dataset
+from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
 from pupil import roi
 
@@ -238,12 +239,8 @@ def preprocess(cls, with_reinit=True,
 
 
 def load_folder(cls):
-    times = np.array([float(f.replace('.npy', '')) for f in os.listdir(cls.imgfolder) if f.endswith('.npy')])
-    cls.times = times[np.argsort(times)]
-    cls.FILES = np.array([f for f in os.listdir(cls.imgfolder) if f.endswith('.npy')])[np.argsort(times)]
-    cls.nframes = len(cls.times)
-    cls.Lx, cls.Ly = np.load(os.path.join(cls.imgfolder, cls.FILES[0])).shape
-
+    """ see assembling/tools.py """
+    cls.times, cls.FILES, cls.nframes, cls.Lx, cls.Ly = load_FaceCamera_data(cls.imgfolder)
 
 def load_ROI(cls, with_plot=True):
 
