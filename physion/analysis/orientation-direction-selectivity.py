@@ -126,7 +126,7 @@ def orientation_selectivity_analysis(FullData, roiIndex=0):
     fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(14,2.))
     plt.subplots_adjust(right=.8)
     for i, angle in enumerate(data.varied_parameters['angle']):
-        data.plot('angle',i, ax=AX[i], with_std=False)
+        data.plot('angle',i, ax=AX[i], with_std=True)
         AX[i].set_title('%.0f$^o$' % angle)
     YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
     for ax in AX:
@@ -136,7 +136,7 @@ def orientation_selectivity_analysis(FullData, roiIndex=0):
     add_bar(AX[0], Xbar=2, Ybar=0.5)
     ax = plt.axes([0.85,0.1,0.15,0.8])
     orientation_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax)
-
+    return fig
 
 def direction_selectivity_analysis(FullData, roiIndex=0):
     data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex)
@@ -162,13 +162,13 @@ def direction_selectivity_analysis(FullData, roiIndex=0):
 if __name__=='__main__':
     
     # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-13-03.nwb')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Wild_Type', '2021_03_11-17-13-03.nwb')
     FullData= Data(filename)
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
-    # for i in range(np.sum(FullData.iscell)):
-    for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
-        # fig1 = orientation_selectivity_analysis(FullData, roiIndex=i)
-        fig2 = direction_selectivity_analysis(FullData, roiIndex=i)
-        fig2.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data', 'ROI#%i.svg' % (i+1)))
+    # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
+    for i in range(np.sum(FullData.iscell)):
+        fig1 = orientation_selectivity_analysis(FullData, roiIndex=i)
+        # fig2 = direction_selectivity_analysis(FullData, roiIndex=i)
+        fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
         # plt.show()
