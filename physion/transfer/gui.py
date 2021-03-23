@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return 'xcopy %s %s' % (source_file,
                                                destination_folder)
         else:
-            return 'cp %s %s' % (source_file, destination_folder)
+            return 'rsync -avhP %s %s' % (source_file, destination_folder)
             
 
     def folder_copy_command(self, source_folder, destination_folder):
@@ -108,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return 'xcopy %s %s /s /e' % (source_folder,
                                             destination_folder)
         else:
-            return 'cp -r %s %s &' % (source_folder, destination_folder)
+            return 'rsync -avhP %s %s &' % (source_folder, destination_folder)
     
     def run(self):
 
