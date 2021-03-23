@@ -523,8 +523,7 @@ class multiprotocol(visual_stim):
                         protocol['Protocol-%i-%s'%(i,key)] = val
                 i+=1
 
-        self.experiment = {'time_duration':[],
-                           'protocol_id':[]}
+        self.experiment = {'protocol_id':[]}
         # we initialize the keys
         for stim in self.STIM:
             for key in stim.experiment:
@@ -539,29 +538,24 @@ class multiprotocol(visual_stim):
                         self.experiment[key].append(None)
                 self.experiment['protocol_id'].append(IS)
                 self.experiment['time_duration'].append(stim.experiment['time_stop'][i]-stim.experiment['time_start'][i])
+                
         # SHUFFLING IF NECESSARY
         indices = np.arange(len(self.experiment['index']))
         if (protocol['shuffling']=='full'):
             np.random.seed(protocol['shuffling-seed'])
             np.random.shuffle(indices)
-            
         for key in self.experiment:
             self.experiment[key] = np.array(self.experiment[key])[indices]
 
         # we rebuild time
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
+        self.experiment['interstim'][0] = self.experiment['interstim'][0]
         for i in range(1, len(self.experiment['index'])):
-            if protocol['shuffling'] in ['none', 'None']:
-                if 'Protocol-%i-%s'%(self.experiment['protocol_id'][i]+1,'presentation-interstim-period') in protocol:
-                    self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+\
-                        protocol['Protocol-%i-%s'%(self.experiment['protocol_id'][i]+1,'presentation-interstim-period')] # we keep each interstim period
-                else:
-                    self.experiment['time_start'][i] = self.experiment['time_stop'][i-1] # this is a protocol without interstim
-            else:
-                self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+protocol['presentation-interstim-period'] # we use the interstim
+            self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i-1]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
-
+        print(self.experiment['time_duration'])
+        
     # functions implemented in child class
     def get_frame(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frame(index, parent=self)
