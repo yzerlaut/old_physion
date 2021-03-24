@@ -8,6 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import plots
 from analysis.read_NWB import Data
 from dataviz.tools import *
+from Ca_imaging.tools import compute_CaImaging_trace
 from visual_stim.psychopy_code.stimuli import build_stim
 
 # we define a data object fitting this analysis purpose
@@ -72,7 +73,6 @@ class MultimodalData(Data):
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
             axi = plt.axes([(tstart-tlim[0])/(tlim[1]-tlim[0]), fig_loc, size, size])#size*sx/sy, size])
             self.visual_stim.show_frame(i, ax=axi,label=None)
-            
     
     def plot(self, 
                     tlim=[0,100],

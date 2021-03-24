@@ -47,7 +47,7 @@ def read(self, filename, verbose=False, with_tlim=True,
             ii+=1
     else:
         self.protocols = [self.metadata['protocol']]
-        self.description += '- %s ' % self.metadata['protocol']
+        self.description += '- %s \n' % self.metadata['protocol']
     self.protocols = np.array(self.protocols, dtype=str)
 
     if not metadata_only or with_tlim:

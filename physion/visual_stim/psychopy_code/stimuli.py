@@ -554,7 +554,6 @@ class multiprotocol(visual_stim):
         for i in range(1, len(self.experiment['index'])):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i-1]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
-        print(self.experiment['time_duration'])
         
     # functions implemented in child class
     def get_frame(self, index):
