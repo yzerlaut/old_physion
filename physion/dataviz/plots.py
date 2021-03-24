@@ -164,14 +164,14 @@ def raw_data_plot(self, tzoom,
         tt = self.Neuropil.timestamps[isampling]
 
         if self.roiPick.text()=='sum' or (len(self.roiIndices)==1):
-            y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, self.roiIndices, sum=True), i=iplot)
+            y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, self.roiIndices).sum(axis=0)[isampling], i=iplot) # valid ROIs inside
             self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
-            if self.CaImaging_key=='Fluorescence':
-                nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
-                self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
+            # if self.CaImaging_key=='Fluorescence':
+            #     nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
+            #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, isampling, [ir], sum=True), i=iplot)+n/2.
+                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, [ir]).sum(axis=0)[isampling], i=iplot)+n/2.
                 self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
                 # if self.CaImaging_key=='Fluorescence':
                 #     nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)+n/2.

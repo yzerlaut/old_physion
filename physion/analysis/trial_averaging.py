@@ -304,7 +304,7 @@ def build_episodes(self,
     
     if quantity=='CaImaging':
         tfull = parent.Neuropil.timestamps[:]
-        valfull = compute_CaImaging_trace(parent, parent.CaImaging_key, np.arange(len(tfull)), parent.roiIndices).sum(axis=0) # valid ROI indices inside
+        valfull = compute_CaImaging_trace(parent, parent.CaImaging_key, parent.roiIndices).sum(axis=0) # valid ROI indices inside
     else:
         try:
             tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate

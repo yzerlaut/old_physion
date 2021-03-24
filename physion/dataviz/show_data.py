@@ -46,7 +46,7 @@ class MultimodalData(Data):
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       quantity='CaImaging', subquantity='Fluorescence', roiIndices=[0]):
-        dF = compute_CaImaging_trace(self, subquantity, np.arange(self.Neuropil.data.shape[1]), roiIndices) # validROI indices inside !!
+        dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
         tt = self.Neuropil.timestamps[np.arange(i1,i2)]

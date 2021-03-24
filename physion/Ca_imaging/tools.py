@@ -24,7 +24,7 @@ def sliding_percentile(array, percentile, Window):
     
     return x
 
-def compute_CaImaging_trace(cls, CaImaging_key, isampling, roiIndices,
+def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
                             Tsliding=60, percentile=5.,
                             with_sliding_mean = False,
                             sum=False):
