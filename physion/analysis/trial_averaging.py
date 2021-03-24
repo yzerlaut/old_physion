@@ -84,7 +84,7 @@ class TrialAverageWindow(NewWindow):
 
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.computeBtn = QtWidgets.QPushButton('[Ctrl+C]ompute episodes', self)
-        self.computeBtn.clicked.connect(self.compute_episodes)
+        self.computeBtn.clicked.connect(self.compute_episodes_wsl)
         self.Layout12.addWidget(self.computeBtn)
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         
@@ -144,10 +144,13 @@ class TrialAverageWindow(NewWindow):
                                        dt_sampling=1, # ms
                                        interpolation='linear',
                                        verbose=True)
-            self.update_selection()
         else:
             print(' /!\ Pick a protocol an a quantity')
 
+    def compute_episodes_wsl(self):
+        self.compute_episodes()
+        self.update_selection() # with update selection
+            
     def update_selection(self):
         for i in range(NMAX_PARAMS):
             getattr(self, "box%i"%i).clear()
