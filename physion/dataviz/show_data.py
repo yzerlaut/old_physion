@@ -46,7 +46,7 @@ class MultimodalData(Data):
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       quantity='CaImaging', subquantity='Fluorescence', roiIndices=[0]):
-        dF = compute_CaImaging_trace(self, subquantity, np.arange(self.Neuropil.data.shape[1]), roiIndices)
+        dF = compute_CaImaging_trace(self, subquantity, np.arange(self.Neuropil.data.shape[1]), roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
         tt = self.Neuropil.timestamps[np.arange(i1,i2)]
@@ -54,10 +54,12 @@ class MultimodalData(Data):
             y = dF[n, np.arange(i1,i2)]
             ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+\
                     n*fig_fraction/len(roiIndices)+fig_fraction_start, color=color)
-            # ax.plot(tlim[0]*np.ones(2), np.arange(2)*(1.-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+\
-            #         n*fig_fraction/len(roiIndices)+fig_fraction_start, color=color)
+            if subquantity in ['dF/F', 'dFoF']:
+                ax.plot(tlim[0]*np.ones(2), (np.arange(2)-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+\
+                        n*fig_fraction/len(roiIndices)+fig_fraction_start, color=color)
             ax.annotate('ROI#%i'%(ir+1), (tlim[1], n*fig_fraction/len(roiIndices)+fig_fraction_start))
-        # ax.annotate('1$\Delta$F/F', (tlim[0], fig_fraction_start), ha='right', rotation=90)
+        if subquantity in ['dF/F', 'dFoF']:
+            ax.annotate('1$\Delta$F/F', (tlim[0], fig_fraction_start), ha='right', rotation=90)
         
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1.,

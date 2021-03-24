@@ -76,6 +76,7 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
             self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
             self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
+            self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
         else:
             self.Segmentation, self.Fluorescence, self.iscell,\
                 self.Neuropil, self.Deconvolved = None, None, None, None, None

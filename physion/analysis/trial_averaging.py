@@ -5,7 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from dataviz.guiparts import NewWindow, smallfont
-from dataviz.tools import compute_CaImaging_trace
+from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 
@@ -141,7 +141,7 @@ class TrialAverageWindow(NewWindow):
                                        parent=self.parent,
                                        protocol_id=self.pbox.currentIndex()-1,
                                        quantity=self.qbox.currentText(),
-                                       dt_sampling=1, # ms
+                                       dt_sampling=self.samplingBox.value(), # ms
                                        interpolation='linear',
                                        verbose=True)
         else:
@@ -303,8 +303,8 @@ def build_episodes(self,
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
     
     if quantity=='CaImaging':
-        tfull = parent.nwbfile.processing['ophys']['Neuropil'].roi_response_series['Neuropil'].timestamps[:]
-        valfull = compute_CaImaging_trace(parent, parent.CaImaging_key, np.arange(len(tfull)), parent.roiIndices, sum=True)
+        tfull = parent.Neuropil.timestamps[:]
+        valfull = compute_CaImaging_trace(parent, parent.CaImaging_key, np.arange(len(tfull)), parent.roiIndices).sum(axis=0) # valid ROI indices inside
     else:
         try:
             tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate

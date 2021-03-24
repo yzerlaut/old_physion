@@ -407,7 +407,7 @@ class NewWindow(QtWidgets.QMainWindow):
             cls.CaImaging_bg_key = string
         elif string=='no_subsampling':
             cls.no_subsampling = True
-        elif string in ['F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'Fneu'] or ('F-' in string):
+        elif string in ['F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'Fneu', 'dF/F', 'dFoF'] or ('F-' in string):
             if string=='F':
                 cls.CaImaging_key = 'Fluorescence'
             elif string=='Fneu':
