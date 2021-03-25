@@ -9,7 +9,7 @@
 
 - use `ssh` to transfer the raw data
 
-- use the image block ripping utility from Bruker to convert the raw data to tiff files. Download Prairie 5.5 at the [following link](https://www.brukersupport.com/File/?id=61188&folderid=44665).
+- use the image block ripping utility from Bruker to convert the raw data to tiff files. Download the program from your Prairie version, see [https://pvupdate.blogspot.com/](https://pvupdate.blogspot.com/) (e.g. Prairie 5.5 at the [following link](https://www.brukersupport.com/File/?id=61188&folderid=44665)).
   
 ## Registration and Cell detection
 
@@ -42,4 +42,3 @@ N.B. we extract the available information form the `xml` Bruker file, see here [
 ## Preprocessing and analysis
 	
 The preprocessing step and some analysis are documented in the [demo notebooks](../../notebooks)
-

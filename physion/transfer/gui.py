@@ -112,11 +112,19 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def run(self):
 
-        print('starting copy [...]')
         if self.destination_folder=='':
             self.destination_folder = FOLDERS[self.destBox.currentText()]
         if self.source_folder=='':
             self.source_folder = FOLDERS[self.sourceBox.currentText()]
+                                              
+        if '10.0.0.' in self.destination_folder:
+            print('writing a bash script to be executed as: "bash temp.sh" ')
+            F = open('temp.sh', 'w')
+            F.write('echo "Password for %s ? "\n' % self.destination_folder)
+            F.write('read passwd\n')
+            F.write('echo $passwd\n')
+        else:
+            print('starting copy [...]')
 
         if self.typeBox.currentText()=='NWB':
             ##############################################
@@ -126,12 +134,20 @@ class MainWindow(QtWidgets.QMainWindow):
                                              extension='.nwb', 
                                              recursive=True)
             for f in FILES:
-                cmd = self.file_copy_command(f, self.destination_folder)
-                print('"%s" launched as a subprocess' % cmd)
-                p = subprocess.Popen(cmd, shell=True)
+                if '10.0.0.' in self.destination_folder:
+                    F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (f, self.destination_folder))
+                else:
+                    cmd = self.file_copy_command(f, self.destination_folder)
+                    print('"%s" launched as a subprocess' % cmd)
+                    p = subprocess.Popen(cmd, shell=True)
         elif self.typeBox.currentText()=='FULL':
-            self.folder_copy_command(self.source_folder,
-                                     self.destination_folder)
+            if '10.0.0.' in self.destination_folder:
+                F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (self.source_folder, self.destination_folder))
+            else:
+                print(' copying "%s" [...]' % self.source_folder)
+                self.folder_copy_command(self.source_folder,
+                                         self.destination_folder)
+                
         elif ('Imaging' in self.typeBox.currentText()):
             ##############################################
             #############      Imaging         ##########
@@ -145,12 +161,23 @@ class MainWindow(QtWidgets.QMainWindow):
             for f in folders:
                 new_folder = os.path.join(self.destination_folder,
                                       'TSeries'+f.split('TSeries')[1])
-                pathlib.Path(new_folder).mkdir(parents=True, exist_ok=True)
+                if '10.0.0.' in self.destination_folder:
+                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
+                                                                    self.destination_folder.split(':')[0],
+                                                                    self.destination_folder.split(':')[1]+new_folder))
+                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
+                                                                    self.destination_folder.split(':')[0],
+                                                                    self.destination_folder.split(':')[1]+new_folder+'/suite2p'))
+                else:
+                    pathlib.Path(new_folder).mkdir(parents=True, exist_ok=True)
                 # XML metadata file
                 xml = get_files_with_extension(f, extension='.xml', recursive=False)
                 if len(xml)>0:
-                    print(' copying "%s" [...]' % xml[0])
-                    subprocess.Popen(self.file_copy_command(xml[0], new_folder), shell=True)
+                    if '10.0.0.' in self.destination_folder:
+                        F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (xml[0], new_folder))
+                    else:
+                        print(' copying "%s" [...]' % xml[0])
+                        subprocess.Popen(self.file_copy_command(xml[0], new_folder), shell=True)
                 else:
                     print(' /!\ Problem no "xml" found !! /!\  ')
                 # XML metadata file
@@ -160,25 +187,39 @@ class MainWindow(QtWidgets.QMainWindow):
                     npys = get_files_with_extension(os.path.join(Fsuite2p, 'plane%i' % iplane),
                                                     extension='.npy', recursive=False)
                     inewfolder = os.path.join(new_folder, 'suite2p', 'plane%i' % iplane)
-                    pathlib.Path(inewfolder).mkdir(parents=True, exist_ok=True)
+                    if '10.0.0.' in self.destination_folder:
+                        F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
+                                                                        self.destination_folder.split(':')[0],
+                                                                        self.destination_folder.split(':')[1]+new_folder+'/suite2p/plane%i' % iplane))
+                    else:
+                        pathlib.Path(inewfolder).mkdir(parents=True, exist_ok=True)
                     for n in npys:
-                        print(' copying "%s" [...]' % n)
-                        subprocess.Popen(self.file_copy_command(n, inewfolder), shell=True)
+                        if '10.0.0.' in self.destination_folder:
+                            F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (n, inewfolder))
+                        else:
+                            print(' copying "%s" [...]' % n)
+                            subprocess.Popen(self.file_copy_command(n, inewfolder), shell=True)
                         
                     if ('binary' in self.typeBox.currentText()) or ('full' in self.typeBox.currentText()):
                         if os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin')):
                             print(' copying "%s" [...]' % os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'))
-                            subprocess.Popen(self.file_copy_command(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'), inewfolder), shell=True)
+                            if '10.0.0.' in self.destination_folder:
+                                F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'),
+                                                                                  inewfolder))
+                            else:
+                                print(' copying "%s" [...]' % n)
+                                subprocess.Popen(self.file_copy_command(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'), inewfolder), shell=True)
                         else:
                             print('In: "%s" ' % os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane)))
                             print(' /!\ Problem no "binary file" found !! /!\  ')
 
-                                                    
-
                     iplane+=1
                     
-        print('done (but cmd likely still running as subprocesses)')
-                
+        if '10.0.0.' in self.destination_folder:
+            print('bash script "temp.sh" closed !')
+            F.close()
+        else:
+            print('done (but cmd likely still running as subprocesses)')
         
     def quit(self):
         QtWidgets.QApplication.quit()
