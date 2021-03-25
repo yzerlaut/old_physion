@@ -18,4 +18,4 @@ else:
     # FOLDERS['MsWin-cygwin'] = '/media/yann/Windows/Users/yann.zerlaut/DATA/'
     FOLDERS['usb (code)'] = '/media/yann/CODE_YANN/'
     FOLDERS['10.0.0.1:~/DATA'] = 'yann@10.0.0.1:/home/yann/DATA/'
-    FOLDERS['10.0.0.2:~/DATA'] = 'yann@10.0.0.1:/home/yann/DATA/'
+    FOLDERS['10.0.0.2:~/DATA'] = 'yann@10.0.0.2:/home/yann/DATA/'

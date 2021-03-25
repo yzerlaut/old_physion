@@ -122,7 +122,6 @@ class MainWindow(QtWidgets.QMainWindow):
             F = open('temp.sh', 'w')
             F.write('echo "Password for %s ? "\n' % self.destination_folder)
             F.write('read passwd\n')
-            F.write('echo $passwd\n')
         else:
             print('starting copy [...]')
 
@@ -162,12 +161,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 new_folder = os.path.join(self.destination_folder,
                                       'TSeries'+f.split('TSeries')[1])
                 if '10.0.0.' in self.destination_folder:
-                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
-                                                                    self.destination_folder.split(':')[0],
-                                                                    self.destination_folder.split(':')[1]+new_folder))
-                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
-                                                                    self.destination_folder.split(':')[0],
-                                                                    self.destination_folder.split(':')[1]+new_folder+'/suite2p'))
+                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.destination_folder.split(':')[0],
+                                                                       new_folder.split(':')[1]))
+                    F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.destination_folder.split(':')[0],
+                                                                       new_folder.split(':')[1]+'/suite2p'))
                 else:
                     pathlib.Path(new_folder).mkdir(parents=True, exist_ok=True)
                 # XML metadata file
@@ -188,9 +185,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                                     extension='.npy', recursive=False)
                     inewfolder = os.path.join(new_folder, 'suite2p', 'plane%i' % iplane)
                     if '10.0.0.' in self.destination_folder:
-                        F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.source_folder,
-                                                                        self.destination_folder.split(':')[0],
-                                                                        self.destination_folder.split(':')[1]+new_folder+'/suite2p/plane%i' % iplane))
+                        F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.destination_folder.split(':')[0],
+                                                                           new_folder.split(':')[1]+'/suite2p/plane%i' % iplane))
                     else:
                         pathlib.Path(inewfolder).mkdir(parents=True, exist_ok=True)
                     for n in npys:
