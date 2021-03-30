@@ -47,11 +47,16 @@ data = DataWithStim(filename)
 for i in range(np.sum(data.iscell)):
     print('ROI#', i+1)
     fig, ax = plt.subplots(1, figsize=(7,4))
-    img = data.reverse_correlation(i, subquantity='Fluorescence', metrics='mean')
+    img = data.reverse_correlation(i, subquantity='Deconvolved', metrics='max')
     img = gaussian_filter(img, (10,10))
-    plt.imshow(img, cmap=plt.cm.PiYG,
+    ax.imshow(img, cmap=plt.cm.PiYG,
                vmin=-np.max(np.abs(img)), vmax=np.max(np.abs(img)))
     ax.axis('off')
     fig.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'RF', 'ROI#%i.png' % (i+1)))    
     plt.close()
+
+
+
+
+
 
