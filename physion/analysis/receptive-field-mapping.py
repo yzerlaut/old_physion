@@ -37,7 +37,7 @@ class DataWithStim(Data):
                 full_img += weight*2*(self.visual_stim.get_image(i)-.5)
                 cum_weight += weight
             else:
-                print('For episode #%i in t=(%.1f, %.1f), pb with the weight !' % (i, tstart, tstop) )
+                print('For episode #%i in t=(%.1f, %.1f), pb in estimating the weight !' % (i, tstart, tstop) )
                 
         return full_img/cum_weight
 
