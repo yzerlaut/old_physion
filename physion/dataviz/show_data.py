@@ -45,22 +45,32 @@ class MultimodalData(Data):
     
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
-                      quantity='CaImaging', subquantity='Fluorescence', roiIndices=[0]):
+                      quantity='CaImaging', subquantity='Fluorescence', roiIndices=[0],
+                      vicinity_factor=1):
         dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
         tt = self.Neuropil.timestamps[np.arange(i1,i2)]
         for n, ir in enumerate(roiIndices):
             y = dF[n, np.arange(i1,i2)]
-            ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+\
-                    n*fig_fraction/len(roiIndices)+fig_fraction_start, color=color)
+            ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start
+            ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+ypos, color=color)
             if subquantity in ['dF/F', 'dFoF']:
-                ax.plot(tlim[0]*np.ones(2), (np.arange(2)-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+\
-                        n*fig_fraction/len(roiIndices)+fig_fraction_start, color=color)
-            ax.annotate('ROI#%i'%(ir+1), (tlim[1], n*fig_fraction/len(roiIndices)+fig_fraction_start))
+                ax.plot(tlim[0]*np.ones(2), (np.arange(2)-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+ypos, color=color)
+            ax.annotate('ROI#%i'%(ir+1), (tlim[1], ypos))
         if subquantity in ['dF/F', 'dFoF']:
             ax.annotate('1$\Delta$F/F', (tlim[0], fig_fraction_start), ha='right', rotation=90)
-        
+
+    def add_CaImagingSum(self, tlim, ax,
+                         fig_fraction_start=0., fig_fraction=1., color='green',
+                         quantity='CaImaging', subquantity='Fluorescence'):
+        i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
+        i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
+        tt = self.Neuropil.timestamps[np.arange(i1,i2)]
+        y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)]
+        ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        ax.annotate('Sum', (tlim[1], fig_fraction_start))        
+            
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1.,
                        fig_loc=0.9, size=.1, color='k'):
@@ -90,6 +100,8 @@ class MultimodalData(Data):
         if ax is None:
             fig, ax = plt.subplots(1, figsize=figsize)
             plt.subplots_adjust(left=0, right=1., top=.9)
+        else:
+            fig = None
         fig_fraction_full, fstart = np.sum([settings[key]['fig_fraction'] for key in settings]), 0
         for key in settings:
             settings[key]['fig_fraction_start'] = fstart
@@ -105,7 +117,23 @@ class MultimodalData(Data):
         ax.set_ylim([-0.05,1.05])
         ax.annotate(str(Tbar)+'s', [tlim[1], 0], color='k', fontsize=14)
         
+        return fig, ax
+        
 
+    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(1)
+        else:
+            fig = None
+        img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
+        img = (img-img.min())/(img.max()-img.min())
+        img = np.power(img, 1/NL)
+        ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none')
+        ax.axis('off')
+        ax.set_title(key)
+        return fig, ax
+    
+     
 if __name__=='__main__':
     
     filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')

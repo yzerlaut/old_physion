@@ -18,7 +18,6 @@ def realign_from_photodiode(signal, metadata,
     
     tlim, tnew = [0, t[-1]], 0
 
-    pre_window = np.min(metadata['time_stop']-metadata['time_start'])
     tstart, tend_previous = metadata['time_start'][0], 0
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
@@ -53,8 +52,8 @@ def realign_from_photodiode(signal, metadata,
         try:
             tstart=tstart+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
         except IndexError:
-            print('last index')
-            tstart=tstart+tshift+metadata['time_duration'][i]+pre_window
+            tstart=tstart+tshift+metadata['time_duration'][i]
+            print('should be the last index, t=%.0f' % tstart)
         tend_previous=tstart+metadata['time_duration'][i]
         i+=1
         

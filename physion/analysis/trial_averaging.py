@@ -124,6 +124,7 @@ class TrialAverageWindow(NewWindow):
         # self.qbox.setCurrentIndex(0)
 
     def hitting_space(self):
+        self.compute_episodes()
         self.refresh()
         
     def refresh(self):
@@ -276,7 +277,7 @@ def build_episodes(self,
     parent = (parent if parent is not None else self)
 
     # choosing protocol (if multiprotocol)
-    if len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1:
+    if ('protocol_id' in parent.nwbfile.stimulus) and (len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1):
         Pcond = (parent.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
     else:
         Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
@@ -319,7 +320,7 @@ def build_episodes(self,
     for key in parent.nwbfile.stimulus.keys():
         EPISODES[key] = []
 
-    for iEp in np.arange(parent.nwbfile.stimulus['time_start_realigned'].num_samples)[Pcond]:
+    for iEp in np.arange(parent.nwbfile.stimulus['time_start'].num_samples)[Pcond][:parent.nwbfile.stimulus['time_start_realigned'].num_samples]:
         tstart = parent.nwbfile.stimulus['time_start_realigned'].data[iEp]
         tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
@@ -384,3 +385,5 @@ if __name__=='__main__':
     # import matplotlib.pylab as plt
     # plt.plot(EPISODES['t'], EPISODES['resp'].mean(axis=0))
     # plt.show()
+
+    
