@@ -28,12 +28,13 @@ class DataWithStim(Data):
             tstart = self.nwbfile.stimulus['time_start_realigned'].data[i]
             tstop = self.nwbfile.stimulus['time_stop_realigned'].data[i]
             cond = (self.t>tstart) & (self.t<tstop)
+            weight = np.inf
             if metrics == 'mean':
                 weight = np.mean(dF[cond])
-            elif metrics=='max':
+            elif np.sum(cond)>0 and (metrics=='max'):
                 weight = np.max(dF[cond])
             if np.isfinite(weight):
-                full_img += weight*self.visual_stim.get_image(i)
+                full_img += weight*2*(self.visual_stim.get_image(i)-.5)
                 cum_weight += weight
             else:
                 print('For episode #%i in t=(%.1f, %.1f), pb with the weight !' % (i, tstart, tstop) )
@@ -46,11 +47,11 @@ data = DataWithStim(filename)
 for i in range(np.sum(data.iscell)):
     print('ROI#', i+1)
     fig, ax = plt.subplots(1, figsize=(7,4))
-    img = data.reverse_correlation(i, subquantity='Deconvolved', metrics='mean')
-    img = img-np.mean(img)
+    img = data.reverse_correlation(i, subquantity='Fluorescence', metrics='mean')
     img = gaussian_filter(img, (10,10))
-    plt.imshow(img,
-               vmin=-np.max(np.abs(img)), vmax=np.max(np.abs(img)), cmap=plt.cm.PiYG)
+    plt.imshow(img, cmap=plt.cm.PiYG,
+               vmin=-np.max(np.abs(img)), vmax=np.max(np.abs(img)))
     ax.axis('off')
     fig.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'RF', 'ROI#%i.png' % (i+1)))    
     plt.close()
+
