@@ -14,9 +14,15 @@ from visual_stim.psychopy_code.stimuli import build_stim
 # we define a data object fitting this analysis purpose
 class MultimodalData(Data):
     
-    def __init__(self, filename, verbose=False):
+    def __init__(self, filename, verbose=False, with_visual_stim=False):
         """ opens data file """
         super().__init__(filename, verbose=verbose)
+        if with_visual_stim:
+            self.init_visual_stim()
+        else:
+            self.visual_stim = None
+            
+    def init_visual_stim(self):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
         self.visual_stim = build_stim(self.metadata, no_psychopy=True)
         
@@ -45,8 +51,10 @@ class MultimodalData(Data):
     
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
-                      quantity='CaImaging', subquantity='Fluorescence', roiIndices=[0],
+                      quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
                       vicinity_factor=1):
+        if roiIndices=='all':
+            roiIndices = np.arange(np.sum(self.iscell))
         dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
@@ -74,6 +82,8 @@ class MultimodalData(Data):
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1.,
                        fig_loc=0.9, size=.1, color='k'):
+        if self.visual_stim is None:
+            self.init_visual_stim()
         cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]>tlim[0]) &\
             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tlim[1])
         ylevel = fig_fraction_start+fig_fraction
