@@ -53,19 +53,24 @@ class MultimodalData(Data):
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
                       vicinity_factor=1):
-        if roiIndices=='all':
+        if (type(roiIndices)==str) and roiIndices=='all':
             roiIndices = np.arange(np.sum(self.iscell))
         dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
         tt = self.Neuropil.timestamps[np.arange(i1,i2)]
-        for n, ir in enumerate(roiIndices):
+        ymax_factor = fig_fraction*(1-1./vicinity_factor)
+        for n, ir in zip(range(len(roiIndices))[::-1], roiIndices[::-1]):
             y = dF[n, np.arange(i1,i2)]
             ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start
-            ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+ypos, color=color)
-            if subquantity in ['dF/F', 'dFoF']:
-                ax.plot(tlim[0]*np.ones(2), (np.arange(2)-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+ypos, color=color)
-            ax.annotate('ROI#%i'%(ir+1), (tlim[1], ypos))
+            if np.max(y)>np.min(y):
+                ax.plot(tt, (y-y.min())/(y.max()-y.min())*ymax_factor+ypos, color=plt.cm.tab10(n%10))
+            else:
+                print(np.unique(y))
+            ax.annotate('ROI#%i'%(ir+1), (tlim[1], ypos), color=plt.cm.tab10(n%10))
+        if subquantity in ['dF/F', 'dFoF']:
+            ax.plot(tlim[0]*np.ones(2),
+                    (np.arange(2)-y.min())/(y.max()-y.min())*fig_fraction/len(roiIndices)+ypos, color=color)
         if subquantity in ['dF/F', 'dFoF']:
             ax.annotate('1$\Delta$F/F', (tlim[0], fig_fraction_start), ha='right', rotation=90)
 
@@ -80,33 +85,36 @@ class MultimodalData(Data):
         ax.annotate('Sum', (tlim[1], fig_fraction_start))        
             
     def add_VisualStim(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1.,
-                       fig_loc=0.9, size=.1, color='k'):
+                       fig_fraction_start=0., fig_fraction=0.05,
+                       color='k'):
         if self.visual_stim is None:
             self.init_visual_stim()
         cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]>tlim[0]) &\
             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tlim[1])
         ylevel = fig_fraction_start+fig_fraction
         sx, sy = self.visual_stim.screen['resolution']
+        ax_pos = ax.get_position()
         for i in np.arange(self.nwbfile.stimulus['time_start_realigned'].num_samples)[cond]:
             tstart = self.nwbfile.stimulus['time_start_realigned'].data[i]
             tstop = self.nwbfile.stimulus['time_stop_realigned'].data[i]
             ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
-            axi = plt.axes([(tstart-tlim[0])/(tlim[1]-tlim[0]), fig_loc, size, size])#size*sx/sy, size])
+            x0, y0 = ax_pos.x0+ax_pos.width*(tstart-tlim[0])/(tlim[1]-tlim[0]), ax_pos.y0+ax_pos.height
+            width = ax_pos.width/2./np.sum(cond)
+            axi = plt.axes([x0, ax_pos.y1, width, width*2*sy/sx])
             self.visual_stim.show_frame(i, ax=axi,label=None)
     
     def plot(self, 
-                    tlim=[0,100],
-                    settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
-                              'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
-                              'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-                              'CaImaging':dict(fig_fraction=4, 
-                                               quantity='CaImaging', subquantity='Fluorescence', color='green',
-                                               roiIndices=[2, 6, 9, 10, 13, 15, 16, 17, 38, 41]),
-                              'VisualStim':dict(fig_fraction=0, fig_loc=0.9, size=0.04, color='black')},                    
-                    figsize=(15,6), Tbar=20,
-                    ax=None):
+             tlim=[0,100],
+             settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
+                       'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
+                       'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
+                       'CaImaging':dict(fig_fraction=4, 
+                                        quantity='CaImaging', subquantity='Fluorescence', color='green',
+                                        roiIndices='all'),
+                       'VisualStim':dict(fig_fraction=0, color='black')},                    
+                figsize=(15,6), Tbar=20,
+                ax=None):
         if ax is None:
             fig, ax = plt.subplots(1, figsize=figsize)
             plt.subplots_adjust(left=0, right=1., top=.9)
