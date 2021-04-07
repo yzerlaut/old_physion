@@ -20,7 +20,8 @@ def sliding_percentile(array, percentile, Window):
     
     x[:int(Window/2)] = y[0]
     x[-int(Window/2):] = y[-1]
-    if len(y)%2==1:
+    # CHECK THE GENERALITY HERE
+    if (len(y)-int(Window/2))%2==1:
         x[int(Window/2):-int(Window/2)] = y
     else:
         x[int(Window/2)-1:-int(Window/2)] = y
