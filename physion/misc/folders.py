@@ -1,8 +1,8 @@
 import os
 
 FOLDERS = {
-    'data':os.path.join(os.path.expanduser('~'), 'DATA'),
-    'unprocessed':os.path.join(os.path.expanduser('~'), 'UNPROCESSED')
+    '~/DATA':os.path.join(os.path.expanduser('~'), 'DATA'),
+    '~/UNPROCESSED':os.path.join(os.path.expanduser('~'), 'UNPROCESSED')
 }
 
 if os.name=='nt':
