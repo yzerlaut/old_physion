@@ -266,6 +266,7 @@ def build_episodes(self,
                    parent=None,
                    protocol_id=0,
                    quantity='Photodiode-Signal',
+                   prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
                    dt_sampling=1, # ms
                    interpolation='linear',
                    verbose=True):
@@ -297,8 +298,10 @@ def build_episodes(self,
     self.Pcond = Pcond # protocol condition
     
     # new sampling
-    interstim = np.min(parent.nwbfile.stimulus['time_duration'].data[:])
-    ipre = int(interstim/dt_sampling*1e3) # 3/4 of prestim
+    if prestim_duration is None:
+        prestim_duration = np.min(parent.nwbfile.stimulus['time_duration'].data[:])/2. # half the stim duration
+    ipre = int(prestim_duration/dt_sampling*1e3)
+        
     duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
     idur = int(duration/dt_sampling/1e-3)
     EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
@@ -325,7 +328,7 @@ def build_episodes(self,
         tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
         # compute time and interpolate
-        cond = (tfull>=(tstart-1.5*interstim)) & (tfull<(tstop+1.5*interstim)) # higher range of interpolation to avoid boundary problems
+        cond = (tfull>=(tstart-1.5*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
         try:

@@ -119,15 +119,13 @@ def orientation_selectivity_plot(angles, responses, ax=None, figsize=(2.5,1.5), 
         fig, ax = plt.subplots(1, figsize=figsize)
     ax.plot(angles, responses/1e3, color=color, lw=2) # CHECK UNITS
     SI = orientation_selectivity_index(angles, responses)
-    ax.annotate('SI=%.2f ' % SI, (1, 1), 
-                ha='right', xycoords='axes fraction', weight='bold', fontsize=9, color=color)
     ax.set_xticks(angles)
     ax.set_ylabel('resp. integral ($\Delta$F/F.s)', fontsize=9)
     ax.set_xlabel('angle ($^o$)', fontsize=9)
     return SI
 
-def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True):
-    data = CellResponse(FullData, protocol_id=0, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex)
+def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True):
+    data = CellResponse(FullData, protocol_id=0, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
     fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
     plt.subplots_adjust(left=0.03, right=.75, top=0.9, bottom=0.05)
     for i, angle in enumerate(data.varied_parameters['angle']):
@@ -141,9 +139,11 @@ def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True):
     add_bar(AX[0], Xbar=2, Ybar=1)
     ax = plt.axes([0.84,0.25,0.13,0.6])
     responsive = responsiveness(data, pre_std_threshold=3.)
-    ax.annotate(('responsive' if responsive else 'unresponsive'), (0.5, 1.), ha='right',
-                xycoords='axes fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     SI = orientation_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
+    ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
+                weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
+    ax.annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
+                xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     AX[0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.1), xycoords='figure fraction', weight='bold', fontsize=9)
     return fig, SI, responsive
 
@@ -158,16 +158,13 @@ def direction_selectivity_plot(angles, responses, ax=None, figsize=(1.5,1.5), co
     ax.fill_between(np.concatenate([Angles, [Angles[0]]]), np.zeros(len(Angles)+1),
                     np.concatenate([responses, [responses[0]]]), color='k', lw=0, alpha=0.3)
     ax.set_rticks([])
-    ax.annotate('SI=%.2f ' % orientation_selectivity_index(angles, responses), (1, 0.97), 
-                va='top', ha='right', xycoords='figure fraction', weight='bold', fontsize=9, color=color)
     return orientation_selectivity_index(Angles, responses)
 
 
-def direction_selectivity_analysis(FullData, roiIndex=0):
-    data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex)
+def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True):
+    data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
     fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
     plt.subplots_adjust(left=0.02, right=.85, top=0.85)
-    plt.annotate('  ROI#%i' % (roiIndex+1), (0.,0.1), xycoords='figure fraction', fontsize=9)
     for i, angle in enumerate(data.varied_parameters['angle']):
         data.plot('angle',i, ax=AX[i], with_std=True)
         AX[i].set_title('%.0f$^o$' % angle, fontsize=9)
@@ -182,9 +179,12 @@ def direction_selectivity_analysis(FullData, roiIndex=0):
     # Orientation selectivity plot based on the integral of the trial-averaged response
     ax = plt.axes([0.88, 0.2, 0.11, 0.6], projection='polar')
     responsive = responsiveness(data, pre_std_threshold=3.)
+    SI = direction_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
+    ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
+                weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
     ax.annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
                 xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
-    SI = direction_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
+    AX[0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.1), xycoords='figure fraction', weight='bold', fontsize=9)
     return fig, SI, responsive
 
 
