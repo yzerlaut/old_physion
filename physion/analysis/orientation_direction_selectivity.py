@@ -2,6 +2,7 @@
 import pynwb, os, sys
 import numpy as np
 import matplotlib.pylab as plt
+from scipy import stats
 plt.style.use('ggplot')
 
 # custom modules
@@ -39,6 +40,29 @@ class CellResponse:
     def compute_repeated_trials(self, key, index):
         cond = (self.EPISODES[key]==self.varied_parameters[key][index])
         return np.mean(self.EPISODES['resp'][cond,:], axis=0), np.std(self.EPISODES['resp'][cond,:], axis=0), np.sum(cond)
+
+
+        my, sy, ny = data.compute_repeated_trials('angle', i)
+        stim_cond = (data.EPISODES['t']>0) & (data.EPISODES['t']<data.EPISODES['time_duration'][0])
+    
+    def responsiveness_wrt_prestim(self, key, index,
+                                   threshold=1e-3, higher_only=True):
+        """
+        anova test between pre and post means to decide if responsive
+        """
+        cond = (self.EPISODES[key]==self.varied_parameters[key][index])
+        pre_cond = (self.EPISODES['t']<=0)
+        stim_cond = (self.EPISODES['t']>0) &\
+            (self.EPISODES['t']<self.EPISODES['time_duration'][0])
+        pre=[np.mean(self.EPISODES['resp'][ic,:][pre_cond]) for ic, c in enumerate(cond) if c]
+        post=[np.mean(self.EPISODES['resp'][ic,:][stim_cond]) for ic, c in enumerate(cond) if c]
+        f, pval = stats.f_oneway(pre, post)
+        if higher_only and (np.mean(post)>np.mean(pre)) and (pval<threshold):
+            return True
+        elif pval<threshold and not higher_only:
+            return True
+        else:
+            return False
     
     def compute_integral_responses(self, key):
         integrals = []
@@ -54,6 +78,7 @@ class CellResponse:
             _, ax = plt.subplots(1)
             ax.axis('off')
         my, sy, ny = self.compute_repeated_trials(key, index)
+        self.responsiveness_wrt_prestim(key, index)
         ax.plot(self.EPISODES['t'], my, color='k', lw=1)
         if with_std:
             ax.fill_between(self.EPISODES['t'], my-sy, my+sy, alpha=0.1, color='k', lw=0)
@@ -93,17 +118,23 @@ def add_bar(ax, Ybar=1, Ybar_unit='$\Delta$F/F', Xbar=1, Xbar_unit='s', fontsize
     ax.annotate(str(Xbar)+Xbar_unit, (xlim[0], ylim[1]), xycoords='data', fontsize=fontsize)
 
     
-def responsiveness(data, pre_std_threshold=3.):
+def responsiveness(data,
+                   # pre_std_threshold=3.,
+                   threshold=1e-2):
     """
     mean response going above fluctuations ?
     """
     responsive = False
     for i, angle in enumerate(data.varied_parameters['angle']):
-        my, sy, ny = data.compute_repeated_trials('angle', i)
-        stim_cond = (data.EPISODES['t']>0) & (data.EPISODES['t']<data.EPISODES['time_duration'][0])
-        pre_cond = (data.EPISODES['t']<=0)
-        if np.max(my[stim_cond])>pre_std_threshold*np.mean(sy[pre_cond]):
+        resp = data.responsiveness_wrt_prestim('angle', i,
+                                               threshold=threshold, higher_only=True)
+        if resp:
             responsive=True
+        # my, sy, ny = data.compute_repeated_trials('angle', i)
+        # stim_cond = (data.EPISODES['t']>0) & (data.EPISODES['t']<data.EPISODES['time_duration'][0])
+        # pre_cond = (data.EPISODES['t']<=0)
+        # if np.max(my[stim_cond])>pre_std_threshold*np.mean(sy[pre_cond]):
+        #     responsive=True
     return responsive
         
 def orientation_selectivity_index(angles, resp):
@@ -138,7 +169,7 @@ def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbos
         ax.axis('off')
     add_bar(AX[0], Xbar=2, Ybar=1)
     ax = plt.axes([0.84,0.25,0.13,0.6])
-    responsive = responsiveness(data, pre_std_threshold=3.)
+    responsive = responsiveness(data)
     SI = orientation_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
     ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
                 weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
@@ -178,7 +209,7 @@ def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True):
     add_bar(AX[0], Xbar=2, Ybar=1)
     # Orientation selectivity plot based on the integral of the trial-averaged response
     ax = plt.axes([0.88, 0.2, 0.11, 0.6], projection='polar')
-    responsive = responsiveness(data, pre_std_threshold=3.)
+    responsive = responsiveness(data)
     SI = direction_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
     ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
                 weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
@@ -194,8 +225,8 @@ if __name__=='__main__':
     FullData= Data(filename)
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
-    # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
-    for i in range(np.sum(FullData.iscell))[:5]:
+    for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
+    # for i in range(np.sum(FullData.iscell))[:5]:
         # fig1, _, _ = orientation_selectivity_analysis(FullData, roiIndex=i)
         fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
         # fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
