@@ -19,13 +19,8 @@ def sliding_percentile(array, percentile, Window):
     y = np.percentile(y0, percentile, axis=-1)
     
     x[:int(Window/2)] = y[0]
+    x[int(Window/2):int(Window/2)+len(y)] = y
     x[-int(Window/2):] = y[-1]
-    # CHECK THE GENERALITY HERE
-    if (len(y)-int(Window/2))%2==1:
-        x[int(Window/2):-int(Window/2)] = y
-    else:
-        x[int(Window/2)-1:-int(Window/2)] = y
-    
     return x
 
 def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,

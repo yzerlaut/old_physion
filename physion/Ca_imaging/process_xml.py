@@ -117,8 +117,9 @@ def build_suite2p_options(folder,
     ops['spatial_scale'] = int(settings_dict['cell_diameter']/6/um_per_pixel)
 
     # all other keys here
-    for key in ['sparse_mode', 'connected', 'threshold_scaling']:
-        ops[key] = settings_dict[key]
+    for key in settings_dict:
+        if key in ops:
+            ops[key] = settings_dict[key]
     
     db = build_db(folder)
     for key in ['data_path', 'subfolders', 'save_path0',

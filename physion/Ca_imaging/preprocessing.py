@@ -6,13 +6,22 @@ from Ca_imaging.process_xml import build_suite2p_options
 
 PREPROCESSING_SETTINGS = {
     'GCamp6f_1plane':{'cell_diameter':20, # in um
+                      'tau':0.7,
                       'sparse_mode':False,
                       'connected':True,
-                      'threshold_scaling':0.8},
+                      'threshold_scaling':0.8,
+                      'neucoeff': 1.0},
+    'GCamp6s_1plane':{'cell_diameter':20, # in um
+                      'tau':1.3,
+                      'sparse_mode':False,
+                      'connected':True,
+                      'threshold_scaling':0.8,
+                      'neucoeff': 1.0},
     'NDNF+_1plane':{'cell_diameter':20, # in um
                     'sparse_mode':True,
                     'connected':True,
-                    'threshold_scaling':0.8},
+                    'threshold_scaling':0.8,
+                    'neucoeff': 1.0},
 }
 
 def run_preprocessing(args):

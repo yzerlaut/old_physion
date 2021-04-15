@@ -152,6 +152,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                     raw_data_visualization=True)
         
     def launch_notebook(self):
+        from physion.misc.notebook import run as RunNotebook
+        self.child = RunNotebook(self.app, self.args)
         self.statusBar.showMessage('Notebook module not implemented yet')
         
     def quit(self):

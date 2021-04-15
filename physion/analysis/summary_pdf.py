@@ -3,23 +3,29 @@ import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 
-# from PyQt5 import QtGui, QtWidgets, QtCore
-# import pyqtgraph as pg
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
 from analysis.orientation_direction_selectivity import  orientation_selectivity_analysis, direction_selectivity_analysis
 
 def make_sumary_pdf(filename, Nmax=1000000,
-                    T_raw_data=90, N_raw_data=3, ROI_raw_data=15, Tbar_raw_data=5):
+                    T_raw_data=180, N_raw_data=3, ROI_raw_data=15, Tbar_raw_data=5):
 
     data = MultimodalData(filename)
-    data.roiIndices = np.sort(np.random.choice(np.arange(np.sum(data.iscell)),
-                                               size=ROI_raw_data, replace=False))
-
+    data.roiIndices = np.sort(np.random.choice(np.arange(data.iscell.sum()),
+                                               size=min([data.iscell.sum(), ROI_raw_data]),
+                                               replace=False))
     
     with PdfPages(filename.replace('nwb', 'pdf')) as pdf:
-        
+
+        # plot imaging field of view
+        fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
+        data.show_CaImaging_FOV(key='meanImg', NL=1, cmap='viridis', ax=AX[0])
+        data.show_CaImaging_FOV(key='meanImg', NL=2, cmap='viridis', ax=AX[1])
+        data.show_CaImaging_FOV(key='meanImgE', NL=2, cmap='viridis', ax=AX[2])
+        data.show_CaImaging_FOV(key='max_proj', NL=2, cmap='viridis', ax=AX[3])
+        pdf.savefig()  # saves the current figure into a pdf page
+        plt.close()
+
         # plot raw data sample
         for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
             TLIM = [np.max([10,t0-T_raw_data]),t0]
@@ -36,6 +42,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
                                                  roiIndices=data.roiIndices),
                                 'VisualStim':dict(fig_fraction=0.01, color='black')},
                       ax=ax, Tbar=Tbar_raw_data)
+            
             # inset with time sample
             axT = plt.axes([0.6, 0.9, 0.3, 0.05])
             axT.axis('off')
@@ -102,11 +109,6 @@ def summary_fig(Nresp, Ntot, quantity,
     
 if __name__=='__main__':
     
-    filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
-
+    # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
+    filename = sys.argv[-1]
     make_sumary_pdf(filename)
-    
-    # fig, AX = summary_fig(20, 100, np.random.randn(100))
-    # plt.show()
-    
-    
