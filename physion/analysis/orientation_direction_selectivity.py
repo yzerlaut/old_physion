@@ -14,6 +14,11 @@ from physion.visual_stim.psychopy_code.stimuli import build_stim
 
 # we define a data object fitting this analysis purpose
 
+
+
+ORIENTATION_PROTOCOLS = ['Pakan-et-al-static']
+DIRECTION_PROTOCOLS = ['Pakan-et-al-drifting']
+
 class Data:
     def __init__(self, filename, verbose=False):
         """ opens data file """
@@ -36,21 +41,28 @@ class CellResponse:
         self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity)
         self.varied_parameters = data.varied_parameters
         self.metadata = data.metadata
-        
+
+
+    def find_cond(self, key, index):
+        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray]) :
+            cond = (self.EPISODES[key[0]]==self.varied_parameters[key[0]][index[0]])
+            for n in range(1, len(key)):
+                cond = cond & (self.EPISODES[key[n]]==self.varied_parameters[key[n]][index[n]])
+        else:
+            cond = (self.EPISODES[key]==self.varied_parameters[key][index])
+        return cond
+    
     def compute_repeated_trials(self, key, index):
-        cond = (self.EPISODES[key]==self.varied_parameters[key][index])
+        cond = self.find_cond(key, index)
         return np.mean(self.EPISODES['resp'][cond,:], axis=0), np.std(self.EPISODES['resp'][cond,:], axis=0), np.sum(cond)
 
-
-        my, sy, ny = data.compute_repeated_trials('angle', i)
-        stim_cond = (data.EPISODES['t']>0) & (data.EPISODES['t']<data.EPISODES['time_duration'][0])
     
     def responsiveness_wrt_prestim(self, key, index,
                                    threshold=1e-3, higher_only=True):
         """
         anova test between pre and post means to decide if responsive
         """
-        cond = (self.EPISODES[key]==self.varied_parameters[key][index])
+        cond = self.find_cond(key, index)
         pre_cond = (self.EPISODES['t']<=0)
         stim_cond = (self.EPISODES['t']>0) &\
             (self.EPISODES['t']<self.EPISODES['time_duration'][0])
@@ -64,22 +76,31 @@ class CellResponse:
         else:
             return False
     
-    def compute_integral_responses(self, key):
-        integrals = []
+    def compute_integral_responses(self, key, keys=None, indexes=None, with_baseline=False):
+        integrals, baselines = [], []
         for i, value in enumerate(self.varied_parameters[key]):
-            mean_response, _, _ = self.compute_repeated_trials(key, i)
-            pre_cond = (self.EPISODES['t']<=0)
+            if keys is not None:
+                mean_response, _, _ = self.compute_repeated_trials([key]+list(keys), [i]+list(indexes))
+            else:
+                mean_response, _, _ = self.compute_repeated_trials(key, i)
             stim_cond = (self.EPISODES['t']>0) & (self.EPISODES['t']<=self.EPISODES['time_duration'][0])
-            integrals.append(np.trapz(mean_response[stim_cond]-np.mean(mean_response[pre_cond])))        
-        return self.varied_parameters[key], np.clip(np.array(integrals), 0, 1e12) # cliped to positive values
+            if with_baseline:
+                pre_cond = (self.EPISODES['t']<=0) & (self.EPISODES['t']>-self.EPISODES['time_duration'][0])
+                baselines.append(np.trapz(mean_response[pre_cond]))        
+            integrals.append(np.trapz(mean_response[stim_cond]))        
+        if with_baseline:
+            return self.varied_parameters[key], np.array(integrals), np.array(baselines)
+        else:
+            return self.varied_parameters[key], np.array(integrals)
+            
     
-    def plot(self, key, index, ax=None, with_std=True, with_N=True, with_bars={}):
+    def plot(self, key, index, ax=None, with_std=True, with_N=True, with_bars={}, color='k'):
         if ax is None:
             _, ax = plt.subplots(1)
             ax.axis('off')
         my, sy, ny = self.compute_repeated_trials(key, index)
         self.responsiveness_wrt_prestim(key, index)
-        ax.plot(self.EPISODES['t'], my, color='k', lw=1)
+        ax.plot(self.EPISODES['t'], my, color=color, lw=1)
         if with_std:
             ax.fill_between(self.EPISODES['t'], my-sy, my+sy, alpha=0.1, color='k', lw=0)
         if with_N:
@@ -138,6 +159,9 @@ def responsiveness(data,
     return responsive
         
 def orientation_selectivity_index(angles, resp):
+    """
+    computes 
+    """
     imax = np.argmax(resp)
     iop = np.argmin(((angles[imax]+90)%(180)-angles)**2)
     if (resp[imax]>0):
@@ -155,8 +179,11 @@ def orientation_selectivity_plot(angles, responses, ax=None, figsize=(2.5,1.5), 
     ax.set_xlabel('angle ($^o$)', fontsize=9)
     return SI
 
-def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True):
-    data = CellResponse(FullData, protocol_id=0, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
+def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True, subprotocol_id=0):
+    iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in ORIENTATION_PROTOCOLS)][subprotocol_id]
+    data = CellResponse(FullData, protocol_id=iprotocol,
+                        quantity='CaImaging', subquantity='dF/F',
+                        roiIndex = roiIndex, verbose=verbose)
     fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
     plt.subplots_adjust(left=0.03, right=.75, top=0.9, bottom=0.05)
     for i, angle in enumerate(data.varied_parameters['angle']):
@@ -192,8 +219,11 @@ def direction_selectivity_plot(angles, responses, ax=None, figsize=(1.5,1.5), co
     return orientation_selectivity_index(Angles, responses)
 
 
-def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True):
-    data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
+def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True, subprotocol_id=0):
+    iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in DIRECTION_PROTOCOLS)][subprotocol_id]
+    data = CellResponse(FullData, protocol_id=iprotocol,
+                        quantity='CaImaging', subquantity='dF/F',
+                        roiIndex = roiIndex, verbose=verbose)
     fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
     plt.subplots_adjust(left=0.02, right=.85, top=0.85)
     for i, angle in enumerate(data.varied_parameters['angle']):
@@ -225,9 +255,11 @@ if __name__=='__main__':
     FullData= Data(filename)
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
-    for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
-    # for i in range(np.sum(FullData.iscell))[:5]:
-        # fig1, _, _ = orientation_selectivity_analysis(FullData, roiIndex=i)
-        fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
-        # fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
-        plt.show()
+    # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
+    # # for i in range(np.sum(FullData.iscell))[:5]:
+    #     # fig1, _, _ = orientation_selectivity_analysis(FullData, roiIndex=i)
+    #     fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
+    #     # fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
+    #     plt.show()
+
+

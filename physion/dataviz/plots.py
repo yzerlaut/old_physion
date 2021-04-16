@@ -161,7 +161,7 @@ def raw_data_plot(self, tzoom,
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
-        tt = self.Neuropil.timestamps[isampling]
+        tt = np.array(self.Neuropil.timestamps[:])[isampling]
 
         if self.roiPick.text()=='sum' or (len(self.roiIndices)==1):
             y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, self.roiIndices).sum(axis=0)[isampling], i=iplot) # valid ROIs inside

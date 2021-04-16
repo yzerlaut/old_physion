@@ -63,7 +63,7 @@ class MultimodalData(Data):
         dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
-        tt = self.Neuropil.timestamps[np.arange(i1,i2)]
+        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)]
         if vicinity_factor>1:
             ymax_factor = fig_fraction*(1-1./vicinity_factor)
         else:
@@ -88,10 +88,10 @@ class MultimodalData(Data):
                          quantity='CaImaging', subquantity='Fluorescence'):
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
-        tt = self.Neuropil.timestamps[np.arange(i1,i2)]
+        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)]
         y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)]
         ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
-        ax.annotate('Sum', (tlim[1], fig_fraction_start), fontsize=8)        
+        # ax.annotate('Sum', (tlim[1], fig_fraction_start), fontsize=8)        
             
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=0.05,
