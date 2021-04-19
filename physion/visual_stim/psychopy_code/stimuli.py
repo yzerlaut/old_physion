@@ -22,6 +22,8 @@ def build_stim(protocol, no_psychopy=False):
         return light_level_single_stim(protocol)
     elif (protocol['Stimulus']=='full-field-grating'):
         return full_field_grating_stim(protocol)
+    elif (protocol['Stimulus']=='oddball-full-field-grating'):
+        return oddball_full_field_grating_stim(protocol)
     elif (protocol['Stimulus']=='center-grating'):
         return center_grating_stim(protocol)
     elif (protocol['Stimulus']=='off-center-grating'):
@@ -414,6 +416,7 @@ class visual_stim:
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
+                print(self.experiment['interstim'][i])
                 self.inter_screen(parent, duration=self.experiment['interstim'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
@@ -627,6 +630,70 @@ class full_field_grating_stim(visual_stim):
         return compute_grating(xrot,
                                spatial_freq=cls.experiment['spatial-freq'][episode],
                                contrast=cls.experiment['contrast'][episode])
+
+    
+class oddball_full_field_grating_stim(visual_stim):
+
+    def linear_prob(self, rdm, protocol):
+        N = protocol['N_deviant (#)']+protocol['N_redundant (#)']-\
+            protocol['Nmin-successive-redundant (#)']
+        array = np.cumsum(np.arange(1, N+1))
+        return np.argwhere(rdm<=array/array[-1])[0][0]
+
+        
+    def __init__(self, protocol):
+
+        protocol['presentation-interstim-screen'] = protocol['presentation-interstim-screen (lum.)']
+        super().__init__(protocol)
+
+        # hard coding of the sequence
+        N = int(protocol['N_deviant (#)']+protocol['N_redundant (#)'])
+        Ntot = int(protocol['N_repeat (#)']*N)
+        self.experiment = {'index':np.arange(Ntot)%N,
+                           'repeat':np.array(np.arange(Ntot)/N, dtype=int),
+                           'frame_run_type':['static' for n in range(Ntot)],
+                           'angle':np.ones(Ntot)*protocol['angle-redundant (deg)'],
+                           'spatial-freq':np.ones(Ntot)*protocol['spatial-freq (cycle/deg)'],
+                           'contrast':np.ones(Ntot)*protocol['contrast (norm.)']}
+        
+        deviant_episode = []
+        for i, rdm in enumerate(np.random.uniform(0,1,size=int(protocol['N_repeat (#)']))):
+            inew = int(i*N+protocol['Nmin-successive-redundant (#)']+\
+                       self.linear_prob(rdm, protocol))
+            self.experiment['angle'][inew] = protocol['angle-deviant (deg)']
+            deviant_episode.append(inew%N)
+
+        # # TO CHECK THE LINEAR DISTRIB OF TIME
+        # import matplotlib.pylab as plt
+        # plt.hist(deviant_episode, bins = np.arange(N+1))
+        # plt.show()
+
+        self.experiment['interstim'] = protocol['mean-interstim (s)']+\
+            np.random.randn(Ntot-1)*protocol['jitter-interstim (s)']
+        self.experiment['time_start'] = np.cumsum(\
+                np.concatenate([[protocol['presentation-prestim-period']],\
+                                protocol['stim-duration (s)']+self.experiment['interstim']]))
+        self.experiment['time_stop'] = protocol['stim-duration (s)']+self.experiment['time_start']
+        self.experiment['time_duration'] = protocol['stim-duration (s)']*np.ones(Ntot)
+
+
+
+    def get_patterns(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        return [visual.GratingStim(win=cls.win,
+                                   size=10000, pos=[0,0], units='pix',
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   ori=cls.experiment['angle'][index],
+                                   contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index]))]
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        xrot = compute_xrot(cls.x, cls.z,
+                            angle=cls.experiment['angle'][episode])
+        return compute_grating(xrot,
+                               spatial_freq=cls.experiment['spatial-freq'][episode],
+                               contrast=cls.experiment['contrast'][episode])
+        
                                  
             
 class drifting_full_field_grating_stim(visual_stim):

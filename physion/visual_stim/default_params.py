@@ -38,6 +38,44 @@ STIMULI = {
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
         'angle-1':0., 'angle-2':360, 'N-angle':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
+
+    # full-field static grating
+    'full-field-grating':{
+        'angle (deg)':60,
+        'spatial-freq (cycle/deg)':0.05,
+        'contrast (norm.)':1.,
+        # range
+        'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':2,
+        'angle-1':0., 'angle-2':360, 'N-angle':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
+    
+    'oddball-full-field-grating':{
+        'angle-redundant (deg)':45,
+        'angle-deviant (deg)':135,
+        'N_deviant (#)':1,
+        'N_redundant (#)':7,
+        'Nmin-successive-redundant (#)':3,
+        'spatial-freq (cycle/deg)':0.04,
+        'contrast (norm.)':1.,
+        'stim-duration (s)':2,
+        'mean-interstim (s)':4,
+        'jitter-interstim (s)':0.5,
+        'presentation-interstim-screen (lum.)':0.,
+        'N_repeat (#)':100,
+        # range
+        'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':0,
+        'angle-redundant-1':0., 'angle-redundant-2':360, 'N-angle-redundant':0,
+        'angle-deviant-1':0., 'angle-deviant-2':360, 'N-angle-deviant':0,
+        'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
+        'N_deviant-1':1,'N_deviant-2':1,'N-N_deviant':0,
+        'N_redundant-1':2,'N_redundant-2':100,'N-N_redundant':0,
+        'Nmin-successive-redundant-1':1,'Nmin-successive-redundant-2':100,'N-Nmin-successive-redundant':0,
+        'spatial-freq-1':0.04,'spatial-freq-2':0.04,'N-spatial-freq':0,
+        'stim-duration-1':2,'stim-duration-2':2,'N-stim-duration':0,
+        'N_repeat-1':10,'N_repeat-2':10000000,'N-N_repeat':0,
+        'mean-interstim-1':1, 'mean-interstim-2':100, 'N-interstim':0,
+        'presentation-interstim-screen-1':-1,'presentation-interstim-screen-2':1,'N-presentation-interstim-screen':0,
+        'jitter-interstim-1':0., 'jitter-interstim-2':100, 'N-jitter':0},
     
     # center grating
     'center-grating':{

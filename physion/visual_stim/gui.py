@@ -109,14 +109,15 @@ class MainWindow(QtWidgets.QMainWindow):
         if (self.protocol is None) and (\
            (self.cbp.currentText()=='') or (self.cbs.currentText()=='')):
             self.statusBar.showMessage('Need to set parameters in the GUI or to load a protocol !')
-        else:
+        elif self.cbp.currentText()!='multiprotocol' and self.cbsc.currentText()!='':
             self.statusBar.showMessage('[...] preparing stimulation')
-            if self.protocol['Presentation']!='multiprotocol':            
-                self.protocol = extract_params_from_window(self)
+            self.protocol = extract_params_from_window(self)
             self.protocol['demo'] = True
             self.stim = build_stim(self.protocol)
             self.statusBar.showMessage('stimulation ready !')
             self.init = True
+        else:
+            self.statusBar.showMessage('init failed !')
             
         
     def run(self):
