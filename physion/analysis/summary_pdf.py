@@ -5,47 +5,67 @@ import matplotlib.pyplot as plt
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
-from analysis.orientation_direction_selectivity import  orientation_selectivity_analysis, direction_selectivity_analysis
 
 def raw_data_plot_settings(data):
     settings = {}
     if 'Photodiode-Signal' in data.nwbfile.acquisition:
-        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=10, color='grey')
+        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:
-        settings['Locomotion'] = dict(fig_fraction=1, subsampling=10, color='b')
+        settings['Locomotion'] = dict(fig_fraction=1, subsampling=100, color='b')
     if 'Pupil' in data.nwbfile.processing:
-        settings['Pupil'] = dict(fig_fraction=2, subsampling=10, color='red')
+        settings['Pupil'] = dict(fig_fraction=2, subsampling=2, color='red')
     if 'ophys' in data.nwbfile.processing:
-        settings['CaImaging'] = dict(fig_fraction=7, roiIndices=data.roiIndices, quantity='CaImaging',
-                                     subquantity='dF/F', vicinity_factor=1., color='tab')
-        settings['CaImagingSum'] = dict(fig_fraction=2, 
-                                        quantity='CaImaging', subquantity='dF/F', color='green')
+        settings['CaImaging'] = dict(fig_fraction=8, roiIndices=data.roiIndices, quantity='CaImaging',
+                                     subquantity='dF/F', vicinity_factor=1., color='tab', subsampling=10)
+        # settings['CaImagingSum'] = dict(fig_fraction=2,
+        #                                 subsampling=10, 
+        #                                 quantity='CaImaging', subquantity='dF/F', color='green')
     settings['VisualStim'] = dict(fig_fraction=0.01, color='black')
     return settings
 
 
+
+def exp_analysis_fig(data):
+    
+    fig, AX = plt.subplots(1, 5, figsize=(11.4, 2))
+
+    for ax in AX[:3]:
+        ax.axis('off')
+    # AX[3].hist(data.nwbfile)
+
+    return fig
+
+
 def make_sumary_pdf(filename, Nmax=1000000,
-                    T_raw_data=180, N_raw_data=3, ROI_raw_data=15, Tbar_raw_data=5):
+                    T_raw_data=180, N_raw_data=3, ROI_raw_data=20, Tbar_raw_data=5):
 
     data = MultimodalData(filename)
     data.roiIndices = np.sort(np.random.choice(np.arange(data.iscell.sum()),
                                                size=min([data.iscell.sum(), ROI_raw_data]),
                                                replace=False))
-    
+
     with PdfPages(filename.replace('nwb', 'pdf')) as pdf:
+
+        # summary quantities for experiment
+        print('plotting exp macro analysis ')
+        fig = exp_analysis_fig(data)
+        pdf.savefig()  # saves the current figure into a pdf page
+        plt.close()
 
         # plot imaging field of view
         fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
+        print('plotting imaging FOV ')
         data.show_CaImaging_FOV(key='meanImg', NL=1, cmap='viridis', ax=AX[0])
         data.show_CaImaging_FOV(key='meanImg', NL=2, cmap='viridis', ax=AX[1])
         data.show_CaImaging_FOV(key='meanImgE', NL=2, cmap='viridis', ax=AX[2])
         data.show_CaImaging_FOV(key='max_proj', NL=2, cmap='viridis', ax=AX[3])
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
-
+        
         # plot raw data sample
         for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
             TLIM = [np.max([10,t0-T_raw_data]),t0]
+            print('plotting raw data sample at times ', TLIM)
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
             data.plot(TLIM, settings=raw_data_plot_settings(data),
@@ -66,9 +86,11 @@ def make_sumary_pdf(filename, Nmax=1000000,
         for p, protocol in enumerate(data.protocols):
             # finding protocol type
             protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
+            print(protocol_type)
             # then protocol-dependent analysis
             
             if protocol_type=='full-field-grating':
+                from analysis.orientation_direction_selectivity import orientation_selectivity_analysis
                 Nresp, SIs = 0, []
                 for i in range(data.iscell.sum())[:Nmax]:
                     fig, SI, responsive = orientation_selectivity_analysis(data, roiIndex=i, verbose=False)
@@ -83,6 +105,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
                 plt.close()
                 
             elif protocol_type=='drifting-full-field-grating':
+                from analysis.orientation_direction_selectivity import direction_selectivity_analysis
                 Nresp, SIs = 0, []
                 for i in range(data.iscell.sum())[:Nmax]:
                     fig, SI, responsive = direction_selectivity_analysis(data, roiIndex=i, verbose=False)
@@ -91,10 +114,27 @@ def make_sumary_pdf(filename, Nmax=1000000,
                     if responsive:
                         Nresp += 1
                         SIs.append(SI)
-                fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs))
+                fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
+                                      label='Direction Select. Index')
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
             
+            elif protocol_type in ['center-grating']:
+                from surround_suppression import orientation_size_selectivity_analysis
+                Nresp, SIs = 0, []
+                for i in range(data.iscell.sum())[:Nmax]:
+                    fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
+                    pdf.savefig()  # saves the current figure into a pdf page
+                    plt.close()
+                    if responsive:
+                        Nresp += 1
+                        SIs.append(0) # TO BE FILLED
+                fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
+                                      label='none')
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
+
+                
         print('[ok] pdf succesfully saved as "%s" !' % filename.replace('nwb', 'pdf'))        
 
 

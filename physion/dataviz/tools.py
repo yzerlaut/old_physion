@@ -24,7 +24,7 @@ def convert_time_to_index(time, nwb_quantity, axis=0):
         if np.sum(cond)>0:
             return np.arange(nwb_quantity.timestamps.shape[0])[cond][0]
         else:
-            return nwb_quantity.timestamps.shape[axis]-1
+            return nwb_quantity.timestamps.shape[0]-1
     elif nwb_quantity.starting_time is not None:
         t = time-nwb_quantity.starting_time
         dt = 1./nwb_quantity.rate

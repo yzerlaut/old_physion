@@ -52,7 +52,7 @@ class MultimodalData(Data):
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
-                      vicinity_factor=1):
+                      vicinity_factor=1, subsampling=1):
         if (type(roiIndices)==str) and roiIndices=='all':
             roiIndices = np.arange(np.sum(self.iscell))
         if color=='tab':
@@ -63,13 +63,13 @@ class MultimodalData(Data):
         dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
-        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)]
+        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)][::subsampling]
         if vicinity_factor>1:
             ymax_factor = fig_fraction*(1-1./vicinity_factor)
         else:
             ymax_factor = fig_fraction/len(roiIndices)
         for n, ir in zip(range(len(roiIndices))[::-1], roiIndices[::-1]):
-            y = dF[n, np.arange(i1,i2)]
+            y = dF[n, np.arange(i1,i2)][::subsampling]
             ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start
             if subquantity in ['dF/F', 'dFoF']:
                 ax.plot(tt, y/2.*ymax_factor+ypos, color=COLORS[n], lw=1)
@@ -85,13 +85,12 @@ class MultimodalData(Data):
 
     def add_CaImagingSum(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., color='green',
-                         quantity='CaImaging', subquantity='Fluorescence'):
+                         quantity='CaImaging', subquantity='Fluorescence', subsampling=1):
         i1 = convert_time_to_index(tlim[0], self.Neuropil, axis=1)
         i2 = convert_time_to_index(tlim[1], self.Neuropil, axis=1)
-        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)]
-        y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)]
+        tt = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)][::subsampling]
+        y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)][::subsampling]
         ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
-        # ax.annotate('Sum', (tlim[1], fig_fraction_start), fontsize=8)        
             
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=0.05,
@@ -144,6 +143,7 @@ class MultimodalData(Data):
             settings[key]['fig_fraction'] = settings[key]['fig_fraction']/fig_fraction_full
             fstart += settings[key]['fig_fraction']
         for key in settings:
+            print(key)
             getattr(self, 'add_%s' % key)(tlim, ax, **settings[key])
             ax.annotate(key, (tlim[0],
                            settings[key]['fig_fraction_start']+settings[key]['fig_fraction']/2.0),
@@ -175,14 +175,22 @@ class MultimodalData(Data):
 if __name__=='__main__':
     
     filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
+    filename = sys.argv[-1]
     data = MultimodalData(filename)
     data.plot([250, 300], 
               settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
                         'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
                         'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-                        'CaImaging':dict(fig_fraction=4, 
+                        'CaImaging':dict(fig_fraction=4, subsampling=10, 
                                          quantity='CaImaging', subquantity='Fluorescence', color='green',
                                                    roiIndices=[2, 6, 9, 10, 13, 15, 16, 17, 38, 41]),
-                        'VisualStim':dict(fig_fraction=0, size=0.05, color='black')},                    
+                        'VisualStim':dict(fig_fraction=0, color='black')},                    
               Tbar=10)
     plt.show()
+
+
+
+
+
+
+

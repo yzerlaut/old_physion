@@ -174,24 +174,6 @@ def build_NWB(args,
                                       rate=float(metadata['NIdaq-acquisition-frequency']))
         nwbfile.add_acquisition(photodiode)
 
-        # if args.verbose:
-        #     print('=> Storing the recorded frames [...]')
-        # insure_ordered_frame_names(args.datafolder)
-        # frames = np.sort(os.listdir(os.path.join(args.datafolder,'screen-frames')))
-        # MOVIE = []
-        # for fn in frames:
-        #     im  = np.array(Image.open(os.path.join(args.datafolder,'screen-frames',fn))).mean(axis=-1)
-        #     MOVIE.append(im.astype(np.uint8)[::8,::8]) # subsampling !
-        # frame_timestamps = [0]
-        # for x1, x2 in zip(metadata['time_start_realigned'], metadata['time_stop_realigned']):
-        #     frame_timestamps.append(x1)
-        #     frame_timestamps.append(x2)
-
-        # frame_stimuli = pynwb.image.ImageSeries(name='visual-stimuli',
-        #                                         data=np.array(MOVIE).astype(np.uint8),
-        #                                         unit='NA',
-        #                                         timestamps=np.array(frame_timestamps)[:len(MOVIE)])
-        # nwbfile.add_stimulus(frame_stimuli)
         
     #################################################
     ####         FaceCamera Recording         #######
