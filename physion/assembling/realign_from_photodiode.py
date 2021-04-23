@@ -18,17 +18,16 @@ def realign_from_photodiode(signal, metadata,
     
     tlim, tnew = [0, t[-1]], 0
 
-    tstart, tend_previous = metadata['time_start'][0], 0
+    tstart, tend_previous = metadata['time_start'][0], metadata['time_start'][0]+2
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
 
     H, bins = np.histogram(signal, bins=50)
     baseline = bins[np.argmax(H)+1]
     high_level = np.max(signal)
-
     i=0
     while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart-(tend_previous-tstart)/4.) & (t<=tstart+metadata['time_duration'][i])
+        cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i])
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           baseline=baseline, high_level=high_level)
