@@ -39,14 +39,20 @@ def compute_position_from_binary_signals(A, B,
         ( (A[:-1]==0) & (B[:-1]==1) & (A[1:]==1) & (B[1:]==1) )
     Delta_position[NIC] = -1
 
-    # position = np.cumsum(np.concatenate([[0], Delta_position]))
-    # return position*perimeter_cm/cpr
-    
+    position = np.cumsum(np.concatenate([[0], Delta_position]))*perimeter_cm/cpr
+    if smoothing>0:
+        return gaussian_filter1d(position, smoothing)
+    else:
+        return -position
+
+    # speed = -np.diff(gaussian_filter1d(np.cumsum(np.concatenate([[0], Delta_position])), smoothing))
+    # return np.concatenate([[0], speed])
+
     # speed = gaussian_filter1d(np.concatenate([[0], Delta_position]), smoothing)
     # return -speed*perimeter_cm/cpr
 
-    position = np.concatenate([[0], Delta_position])
-    return position*perimeter_cm/cpr
+    # position = np.concatenate([[0], Delta_position])
+    # return position*perimeter_cm/cpr
 
 def compute_locomotion(binary_signal, acq_freq=1e4,
                        speed_smoothing=10e-3, # s
@@ -82,14 +88,13 @@ if __name__=='__main__':
     parser.add_argument('-df', "--datafolder", type=str, default='')
     args = parser.parse_args()
 
-
     if args.datafolder!='':
         metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
                        allow_pickle=True).item()
         NIdaq_data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
         digital_inputs = NIdaq_data['digital']
-        t_array = np.arange(len(digital_inputs[0]))*args.acq_time_step
         args.acq_time_step = 1./metadata['NIdaq-acquisition-frequency']
+        t_array = np.arange(len(digital_inputs[0]))*args.acq_time_step
     else:
         from hardware_control.NIdaq.recording import *
         device = find_m_series_devices()[0]
@@ -102,11 +107,21 @@ if __name__=='__main__':
         analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
                                                      args.Nchannel_digital_rec)
 
-        
-    speed = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
-                               speed_smoothing=10e-3)
+    position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+                                  # perimeter_cm=1, cpr=1,                               
+                                  speed_smoothing=0)
     
+    print('The roto-encoder value for a round is: ', position[-1]/5.,  '(N.B. evaluated over 5 rotations)')
     import matplotlib.pylab as plt
-    plt.plot(t_array, speed)
+    plt.figure()
+    plt.plot(t_array, position)
+    plt.ylabel('travel distance (a.u.)')
+    plt.xlabel('time (s)')
+    plt.figure()
+    position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+                                  speed_smoothing=100e-3)
+    plt.plot(t_array[1:], np.abs(np.diff(position)))
+    plt.ylabel('speed (a.u.)')
+    plt.xlabel('time (s)')
     plt.show()
     

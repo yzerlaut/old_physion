@@ -50,7 +50,7 @@ SCREENS = {
                              'color-off':-1,
                              'time-on':0.2,
                              'time-off':0.8},
-        'gamma_correction':{'k':1.03,
-                            'gamma':1.77},
+        'gamma_correction':{'k':1.,
+                            'gamma':1.},
     },
 }
