@@ -264,8 +264,9 @@ class MainWindow(QtWidgets.QMainWindow):
                          'subject_props':self.subjects[self.cbs.currentText()]}
 
         for d in [self.config, self.protocol]:
-            for key in d:
-                self.metadata[key] = d[key]
+            if d is not None:
+                for key in d:
+                    self.metadata[key] = d[key]
         
         # Setup configuration
         for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],

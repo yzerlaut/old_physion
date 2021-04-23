@@ -41,7 +41,7 @@ def read(self, filename, verbose=False, with_tlim=True,
         self.description = 'Visual-Stim:\n'
 
     # deal with multi-protocols
-    if self.metadata['Presentation']=='multiprotocol':
+    if ('Presentation' in self.metadata) and (self.metadata['Presentation']=='multiprotocol'):
         self.protocols, ii = [], 1
         while ('Protocol-%i' % ii) in self.metadata:
             self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
