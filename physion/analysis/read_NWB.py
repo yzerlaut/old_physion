@@ -1,5 +1,5 @@
 import numpy as np
-import pynwb, time, ast
+import pynwb, time, ast, sys
 
 def init(self):
 
@@ -13,12 +13,14 @@ class Data:
     a basic class to be the parent of specific applications
     """
     def __init__(self, filename,
-                 verbose=False):
-        read(self, filename, verbose=verbose)
+                 verbose=False, with_visual_stim=False):
+        read(self, filename,
+             with_visual_stim=with_visual_stim,
+             verbose=verbose)
         
     
 def read(self, filename, verbose=False, with_tlim=True,
-         metadata_only=False):
+         metadata_only=False, with_visual_stim=False):
 
     self.io = pynwb.NWBHDF5IO(filename, 'r')
     self.nwbfile = self.io.read()
@@ -37,7 +39,7 @@ def read(self, filename, verbose=False, with_tlim=True,
         self.description = 'Spont. Act.\n'
     else:
         self.description = 'Visual-Stim:\n'
-        
+
     # deal with multi-protocols
     if self.metadata['Presentation']=='multiprotocol':
         self.protocols, ii = [], 1
@@ -81,6 +83,11 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Segmentation, self.Fluorescence, self.iscell,\
                 self.Neuropil, self.Deconvolved = None, None, None, None, None
 
+        # if 'Pupil' in self.nmbfile.processing:
+        #     self.t_pupil = self.nmbfile.processing['Pupil']
+        #     self.nwbfile.processing['Pupil'].data_interfaces['cx']
+
+            
         # FIND A BETTER WAY TO DESCRIBE
         # if self.metadata['protocol']!='multiprotocols':
         #     self.keys = []
@@ -100,6 +107,11 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                                self.nwbfile.stimulus['time_start'].data.shape[0])
 
+    if with_visual_stim:
+        sys.path.append('.')
+        from physion.visual_stim.psychopy_code.stimuli import build_stim
+        self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
+        self.visual_stim = build_stim(self.metadata, no_psychopy=True)
 
     if verbose:
         print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))

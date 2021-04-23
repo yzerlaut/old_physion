@@ -8,22 +8,15 @@ plt.style.use('ggplot')
 # custom modules
 sys.path.append('.')
 from physion.dataviz import plots
-from physion.analysis.read_NWB import read as read_NWB
+from physion.analysis.read_NWB import read as read_NWB, Data
 from physion.analysis.trial_averaging import build_episodes
 from physion.visual_stim.psychopy_code.stimuli import build_stim
 
 # we define a data object fitting this analysis purpose
 
-
-
 ORIENTATION_PROTOCOLS = ['Pakan-et-al-static']
 DIRECTION_PROTOCOLS = ['Pakan-et-al-drifting']
 
-class Data:
-    def __init__(self, filename, verbose=False):
-        """ opens data file """
-        read_NWB(self, filename, verbose=verbose)
-        
 class CellResponse:
     
     def __init__(self, data,

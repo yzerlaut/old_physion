@@ -177,15 +177,17 @@ if __name__=='__main__':
     filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
     filename = sys.argv[-1]
     data = MultimodalData(filename)
-    data.plot([250, 300], 
-              settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
-                        'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
-                        'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-                        'CaImaging':dict(fig_fraction=4, subsampling=10, 
-                                         quantity='CaImaging', subquantity='Fluorescence', color='green',
-                                                   roiIndices=[2, 6, 9, 10, 13, 15, 16, 17, 38, 41]),
-                        'VisualStim':dict(fig_fraction=0, color='black')},                    
-              Tbar=10)
+    # data.plot([250, 300], 
+    #           settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
+    #                     'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
+    #                     'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
+    #                     'CaImaging':dict(fig_fraction=4, subsampling=10, 
+    #                                      quantity='CaImaging', subquantity='Fluorescence', color='green',
+    #                                                roiIndices=[2, 6, 9, 10, 13, 15, 16, 17, 38, 41]),
+    #                     'VisualStim':dict(fig_fraction=0, color='black')},                    
+    #           Tbar=10)
+    from datavyz import ge
+    data.show_CaImaging_FOV('meanImg', NL=1, cmap=ge.get_linear_colormap('k', ge.green))
     plt.show()
 
 

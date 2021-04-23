@@ -2,6 +2,7 @@ import sys, time, tempfile, os, pathlib, json, datetime, string
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
@@ -14,6 +15,8 @@ def raw_data_plot_settings(data):
         settings['Locomotion'] = dict(fig_fraction=1, subsampling=100, color='b')
     if 'Pupil' in data.nwbfile.processing:
         settings['Pupil'] = dict(fig_fraction=2, subsampling=2, color='red')
+    if 'Whisking' in data.nwbfile.processing:
+        settings['Whisking'] = dict(fig_fraction=2, subsampling=2, color='red')
     if 'ophys' in data.nwbfile.processing:
         settings['CaImaging'] = dict(fig_fraction=8, roiIndices=data.roiIndices, quantity='CaImaging',
                                      subquantity='dF/F', vicinity_factor=1., color='tab', subsampling=10)
@@ -24,15 +27,94 @@ def raw_data_plot_settings(data):
     return settings
 
 
-
 def exp_analysis_fig(data):
     
-    fig, AX = plt.subplots(1, 5, figsize=(11.4, 2))
+    plt.style.use('ggplot')
+    fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
+    plt.subplots_adjust(left=0.01, right=0.97, bottom=0.3, wspace=1.)
+    print(data.nwbfile.stimulus)
+    s=''
+    for key in ['protocol', 'subject_ID', 'notes']:
+        s+='- %s :\n    "%s" \n' % (key, data.metadata[key])
+    s += '- completed:\n       n=%i/%i episodes' %(data.nwbfile.stimulus['time_start_realigned'].data.shape[0], data.nwbfile.stimulus['time_start'].data.shape[0])
+    AX[0].annotate(s, (0,1), va='top', fontsize=9)
+    AX[0].axis('off')
 
-    for ax in AX[:3]:
-        ax.axis('off')
-    # AX[3].hist(data.nwbfile)
+    if 'Running-Speed' in data.nwbfile.acquisition:
+        speed = np.abs(data.nwbfile.acquisition['Running-Speed'].data[:])
+        AX[1].hist(speed, log=True)
+        AX[1].set_xlabel('speed', fontsize=10)
+        AX[1].set_ylabel('count', fontsize=10)
+    else:
+        AX[1].axis('off')
 
+    if 'Pupil' in data.nwbfile.acquisition:
+        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+        AX[2].hist(diameter, log=True)
+        AX[2].set_xlabel('Pupil diam.', fontsize=10)
+        AX[2].set_ylabel('count', fontsize=10)
+    else:
+        AX[2].annotate('no pupil', (.5,.5), va='center', ha='center', fontsize=10)
+        AX[2].axis('off')
+
+    if 'Whisking' in data.nwbfile.acquisition:
+        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+        AX[3].hist(diameter, log=True)
+        AX[3].set_xlabel('Whisking signal (a.u.)', fontsize=10)
+        AX[3].set_ylabel('count', fontsize=10)
+    else:
+        AX[3].annotate('no whisking', (.5,.5), va='center', ha='center', fontsize=10)
+        AX[3].axis('off')
+        
+        # NEED TO RESAMPLE Pupil and Speed on the same times to do correlation
+        t_pupil=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:]
+        t_speed = np.arange(data.nwbfile.acquisition['Running-Speed'].num_samples)/data.nwbfile.acquisition['Running-Speed'].rate+data.nwbfile.acquisition['Running-Speed'].starting_time
+        print(t_pupil[0], t_speed[0])
+        print(t_pupil[-1], t_speed[-1])
+        func=interp1d(t_pupil, diameter)
+        
+        new_diameter = func(t_speed)
+        BINS=np.linspace(diameter.min(), diameter.max(), 20)
+        bins = np.digitize(new_diameter, bins=BINS)
+        for i, b in enumerate(np.unique(bins)):
+            cond = (bins==b)
+            AX[3].errorbar([new_diameter[cond].mean()],[speed[cond].mean()],
+                           yerr=[speed[cond].std()],
+                           xerr=[new_diameter[cond].std()])
+        AX[3].axis('off')
+
+    return fig
+
+
+
+def behavior_analysis_fig(data):
+    
+    plt.style.use('ggplot')
+    fig, AX = plt.subplots(1, 3, figsize=(11.4, 2))
+    plt.subplots_adjust(left=0.1, right=0.9, bottom=0.3, wspace=1.)
+    
+    if 'Running-Speed' in data.nwbfile.acquisition:
+        speed = np.abs(data.nwbfile.acquisition['Running-Speed'].data[:])
+
+    if 'Pupil' in data.nwbfile.acquisition:
+        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+
+        # NEED TO RESAMPLE Pupil and Speed on the same times to do correlation
+        t_pupil=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:]
+        t_speed = np.arange(data.nwbfile.acquisition['Running-Speed'].num_samples)/data.nwbfile.acquisition['Running-Speed'].rate+data.nwbfile.acquisition['Running-Speed'].starting_time
+        func=interp1d(t_pupil, diameter)
+        
+        new_diameter = func(t_speed)
+        BINS=np.linspace(diameter.min(), diameter.max(), 20)
+        bins = np.digitize(new_diameter, bins=BINS)
+        for i, b in enumerate(np.unique(bins)):
+            cond = (bins==b)
+            AX[0].errorbar([new_diameter[cond].mean()],[speed[cond].mean()],
+                           yerr=[speed[cond].std()],
+                           xerr=[new_diameter[cond].std()], color='k')
+        AX[0].set_xlabel('Pupil diameter', fontsize=10)
+        AX[0].set_ylabel('Running speed', fontsize=10)
+        
     return fig
 
 
@@ -49,6 +131,10 @@ def make_sumary_pdf(filename, Nmax=1000000,
         # summary quantities for experiment
         print('plotting exp macro analysis ')
         fig = exp_analysis_fig(data)
+        pdf.savefig()  # saves the current figure into a pdf page
+        plt.close()
+        if 'Pupil'
+        fig = behavior_analysis_fig(data)
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
 
@@ -134,6 +220,22 @@ def make_sumary_pdf(filename, Nmax=1000000,
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
 
+            elif 'noise' in protocol_type:
+                from surround_suppression import orientation_size_selectivity_analysis
+                Nresp, SIs = 0, []
+                for i in range(data.iscell.sum())[:Nmax]:
+                    fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
+                    pdf.savefig()  # saves the current figure into a pdf page
+                    plt.close()
+                    if responsive:
+                        Nresp += 1
+                        SIs.append(0) # TO BE FILLED
+                fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
+                                      label='none')
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
+
+
                 
         print('[ok] pdf succesfully saved as "%s" !' % filename.replace('nwb', 'pdf'))        
 
@@ -160,4 +262,10 @@ if __name__=='__main__':
     
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
-    make_sumary_pdf(filename)
+    data = MultimodalData(filename)
+    fig1 = exp_analysis_fig(data)
+    fig2 = behavior_analysis_fig(data)
+    plt.show()
+    
+    # make_sumary_pdf(filename)
+    

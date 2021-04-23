@@ -30,9 +30,9 @@
   "contrast-1": 1.0,
   "contrast-2": 1.0,
   "N-contrast": 0,
-  "bg-color-1": 0.0,
-  "bg-color-2": 0.0,
+  "bg-color-1": 0.5,
+  "bg-color-2": 0.5,
   "N-bg-color": 0,
-  "data-folder": "",
-  "protocol-folder": "F:\\physion\\physion\\exp\\protocols"
+  "data-folder": "/tmp/2021_04_21/15-37-14",
+  "protocol-folder": "/home/yann/work/physion/physion/exp/protocols"
 }

@@ -1,3 +1,6 @@
+"""
+N.B. there is a mix of "grey screen" corresponding to bg-color=0 and bg-color=0.5 (see in individual protocols) TO BE FIXED
+"""
 import numpy as np
 import itertools, os, sys, pathlib, time, json
 try:
@@ -355,6 +358,7 @@ class visual_stim:
                 pass
         self.win.getMovieFrame() # we store the last frame
 
+        
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def single_array_presentation(self, parent, index):
