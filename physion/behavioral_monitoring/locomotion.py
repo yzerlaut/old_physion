@@ -42,9 +42,11 @@ def compute_position_from_binary_signals(A, B,
     # position = np.cumsum(np.concatenate([[0], Delta_position]))
     # return position*perimeter_cm/cpr
     
-    speed = gaussian_filter1d(np.concatenate([[0], Delta_position]), smoothing)
-    return -speed*perimeter_cm/cpr
+    # speed = gaussian_filter1d(np.concatenate([[0], Delta_position]), smoothing)
+    # return -speed*perimeter_cm/cpr
 
+    position = np.concatenate([[0], Delta_position])
+    return position*perimeter_cm/cpr
 
 def compute_locomotion(binary_signal, acq_freq=1e4,
                        speed_smoothing=10e-3, # s
@@ -66,7 +68,6 @@ if __name__=='__main__':
     
     import sys, os, pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-    from hardware_control.NIdaq.recording import *
 
     import argparse
     # First a nice documentation 
@@ -78,20 +79,30 @@ if __name__=='__main__':
     parser.add_argument('-Ndi', "--Nchannel_digital_rec", help="Number of digital input channels to be recorded ", type=int, default=2)
     parser.add_argument('-dt', "--acq_time_step", help="Temporal sampling (in s): 1/acquisition_frequency ", type=float, default=1e-3)
     parser.add_argument('-T', "--recording_time", help="Length of recording time in (s)", type=float, default=5)
+    parser.add_argument('-df', "--datafolder", type=str, default='')
     args = parser.parse_args()
 
-    device = find_m_series_devices()[0]
-        
-    t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
-    analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
-    analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
-                                   2e-2*np.sin(2*np.pi*t_array)])
-    
-    print('You have %i s to do 10 rotations of the disk [...]' % args.recording_time)
-    analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
-                                                 args.Nchannel_digital_rec)
 
-    print(len(digital_inputs[0]), len(t_array))
+    if args.datafolder!='':
+        metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
+                       allow_pickle=True).item()
+        NIdaq_data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
+        digital_inputs = NIdaq_data['digital']
+        t_array = np.arange(len(digital_inputs[0]))*args.acq_time_step
+        args.acq_time_step = 1./metadata['NIdaq-acquisition-frequency']
+    else:
+        from hardware_control.NIdaq.recording import *
+        device = find_m_series_devices()[0]
+        t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
+        analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
+        analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array),
+                                       2e-2*np.sin(2*np.pi*t_array)])
+
+        print('You have %i s to do 10 rotations of the disk [...]' % args.recording_time)
+        analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
+                                                     args.Nchannel_digital_rec)
+
+        
     speed = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
                                speed_smoothing=10e-3)
     

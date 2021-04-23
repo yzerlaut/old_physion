@@ -4,20 +4,7 @@ import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.saving import get_files_with_extension, get_TSeries_folders
-from behavioral_monitoring.locomotion import compute_position_from_binary_signals
 from analysis.read_NWB import read as read_NWB
-
-
-def compute_locomotion(binary_signal, acq_freq=1e4,
-                       speed_smoothing=10e-3, # s
-                       t0=0):
-
-    A = binary_signal%2
-    B = np.round(binary_signal/2, 0)
-
-    return compute_position_from_binary_signals(A, B,
-                                                smoothing=int(speed_smoothing*acq_freq))
-
 
 def build_subsampling_from_freq(subsampled_freq=1.,
                                 original_freq=1.,
