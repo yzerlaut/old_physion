@@ -1046,7 +1046,7 @@ class gaussian_blobs(visual_stim):
         cls = (parent if parent is not None else self)
         xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
         radius = cls.experiment['radius'][episode]
-        t0, sT = cls.experiment['center-time'][index], cls.experiment['extent-time'][index]
+        t0, sT = cls.experiment['center-time'][episode], cls.experiment['extent-time'][episode]
         return np.exp(-((cls.x-xcenter)**2+(cls.z-zcenter)**2)/2./radius**2)*\
             np.exp(-(time_from_episode_start-t0)**2/2./sT**2)*\
             cls.experiment['contrast'][episode]+cls.experiment['bg-color'][episode]

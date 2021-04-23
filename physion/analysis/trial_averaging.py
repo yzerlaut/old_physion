@@ -214,13 +214,11 @@ class TrialAverageWindow(NewWindow):
                         print(' /!\ Problem with episode (%i, %i, %i)' % (irow, icol, icolor))
                 if icol>0:
                     self.AX[irow][icol].hideAxis('left')
-                    self.AX[irow][icol].setYLink(self.AX[irow][0])
-            self.l.nextRow()
-        for irow, row_cond in enumerate(ROW_CONDS):
-            for icol, col_cond in enumerate(COL_CONDS):
                 if irow<(len(ROW_CONDS)-1):
                     self.AX[irow][icol].hideAxis('bottom')
-                    self.AX[irow][icol].setXLink(self.AX[-1][icol])
+                self.AX[irow][icol].setYLink(self.AX[0][0]) # locking axis together
+                self.AX[irow][icol].setXLink(self.AX[0][0])
+            self.l.nextRow()
         
     def build_conditions(self, X, K):
         if len(K)>0:
