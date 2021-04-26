@@ -50,8 +50,8 @@ STIMULI = {
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0},
     
     'oddball-full-field-grating':{
-        'angle-redundant (deg)':45,
-        'angle-deviant (deg)':135,
+        'angle-redundant (deg)':45.0,
+        'angle-deviant (deg)':135.0,
         'N_deviant (#)':1,
         'N_redundant (#)':7,
         'Nmin-successive-redundant (#)':3,
@@ -64,8 +64,8 @@ STIMULI = {
         'N_repeat (#)':100,
         # range
         'spatial-freq-1':0.001, 'spatial-freq-2':2., 'N-spatial-freq':0,
-        'angle-redundant-1':0., 'angle-redundant-2':360, 'N-angle-redundant':0,
-        'angle-deviant-1':0., 'angle-deviant-2':360, 'N-angle-deviant':0,
+        'angle-redundant-1':0., 'angle-redundant-2':360.0, 'N-angle-redundant':0,
+        'angle-deviant-1':0., 'angle-deviant-2':360.0, 'N-angle-deviant':0,
         'contrast-1':0.2, 'contrast-2':1., 'N-contrast':0,
         'N_deviant-1':1,'N_deviant-2':1,'N-N_deviant':0,
         'N_redundant-1':2,'N_redundant-2':100,'N-N_redundant':0,
