@@ -16,7 +16,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(50, 700, 300, 300)
+        self.setGeometry(50, 700, 300, 370)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -56,14 +56,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.addItems(['custom', 'nidaq_only', 'lightweight', 'full'])
 
         HEIGHT +=40 
-        s = QtWidgets.QLabel("Pupil-Sampling (Hz)    ", self)
+        s = QtWidgets.QLabel("Photodiode-Sampling (Hz)    ", self)
         s.move(10, HEIGHT)
         s.setMinimumWidth(200)
-        self.PsamplingBox = QtWidgets.QLineEdit('', self)
-        self.PsamplingBox.setText('0.5')
-        self.PsamplingBox.setFixedWidth(40)
-        self.PsamplingBox.move(200, HEIGHT)
-
+        self.PHsamplingBox = QtWidgets.QLineEdit('', self)
+        self.PHsamplingBox.setText('500')
+        self.PHsamplingBox.setFixedWidth(40)
+        self.PHsamplingBox.move(200, HEIGHT)
+        
+        HEIGHT +=30 
+        s = QtWidgets.QLabel("Running-Speed-Sampling (Hz)    ", self)
+        s.move(10, HEIGHT)
+        s.setMinimumWidth(200)
+        self.RsamplingBox = QtWidgets.QLineEdit('', self)
+        self.RsamplingBox.setText('50')
+        self.RsamplingBox.setFixedWidth(40)
+        self.RsamplingBox.move(200, HEIGHT)
         
         HEIGHT +=30 
         s = QtWidgets.QLabel("Whisking-Sampling (Hz)    ", self)
@@ -73,6 +81,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.WsamplingBox.setText('0.05')
         self.WsamplingBox.setFixedWidth(40)
         self.WsamplingBox.move(200, HEIGHT)
+        
+        HEIGHT +=30 
+        s = QtWidgets.QLabel("Pupil-Sampling (Hz)    ", self)
+        s.move(10, HEIGHT)
+        s.setMinimumWidth(200)
+        self.PsamplingBox = QtWidgets.QLineEdit('', self)
+        self.PsamplingBox.setText('0.5')
+        self.PsamplingBox.setFixedWidth(40)
+        self.PsamplingBox.move(200, HEIGHT)
         
         HEIGHT +=30 
         s = QtWidgets.QLabel("FaceCamera-Sampling (Hz)    ", self)
@@ -112,8 +129,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def build_cmd(self):
         if self.cbc.currentText()=='custom':
-            return 'python %s -df %s --Pupil_frame_sampling %s --Snout_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
+            return 'python %s -df %s --photodiode_sampling %s --running_sampling %s --Pupil_frame_sampling %s --Snout_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
                                                                        self.folder,
+                                                                       self.PHsamplingBox.text(),
+                                                                       self.RsamplingBox.text(),
                                                                        self.PsamplingBox.text(),
                                                                        self.WsamplingBox.text(),
                                                                        self.FsamplingBox.text())
