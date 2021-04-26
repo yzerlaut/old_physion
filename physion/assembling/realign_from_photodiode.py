@@ -3,7 +3,9 @@ import os
 from scipy.signal import argrelextrema
 from scipy.ndimage.filters import gaussian_filter1d
 
-def realign_from_photodiode(signal, metadata,
+def realign_from_photodiode(signal,
+                            metadata,
+                            sampling_rate=None,
                             debug=False, verbose=True, n_vis=5):
 
     if verbose:
@@ -13,7 +15,10 @@ def realign_from_photodiode(signal, metadata,
 
     
     # extract parameters
-    dt = 1./metadata['NIdaq-acquisition-frequency']
+    if sampling_rate is None:
+        dt = 1./metadata['NIdaq-acquisition-frequency']
+    else:
+        dt = 1/sampling_rate
     t = np.arange(len(signal))*dt
     
     tlim, tnew = [0, t[-1]], 0
@@ -44,8 +49,9 @@ def realign_from_photodiode(signal, metadata,
                 ax.legend(frameon=False)
                 plt.show()
         except BaseException as be:
-            print(be)
-            print(i, Nepisodes, metadata['time_duration'][i])
+            print(2*'\n'+' /!\ REALIGNEMENT FAILED /!\ \n')
+            print(be, '\n')
+            # print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
         try:

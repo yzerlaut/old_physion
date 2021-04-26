@@ -11,12 +11,14 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.realign_from_photodiode import realign_from_photodiode
-from behavioral_monitoring.locomotion import compute_locomotion
+from behavioral_monitoring.locomotion import compute_locomotion_speed
 from assembling.tools import build_subsampling_from_freq, load_FaceCamera_data
 from assembling.add_ophys import add_ophys
+from analysis.tools import resample_signal
 
 
-ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
+ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
+                  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
 
 
 def build_NWB(args,
@@ -111,17 +113,34 @@ def build_NWB(args,
         # compute running speed from binary NI-daq signal
         if args.verbose:
             print('Computing and storing running-speed for "%s" [...]' % args.datafolder)
+
+
+        speed = compute_locomotion_speed(NIdaq_data['digital'][0],
+                                         acq_freq=float(metadata['NIdaq-acquisition-frequency']),
+                                         radius_position_on_disk=float(metadata['rotating-disk']['radius-position-on-disk-cm']),
+                                         rotoencoder_value_per_rotation=float(metadata['rotating-disk']['roto-encoder-value-per-rotation']))
+        _, speed = resample_signal(speed,
+                                   original_freq=float(metadata['NIdaq-acquisition-frequency']),
+                                   new_freq=args.running_sampling,
+                                   pre_smoothing=2./args.running_sampling)
         running = pynwb.TimeSeries(name='Running-Speed',
-                                   data = compute_locomotion(NIdaq_data['digital'][0],
-                                                             acq_freq=metadata['NIdaq-acquisition-frequency']),
+                                   data = speed,
                                    starting_time=0.,
-                                   unit='cm/s', rate=float(metadata['NIdaq-acquisition-frequency']))
+                                   unit='cm/s',
+                                   rate=args.running_sampling)
         nwbfile.add_acquisition(running)
 
     # #################################################
     # ####         Visual Stimulation           #######
     # #################################################
     if metadata['VisualStim'] and ('VisualStim' in args.modalities):
+
+        # preprocessing photodiode signal
+        _, Psignal = resample_signal(NIdaq_data['analog'][0],
+                                     original_freq=float(metadata['NIdaq-acquisition-frequency']),
+                                     pre_smoothing=2./float(metadata['NIdaq-acquisition-frequency']),
+                                     new_freq=args.photodiode_sampling)
+
         if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
             print(' /!\ No VisualStim metadata found /!\ ')
             print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
@@ -134,7 +153,8 @@ def build_NWB(args,
             VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
         for key in ['time_start', 'time_stop', 'time_duration']:
             metadata[key] = VisualStim[key]
-        success, metadata = realign_from_photodiode(NIdaq_data['analog'][0], metadata,
+        success, metadata = realign_from_photodiode(Psignal, metadata,
+                                                    sampling_rate=(args.photodiode_sampling if args.photodiode_sampling>0 else None),
                                                     verbose=args.verbose)
         if success:
             timestamps = metadata['time_start_realigned']
@@ -168,11 +188,12 @@ def build_NWB(args,
     
         if args.verbose:
             print('=> Storing the photodiode signal for "%s" [...]' % args.datafolder)
+
         photodiode = pynwb.TimeSeries(name='Photodiode-Signal',
-                                      data = NIdaq_data['analog'][0],
+                                      data = Psignal,
                                       starting_time=0.,
                                       unit='[current]',
-                                      rate=float(metadata['NIdaq-acquisition-frequency']))
+                                      rate=args.photodiode_sampling)
         nwbfile.add_acquisition(photodiode)
 
         
@@ -362,6 +383,8 @@ if __name__=='__main__':
     parser.add_argument('-e', "--export", type=str, default='FROM_VISUALSTIM_SETUP', help='export option [FULL / LIGHTWEIGHT / FROM_VISUALSTIM_SETUP]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
+    parser.add_argument('-rs', "--running_sampling", default=50., type=float)
+    parser.add_argument('-ps', "--photodiode_sampling", default=1000., type=float)
     parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
     parser.add_argument('-fcfs', "--FaceCamera_frame_sampling", default=0., type=float)
     parser.add_argument('-pfs', "--Pupil_frame_sampling", default=1., type=float)
@@ -395,6 +418,7 @@ if __name__=='__main__':
     if args.nidaq_only:
         args.export='NIDAQ'
         args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
+
 
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
