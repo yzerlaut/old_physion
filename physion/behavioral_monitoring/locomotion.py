@@ -72,6 +72,7 @@ if __name__=='__main__':
     testing the code on the setup with the NIdaq
     """
     
+    import matplotlib.pylab as plt
     import sys, os, pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -95,6 +96,25 @@ if __name__=='__main__':
         digital_inputs = NIdaq_data['digital']
         args.acq_time_step = 1./metadata['NIdaq-acquisition-frequency']
         t_array = np.arange(len(digital_inputs[0]))*args.acq_time_step
+        print('computing position [...]')
+        position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+                                      # perimeter_cm=1, cpr=1,                               
+                                      speed_smoothing=0)
+
+        # print('The roto-encoder value for a round is: ', position[-1]/5.,  '(N.B. evaluated over 5 rotations)')
+        plt.figure()
+        plt.plot(t_array[::100], position[::100])
+        # plt.ylabel('travel distance (a.u.)')
+        # plt.xlabel('time (s)')
+        # plt.figure()
+        # position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+        #                               speed_smoothing=100e-3)
+        # plt.plot(t_array[1:], np.abs(np.diff(position)))
+        # plt.ylabel('speed (a.u.)')
+        # plt.xlabel('time (s)')
+        plt.show()
+    
+        
     else:
         from hardware_control.NIdaq.recording import *
         device = find_m_series_devices()[0]
@@ -107,21 +127,21 @@ if __name__=='__main__':
         analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
                                                      args.Nchannel_digital_rec)
 
-    position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
-                                  # perimeter_cm=1, cpr=1,                               
-                                  speed_smoothing=0)
-    
-    print('The roto-encoder value for a round is: ', position[-1]/5.,  '(N.B. evaluated over 5 rotations)')
-    import matplotlib.pylab as plt
-    plt.figure()
-    plt.plot(t_array, position)
-    plt.ylabel('travel distance (a.u.)')
-    plt.xlabel('time (s)')
-    plt.figure()
-    position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
-                                  speed_smoothing=100e-3)
-    plt.plot(t_array[1:], np.abs(np.diff(position)))
-    plt.ylabel('speed (a.u.)')
-    plt.xlabel('time (s)')
-    plt.show()
+        position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+                                      # perimeter_cm=1, cpr=1,                               
+                                      speed_smoothing=0)
+
+        print('The roto-encoder value for a round is: ', position[-1]/5.,  '(N.B. evaluated over 5 rotations)')
+        import matplotlib.pylab as plt
+        plt.figure()
+        plt.plot(t_array, position)
+        plt.ylabel('travel distance (a.u.)')
+        plt.xlabel('time (s)')
+        plt.figure()
+        position = compute_locomotion(digital_inputs[0], acq_freq=1./args.acq_time_step,
+                                      speed_smoothing=100e-3)
+        plt.plot(t_array[1:], np.abs(np.diff(position)))
+        plt.ylabel('speed (a.u.)')
+        plt.xlabel('time (s)')
+        plt.show()
     

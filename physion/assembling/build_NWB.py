@@ -16,7 +16,8 @@ from assembling.tools import build_subsampling_from_freq, load_FaceCamera_data
 from assembling.add_ophys import add_ophys
 
 
-ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera', 'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
+ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
+                  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
 
 
 def build_NWB(args,
@@ -362,6 +363,8 @@ if __name__=='__main__':
     parser.add_argument('-e', "--export", type=str, default='FROM_VISUALSTIM_SETUP', help='export option [FULL / LIGHTWEIGHT / FROM_VISUALSTIM_SETUP]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
+    parser.add_argument('-rs', "--running_sampling", default=0., type=float)
+    parser.add_argument('-ps', "--photodiode_sampling", default=0., type=float)
     parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
     parser.add_argument('-fcfs', "--FaceCamera_frame_sampling", default=0., type=float)
     parser.add_argument('-pfs', "--Pupil_frame_sampling", default=1., type=float)
