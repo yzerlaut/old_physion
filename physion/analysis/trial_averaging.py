@@ -189,7 +189,7 @@ class TrialAverageWindow(NewWindow):
         self.l.layout.setSpacing(2.)            
 
         # re-adding stuff
-        self.AX = []
+        self.AX, ylim = [], [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
             self.AX.append([])
             for icol, col_cond in enumerate(COL_CONDS):
@@ -209,6 +209,8 @@ class TrialAverageWindow(NewWindow):
                             self.AX[irow][icol].addItem(phigh)
                             self.AX[irow][icol].addItem(plow)
                             self.AX[irow][icol].addItem(pfill)
+                            ylim[0] = np.min([np.min(my-sy), ylim[0]])
+                            ylim[1] = np.max([np.max(my+sy), ylim[1]])
                         self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
                     else:
                         print(' /!\ Problem with episode (%i, %i, %i)' % (irow, icol, icolor))
@@ -219,6 +221,8 @@ class TrialAverageWindow(NewWindow):
                 self.AX[irow][icol].setYLink(self.AX[0][0]) # locking axis together
                 self.AX[irow][icol].setXLink(self.AX[0][0])
             self.l.nextRow()
+        self.AX[0][0].setRange(xRange=[self.EPISODES['t'][0], self.EPISODES['t'][-1]], yRange=ylim, padding=0.0)
+            
         
     def build_conditions(self, X, K):
         if len(K)>0:

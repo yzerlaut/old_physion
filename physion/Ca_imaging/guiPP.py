@@ -76,7 +76,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print('command set is reset !')
     
     def build_cmd(self, folder, key):
-        return 'python %s --CaImaging_folder %s --setting_key %s -v' % (self.process_script, folder, key)
+        return 'sleep 1h;python %s --CaImaging_folder %s --setting_key %s -v' % (self.process_script, folder, key)
     
     def load_imaging(self):
 
