@@ -158,7 +158,7 @@ class MultimodalData(Data):
         return fig, ax
         
 
-    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None):
+    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None, roiIndex=None, with_roi_zoom=False):
         if ax is None:
             fig, ax = plt.subplots(1)
         else:
@@ -168,7 +168,19 @@ class MultimodalData(Data):
         img = np.power(img, 1/NL)
         ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none')
         ax.axis('off')
-        ax.set_title(key)
+        if roiIndex is not None:
+            indices = np.arange(self.pixel_masks_index[roiIndex], self.pixel_masks_index[roiIndex+1])
+            x = np.mean([self.pixel_masks[ii][1] for ii in indices])
+            sx = np.std([self.pixel_masks[ii][1] for ii in indices])
+            y = np.mean([self.pixel_masks[ii][0] for ii in indices])
+            sy = np.std([self.pixel_masks[ii][1] for ii in indices])
+            # ellipse = plt.Circle((x, y), sx, sy)
+            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='r', facecolor='none', lw=3)
+            ax.add_patch(ellipse)
+            if with_roi_zoom:
+                ax.set_xlim([x-10*sx, x+10*sx])
+                ax.set_ylim([y-10*sy, y+10*sy])
+        ax.set_title(key, fontsize=9)
         return fig, ax
     
      

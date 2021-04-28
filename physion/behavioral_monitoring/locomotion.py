@@ -43,7 +43,7 @@ def compute_locomotion_speed(binary_signal,
                        	     position_smoothing=10e-3, # s
 			     radius_position_on_disk=1,	# cm
 			     rotoencoder_value_per_rotation=1, # a.u.
-                             with_raw_position=False):
+                             with_raw_position=False, reverse=True):
 
     A = binary_signal%2
     B = np.round(binary_signal/2, 0)
@@ -58,6 +58,8 @@ def compute_locomotion_speed(binary_signal,
         speed = np.diff(position)
 
     speed *= acq_freq
+    if reverse:
+        speed *= -1.
 
     if with_raw_position:
         return speed, position
@@ -65,7 +67,6 @@ def compute_locomotion_speed(binary_signal,
         return speed
  	
 
-    
 if __name__=='__main__':
 
     """

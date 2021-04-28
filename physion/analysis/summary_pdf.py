@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
+from analysis.tools import *
 
 def raw_data_plot_settings(data):
     settings = {}
@@ -42,9 +43,9 @@ def exp_analysis_fig(data):
 
     if 'Running-Speed' in data.nwbfile.acquisition:
         speed = np.abs(data.nwbfile.acquisition['Running-Speed'].data[:])
-        AX[1].hist(speed, log=True)
+        AX[1].hist(speed, weights=100*np.ones(len(speed))/len(speed))
         AX[1].set_xlabel('speed', fontsize=10)
-        AX[1].set_ylabel('count', fontsize=10)
+        AX[1].set_ylabel('occurence (%)', fontsize=10)
     else:
         AX[1].axis('off')
 
@@ -57,64 +58,157 @@ def exp_analysis_fig(data):
         AX[2].annotate('no pupil', (.5,.5), va='center', ha='center', fontsize=10)
         AX[2].axis('off')
 
-    if 'Whisking' in data.nwbfile.acquisition:
-        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
-        AX[3].hist(diameter, log=True)
-        AX[3].set_xlabel('Whisking signal (a.u.)', fontsize=10)
-        AX[3].set_ylabel('count', fontsize=10)
-    else:
-        AX[3].annotate('no whisking', (.5,.5), va='center', ha='center', fontsize=10)
-        AX[3].axis('off')
+    return fig
+
+
+def roi_analysis_fig(data, roiIndex=0):
+    
+    plt.style.use('ggplot')
+    fig, AX = plt.subplots(1, 4, figsize=(11.4, 4))
+    plt.subplots_adjust(left=0.01, right=0.97, bottom=0.3, wspace=.5)
+    AX[0].annotate(' ROI#%i' % (roiIndex+1), (0.03, 0.1), xycoords='figure fraction', weight='bold', fontsize=11)
+
+    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0], roiIndex=roiIndex)
+    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[1], roiIndex=roiIndex, with_roi_zoom=True)
+
+    index = np.arange(len(data.iscell))[data.iscell][roiIndex]
+    if 'Running-Speed' in data.nwbfile.acquisition:
+        CCF, tshift = crosscorrel_on_NWB_quantity(\
+                            Q1=data.nwbfile.acquisition['Running-Speed'],
+                            t_q2=data.Fluorescence.timestamps[:],
+                            q2=data.Fluorescence.data[index,:],
+                            tmax=20)
+        AX[2].plot(tshift, CCF)
+        AX[2].set_xlabel('time (s)', fontsize=10)
+        AX[2].set_ylabel('correl.', fontsize=10)
+        # AX[2].set_ylim([-0.3,1.])
+        AX[2].set_title('running speed', fontsize=10)
+        if (np.max(CCF)<0.2) and (np.min(CCF)>-0.1):
+            AX[2].set_ylim([-0.1,0.2])
+            AX[2].set_yticks([-0.1,0, 0.1, 0.2])
+
+    if 'Pupil' in data.nwbfile.acquisition:
+        CCF, tshift = crosscorrel_on_NWB_quantity(t_q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:],
+                                                  q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:],
+                            t_q2=data.Fluorescence.timestamps[:],
+                            q2=data.Fluorescence.data[data.iscell[roiIndex],:],
+                                                  tmax=100)
+        AX[3].plot(tshift, CCF)
+        AX[3].set_xlabel('time (s)', fontsize=10)
+        AX[3].set_ylabel('correl.', fontsize=10)
+        AX[3].set_title('pupil', fontsize=10)
         
-        # NEED TO RESAMPLE Pupil and Speed on the same times to do correlation
-        t_pupil=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:]
-        t_speed = np.arange(data.nwbfile.acquisition['Running-Speed'].num_samples)/data.nwbfile.acquisition['Running-Speed'].rate+data.nwbfile.acquisition['Running-Speed'].starting_time
-        print(t_pupil[0], t_speed[0])
-        print(t_pupil[-1], t_speed[-1])
-        func=interp1d(t_pupil, diameter)
-        
-        new_diameter = func(t_speed)
-        BINS=np.linspace(diameter.min(), diameter.max(), 20)
-        bins = np.digitize(new_diameter, bins=BINS)
-        for i, b in enumerate(np.unique(bins)):
-            cond = (bins==b)
-            AX[3].errorbar([new_diameter[cond].mean()],[speed[cond].mean()],
-                           yerr=[speed[cond].std()],
-                           xerr=[new_diameter[cond].std()])
-        AX[3].axis('off')
 
     return fig
 
 
-
 def behavior_analysis_fig(data):
-    
-    plt.style.use('ggplot')
-    fig, AX = plt.subplots(1, 3, figsize=(11.4, 2))
-    plt.subplots_adjust(left=0.1, right=0.9, bottom=0.3, wspace=1.)
-    
+
+    MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
     if 'Running-Speed' in data.nwbfile.acquisition:
-        speed = np.abs(data.nwbfile.acquisition['Running-Speed'].data[:])
-
-    if 'Pupil' in data.nwbfile.acquisition:
-        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
-
-        # NEED TO RESAMPLE Pupil and Speed on the same times to do correlation
-        t_pupil=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:]
-        t_speed = np.arange(data.nwbfile.acquisition['Running-Speed'].num_samples)/data.nwbfile.acquisition['Running-Speed'].rate+data.nwbfile.acquisition['Running-Speed'].starting_time
-        func=interp1d(t_pupil, diameter)
+        MODALITIES.append('Running-Speed')
+        QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
+        TIMES.append(None)
+        UNITS.append('cm/s')
+    if 'Pupil' in data.nwbfile.processing:
+        MODALITIES.append('Pupil')
+        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
+            data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+        QUANTITIES.append(diameter)
+        TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
+        UNITS.append('mm$^2$')
+    if 'Whisking' in data.nwbfile.processing:
+        MODALITIES.append('Whisking')
         
-        new_diameter = func(t_speed)
-        BINS=np.linspace(diameter.min(), diameter.max(), 20)
-        bins = np.digitize(new_diameter, bins=BINS)
-        for i, b in enumerate(np.unique(bins)):
-            cond = (bins==b)
-            AX[0].errorbar([new_diameter[cond].mean()],[speed[cond].mean()],
-                           yerr=[speed[cond].std()],
-                           xerr=[new_diameter[cond].std()], color='k')
-        AX[0].set_xlabel('Pupil diameter', fontsize=10)
-        AX[0].set_ylabel('Running speed', fontsize=10)
+    plt.style.use('ggplot')
+    fig, AX = plt.subplots(len(MODALITIES)+(len(MODALITIES)-2)*(len(MODALITIES)-1), 4,
+                 figsize=(11.4, 2.5*len(MODALITIES)+(len(MODALITIES)-2)*(len(MODALITIES)-1)))
+    plt.subplots_adjust(left=0.06, right=0.98, bottom=0.3,
+                        wspace=.5, hspace=.6)
+
+
+    for i, mod, quant, times, unit in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS):
+        color = plt.cm.tab10(i)
+        AX[i][0].set_title(mod, fontsize=10, color=color)
+        quantity = (quant.data[:] if times is None else quant)
+        AX[i][0].hist(quantity, weights=100*np.ones(len(quantity))/len(quantity), color=color)
+        AX[i][0].set_xlabel(unit, fontsize=10)
+        AX[i][0].set_ylabel('occurence (%)', fontsize=10)
+
+        quantity = (quant.data[:] if times is None else quant)
+        AX[i][1].hist(quantity, weights=100*np.ones(len(quantity))/len(quantity), log=True, color=color)
+        AX[i][1].set_xlabel(unit, fontsize=10)
+        AX[i][1].set_ylabel('occurence (%)', fontsize=10)
+
+        print(quantity)
+        CC, ts = autocorrel_on_NWB_quantity(Q1=(quant if times is None else None),
+                                            q1=(quant.data[:] if times is not None else None),
+                                            t_q1=times,
+                                            tmax=120)
+        AX[i][2].plot(ts, CC, '-', color=color)
+        AX[i][2].set_xlabel('time (s)', fontsize=9)
+        AX[i][2].set_ylabel('correl.', fontsize=9)
         
+        CC, ts = autocorrel_on_NWB_quantity(Q1=(quant if times is None else None),
+                                            q1=(quant.data[:] if times is not None else None),
+                                            t_q1=times,
+                                            tmax=20)
+        AX[i][3].plot(ts, CC, '-', color=color)
+        AX[i][3].set_xlabel('time (s)', fontsize=9)
+        AX[i][3].set_ylabel('correl.', fontsize=9)
+        
+        # axins = AX[1].inset_axes((1-0.5,1-0.5,.5,.5))
+        # CC, ts = autocorrel_on_NWB_quantity(q1=diameter,
+        #     t_q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:],
+        #                                     tmax=20)
+        # axins.plot(ts, CC, 'k-')
+        # axins.set_ylim([0,1.05])
+        
+    #     CC, ts = autocorrel_on_NWB_quantity(Q1=data.nwbfile.acquisition['Running-Speed'],
+    #                                         tmax=120)
+    #     AX[0].plot(ts, CC, 'k-')
+        
+    #     axins = AX[0].inset_axes((1-0.5,1-0.5,.5,.5))
+    #     CC, ts = autocorrel_on_NWB_quantity(Q1=data.nwbfile.acquisition['Running-Speed'],
+    #                                         tmax=10)
+    #     axins.plot(ts, CC, 'k-')
+    #     axins.set_ylim([0,1.05])
+        
+    #     AX[0].set_xlabel('time (s)', fontsize=9)
+    #     AX[0].set_ylabel('correl.', fontsize=9)
+        
+    #     if 'Whisking' in data.nwbfile.processing:
+    #         pass
+    #     else:
+    #         AX[4].axis('off')
+
+    # if 'Pupil' in data.nwbfile.processing:
+        
+    #     diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
+    #         data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+
+        
+    #     if 'Running-Speed' in data.nwbfile.acquisition:
+    #         mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(\
+    #             Q2=data.nwbfile.acquisition['Running-Speed'],
+    #             t_q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:],
+    #             q1=diameter,
+    #             Npoints=30)
+        
+    #         AX[3].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color='k')
+    #         AX[3].set_xlabel('pupil diam.', fontsize=10)
+    #         AX[3].set_ylabel('run. speed (cm/s)', fontsize=10)
+    #     else:
+    #         AX[3].axis('off')
+    # else:
+    #     AX[3].axis('off')
+    #     AX[1].axis('off')
+
+    # if 'Whisking' in data.nwbfile.processing:
+    #     pass
+    # else:
+    #     AX[2].axis('off')
+            
     return fig
 
 
@@ -133,7 +227,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
         fig = exp_analysis_fig(data)
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
-        if 'Pupil'
+        
         fig = behavior_analysis_fig(data)
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
@@ -279,8 +373,9 @@ if __name__=='__main__':
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
     data = MultimodalData(filename)
-    fig1 = exp_analysis_fig(data)
+    # fig1 = exp_analysis_fig(data)
     fig2 = behavior_analysis_fig(data)
+    # fig3 = roi_analysis_fig(data, roiIndex=7)
     plt.show()
     
     # make_sumary_pdf(filename)
