@@ -91,7 +91,7 @@ def build_NWB(args,
     ####         IMPORTING NI-DAQ data        #######
     #################################################
     if args.verbose:
-        print('Loading NIdaq data for "%s" [...]' % args.datafolder)
+        print('- Loading NIdaq data for "%s" [...]' % args.datafolder)
     try:
         NIdaq_data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
         NIdaq_Tstart = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
@@ -112,8 +112,7 @@ def build_NWB(args,
     if metadata['Locomotion'] and ('Locomotion' in args.modalities):
         # compute running speed from binary NI-daq signal
         if args.verbose:
-            print('Computing and storing running-speed for "%s" [...]' % args.datafolder)
-
+            print('- Computing and storing running-speed for "%s" [...]' % args.datafolder)
 
         speed = compute_locomotion_speed(NIdaq_data['digital'][0],
                                          acq_freq=float(metadata['NIdaq-acquisition-frequency']),

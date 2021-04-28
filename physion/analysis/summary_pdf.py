@@ -235,7 +235,23 @@ def make_sumary_pdf(filename, Nmax=1000000,
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
 
+            elif 'spatial-location' in protocol_type:
+                from surround_suppression import orientation_size_selectivity_analysis
+                Nresp, SIs = 0, []
+                for i in range(data.iscell.sum())[:Nmax]:
+                    fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
+                    pdf.savefig()  # saves the current figure into a pdf page
+                    plt.close()
+                    if responsive:
+                        Nresp += 1
+                        SIs.append(0) # TO BE FILLED
+                fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
+                                      label='none')
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
 
+
+                
                 
         print('[ok] pdf succesfully saved as "%s" !' % filename.replace('nwb', 'pdf'))        
 

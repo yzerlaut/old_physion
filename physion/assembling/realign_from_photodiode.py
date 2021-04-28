@@ -49,8 +49,8 @@ def realign_from_photodiode(signal,
                 ax.legend(frameon=False)
                 plt.show()
         except BaseException as be:
-            print(2*'\n'+' /!\ REALIGNEMENT FAILED /!\ \n')
-            print(be, '\n')
+            print('\n', be)
+            print('\n'+' /!\ REALIGNEMENT FAILED /!\ \n')
             # print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
@@ -85,10 +85,11 @@ def find_onset_time(t, photodiode_signal,
     the threshold of integral increase corresponds to spending X-ms at half the maximum
     """
     smoothed = gaussian_filter1d(photodiode_signal, int(smoothing_time/(t[1]-t[0])))
+    smoothed = (smoothed-smoothed.min())/(smoothed.max()-smoothed.min())
     threshold = np.max(smoothed)/2.
-    cond = (smoothed[1:]>=threshold) & (smoothed[:-1]<=threshold)
+    cond = (smoothed[1:]>=0.5) & (smoothed[:-1]<=0.5)
     t0 = t[:-1][cond][0]
-    return t0-advance_time, smoothed, threshold
+    return t0-advance_time, smoothed, smoothed.min()+0.5*(smoothed.max()-smoothed.min())
 
 def normalize_signal(x):
     # just to plot above

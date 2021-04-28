@@ -15,7 +15,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(650, 700, 300, 300)
+        self.setGeometry(650, 700, 300, 350)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
@@ -67,6 +67,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox.addItems(['NWB', 'FULL',
                                'Imaging (processed)', 'Imaging (+binary)'])
 
+        HEIGHT += 40
+        QtWidgets.QLabel("   delay ?", self).move(10, HEIGHT)
+        self.delayBox = QtWidgets.QComboBox(self)
+        self.delayBox.setMinimumWidth(150)
+        self.delayBox.move(100, HEIGHT)
+        self.delayBox.addItems(['Null', '10min', '1h', '10h', '20h'])
+        
         HEIGHT +=50 
         self.gen = QtWidgets.QPushButton(' -= RUN =-  ', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -227,8 +234,15 @@ def run(app, args=None, parent=None):
                       parent=parent)
 
 if __name__=='__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    main = run(app)
-    sys.exit(app.exec_())
-        
+
+    # app = QtWidgets.QApplication(sys.argv)
+    # main = run(app)
+    # sys.exit(app.exec_())
+
+    import time
+    wait = 3.
+    passwd = input('password ? ')
+    print('waiting %i min [...]' % wait)
+    time.sleep(wait)
+    os.system('sshpass -p %s rsync yann@10.100.185.25:~/test.txt ~/test.txt' % passwd)
 
