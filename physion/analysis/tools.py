@@ -76,7 +76,6 @@ def crosscorrel(Signal1, Signal2, tmax, dt):
     time_shift = dt*np.concatenate([-np.arange(1, steps)[::-1], np.arange(steps)])
     CCF = np.zeros(len(time_shift))
     for i in np.arange(steps):
-        print(np.corrcoef(Signal1[:len(Signal1)-i], Signal2[i:]))
         ccf = np.corrcoef(Signal1[:len(Signal1)-i], Signal2[i:])
         CCF[steps-1+i] = ccf[0,1]
     for i in np.arange(steps):
@@ -84,9 +83,10 @@ def crosscorrel(Signal1, Signal2, tmax, dt):
         CCF[steps-1-i] = ccf[0,1]
     return CCF, time_shift
 
-def autocorrel_on_NWB_quantity(Q1=None, tmax=1,
+def autocorrel_on_NWB_quantity(Q1=None,
                                t_q1=None,
                                q1=None,
+                               tmax=1,
                                Npoints=300):
     """
     Q1 can be replaced by an explicit signal with time sampling
@@ -94,7 +94,7 @@ def autocorrel_on_NWB_quantity(Q1=None, tmax=1,
 
     # Q1 signal
     if (t_q1 is not None) and (q1 is not None):
-        pass
+        print(q1[:])
     elif Q1.timestamps is not None:
         t_q1 = Q1.timestamps[:]
         q1 =Q1.data[:]
@@ -110,6 +110,7 @@ def autocorrel_on_NWB_quantity(Q1=None, tmax=1,
         sampling_freq = Npoints/tmax
         tlim = [t_q1[0]-1./sampling_freq,
                 t_q1[-1]+1./sampling_freq]
+
         new_t_q1, new_q1 = resample_signal(q1,
                                            t_sample=t_q1,
                                            new_freq=sampling_freq,
