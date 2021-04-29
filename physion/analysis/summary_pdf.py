@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
+from Ca_imaging.tools import compute_CaImaging_trace
 from analysis.tools import *
 
 def raw_data_plot_settings(data):
@@ -27,8 +28,28 @@ def raw_data_plot_settings(data):
     settings['VisualStim'] = dict(fig_fraction=0.01, color='black')
     return settings
 
+def find_modalities(data):
 
-def exp_analysis_fig(data):
+    MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
+    if 'Running-Speed' in data.nwbfile.acquisition:
+        MODALITIES.append('Running-Speed')
+        QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
+        TIMES.append(None)
+        UNITS.append('cm/s')
+    if 'Pupil' in data.nwbfile.processing:
+        MODALITIES.append('Pupil')
+        area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
+            data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+        QUANTITIES.append(area)
+        TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
+        UNITS.append('mm$^2$')
+    if 'Whisking' in data.nwbfile.processing:
+        MODALITIES.append('Whisking')
+        
+    return MODALITIES, QUANTITIES, TIMES, UNITS
+    
+
+def metadata_fig(data):
     
     plt.style.use('ggplot')
     fig, ax = plt.subplots(1, figsize=(11.4, 3.5))
@@ -69,77 +90,95 @@ def exp_analysis_fig(data):
 
 def roi_analysis_fig(data, roiIndex=0):
     
-    plt.style.use('ggplot')
-    fig, AX = plt.subplots(1, 4, figsize=(11.4, 4))
-    plt.subplots_adjust(left=0.01, right=0.97, bottom=0.3, wspace=.5)
-    AX[0].annotate(' ROI#%i' % (roiIndex+1), (0.03, 0.1), xycoords='figure fraction', weight='bold', fontsize=11)
 
-    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0], roiIndex=roiIndex)
-    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[1], roiIndex=roiIndex,
-                            with_roi_zoom=True)
+    MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
+    
+    plt.style.use('ggplot')
+    fig, AX = plt.subplots(2+len(MODALITIES), 4, figsize=(11.4, 2.3*(2+len(MODALITIES))))
+    plt.subplots_adjust(left=0.05, right=0.98, bottom=0.3/(2+len(MODALITIES)), top=0.98, wspace=.5, hspace=.5)
+    if len(MODALITIES)==0:
+        AX = [AX]
+    AX[0][0].annotate(' ROI#%i' % (roiIndex+1), (0.4, 0.5), xycoords='axes fraction', weight='bold', fontsize=11, ha='center')
+    AX[0][0].axis('off')
+
+    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0][1], roiIndex=roiIndex)
+    data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0][2], roiIndex=roiIndex, with_roi_zoom=True)
+
+    dFoF = compute_CaImaging_trace(data, 'dF/F', [roiIndex]).sum(axis=0) # valid ROI indices inside
 
     index = np.arange(len(data.iscell))[data.iscell][roiIndex]
-    if 'Running-Speed' in data.nwbfile.acquisition:
-        CCF, tshift = crosscorrel_on_NWB_quantity(\
-                            Q1=data.nwbfile.acquisition['Running-Speed'],
-                            t_q2=data.Fluorescence.timestamps[:],
-                            q2=data.Fluorescence.data[index,:],
-                            tmax=20)
-        AX[2].plot(tshift, CCF)
-        AX[2].set_xlabel('time (s)', fontsize=10)
-        AX[2].set_ylabel('correl.', fontsize=10)
-        # AX[2].set_ylim([-0.3,1.])
-        AX[2].set_title('running speed', fontsize=10)
-        if (np.max(CCF)<0.2) and (np.min(CCF)>-0.1):
-            AX[2].set_ylim([-0.1,0.2])
-            AX[2].set_yticks([-0.1,0, 0.1, 0.2])
+    AX[0][3].hist(data.Fluorescence.data[index, :], bins=30,
+                  weights=100*np.ones(len(dFoF))/len(dFoF), color=plt.cm.tab10(1))
+    AX[0][3].set_xlabel('Fluo. (a.u.)', fontsize=10)
+    AX[1][0].hist(dFoF, bins=30,
+                  weights=100*np.ones(len(dFoF))/len(dFoF))
+    AX[1][0].set_xlabel('dF/F', fontsize=10)
+    AX[1][1].hist(dFoF, log=True, bins=30,
+                  weights=100*np.ones(len(dFoF))/len(dFoF))
+    AX[1][1].set_xlabel('dF/F', fontsize=10)
+    for ax in AX[1][:3]:
+        ax.set_ylabel('occurence (%)', fontsize=10)
+                  
+    CC, ts = autocorrel_on_NWB_quantity(Q1=None, q1=dFoF, t_q1=data.Neuropil.timestamps[:], tmax=180)
+    AX[1][2].plot(ts/60., CC, '-', lw=2)
+    AX[1][2].set_xlabel('time (min)', fontsize=10)
+    AX[1][2].set_ylabel('auto correl.', fontsize=10)
 
-    if 'Pupil' in data.nwbfile.acquisition:
-        CCF, tshift = crosscorrel_on_NWB_quantity(t_q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[:],
-                                                  q1=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:],
-                            t_q2=data.Fluorescence.timestamps[:],
-                            q2=data.Fluorescence.data[data.iscell[roiIndex],:],
-                                                  tmax=100)
-        AX[3].plot(tshift, CCF)
-        AX[3].set_xlabel('time (s)', fontsize=10)
-        AX[3].set_ylabel('correl.', fontsize=10)
-        AX[3].set_title('pupil', fontsize=10)
+    CC, ts = autocorrel_on_NWB_quantity(Q1=None, q1=dFoF, t_q1=data.Neuropil.timestamps[:], tmax=10)
+    AX[1][3].plot(ts, CC, '-', lw=2)
+    AX[1][3].set_xlabel('time (s)', fontsize=10)
+    AX[1][3].set_ylabel('auto correl.', fontsize=10)
+
+    for i, mod, quant, times, unit in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS):
+        
+        AX[2+i][0].set_title(mod+40*' ', fontsize=10, color=plt.cm.tab10(i))
+        
+        if times is None:
+            Q, qq = quant, None
+        else:
+            Q, qq = None, quant
+
+        mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q1=Q, Q2=None,
+                                q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], Npoints=30)
+        
+        AX[2+i][0].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=plt.cm.tab10(i))
+        AX[2+i][0].set_xlabel(unit, fontsize=10)
+        AX[2+i][0].set_ylabel('dF/F', fontsize=10)
+
+        mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q2=Q, Q1=None,
+                                q2=qq, t_q2=times, q1=dFoF, t_q1=data.Neuropil.timestamps[:], Npoints=30)
+        
+        AX[2+i][1].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=plt.cm.tab10(i))
+        AX[2+i][1].set_ylabel(unit, fontsize=10)
+        AX[2+i][1].set_xlabel('dF/F', fontsize=10)
+        
+        CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
+                                q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=180)
+        AX[2+i][2].plot(tshift/60, CCF, '-', color=plt.cm.tab10(i))
+        AX[2+i][2].set_xlabel('time (min)', fontsize=10)
+        AX[2+i][2].set_ylabel('cross correl.', fontsize=10)
+
+        CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
+                         q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=20)
+        AX[2+i][3].plot(tshift, CCF, '-', color=plt.cm.tab10(i))
+        AX[2+i][3].set_xlabel('time (s)', fontsize=10)
+        AX[2+i][3].set_ylabel('cross correl.', fontsize=10)
         
 
     return fig
 
-def find_modalities(data):
-
-    MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
-    if 'Running-Speed' in data.nwbfile.acquisition:
-        MODALITIES.append('Running-Speed')
-        QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
-        TIMES.append(None)
-        UNITS.append('cm/s')
-    if 'Pupil' in data.nwbfile.processing:
-        MODALITIES.append('Pupil')
-        area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
-            data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
-        QUANTITIES.append(area)
-        TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
-        UNITS.append('mm$^2$')
-    if 'Whisking' in data.nwbfile.processing:
-        MODALITIES.append('Whisking')
-        
-    return MODALITIES, QUANTITIES, TIMES, UNITS
-    
 
 def behavior_analysis_fig(data):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
+    n = len(MODALITIES)+(len(MODALITIES)-1)
         
     plt.style.use('ggplot')
-    n = len(MODALITIES)+(len(MODALITIES)-1)
 
     fig, AX = plt.subplots(n, 4, figsize=(11.4, 2.5*n))
     if n==1:
         AX=[AX]
-    plt.subplots_adjust(left=0.06, right=0.98, bottom=0.3/n, wspace=.5, hspace=.6)
+    plt.subplots_adjust(left=0.06, right=0.98, bottom=0.3/n, top=0.95, wspace=.5, hspace=.6)
 
     for i, mod, quant, times, unit in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS):
         color = plt.cm.tab10(i)
@@ -232,19 +271,18 @@ def make_sumary_pdf(filename, Nmax=1000000,
 
     with PdfPages(filename.replace('nwb', 'pdf')) as pdf:
 
-        # summary quantities for experiment
-        print('plotting exp macro analysis ')
-        fig = exp_analysis_fig(data)
+        print('writing experimental metadata ')
+        fig = metadata_fig(data)
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
         
+        print('plotting behavior analysis ')
         fig = behavior_analysis_fig(data)
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
 
-        # plot imaging field of view
-        fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
         print('plotting imaging FOV ')
+        fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
         data.show_CaImaging_FOV(key='meanImg', NL=1, cmap='viridis', ax=AX[0])
         data.show_CaImaging_FOV(key='meanImg', NL=2, cmap='viridis', ax=AX[1])
         data.show_CaImaging_FOV(key='meanImgE', NL=2, cmap='viridis', ax=AX[2])
@@ -380,9 +418,9 @@ if __name__=='__main__':
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
     data = MultimodalData(filename)
-    # fig1 = exp_analysis_fig(data)
-    # fig2 = behavior_analysis_fig(data)
-    fig3 = roi_analysis_fig(data, roiIndex=3)
+    # fig1 = metadata_fig(data)
+    fig2 = behavior_analysis_fig(data)
+    # fig3 = roi_analysis_fig(data, roiIndex=0)
     plt.show()
     
     # make_sumary_pdf(filename)
