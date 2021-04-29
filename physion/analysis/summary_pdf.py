@@ -380,9 +380,9 @@ if __name__=='__main__':
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
     data = MultimodalData(filename)
-    fig1 = exp_analysis_fig(data)
+    # fig1 = exp_analysis_fig(data)
     # fig2 = behavior_analysis_fig(data)
-    # fig3 = roi_analysis_fig(data, roiIndex=3)
+    fig3 = roi_analysis_fig(data, roiIndex=3)
     plt.show()
     
     # make_sumary_pdf(filename)
