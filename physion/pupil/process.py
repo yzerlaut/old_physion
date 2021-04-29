@@ -293,6 +293,7 @@ if __name__=='__main__':
     # parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--maxiter", type=int, default=100)
     parser.add_argument('-s', "--subsampling", type=int, default=1)
+    # parser.add_argument("--gaussian_smoothing", type=float, default=0)
     # parser.add_argument("--ellipse", type=float, default=[], nargs=)
     # parser.add_argument("--gaussian_smoothing", type=float, default=0)
     # parser.add_argument('-df', "--datafolder", default='./')
