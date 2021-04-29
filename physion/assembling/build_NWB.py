@@ -252,9 +252,14 @@ def build_NWB(args,
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                             description='processed quantities of Pupil dynamics')
                 
-                for key in ['cx', 'cy', 'sx', 'sy', 'blinking']:
+                if 'cm_to_pix' in data: # SCALE FROM THE PUPIL GUI
+                    pix_to_mm = 10./data['cm_to_pix'] # IN MILLIMETERS FROM HERE
+                else:
+                    pix_to_mm = 1
+                    
+                for key, scale in zip(['cx', 'cy', 'sx', 'sy', 'blinking'], [pix_to_mm for i in range(4)]+[1]):
                     if type(data[key]) is np.ndarray:
-                        PupilProp = pynwb.TimeSeries(name=key,
+                        PupilProp = pynwb.TimeSeries(name=key*scale,
                                                      data = data[key],
                                                      unit='seconds',
                                                      timestamps=FC_times)

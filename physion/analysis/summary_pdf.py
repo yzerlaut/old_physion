@@ -85,8 +85,7 @@ def roi_analysis_fig(data, roiIndex=0):
 
     return fig
 
-
-def behavior_analysis_fig(data):
+def find_modalities(data):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
     if 'Running-Speed' in data.nwbfile.acquisition:
@@ -96,13 +95,20 @@ def behavior_analysis_fig(data):
         UNITS.append('cm/s')
     if 'Pupil' in data.nwbfile.processing:
         MODALITIES.append('Pupil')
-        diameter=data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
+        area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
             data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
         QUANTITIES.append(diameter)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
         UNITS.append('mm$^2$')
     if 'Whisking' in data.nwbfile.processing:
         MODALITIES.append('Whisking')
+        
+    return MODALITIES, QUANTITIES, TIMES, UNITS
+    
+
+def behavior_analysis_fig(data):
+
+    MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
         
     plt.style.use('ggplot')
     n = len(MODALITIES)+(len(MODALITIES)-1)
