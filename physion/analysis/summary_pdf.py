@@ -31,16 +31,39 @@ def raw_data_plot_settings(data):
 def exp_analysis_fig(data):
     
     plt.style.use('ggplot')
-    fig, ax = plt.subplots(1, figsize=(11.4, 2))
-    plt.subplots_adjust(left=0.01, right=0.97, bottom=0.3, wspace=1.)
+    fig, ax = plt.subplots(1, figsize=(11.4, 3.5))
+    plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.99)
 
     s=''
     for key in ['protocol', 'subject_ID', 'notes']:
         s+='- %s :\n    "%s" \n' % (key, data.metadata[key])
-    s += '- completed:\n       n=%i/%i episodes' %(data.nwbfile.stimulus['time_start_realigned'].data.shape[0], data.nwbfile.stimulus['time_start'].data.shape[0])
+    s += '- completed:\n       n=%i/%i episodes' %(data.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+                                                   data.nwbfile.stimulus['time_start'].data.shape[0])
     ax.annotate(s, (0,1), va='top', fontsize=9)
+    s=''
+    for key in data.metadata['subject_props']:
+        s+='- %s :  "%s" \n' % (key, data.metadata['subject_props'][key])
+    ax.annotate(s, (0.3,1), va='top', fontsize=8)
+
+    s=''
+    for i, key in enumerate(data.metadata):
+        s+='- %s :  "%s"' % (key, str(data.metadata[key])[-20:])
+        if i%3==2:
+            s+='\n'
+    ax.annotate(s, (1,1), va='top', ha='right', fontsize=6)
+    
     ax.axis('off')
 
+    s, ds ='', 150
+    for key in data.nwbfile.devices:
+        S = str(data.nwbfile.devices[key])
+        print(S[:100], len(S))
+        i=0
+        while i<len(S)-ds:
+            s += S[i:i+ds]+'\n'
+            i+=ds
+    ax.annotate(s, (0,0), fontsize=6)
+        
     return fig
 
 
@@ -97,7 +120,7 @@ def find_modalities(data):
         MODALITIES.append('Pupil')
         area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
             data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
-        QUANTITIES.append(diameter)
+        QUANTITIES.append(area)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
         UNITS.append('mm$^2$')
     if 'Whisking' in data.nwbfile.processing:
@@ -357,9 +380,9 @@ if __name__=='__main__':
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
     data = MultimodalData(filename)
-    # fig1 = exp_analysis_fig(data)
+    fig1 = exp_analysis_fig(data)
     # fig2 = behavior_analysis_fig(data)
-    fig3 = roi_analysis_fig(data, roiIndex=3)
+    # fig3 = roi_analysis_fig(data, roiIndex=3)
     plt.show()
     
     # make_sumary_pdf(filename)
