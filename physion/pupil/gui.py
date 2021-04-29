@@ -19,6 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
                  args=None,
                  parent=None,
                  gaussian_smoothing=2,
+                 mm_scale_px=10,
                  subsampling=1000):
         """
         sampling in Hz
@@ -61,6 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
+        self.mm_scale_px = mm_scale_px
         
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -209,7 +211,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.smoothBox = QtGui.QLineEdit()
         self.smoothBox.setText(str(self.gaussian_smoothing))
         self.smoothBox.setFixedWidth(30)
-        
+
+        scaleLabel = QtGui.QLabel("1mm = (px)")
+        scaleLabel.setStyleSheet("color: gray;")
+        self.scaleBox = QtGui.QLineEdit()
+        self.scaleBox.setText(str(self.mm_scale_px))
+        self.scaleBox.setFixedWidth(30)
+
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
@@ -226,6 +234,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
 
+        self.printSize = QtGui.QPushButton('print ROI size')
+        self.printSize.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.printSize.clicked.connect(self.print_size)
+        
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
@@ -248,6 +260,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
         self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
         self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
+        self.l0.addWidget(scaleLabel, 10, 0, 1, 3)
+        self.l0.addWidget(self.scaleBox, 10, 2, 1, 3)
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.process, 16, 0, 1, 3)
         self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
@@ -255,6 +269,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
         self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
         self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
+        self.l0.addWidget(self.printSize, 26, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -365,7 +380,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
-        
+
+    def print_size():
+        print('x, y, sx, sy = ', self.pupil.extract_props())
+
     def add_ROI(self):
 
         if self.ROI is not None:
@@ -539,6 +557,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.data['shape'] = 'circle'
         self.data['gaussian_smoothing'] = int(self.smoothBox.text())
+        self.data['cm_to_pix'] = int(self.scaleBox.text())
         self.data = process.clip_to_finite_values(self.data)
         # if self.times is not None:
             

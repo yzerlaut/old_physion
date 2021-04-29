@@ -204,6 +204,7 @@ def clip_to_finite_values(data):
     return data
 
 
+
 def preprocess(cls, with_reinit=True,
                img=None,
                gaussian_smoothing=0, saturation=100):
