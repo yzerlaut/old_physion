@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(350, 470, 300, 220)
+        self.setGeometry(350, 470, 300, 260)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -54,6 +54,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.activated.connect(self.update_setting)
         self.cbc.addItems(list(PREPROCESSING_SETTINGS.keys()))
 
+        HEIGHT += 40
+        QtWidgets.QLabel("   delay ?", self).move(10, HEIGHT)
+        self.delayBox = QtWidgets.QComboBox(self)
+        self.delayBox.setMinimumWidth(150)
+        self.delayBox.move(100, HEIGHT)
+        self.delayBox.addItems(['None', '10min', '1h', '2h', '10h', '20h'])
+        
         HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -76,7 +83,10 @@ class MainWindow(QtWidgets.QMainWindow):
         print('command set is reset !')
     
     def build_cmd(self, folder, key):
-        return 'sleep 1h;python %s --CaImaging_folder %s --setting_key %s -v' % (self.process_script, folder, key)
+        delay = ''
+        if self.delayBox.currentText()!='None':
+            delay = 'sleep %s; ' % self.delayBox.currentText()
+        return delay+'python %s --CaImaging_folder %s --setting_key %s -v' % (self.process_script, folder, key)
     
     def load_imaging(self):
 
