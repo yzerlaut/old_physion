@@ -420,7 +420,6 @@ class visual_stim:
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
-                print(self.experiment['interstim'][i])
                 self.inter_screen(parent, duration=self.experiment['interstim'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
@@ -539,7 +538,7 @@ class multiprotocol(visual_stim):
         for IS, stim in enumerate(self.STIM):
             for i in range(len(stim.experiment['index'])):
                 for key in self.experiment:
-                    if key in stim.experiment:
+                    if (key in stim.experiment):
                         self.experiment[key].append(stim.experiment[key][i])
                     elif key not in ['protocol_id', 'time_duration']:
                         self.experiment[key].append(None)
@@ -673,10 +672,10 @@ class oddball_full_field_grating_stim(visual_stim):
         # plt.show()
 
         self.experiment['interstim'] = protocol['mean-interstim (s)']+\
-            np.random.randn(Ntot-1)*protocol['jitter-interstim (s)']
+            np.random.randn(Ntot)*protocol['jitter-interstim (s)']
         self.experiment['time_start'] = np.cumsum(\
                 np.concatenate([[protocol['presentation-prestim-period']],\
-                                protocol['stim-duration (s)']+self.experiment['interstim']]))
+                                protocol['stim-duration (s)']+self.experiment['interstim'][:-1]]))
         self.experiment['time_stop'] = protocol['stim-duration (s)']+self.experiment['time_start']
         self.experiment['time_duration'] = protocol['stim-duration (s)']*np.ones(Ntot)
 

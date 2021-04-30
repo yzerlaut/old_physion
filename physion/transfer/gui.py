@@ -227,7 +227,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def quit(self):
         QtWidgets.QApplication.quit()
 
-        
+
 def run(app, args=None, parent=None):
     return MainWindow(app,
                       args=args,
@@ -235,14 +235,14 @@ def run(app, args=None, parent=None):
 
 if __name__=='__main__':
 
-    # app = QtWidgets.QApplication(sys.argv)
-    # main = run(app)
-    # sys.exit(app.exec_())
+    app = QtWidgets.QApplication(sys.argv)
+    main = run(app)
+    sys.exit(app.exec_())
 
-    import time
-    wait = 3.
-    passwd = input('password ? ')
-    print('waiting %i min [...]' % wait)
-    time.sleep(wait)
-    os.system('sshpass -p %s rsync yann@10.100.185.25:~/test.txt ~/test.txt' % passwd)
+    # import time
+    # wait = 3.
+    # passwd = input('password ? ')
+    # print('waiting %i min [...]' % wait)
+    # time.sleep(wait)
+    # os.system('sshpass -p %s rsync yann@10.100.185.25:~/test.txt ~/test.txt' % passwd)
 

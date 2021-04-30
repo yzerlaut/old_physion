@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
                  args=None,
                  parent=None,
                  gaussian_smoothing=2,
-                 mm_scale_px=10,
+                 cm_scale_px=570,
                  subsampling=1000):
         """
         sampling in Hz
@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
-        self.mm_scale_px = mm_scale_px
+        self.cm_scale_px = cm_scale_px
         
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -212,10 +212,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.smoothBox.setText(str(self.gaussian_smoothing))
         self.smoothBox.setFixedWidth(30)
 
-        scaleLabel = QtGui.QLabel("1mm = (px)")
+        scaleLabel = QtGui.QLabel("1cm = (px)")
         scaleLabel.setStyleSheet("color: gray;")
         self.scaleBox = QtGui.QLineEdit()
-        self.scaleBox.setText(str(self.mm_scale_px))
+        self.scaleBox.setText(str(self.cm_scale_px))
         self.scaleBox.setFixedWidth(30)
 
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
@@ -381,8 +381,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
 
-    def print_size():
-        print('x, y, sx, sy = ', self.pupil.extract_props())
+    def print_size(self):
+        print('x, y, sx, sy = ', self.ROI.extract_props())
 
     def add_ROI(self):
 
