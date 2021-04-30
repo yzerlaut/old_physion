@@ -1,10 +1,10 @@
 {
   "Presentation": "Single-Stimulus",
   "Stimulus": "oddball-full-field-grating",
-  "Screen": "Dell-2020",
-  "presentation-duration": 5.0,
-  "presentation-prestim-period": 2.0,
-  "presentation-poststim-period": 2.0,
+  "Screen": "",
+  "presentation-duration": 2.0,
+  "presentation-prestim-period": 3.0,
+  "presentation-poststim-period": 3.0,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
   "angle-redundant (deg)": 135.0,
@@ -15,10 +15,10 @@
   "spatial-freq (cycle/deg)": 0.04,
   "contrast (norm.)": 1.0,
   "stim-duration (s)": 2.0,
-  "mean-interstim (s)": 4.0,
+  "mean-interstim (s)": 3.0,
   "jitter-interstim (s)": 0.5,
   "presentation-interstim-screen (lum.)": 0.0,
   "N_repeat (#)": 20.0,
-  "data-folder": "/home/yann/DATA/2021_04_23/17-21-59",
+  "data-folder": "",
   "protocol-folder": "/home/yann/work/physion/physion/exp/protocols"
 }
