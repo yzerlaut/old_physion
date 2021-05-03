@@ -1,6 +1,5 @@
 {
     "Mouse1_VIP-Cre":{"description":"Mouse1_VIP-Cre",
-		      "aka":"George Benson",
 		      "strain":"C57B6/J",
 		      "sex":"Male",
 		      "genotype":"VIP-Cre",
@@ -11,7 +10,6 @@
 		      "surgery":"",
 		      "date_of_birth":"2020_08_07"},
     "Mouse1_WT":{"description":"Mouse1_WT",
-		 "aka":"Tommy Emmanuel",
 		 "sex":"Male",
 		 "strain":"C57B6/J",
 		 "genotype":"Wild-Type",
@@ -22,7 +20,6 @@
 		 "surgery":"",
 		 "date_of_birth":"2020_12_07"},
     "Mouse2_WT":{"description":"Mouse1_WT",
-		 "aka":"Martin Taylor",
 		 "sex":"Male",
 		 "strain":"C57B6/J",
 		 "genotype":"Wild-Type",
