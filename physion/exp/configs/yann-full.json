@@ -1,0 +1,19 @@
+{
+    "NIdaq-acquisition-frequency":10000,
+    "NIdaq-analog-input-channels":1,
+    "NIdaq-digital-input-channels":2,
+    "Screen":"Dell-2020",
+    "FaceCamera-frame-rate":10,
+    "STEP_FOR_CA_IMAGING_TRIGGER":{"channel":0,
+				   "onset": 0.1,
+				   "duration":0.3,
+				   "value":5.0},
+    "rotating-disk":{"radius-position-on-disk-cm":5.0,
+		     "roto-encoder-value-per-rotation": 2000.0},
+    "root_datafolder":"DATA",
+    "subjects_file":"mice_yann.json",
+    "experimenter":"Yann Zerlaut",
+    "lab":"Rebola and Bacci labs",
+    "institution":"Institut du Cerveau et de la Moelle, Paris",
+    "protocols":"all"
+}
