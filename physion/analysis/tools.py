@@ -198,7 +198,8 @@ def crosshistogram_on_NWB_quantity(Q1=None, Q2=None,
                                    q1=None,
                                    t_q2=None,
                                    q2=None,
-                                   Npoints=30):
+                                   Npoints=30,
+                                   Nmin=20):
 
     # Q1 signal
     if (t_q1 is not None) and (q1 is not None):
@@ -242,7 +243,7 @@ def crosshistogram_on_NWB_quantity(Q1=None, Q2=None,
         mean_q2, var_q2 = [], []
         for i, b in enumerate(np.unique(bins)):
             cond = (bins==b)
-            if len(cond)>1:
+            if np.sum(cond)>Nmin:
                 mean_q1.append(q1[cond].mean())
                 var_q1.append(q1[cond].std())
                 mean_q2.append(new_q2[cond].mean())

@@ -32,6 +32,14 @@ class MultimodalData(Data):
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
         ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+
+
+    def add_Electrophy(self, tlim, ax,
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='grey'):
+        i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Electrophysiological-Signal'])
+        x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
+        y = self.nwbfile.acquisition['Electrophysiological-Signal'].data[i1:i2][::subsampling]
+        ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
         
     def add_Locomotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=10, color='red'):
@@ -93,7 +101,7 @@ class MultimodalData(Data):
         ax.plot(tt, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
             
     def add_VisualStim(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=0.05,
+                       fig_fraction_start=0., fig_fraction=0.05, size=0.05,
                        color='k'):
         if self.visual_stim is None:
             self.init_visual_stim()
@@ -109,7 +117,7 @@ class MultimodalData(Data):
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
             x0, y0 = ax_pos.x0+ax_pos.width*(tstart-tlim[0])/(tlim[1]-tlim[0]), ax_pos.y0+ax_pos.height
             width = ax_pos.width/2./np.sum(cond)
-            axi = plt.axes([x0, ax_pos.y1, width, width*2*sy/sx])
+            axi = plt.axes([(tstart-tlim[0])/(tlim[1]-tlim[0]), 0.99, size, size])
             # add arrow if drifting stim
             if (self.nwbfile.stimulus['frame_run_type'].data[i]=='drifting'):
                 arrow={'direction':self.nwbfile.stimulus['angle'].data[i],
@@ -143,7 +151,6 @@ class MultimodalData(Data):
             settings[key]['fig_fraction'] = settings[key]['fig_fraction']/fig_fraction_full
             fstart += settings[key]['fig_fraction']
         for key in settings:
-            print(key)
             getattr(self, 'add_%s' % key)(tlim, ax, **settings[key])
             ax.annotate(key, (tlim[0],
                            settings[key]['fig_fraction_start']+settings[key]['fig_fraction']/2.0),

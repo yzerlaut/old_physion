@@ -66,7 +66,7 @@ def build_NWB(args,
                                  species=(subject_props['species'] if ('species' in subject_props) else 'Unknown'),
                                  subject_id=(subject_props['subject_id'] if ('subject_id' in subject_props) else 'Unknown'),
                                  weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
-                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1])))
+                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1]),tzinfo=tzlocal()))
                                  
     nwbfile = pynwb.NWBFile(identifier=identifier,
                             session_description=str(metadata),
@@ -81,7 +81,7 @@ def build_NWB(args,
                             subject=subject,
                             source_script=str(pathlib.Path(__file__).resolve()),
                             source_script_file_name=str(pathlib.Path(__file__).resolve()),
-                            file_create_date=datetime.datetime.today())
+                            file_create_date=datetime.datetime.utcnow().replace(tzinfo=tzlocal()))
     
     filename = os.path.join(pathlib.Path(args.datafolder).parent, '%s.nwb' % identifier)
     
@@ -249,18 +249,20 @@ def build_NWB(args,
                 data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                allow_pickle=True).item()
 
-                pupil_module = nwbfile.create_processing_module(name='Pupil', 
-                            description='processed quantities of Pupil dynamics')
-                
                 if 'cm_to_pix' in data: # SCALE FROM THE PUPIL GUI
-                    pix_to_mm = 10./data['cm_to_pix'] # IN MILLIMETERS FROM HERE
+                    print(data['cm_to_pix'])
+                    pix_to_mm = 10./float(data['cm_to_pix']) # IN MILLIMETERS FROM HERE
                 else:
                     pix_to_mm = 1
                     
+                pupil_module = nwbfile.create_processing_module(name='Pupil', 
+                                        description='processed quantities of Pupil dynamics, pix_to_mm=%.3f' % pix_to_mm)
+                
+                    
                 for key, scale in zip(['cx', 'cy', 'sx', 'sy', 'blinking'], [pix_to_mm for i in range(4)]+[1]):
                     if type(data[key]) is np.ndarray:
-                        PupilProp = pynwb.TimeSeries(name=key*scale,
-                                                     data = data[key],
+                        PupilProp = pynwb.TimeSeries(name=key,
+                                                     data = data[key]*scale,
                                                      unit='seconds',
                                                      timestamps=FC_times)
                         pupil_module.add(PupilProp)

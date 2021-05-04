@@ -81,6 +81,8 @@ class TrialAverageWindow(NewWindow):
         self.roiPick.returnPressed.connect(self.select_ROI)
         self.roiPick.setFont(smallfont)
         self.Layout12.addWidget(self.roiPick)
+        self.baselineCB = QtGui.QCheckBox("baseline substraction")
+        self.Layout12.addWidget(self.baselineCB)
 
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.computeBtn = QtWidgets.QPushButton('[Ctrl+C]ompute episodes', self)
@@ -144,6 +146,7 @@ class TrialAverageWindow(NewWindow):
                                        quantity=self.qbox.currentText(),
                                        dt_sampling=self.samplingBox.value(), # ms
                                        interpolation='linear',
+                                       baseline_substraction=self.baselineCB.isChecked(),
                                        verbose=True)
         else:
             print(' /!\ Pick a protocol an a quantity')
@@ -271,6 +274,7 @@ def build_episodes(self,
                    prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
                    dt_sampling=1, # ms
                    interpolation='linear',
+                   baseline_substraction=False,
                    verbose=True):
 
     EPISODES = {'dt_sampling':dt_sampling,
@@ -301,7 +305,7 @@ def build_episodes(self,
     
     # new sampling
     if prestim_duration is None:
-        prestim_duration = np.min(parent.nwbfile.stimulus['time_duration'].data[:])/2. # half the stim duration
+        prestim_duration = np.min(parent.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
     ipre = int(prestim_duration/dt_sampling*1e3)
         
     duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
@@ -334,7 +338,11 @@ def build_episodes(self,
         func = interp1d(tfull[cond]-tstart, valfull[cond],
                         kind=interpolation)
         try:
-            EPISODES['resp'].append(func(EPISODES['t']))
+            if baseline_substraction:
+                y = func(EPISODES['t'])
+                EPISODES['resp'].append(y-np.mean(y[EPISODES['t']<0]))
+            else:
+                EPISODES['resp'].append(func(EPISODES['t']))
             for key in parent.nwbfile.stimulus.keys():
                 EPISODES[key].append(parent.nwbfile.stimulus[key].data[iEp])
         except BaseException as be:
@@ -363,7 +371,8 @@ if __name__=='__main__':
     sys.path.append('/home/yann/work/physion')
     from physion.analysis.read_NWB import read as read_NWB
     
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
+    # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
+    filename = sys.argv[-1]
     
     class Parent:
         def __init__(self, filename=''):

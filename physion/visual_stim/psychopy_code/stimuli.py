@@ -594,7 +594,7 @@ class light_level_single_stim(visual_stim):
     
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return 0*self.x+(1+cls.experiment['light-level'][index])/2.
+        return 0*self.x+(1+cls.experiment['light-level'][episode])/2.
     
 
 

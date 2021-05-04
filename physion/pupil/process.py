@@ -78,16 +78,19 @@ def perform_fit(cls,
         residual = circle_residual
         initial_guess = [c0[0], c0[1], np.mean(s0)]
 
-    res = minimize(residual, initial_guess,
-                   bounds=[(c0[0]-s0[0],c0[0]+s0[0]),
-                           (c0[1]-s0[1],c0[1]+s0[1]),
-                           (1,2*s0[0]), (1,2*s0[1])],
-                   args=(cls),
-                   method='TNC',
-                   # method='Nelder-Mead',
-                   tol=1e-8, options={'maxiter':maxiter})
+    try:
+        res = minimize(residual, initial_guess,
+                       bounds=[(c0[0]-s0[0],c0[0]+s0[0]),
+                               (c0[1]-s0[1],c0[1]+s0[1]),
+                               (1,2*s0[0]), (1,2*s0[1])],
+                       args=(cls),
+                       method='TNC',
+                       # method='Nelder-Mead',
+                       tol=1e-8, options={'maxiter':maxiter})
 
-    return res.x, None, res.fun
+        return res.x, None, res.fun
+    except ValueError:
+        return initial_guess, None, 1e8
 
 
 def perform_loop(parent,
