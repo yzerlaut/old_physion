@@ -40,18 +40,19 @@ def adapt_to_screen_resolution(img, new_screen_size):
     return spline_approx(new_X, new_Y).T
 
     
-# if __name__=='__main__':
+if __name__=='__main__':
 
-#     from datavyz import ge
-#     NI_directory = '../'
-#     image_number = 0
-#     filename = os.listdir(NI_directory)[image_number]
-#     img = load(os.path.join(NI_directory, filename))
+    from datavyz import ge
+    NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
+    
+    image_number = 0
+    filename = os.listdir(NI_directory)[image_number]
+    img = load(os.path.join(NI_directory, filename))
 
-#     SCREEN = {'width':20, 'height':12, 'Xd_max':1200, 'Yd_max':800}
-#     rescaled_img = adapt_to_screen_resolution(img, SCREEN)
-#     rescaled_img = img_after_hist_normalization(rescaled_img)
+    SCREEN = {'width':20, 'height':12, 'Xd_max':1200, 'Yd_max':800}
+    # rescaled_img = adapt_to_screen_resolution(img, SCREEN)
+    rescaled_img = img_after_hist_normalization(img)
 
 
-#     ge.image(rescaled_img)
-#     ge.show()
+    ge.image(rescaled_img)
+    ge.show()

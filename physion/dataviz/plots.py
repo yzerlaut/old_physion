@@ -97,7 +97,6 @@ def raw_data_plot(self, tzoom,
         
         iplot+=1
 
-
         coords = []
         if hasattr(self, 'fit'):
             self.fit.remove(self)
@@ -105,7 +104,7 @@ def raw_data_plot(self, tzoom,
         if t_pupil_frame is not None:
             i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
+                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.FaceCamera_mm_to_pix)
             self.fit = roi.pupilROI(moveable=False,
                                     parent=self,
                                     color=(125, 0, 0),

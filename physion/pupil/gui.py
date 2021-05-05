@@ -335,6 +335,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if os.path.isfile(os.path.join(self.datafolder, 'pupil.npy')):
                 self.data = np.load(os.path.join(self.datafolder, 'pupil.npy'),
                                     allow_pickle=True).item()
+                
                 if self.nframes is None:
                     self.nframes = self.data['frame'].max()
                 
@@ -343,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.sl.setValue(self.data['ROIsaturation'])
                 self.ROI = roi.sROI(parent=self,
                                     pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
-                self.plot_pupil_trace()
+                # self.plot_pupil_trace()
                 
             else:
                 self.data = None
