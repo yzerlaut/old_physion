@@ -1101,8 +1101,11 @@ def generate_VSE(duration=5,
     tsaccades = np.cumsum(np.clip(mean_saccade_duration+np.abs(np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
                                   mean_saccade_duration/2., 1.5*mean_saccade_duration))
 
-    x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 0, 2*saccade_amplitude), dtype=int)
-    y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 0, 2*saccade_amplitude), dtype=int)
+    x = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
+    y = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
+    
+    # x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
+    # y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     
     return {'t':np.array([0]+list(tsaccades)),
             'x':np.array([0]+list(x)),
@@ -1138,6 +1141,10 @@ class natural_image_vse(visual_stim):
     def compute_shifted_image(self, img, ix, iy):
         sx, sy = img.shape
         new_im = np.zeros(img.shape)
+        print(img[:sx-ix,:sy-iy].shape)
+        print(img[sx-ix:,:].shape)
+        print(img[:,sy-iy:].shape)
+        print(img[sx-ix:,sy-iy:].shape)
         new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
         new_im[:ix,:] = img[sx-ix:,:]
         new_im[:,:iy] = img[:,sy-iy:]

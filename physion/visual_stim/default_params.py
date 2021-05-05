@@ -210,7 +210,7 @@ STIMULI = {
     # NI
     'Natural-Image':{
         'Image-ID (#)':1,
-        'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5},
+        'Image-ID-1':0,'Image-ID-2':5,'N-Image-ID':6},
 
     'Natural-Image+VSE':{
         'Image-ID (#)':1,
@@ -223,7 +223,7 @@ STIMULI = {
         'vary-VSE-with-Image-1':0,'vary-VSE-with-Image-2':1,'N-vary-VSE-with-Image':0,
         'mean-saccade-duration-1':0.01,'mean-saccade-duration-2':100.,'N-mean-saccade-duration':0,
         'std-saccade-duration-1':0.01,'std-saccade-duration-2':100.,'N-std-saccade-duration':0,
-        'Image-ID-1':1,'Image-ID-2':5,'N-Image-ID':5,
+        'Image-ID-1':0,'Image-ID-2':5,'N-Image-ID':6,
         'VSE-seed-1':1,'VSE-seed-2':5,'N-VSE-seed':1},
     
     'sparse-noise':{
