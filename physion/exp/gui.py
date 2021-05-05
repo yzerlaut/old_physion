@@ -78,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
                        self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
-        for button in [self.VisualStimButton, self.LocomotionButton]:
+        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton]:
             button.setChecked(True)
             
         # config choice

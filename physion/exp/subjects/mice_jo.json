@@ -1,0 +1,22 @@
+{
+    "Mouse1":{"description":"Mouse1",
+		 "anibio":"Unknown",
+		 "sex":"Unknown",
+		 "genotype":"Unknown",
+		 "species":"Mouse",
+		 "subject_id":"Mouse1",
+		 "weight":"Unknown",
+		 "virus":"Unknown",
+		 "surgery":"Unknown",
+  		 "date_of_birth":"2020_10_01"},
+    "Mouse2":{"description":"Mouse2",
+		 "anibio":"Unknown",
+		 "sex":"Unknown",
+		 "genotype":"Unknown",
+		 "species":"Mouse",
+		 "subject_id":"Mouse2",
+		 "weight":"Unknown",
+		 "virus":"Unknown",
+		 "surgery":"Unknown",
+  		 "date_of_birth":"2020_10_01"}
+}
