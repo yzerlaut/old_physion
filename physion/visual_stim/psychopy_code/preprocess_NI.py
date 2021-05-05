@@ -23,21 +23,20 @@ def img_after_hist_normalization(img):
     return new_img.reshape(img.shape)
 
 
-def adapt_to_screen_resolution(img, new_screen_size):
+def adapt_to_screen_resolution(img, new_screen):
 
     print('Adapting image to chosen screen resolution [...]')
     
     old_X = np.arange(img.shape[0])
     old_Y = np.arange(img.shape[1])
     
-    new_X = np.arange(new_screen_size[0])
-    new_Y = np.arange(new_screen_size[1])
+    new_X = np.linspace(0, img.shape[0], new_screen['resolution'][0])
+    new_Y = np.linspace(0, img.shape[1], new_screen['resolution'][1])
 
-    new_img = np.zeros(new_screen_size)
-    
+    new_img = np.zeros(new_screen['resolution'])
     spline_approx = interp2d(old_X, old_Y, img.T, kind='linear')
     
-    return spline_approx(new_X, new_Y).T
+    return spline_approx(new_X, new_Y)
 
     
 if __name__=='__main__':
@@ -49,10 +48,9 @@ if __name__=='__main__':
     filename = os.listdir(NI_directory)[image_number]
     img = load(os.path.join(NI_directory, filename))
 
-    SCREEN = {'width':20, 'height':12, 'Xd_max':1200, 'Yd_max':800}
-    # rescaled_img = adapt_to_screen_resolution(img, SCREEN)
-    rescaled_img = img_after_hist_normalization(img)
-
-
+    SCREEN = {'width':20, 'height':12, 'resolution':(1200, 800)}
+    rescaled_img = adapt_to_screen_resolution(img, SCREEN)
+    rescaled_img = img_after_hist_normalization(rescaled_img).T
+    print(rescaled_img.shape)
     ge.image(rescaled_img)
     ge.show()
