@@ -8,6 +8,8 @@
 				   "onset": 0.1,
 				   "duration":0.3,
 				   "value":5.0},
+    "rotating-disk":{"radius-position-on-disk-cm":7.0,
+		     "roto-encoder-value-per-rotation": 2000.0},
     "root_datafolder":"DATA",
     "subjects_file":"mice_jo.json",
     "experimenter":"Joana Lourenco",
