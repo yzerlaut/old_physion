@@ -1070,8 +1070,7 @@ class natural_image(visual_stim):
         for filename in os.listdir(NI_directory):
             img = load(os.path.join(NI_directory, filename))
             new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img).T-1.)
-        
+            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
 
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1135,7 +1134,7 @@ class natural_image_vse(visual_stim):
         for filename in os.listdir(NI_directory):
             img = load(os.path.join(NI_directory, filename))
             new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img).T-1.)
+            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
 
 
     def compute_shifted_image(self, img, ix, iy):
