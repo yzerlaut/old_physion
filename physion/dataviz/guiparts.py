@@ -157,7 +157,7 @@ def load_config1(self,
     # folder box
     self.fbox = QtWidgets.QComboBox(self)
     self.fbox.setFont(smallfont)
-    # self.fbox.activated.connect(self.select_folder)
+    self.fbox.activated.connect(self.scan_folder)
     self.fbox.setMaximumHeight(selector_height)
     self.folder_default_key = '  [root datafolder]'
     self.fbox.addItem(self.folder_default_key)

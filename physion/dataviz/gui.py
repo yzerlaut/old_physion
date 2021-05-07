@@ -132,8 +132,8 @@ class MainWindow(guiparts.NewWindow):
         else:
             self.visual_stim = None
             print(' /!\ No stimulation in this recording /!\  ')
-            
-            
+
+
     def scan_folder(self):
 
         print('inspecting the folder "%s" [...]' % FOLDERS[self.fbox.currentText()])
@@ -151,8 +151,10 @@ class MainWindow(guiparts.NewWindow):
                                            self.highlight_format)
                 self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
                                          for f in np.array(FILES)[DATES==d]]
-            except ValueError:
-                pass
+            except BaseException as be:
+                print(be)
+            # except ValueError:
+            #     pass
             
         print(' -> found n=%i datafiles ' % len(FILES))
         
