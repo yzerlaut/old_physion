@@ -11,7 +11,7 @@ except ModuleNotFoundError:
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
 from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
-from psychopy_code.preprocess_NI import load, img_after_hist_normalization
+from psychopy_code.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 def build_stim(protocol, no_psychopy=False):
     """
@@ -1069,7 +1069,8 @@ class natural_image(visual_stim):
         self.NIarray = []
         for filename in os.listdir(NI_directory):
             img = load(os.path.join(NI_directory, filename))
-            self.NIarray.append(2*img_after_hist_normalization(img).T-1.)
+            new_img = adapt_to_screen_resolution(img, self.screen)
+            self.NIarray.append(2*img_after_hist_normalization(new_img).T-1.)
         
 
     def get_frame(self, index, parent=None):
@@ -1133,18 +1134,21 @@ class natural_image_vse(visual_stim):
         self.NIarray = []
         for filename in os.listdir(NI_directory):
             img = load(os.path.join(NI_directory, filename))
-            self.NIarray.append(2*img_after_hist_normalization(img).T-1.)
+            new_img = adapt_to_screen_resolution(img, self.screen)
+            self.NIarray.append(2*img_after_hist_normalization(new_img).T-1.)
 
-        # VSE
-        
 
     def compute_shifted_image(self, img, ix, iy):
+        """
+        translate saccdes in degree in pixels here
+        """
         sx, sy = img.shape
         new_im = np.zeros(img.shape)
-        print(img[:sx-ix,:sy-iy].shape)
-        print(img[sx-ix:,:].shape)
-        print(img[:,sy-iy:].shape)
-        print(img[sx-ix:,sy-iy:].shape)
+        print(sx, sy, ix, iy)
+	# print(img[:sx-ix,:sy-iy].shape)
+        # print(img[sx-ix:,:].shape)
+        # print(img[:,sy-iy:].shape)
+        # print(img[sx-ix:,sy-iy:].shape)
         new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
         new_im[:ix,:] = img[sx-ix:,:]
         new_im[:,:iy] = img[:,sy-iy:]
