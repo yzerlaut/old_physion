@@ -21,7 +21,8 @@ def remove_size_props(o, fcol=False, button=False, image=False):
         o.setMaximumHeight(500) # just a max width for the first column
     else:
         o.setMaximumWidth(int(1e5))
-    
+
+
 def create_calendar(self, Layout, min_date=(2020, 8, 1)):
     
     self.cal = QtWidgets.QCalendarWidget(self)

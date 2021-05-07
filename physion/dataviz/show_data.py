@@ -107,7 +107,7 @@ class MultimodalData(Data):
             self.init_visual_stim()
         cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]>tlim[0]) &\
             (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tlim[1])
-        ylevel = fig_fraction_start+fig_fraction
+        ylevel = fig_fraction_start+fig_fraction/2.
         sx, sy = self.visual_stim.screen['resolution']
         ax_pos = ax.get_position()
         for i in np.arange(self.nwbfile.stimulus['time_start_realigned'].num_samples)[cond]:
@@ -115,9 +115,8 @@ class MultimodalData(Data):
             tstop = self.nwbfile.stimulus['time_stop_realigned'].data[i]
             ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
-            x0, y0 = ax_pos.x0+ax_pos.width*(tstart-tlim[0])/(tlim[1]-tlim[0]), ax_pos.y0+ax_pos.height
-            width = ax_pos.width/2./np.sum(cond)
-            axi = plt.axes([(tstart-tlim[0])/(tlim[1]-tlim[0]), 0.99, size, size])
+            axi = ax.inset_axes([tstart, 0.99, (tstop-tstart), size], transform=ax.transData)
+            axi.axis('equal')
             # add arrow if drifting stim
             if (self.nwbfile.stimulus['frame_run_type'].data[i]=='drifting'):
                 arrow={'direction':self.nwbfile.stimulus['angle'].data[i],
@@ -157,10 +156,10 @@ class MultimodalData(Data):
                         color=(settings[key]['color'] if settings[key]['color']!='tab' else 'k'),
                         fontsize=8, ha='right')
         ax.axis('off')
-        ax.plot([tlim[1]-Tbar, tlim[1]], [0,0], lw=2, color='k')
+        ax.plot([tlim[0], tlim[0]+Tbar], [1.,1.], lw=2, color='k')
         ax.set_xlim([tlim[0]-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
         ax.set_ylim([-0.05,1.05])
-        ax.annotate(' %is' % Tbar, [tlim[1], 0], color='k', fontsize=9)
+        ax.annotate(' %is' % Tbar, [tlim[0], 1.02], color='k', fontsize=9)
         
         return fig, ax
         

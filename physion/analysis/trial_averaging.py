@@ -288,6 +288,9 @@ def build_episodes(self,
         Pcond = (parent.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
     else:
         Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+    # limiting to available episodes
+    Pcond[np.arange(len(Pcond))>=parent.nwbfile.stimulus['time_start_realigned'].num_samples] = False
+    
     if verbose:
         print('Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
 
@@ -304,8 +307,10 @@ def build_episodes(self,
     self.Pcond = Pcond # protocol condition
     
     # new sampling
-    if prestim_duration is None:
+    if (prestim_duration is None) and ('interstim' in parent.nwbfile.stimulus):
         prestim_duration = np.min(parent.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
+    elif prestim_duration is None:
+        prestim_duration = 1
     ipre = int(prestim_duration/dt_sampling*1e3)
         
     duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
@@ -329,7 +334,7 @@ def build_episodes(self,
     for key in parent.nwbfile.stimulus.keys():
         EPISODES[key] = []
 
-    for iEp in np.arange(parent.nwbfile.stimulus['time_start'].num_samples)[Pcond][:parent.nwbfile.stimulus['time_start_realigned'].num_samples]:
+    for iEp in np.arange(parent.nwbfile.stimulus['time_start'].num_samples)[Pcond]:
         tstart = parent.nwbfile.stimulus['time_start_realigned'].data[iEp]
         tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 

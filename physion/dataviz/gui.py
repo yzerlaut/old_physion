@@ -138,6 +138,8 @@ class MainWindow(guiparts.NewWindow):
 
         print('inspecting the folder "%s" [...]' % FOLDERS[self.fbox.currentText()])
 
+        self.cal.clear()
+        
         FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
                                          extension='.nwb', recursive=True)
 

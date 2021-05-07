@@ -3,6 +3,20 @@ import numpy as np
 #########################
 #########################
 
+def add_bar_annotations(ax,
+                        Xbar=0, Xbar_label='',
+                        Ybar=0, Ybar_label='',
+                        lw=2, fontsize=10):
+
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+    ax.plot(xlim[0]+Xbar*np.arange(2), ylim[1]*np.ones(2), 'k-', lw=lw)
+    ax.annotate(Xbar_label, (xlim[0], ylim[1]), fontsize=fontsize)
+    ax.plot(xlim[0]*np.ones(2), ylim[1]-Ybar*np.arange(2), 'k-', lw=lw)
+    ax.annotate(Ybar_label, (xlim[0], ylim[1]), fontsize=fontsize, ha='right', va='top', rotation=90)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    
 def scale_and_position(self, y, value=None, i=0):
     if value is None:
         value=y
