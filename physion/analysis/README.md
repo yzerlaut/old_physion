@@ -11,3 +11,5 @@
 - [Wavelet Transform for time-frequency analysis (demo on LFP-data)](../../notebooks/Wavelets.ipynb)
 
 - [Principal Components Analysis (demo on Ca-imaging data)](../../notebooks/PCA_demo.ipynb)
+
+- [Mismatch-Negativity Analysis](../../notebooks/Mismatch-Negativity.ipynb)

@@ -25,7 +25,7 @@ The software is organized into several modules to perform the acquisition, the p
 2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
 
    ```
-   conda install pip numpy scipy pyqtgraph
+   conda install pip numpy scipy pyqtgraph matplotlib jupyter
    pip install pynwb
    pip install git+https://github.com/yzerlaut/physion
    ```
