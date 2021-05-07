@@ -119,7 +119,7 @@ def add_ophys(nwbfile, args,
                                                    data = np.ones((2,2,2)),
                                                    imaging_plane=imaging_plane,
                                                    unit='s',
-                                                   timestamps = np.arange(2))
+                                                   timestamps = 1.*np.arange(2))
     nwbfile.add_acquisition(image_series)
 
     if with_processed_CaImaging and os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p')):
