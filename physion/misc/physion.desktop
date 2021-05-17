@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Physiology of Visual Circuits
+Exec=bash /home/yann/work/physion/physion/misc/linux-launcher.sh
+Icon=/home/yann/work/physion/doc/icon-small.png
+Type=Application
+Categories=GTK;GNOME;Utility;
+Terminal=true
+X-KeepTerminal=false
+StartupNotify=false
+Name[en_US]=physion
