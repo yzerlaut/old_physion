@@ -5,6 +5,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from misc.style import set_dark_style, set_app_icon
 from misc.colors import build_dark_palette
 
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 try:
     from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
     no_psychopy = False
