@@ -820,7 +820,7 @@ class off_center_grating_stim(visual_stim):
             cls = self
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], units='pix',
-                                   sf=cls.experiment['spatial-freq'][index],
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
                 visual.GratingStim(win=cls.win,
@@ -863,15 +863,17 @@ class drifting_off_center_grating_stim(visual_stim):
         return [\
                 # Surround grating
                 visual.GratingStim(win=cls.win,
-                                   size=1000, pos=[0,0],
-                                   sf=cls.experiment['spatial-freq'][index],
+                                   size=10000, pos=[0,0], units='pix',
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
                                    ori=cls.experiment['angle'][index],
                                    contrast=cls.gamma_corrected_contrast(cls.experiment['contrast'][index])),
                 # + center Mask
                 visual.GratingStim(win=cls.win,
-                                   pos=[cls.experiment['x-center'][index], cls.experiment['y-center'][index]],
-                                   size=cls.experiment['radius'][index],
-                                   mask='circle', sf=0, contrast=0,
+                                   pos=[cls.angle_to_pix(cls.experiment['x-center'][index]),
+                                        cls.angle_to_pix(cls.experiment['y-center'][index])],
+                                   sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+                                   size= 2*cls.angle_to_pix(cls.experiment['radius'][index]),
+                                   mask='circle', units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['bg-color'][index]))]
 
 
