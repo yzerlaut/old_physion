@@ -262,6 +262,17 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
+        elif self.pbox.currentText()=='-> Open PDF summary':
+            print('looking for pdf summary [...]')
+            PDFS = []
+            if os.path.isdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary')):
+                PDFS = os.listdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary'))
+                print('set of pdf-files found:')
+                print(PDFS)
+            else:
+                print('no PDF summary files found !')
+            pdf_filename = '~/Desktop/test.pdf'
+            os.system('$(basename $(xdg-mime query default application/pdf) .desktop) %s ' % pdf_filename)
         else:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
