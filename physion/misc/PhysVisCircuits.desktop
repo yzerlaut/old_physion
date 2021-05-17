@@ -1,6 +1,9 @@
 [Desktop Entry]
 Name=Physiology of Visual Circuits
-Exec=python /home/yann/work/cortical-physio-icm/main.py
-Icon=/home/yann/work/cortical-physio-icm/doc/icon.png
+Exec=/home/yann/work/physion/
+Icon=/home/yann/work/physion/doc/small-icon.png
 Type=Application
 Categories=GTK;GNOME;Utility;
+Terminal=true
+X-KeepTerminal=true
+StartupNotify=false
