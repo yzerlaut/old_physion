@@ -15,5 +15,5 @@
     "experimenter":"Yann Zerlaut",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
-    "protocols":["neurometric-task","sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "surround-suppression-drifting"]
+    "protocols":["neurometric-task","sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "surround-suppression-drifting", "mismatch-negativity"]
 }
