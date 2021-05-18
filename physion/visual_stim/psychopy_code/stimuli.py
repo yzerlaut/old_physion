@@ -211,6 +211,7 @@ class visual_stim:
                     self.experiment['time_stop'] = [protocol['presentation-duration']+protocol['presentation-prestim-period']]
                     self.experiment['time_duration'] = [protocol['presentation-duration']]
                     self.experiment['interstim'] = [protocol['presentation-interstim-period']]
+                    self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen']]
         else: # MULTIPLE STIMS
             VECS, FULL_VECS = [], {}
             for key in keys:
@@ -226,7 +227,7 @@ class visual_stim:
             self.experiment['index'], self.experiment['repeat'] = [], []
             self.experiment['time_start'], self.experiment['time_stop'] = [], []
             self.experiment['interstim'], self.experiment['time_duration'] = [], [] # relevant for multi-protocols
-            self.experiment['frame_run_type'] = []
+            self.experiment['interstim-screen'], self.experiment['frame_run_type'] = [], []
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
 
@@ -249,6 +250,7 @@ class visual_stim:
                 self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
                                                      (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
                 self.experiment['interstim'].append(protocol['presentation-interstim-period'])
+                self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
                 self.experiment['time_duration'].append(protocol['presentation-duration'])
                 self.experiment['frame_run_type'].append(run_type)
 
@@ -286,9 +288,10 @@ class visual_stim:
             clock.wait(self.protocol['presentation-poststim-period'])
 
     # screen for interstim
-    def inter_screen(self, parent, duration=1.):
+    def inter_screen(self, parent, duration=1., color=0):
         if not parent.stop_flag and hasattr(self, 'blank_inter') and duration>0:
-            self.blank_inter.draw()
+            visual.GratingStim(win=self.win, size=10000, pos=[0,0], sf=0,
+                               color=self.gamma_corrected_lum(color), units='pix').draw()
             self.off.draw()
             try:
                 self.win.flip()
@@ -420,7 +423,7 @@ class visual_stim:
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
-                self.inter_screen(parent, duration=self.experiment['interstim'][i])
+                self.inter_screen(parent, duration=self.experiment['interstim'][i], color=self.experiment['interstim-screen'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
@@ -540,11 +543,13 @@ class multiprotocol(visual_stim):
                 for key in self.experiment:
                     if (key in stim.experiment):
                         self.experiment[key].append(stim.experiment[key][i])
+                    elif key in ['interstim-screen']:
+                        self.experiment[key].append(0) # if not in keys, mean 0 interstim (e.g. sparse noise stim.)
                     elif key not in ['protocol_id', 'time_duration']:
                         self.experiment[key].append(None)
                 self.experiment['protocol_id'].append(IS)
                 self.experiment['time_duration'].append(stim.experiment['time_stop'][i]-stim.experiment['time_start'][i])
-                
+
         # SHUFFLING IF NECESSARY
         indices = np.arange(len(self.experiment['index']))
         if (protocol['shuffling']=='full'):
@@ -1269,7 +1274,7 @@ if __name__=='__main__':
     import json, tempfile
     from pathlib import Path
     
-    with open('exp/protocols/multiprotocols.json', 'r') as fp:
+    with open('physion/exp/protocols/multiprotocols-demo.json', 'r') as fp:
         protocol = json.load(fp)
 
     class df:
@@ -1286,5 +1291,5 @@ if __name__=='__main__':
 
     stim = build_stim(protocol)
     parent = dummy_parent()
-    stim.run(parent)
+    # stim.run(parent)
     stim.close()
