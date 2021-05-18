@@ -4,7 +4,7 @@
   "shuffling-seed" :34,
   "Protocol-1": "spatial-mapping-fast.json",
   "Protocol-2": "NI+Scene-Exploration-2-SE-trajectories-10-repeats.json",
-  "Protocol-2": "gaussian-blobs.json",
+  "Protocol-3": "gaussian-blobs.json",
   "presentation-prestim-period": 5.0,
   "presentation-poststim-period": 5.0,
   "presentation-prestim-screen": 0,
