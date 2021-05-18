@@ -9,9 +9,10 @@ from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
     from visual_stim.psychopy_code.stimuli import build_stim
+    from visual_stim.screens import SCREENS
 else:
-    SCREEN = [None]
-
+    SCREENS = []
+    
 from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
@@ -36,7 +37,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         
         self.setWindowTitle('Experimental module')
-        self.setGeometry(400, 50, 550, 370)
+        self.setGeometry(400, 50, 550, 400)
 
         ##########################################################
         ######## Multiprocessing quantities
@@ -81,28 +82,35 @@ class MainWindow(QtWidgets.QMainWindow):
         for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton]:
             button.setChecked(True)
             
+        # screen choice
+        QtWidgets.QLabel(" Screen :", self).move(250, 90)
+        self.cbsc = QtWidgets.QComboBox(self)
+        self.cbsc.setMinimumWidth(200)
+        self.cbsc.move(320, 90)
+        self.cbsc.activated.connect(self.update_screen)
+        self.cbsc.addItems(SCREENS.keys())
+        
         # config choice
-        # QtWidgets.QLabel(" ======= Config : ======", self).move(170, 90)
-        QtWidgets.QLabel("  => Config :", self).move(160, 90)
+        QtWidgets.QLabel("  => Config :", self).move(160, 125)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(270)
-        self.cbc.move(250, 90)
+        self.cbc.move(250, 125)
         self.cbc.activated.connect(self.update_config)
 
         # subject choice
-        QtWidgets.QLabel("-> Subject :", self).move(100, 125)
+        QtWidgets.QLabel("-> Subject :", self).move(100, 160)
         self.cbs = QtWidgets.QComboBox(self)
         self.cbs.setMinimumWidth(340)
-        self.cbs.move(180, 125)
+        self.cbs.move(180, 160)
         self.cbs.activated.connect(self.update_subject)
         
         # protocol choice
-        QtWidgets.QLabel(" Visual Protocol :", self).move(20, 160)
+        QtWidgets.QLabel(" Visual Protocol :", self).move(20, 195)
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.setMinimumWidth(390)
-        self.cbp.move(130, 160)
+        self.cbp.move(130, 195)
         self.cbp.activated.connect(self.update_protocol)
-
+        
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -118,15 +126,15 @@ class MainWindow(QtWidgets.QMainWindow):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(110)
-            btn.move(50+shift, 220)
+            btn.move(50+shift, 250)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        QtWidgets.QLabel("Notes: ", self).move(40, 265)
+        QtWidgets.QLabel("Notes: ", self).move(40, 300)
         self.qmNotes = QtWidgets.QTextEdit('', self)
-        self.qmNotes.move(90, 270)
+        self.qmNotes.move(90, 300)
         self.qmNotes.setMinimumWidth(250)
         self.qmNotes.setMinimumHeight(60)
         
@@ -134,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btn.clicked.connect(self.save_settings)
         btn.setMinimumWidth(70)
         btn.setMinimumHeight(50)
-        btn.move(380,275)
+        btn.move(380,310)
 
         ##########################################################
         ##########################################################
@@ -234,7 +242,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = json.load(f)
             self.protocol['Screen'] = self.config['Screen'] # override params
             self.protocol['data-folder'] = self.root_datafolder
-        
+
+    def update_screen(self):
+        print(self.cbsc.currentText())
+            
     def get_subject_list(self):
         with open(os.path.join(base_path, 'subjects', self.config['subjects_file'])) as f:
             self.subjects = json.load(f)
