@@ -148,6 +148,7 @@ class visual_stim:
     ################################
     def gamma_corrected_lum(self, level):
         return 2*np.power(((level+1.)/2./self.k), 1./self.gamma)-1.
+    
     def gamma_corrected_contrast(self, contrast):
         return np.power(contrast/self.k, 1./self.gamma)
     
