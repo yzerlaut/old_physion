@@ -26,6 +26,8 @@ class TrialAverageWindow(NewWindow):
 
         self.computeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+C'), self)
         self.computeSc.activated.connect(self.compute_episodes)
+        self.nextSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+N'), self)
+        self.nextSc.activated.connect(self.next_roi)
         
         mainLayout = QtWidgets.QHBoxLayout(self.cwidget)
         Layout1 = QtWidgets.QVBoxLayout()
@@ -89,6 +91,12 @@ class TrialAverageWindow(NewWindow):
         self.computeBtn.clicked.connect(self.compute_episodes_wsl)
         self.Layout12.addWidget(self.computeBtn)
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
+
+        self.Layout12.addWidget(QtWidgets.QLabel('', self))
+        self.nextBtn = QtWidgets.QPushButton('[Ctrl+N]ext roi', self)
+        self.nextBtn.clicked.connect(self.compute_episodes_wsl)
+        self.Layout12.addWidget(self.nextBtn)
+        self.Layout12.addWidget(QtWidgets.QLabel('', self))
         
         # then parameters
         self.Layout13 = QtWidgets.QVBoxLayout()
@@ -126,6 +134,16 @@ class TrialAverageWindow(NewWindow):
         # self.qbox.setCurrentIndex(0)
 
     def hitting_space(self):
+        self.compute_episodes()
+        self.refresh()
+
+    def next_roi(self):
+        if len(self.parent.roiIndices)==1:
+            self.parent.roiIndices = [self.parent.roiIndices[0]+1]
+        else:
+            self.parent.roiIndices = [0]
+            self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
+        self.roiPick.setText('%i' % self.parent.roiIndices[0])
         self.compute_episodes()
         self.refresh()
         
@@ -377,7 +395,6 @@ if __name__=='__main__':
     from physion.analysis.read_NWB import read as read_NWB
     
     # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
-    filename = sys.argv[-1]
     
     class Parent:
         def __init__(self, filename=''):
@@ -386,10 +403,16 @@ if __name__=='__main__':
             self.description=''
             self.roiIndices = [0]
             self.CaImaging_key = 'Fluorescence'
-            
-    cls = Parent(filename)
-    window = TrialAverageWindow(cls)
-    sys.exit(cls.app.exec_())
+
+    
+    filename = sys.argv[-1]
+
+    if '.nwb' in sys.argv[-1]:
+        cls = Parent(filename)
+        window = TrialAverageWindow(cls)
+        sys.exit(cls.app.exec_())
+    else:
+        print('/!\ Need to provide a NWB datafile as argument ')
     
 
     # class Data:

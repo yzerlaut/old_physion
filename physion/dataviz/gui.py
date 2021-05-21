@@ -256,7 +256,7 @@ class MainWindow(guiparts.NewWindow):
         # IMPLEMENT OTHER ANALYSIS HERE
         """
 
-        if self.pbox.currentText()=='-> Trial-average' and (self.windowTA is None):
+        if self.pbox.currentText()=='-> Trial-average':
             self.windowTA = TrialAverageWindow(parent=self)
             self.windowTA.show()
         elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):

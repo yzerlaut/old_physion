@@ -33,12 +33,12 @@ class MainWindow(QtWidgets.QMainWindow):
                   "w) [W]hisking preprocessing",
                   "i) [I]maging preprocessing",
                   "e) [E]lectrophy preprocessing",
-                  "v) [V]isualize data",
                   # "b) run [B]ash script",
                   "a) [A]ssemble data",
                   "c) Add [C]a2+ data",
                   "t) [T]ransfer data",
-                  "n) lab [N]otebook ",
+                  "v) [V]isualize data",
+                  "n) summary [P]DF ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
 
@@ -49,12 +49,12 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_whisking,
                      self.launch_CaProprocessing,
                      self.launch_electrophy,
-                     self.launch_visualization,
                      # self.launch_bash_script,
                      self.launch_assembling,
                      self.launch_CaAddition,
                      self.launch_transfer,
-                     self.launch_notebook,
+                     self.launch_visualization,
+                     self.summary_pdf,
                      self.quit]
         
         self.setGeometry(50, 100, 300, 46*len(LABELS))
@@ -152,10 +152,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = RunAnalysisGui(self.app, self.args,
                                     raw_data_visualization=True)
         
-    def launch_notebook(self):
+    def summary_pdf(self):
         from physion.misc.notebook import run as RunNotebook
         self.child = RunNotebook(self.app, self.args)
-        self.statusBar.showMessage('Notebook module not implemented yet')
         
     def quit(self):
         QtWidgets.QApplication.quit()
