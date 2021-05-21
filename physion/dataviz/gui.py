@@ -7,6 +7,7 @@ from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
 from dataviz import guiparts, plots
 from analysis.trial_averaging import TrialAverageWindow
+from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
 from analysis.read_NWB import read as read_NWB
@@ -262,6 +263,9 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
+        elif self.pbox.currentText()=='-> Make-figures':
+            self.windowFG = FiguresWindow(parent=self)
+            self.windowFG.show()
         elif self.pbox.currentText()=='-> Open PDF summary':
             print('looking for pdf summary [...]')
             PDFS = []

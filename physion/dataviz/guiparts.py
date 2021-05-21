@@ -189,6 +189,7 @@ def load_config1(self,
     self.pbox.addItem('-> Show Raw Data')
     self.pbox.addItem('-> Trial-average')
     self.pbox.addItem('-> Behavioral-modulation')
+    self.pbox.addItem('-> Make-figures')
     self.pbox.addItem('-> Open PDF summary')
     self.pbox.setCurrentIndex(0)
     
