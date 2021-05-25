@@ -469,18 +469,22 @@ class visual_stim:
                           'color':'red'},
         --> optional with virtual scene exploration trajectory (switch to None to remove)
         """
+        
         if ax==None:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
+
         ax.imshow(self.get_image(episode, time_from_episode_start=time_from_episode_start),
                   cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
         ax.axis('off')
+        
         if label is not None:
             nz, nx = self.x.shape
             L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
             ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
             ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
+            
         if arrow is not None:
             nz, nx = self.x.shape
             ax.arrow(self.angle_to_pix(arrow['center'][0])+nx/2,

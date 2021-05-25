@@ -286,11 +286,12 @@ class NewWindow(QtWidgets.QMainWindow):
     
     def __init__(self,
                  parent=None, i=0,
-                 title='New Window'):
+                 title='New Window',
+                 size=(1000,600)):
 
         super(NewWindow, self).__init__()
 
-        self.setGeometry(600+20*i, 250+20*i, 1000, 600)
+        self.setGeometry(600+20*i, 250+20*i, size[0], size[1])
         pg.setConfigOptions(imageAxisOrder='row-major')
 
         # adding a few keyboard shortcut

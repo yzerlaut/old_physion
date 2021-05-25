@@ -10,7 +10,6 @@ from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
-from analysis.read_NWB import read as read_NWB
 from misc.folders import FOLDERS
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
