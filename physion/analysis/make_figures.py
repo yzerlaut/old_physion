@@ -7,6 +7,7 @@ from assembling.saving import day_folder
 from dataviz.guiparts import NewWindow, smallfont
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
+from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
 from analysis.trial_averaging import build_episodes
 from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
 
@@ -87,10 +88,12 @@ class FiguresWindow(NewWindow):
             setattr(self, '%s_values' % key, QtWidgets.QComboBox(self))
             getattr(self, '%s_values' % key).addItems(['full', 'custom']+[str(s) for s in self.varied_parameters[key]])
             Layouts[-1].addWidget(getattr(self, '%s_values' % key))
+            Layouts[-1].addWidget(QtWidgets.QLabel(10*' ', self))
             Layouts[-1].addWidget(QtWidgets.QLabel(' custom values : ', self))
             setattr(self, '%s_customvalues' % key, QtWidgets.QLineEdit(self))
-            getattr(self, '%s_customvalues' % key).setMaximumWidth(300)
+            getattr(self, '%s_customvalues' % key).setMaximumWidth(150)
             Layouts[-1].addWidget(getattr(self, '%s_customvalues' % key))
+            Layouts[-1].addWidget(QtWidgets.QLabel(30*' ', self))
 
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
@@ -99,7 +102,7 @@ class FiguresWindow(NewWindow):
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel('       -* RESPONSES *-        ', self))
         self.responseType = QtWidgets.QComboBox(self)
-        self.responseType.addItems(['time-traces', 'mean-response', 'integral-response'])
+        self.responseType.addItems(['stim-evoked-traces', 'mean-stim-evoked', 'integral-stim-evoked'])
         Layouts[-1].addWidget(self.responseType)
         Layouts[-1].addWidget(QtWidgets.QLabel('       color:  ', self))
         self.color = QtGui.QLineEdit()
@@ -164,16 +167,20 @@ class FiguresWindow(NewWindow):
         self.withSTDbox = QtGui.QCheckBox("with s.d.")
         Layouts[-1].addWidget(self.withSTDbox)
         Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
+        self.stim = QtGui.QCheckBox("with stim. ")
+        Layouts[-1].addWidget(self.stim)
+        Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
+        self.screen = QtGui.QCheckBox("with screen inset ")
+        Layouts[-1].addWidget(self.screen)
+        Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
+        self.annot = QtGui.QCheckBox("with annot. ")
+        Layouts[-1].addWidget(self.annot)
+        Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
         self.axis = QtGui.QCheckBox("with axis")
         Layouts[-1].addWidget(self.axis)
         Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
         self.grid = QtGui.QCheckBox("with grid")
         Layouts[-1].addWidget(self.grid)
-        Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
-        self.stim = QtGui.QCheckBox("with stim. ")
-        Layouts[-1].addWidget(self.stim)
-        self.screen = QtGui.QCheckBox("with screen inset ")
-        Layouts[-1].addWidget(self.screen)
 
         # X-scales
         Layouts.append(QtWidgets.QHBoxLayout())
@@ -260,17 +267,43 @@ class FiguresWindow(NewWindow):
         self.exportBtn.setFixedWidth(200)
         self.exportBtn.clicked.connect(self.export)
         Layouts[-1].addWidget(self.exportBtn)
+
+        self.locBtn = QtWidgets.QComboBox(self)
+        self.locBtn.addItems(['Desktop', 'summary'])
+        self.locBtn.setFixedWidth(200)
+        Layouts[-1].addWidget(self.locBtn)
+
+        self.nameBtn = QtWidgets.QLineEdit(self)
+        self.nameBtn.setText('fig')
+        self.nameBtn.setFixedWidth(200)
+        Layouts[-1].addWidget(self.nameBtn)
+
+        self.dpi = QtWidgets.QSpinBox(self)
+        self.dpi.setValue(100)
+        self.dpi.setRange(10, 500)
+        self.dpi.setSuffix(' (dpi)')
+        self.dpi.setFixedWidth(80)
+        Layouts[-1].addWidget(self.dpi)
         
         for l in Layouts:
             mainLayout.addLayout(l)
 
+    def set_fig_name(self):
+        if self.locBtn.currentText()=='Desktop':
+            self.fig_name = os.path.join(os.path.expanduser('~'), 'Desktop', self.nameBtn.text()+'.svg')
+        elif self.locBtn.currentText()=='summary':
+            summary_dir = os.path.join(os.path.dirname(self.parent.datafile), 'summary', os.path.basename(self.parent.datafile).replace('.nwb', ''))
+            pathlib.Path(summary_dir).mkdir(parents=True, exist_ok=True)
+            self.fig_name = os.path.join(summary_dir, self.nameBtn.text()+'.svg')
+
     def export(self):
-        export_drawing_as_png(self.fig_name, dpi=100, background='white')
+        export_drawing_as_png(self.fig_name, dpi=self.dpi.value(), background='white')
 
     def append(self):
         add_plot_to_svg(self.fig, self.fig_name)
         
     def new_fig(self):
+        self.set_fig_name()
         self.fig.savefig(self.fig_name, transparent=True)
     
     def get_varied_parameters(self):
@@ -316,12 +349,10 @@ class FiguresWindow(NewWindow):
         else:
             COLORS = ['k']
                 
-
         if self.fig_presets.currentText()=='raw-traces-preset':
-            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
-                                reshape_axes=False,
-                                top=0.4, bottom=0.2, left=0.7, right=0.2,
-                                wspace=0.2, hspace=0.2)
+            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)), reshape_axes=False,
+                                top=0.4, bottom=0.4, left=0.7, right=0.7,
+                                wspace=0.5, hspace=0.5)
         else:
             fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
                                 reshape_axes=False)
@@ -348,9 +379,26 @@ class FiguresWindow(NewWindow):
                     if self.screen.isChecked():
                         inset = ge.inset(AX[irow][icol], [.8, .9, .3, .25])
                         self.parent.visual_stim.show_frame(\
-                            self.EPISODES['index_from_start'][cond][0],
-                                                           ax=inset, label=None)
+                                    self.EPISODES['index_from_start'][cond][0],
+                                    ax=inset, parent=self.parent, enhance=True, label=None)
           
+        if self.withStatTest.isChecked():
+            for irow, row_cond in enumerate(ROW_CONDS):
+                for icol, col_cond in enumerate(COL_CONDS):
+                    for icolor, color_cond in enumerate(COLOR_CONDS):
+                        
+                        cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
+                        test = stat_test_for_evoked_responses(self.EPISODES, cond,
+                                                              interval_pre=[self.t0pre, self.t1pre],
+                                                              interval_post=[self.t0post, self.t1post],
+                                                              test='wilcoxon')
+                        
+                        AX[irow][icol].plot([self.t0pre, self.t1pre], self.ylim[0]*np.ones(2), 'k-', lw=2)
+                        AX[irow][icol].plot([self.t0post, self.t1post], self.ylim[0]*np.ones(2), 'k-', lw=2)
+                        ps, size = pval_to_star(test)
+                        AX[irow][icol].annotate(ps, ((self.t1pre+self.t0post)/2., self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
+                            
+                            
         if (self.ymin.text()!='') and (self.ymax.text()!=''):
             self.ylim = [float(self.ymin.text()), float(self.ymax.text())]
         if (self.xmin.text()!='') and (self.xmax.text()!=''):
@@ -385,12 +433,22 @@ class FiguresWindow(NewWindow):
             ge.annotate(fig, ' '+self.label.text()+\
                         (1+int(self.nlabel.text()))*'\n', (0,0), color=COLORS[0],
                         ha='left', va='bottom')
+
+
+        if self.annot.isChecked():
+            S=''
+            if hasattr(self, 'roiPick'):
+                S+='roi #%s' % self.roiPick.text()
+            for i, key in enumerate(self.varied_parameters.keys()):
+                if 'single-value' in getattr(self, '%s_plot' % key).currentText():
+                    S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
+            ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
             
         return fig, AX
             
     def plot(self):
 
-        if self.responseType.currentText()=='time-traces':
+        if self.responseType.currentText()=='stim-evoked-traces':
             self.fig, AX = self.plot_row_column_of_quantity()
         else:
             pass
@@ -404,26 +462,31 @@ class FiguresWindow(NewWindow):
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())
-        self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
+        self.statusBar.showMessage('ROIs set to %s ' % self.parent.roiIndices)
         
     def compute_episodes(self):
         
         if self.sqbox.text() in ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved']:
             self.parent.CaImaging_key = self.sqbox.text()
-        
+
+        self.t0pre = float(self.preWindow.text().replace('[', '').replace(']', '').split(',')[0])
+        self.t1pre = float(self.preWindow.text().replace('[', '').replace(']', '').split(',')[1])
+        self.t0post = float(self.postWindow.text().replace('[', '').replace(']', '').split(',')[0])
+        self.t1post = float(self.postWindow.text().replace('[', '').replace(']', '').split(',')[1])
+            
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
             self.EPISODES = build_episodes(self,
-                                       parent=self.parent,
-                                       protocol_id=self.pbox.currentIndex()-1,
-                                       quantity=self.qbox.currentText(),
-                                       dt_sampling=self.samplingBox.value(), # ms
-                                       interpolation='linear',
-                                       baseline_substraction=self.baseline.isChecked(),
-                                       verbose=True)
+                                           parent=self.parent,
+                                           protocol_id=self.pbox.currentIndex()-1,
+                                           quantity=self.qbox.currentText(),
+                                           dt_sampling=self.samplingBox.value(), # ms
+                                           interpolation='linear',
+                                           baseline_substraction=self.baseline.isChecked(),
+                                           prestim_duration=(self.t1pre-self.t0pre),
+                                           verbose=True)
         else:
             print(' /!\ Pick a protocol and a quantity')
             
-
         
     def build_conditions(self, X, K):
         if len(K)>0:
@@ -485,6 +548,7 @@ if __name__=='__main__':
     class Parent:
         def __init__(self, filename=''):
             read_NWB(self, filename, verbose=False)
+            self.datafile=filename
             self.app = QtWidgets.QApplication(sys.argv)
             self.description=''
             self.roiIndices = [0]
@@ -492,7 +556,7 @@ if __name__=='__main__':
             self.metadata['load_from_protocol_data'] = True
             self.metadata['no-window'] = True
             self.visual_stim = build_stim(self.metadata, no_psychopy=True)
-            
+
     filename = sys.argv[-1]
 
     if '.nwb' in sys.argv[-1]:

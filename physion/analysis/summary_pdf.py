@@ -304,6 +304,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
             plt.close()
         
     if 'raw' in include:
+        
         with PdfPages(os.path.join(folder, 'raw.pdf')) as pdf:
 
             print('plotting full data view [...]')
@@ -448,11 +449,13 @@ if __name__=='__main__':
     
     # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
     filename = sys.argv[-1]
+    pdf_dir = os.path.join(os.path.dirname(filename), 'summary', os.path.basename(filename))
+
     # data = MultimodalData(filename)
     # fig1 = metadata_fig(data)
     # fig2 = behavior_analysis_fig(data)
     # fig3 = roi_analysis_fig(data, roiIndex=4)
     # plt.show()
     
-    make_sumary_pdf(filename, include=['raw'])
+    # make_sumary_pdf(filename, include=['raw'])
     

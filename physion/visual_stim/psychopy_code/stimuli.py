@@ -86,7 +86,7 @@ class visual_stim:
 
         # we can initialize the angle
         self.x, self.z = self.angle_meshgrid()
-        
+
         if not ('no-window' in self.protocol):
 
             self.monitor = monitors.Monitor(self.screen['name'])
@@ -447,11 +447,13 @@ class visual_stim:
 
     def show_frame(self, episode, 
                    time_from_episode_start=0,
+                   parent=None,
                    label={'degree':5,
                           'shift_factor':0.02,
                           'lw':2, 'fontsize':12},
                    arrow=None,
                    vse=None,
+                   enhance=False,
                    ax=None):
         """
 
@@ -474,16 +476,42 @@ class visual_stim:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
 
+        if enhance:
+            width=80 # degree
+            self.x, self.z = np.meshgrid(np.linspace(-width, width, self.screen['resolution'][0]),
+                                         np.linspace(-width*self.screen['resolution'][1]/self.screen['resolution'][0],
+                                                     width*self.screen['resolution'][1]/self.screen['resolution'][0],
+                                                     self.screen['resolution'][1]))
+            
         ax.imshow(self.get_image(episode, time_from_episode_start=time_from_episode_start),
                   cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
-        ax.axis('off')
         
+        ax.axis('off')
+
+        if parent is not None:
+            
+            # ARROW FOR DRIFTING GRATINGS
+            if 'drifting' in parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]:
+                arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
+                         'length':40, 'width_factor':0.1, 'color':'red', 'center':[0,0]}
+                if 'x-center' in parent.nwbfile.stimulus.keys():
+                    arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
+                if 'y-center' in parent.nwbfile.stimulus.keys():
+                    arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+
+            # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
+            """
+            TO BE DONE
+            """
+                                              
+            
         if label is not None:
             nz, nx = self.x.shape
             L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
             ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
             ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
+
             
         if arrow is not None:
             nz, nx = self.x.shape
