@@ -85,9 +85,7 @@ def read(self, filename, verbose=False, with_tlim=True,
 
         if 'Pupil' in self.nwbfile.processing:
             pd = str(self.nwbfile.processing['Pupil'].description)
-            print(pd)
             if len(pd.split('pix_to_mm='))>1:
-                print(pd.split('pix_to_mm='))
                 self.FaceCamera_mm_to_pix = int(1./float(pd.split('pix_to_mm=')[-1]))
             else:
                 self.FaceCamera_mm_to_pix = 1

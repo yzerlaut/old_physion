@@ -27,9 +27,11 @@ def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
                             Tsliding=60, percentile=5.,
                             with_sliding_mean = False,
                             sum=False):
-
+    """
+    # /!\ the validROI_indices are used here  /!\
+    """
     if CaImaging_key in ['Fluorescence', 'Neuropil', 'Deconvolved']:
-        return getattr(cls, CaImaging_key).data[roiIndices, :]
+        return getattr(cls, CaImaging_key).data[cls.validROI_indices[roiIndices], :]
         
     elif CaImaging_key in ['dF/F', 'dFoF']:
         """
@@ -38,7 +40,7 @@ def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
         iTsm = int(Tsliding/cls.CaImaging_dt)
 
         DFoF = []
-        for ROI in cls.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
+        for ROI in cls.validROI_indices[roiIndices]:
             Fmin = sliding_percentile(cls.Fluorescence.data[ROI,:], percentile, iTsm) # sliding percentile
             Fmin = gaussian_filter1d(Fmin, Tsliding) # + smoothing
             DFoF.append((cls.Fluorescence.data[ROI,:]-Fmin)/Fmin)

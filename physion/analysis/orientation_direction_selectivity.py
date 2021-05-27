@@ -245,14 +245,18 @@ def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True, subprotoc
 if __name__=='__main__':
     
     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Wild_Type', '2021_03_11-17-13-03.nwb')
+    
+    filename = sys.argv[-1]
     FullData= Data(filename)
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
     # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
     # # for i in range(np.sum(FullData.iscell))[:5]:
     #     # fig1, _, _ = orientation_selectivity_analysis(FullData, roiIndex=i)
-    #     fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
+    # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
+    for i in range(np.sum(FullData.iscell)):
+        fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
     #     # fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
-    #     plt.show()
+        plt.show()
 
 

@@ -5,6 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from dataviz.guiparts import NewWindow, smallfont
+from dataviz.show_data import MultimodalData
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
@@ -12,7 +13,7 @@ from analysis.trial_averaging import build_episodes
 from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
 
 from datavyz import graph_env_manuscript as ge
-NMAX_PARAMS = 5
+
 
 class FiguresWindow(NewWindow):
 
@@ -26,9 +27,20 @@ class FiguresWindow(NewWindow):
                                             title=title,
                                             i=-10, size=(800,800))
 
+
+        self.modalities = []
+        for key1, key2 in zip(['Photodiode-Signal', 'Running-Speed', 'Pupil',
+                               'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
+                              ['Photodiode', 'Locomotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
+            if key1 in parent.nwbfile.acquisition:
+                self.modalities.append(key2)
+
+
         self.parent = parent
         self.get_varied_parameters()
         self.fig_name = fig_name
+        
+        self.data = MultimodalData(self.parent.datafile)
         
         self.EPISODES = None
         self.xlim, self.ylim = [-10, 10], [-10, 10]
@@ -64,18 +76,60 @@ class FiguresWindow(NewWindow):
         
         # -- roi
         if 'ophys' in self.parent.nwbfile.processing:
-            Layouts.append(QtWidgets.QHBoxLayout())
-            Layouts[-1].addWidget(QtWidgets.QLabel('-- ROI:   ', self))
+            Layouts[-1].addWidget(QtWidgets.QLabel('    -- ROI:   ', self))
             self.roiPick = QtGui.QLineEdit()
             self.roiPick.setText('    [select ROI]  e.g.: "1",  "10-20", "3, 45, 7", ... ')
             self.roiPick.setMinimumWidth(400)
             self.roiPick.returnPressed.connect(self.select_ROI)
             Layouts[-1].addWidget(self.roiPick)
-            Layouts[-1].addWidget(QtWidgets.QLabel(150*'-', self))
 
+        ### PLOT RAW DATA
+        Layouts.append(QtWidgets.QHBoxLayout())
+        self.rawPlotBtn = QtWidgets.QPushButton(' plot raw data ', self)
+        self.rawPlotBtn.setFixedWidth(200)
+        self.rawPlotBtn.clicked.connect(self.plot_raw_data)
+        Layouts[-1].addWidget(self.rawPlotBtn)
+        for mod in self.modalities:
+            Layouts[-1].addWidget(QtWidgets.QLabel(' '+mod+':', self))
+            setattr(self, mod+'Plot', QtWidgets.QDoubleSpinBox(self))
+            getattr(self, mod+'Plot').setValue(1)
+            getattr(self, mod+'Plot').setSuffix(' (%-fig)')
+            Layouts[-1].addWidget(getattr(self, mod+'Plot'))
+            
+        ### PLOT FIELD OF VIEW
+        if 'ophys' in self.parent.nwbfile.processing:
+            Layouts.append(QtWidgets.QHBoxLayout())
+            self.fovPlotBtn = QtWidgets.QPushButton('plot imaging field of view ', self)
+            self.fovPlotBtn.setFixedWidth(250)
+            self.fovPlotBtn.clicked.connect(self.plot_FOV)
+            Layouts[-1].addWidget(self.fovPlotBtn)
+            Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'FOV type:', self)) # SEPARATOR
+            self.fovType = QtWidgets.QComboBox(self)
+            self.fovType.addItems(['meanImg', 'meanImgE', 'max_proj'])
+            Layouts[-1].addWidget(self.fovType)
+            Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'NL:', self)) # SEPARATOR
+            self.fovNL = QtWidgets.QSpinBox(self)
+            self.fovNL.setValue(1)
+            Layouts[-1].addWidget(self.fovNL)
+            Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'colormap:', self)) # SEPARATOR
+            self.fovMap = QtWidgets.QComboBox(self)
+            self.fovMap.addItems(['viridis', 'grey', 'white_to_green', 'black_to_green'])
+            Layouts[-1].addWidget(self.fovMap)
+            Layouts[-1].addWidget(QtWidgets.QLabel('  label:', self)) # SEPARATOR
+            self.fovLabel = QtGui.QLineEdit()
+            Layouts[-1].addWidget(self.fovLabel)
+            
+        
+        ### PLOT CORRELATIONS
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
+        Layouts[-1].addWidget(QtWidgets.QLabel('  -* CORRELATIONS *-', self))
 
+        
+        
+        Layouts.append(QtWidgets.QHBoxLayout())
+        Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
+        
         # varied keys
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel('  -* STIMULI PARAMETERS *-', self))
@@ -129,6 +183,17 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(QtWidgets.QLabel(10*'  ', self))
         self.withStatTest = QtGui.QCheckBox("with stat. test")
         Layouts[-1].addWidget(self.withStatTest)
+        
+        Layouts.append(QtWidgets.QHBoxLayout())
+        self.compute = QtWidgets.QPushButton('compute episodes', self)
+        self.compute.setFixedWidth(200)
+        self.compute.clicked.connect(self.compute_episodes)
+        Layouts[-1].addWidget(self.compute)
+        
+        self.plotBtn = QtWidgets.QPushButton(' -* PLOT *- ', self)
+        self.plotBtn.setFixedWidth(200)
+        self.plotBtn.clicked.connect(self.plot)
+        Layouts[-1].addWidget(self.plotBtn)
         
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
@@ -230,18 +295,6 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
         
         # BUTTONS
-        Layouts.append(QtWidgets.QHBoxLayout())
-        self.compute = QtWidgets.QPushButton('compute episodes', self)
-        self.compute.setFixedWidth(200)
-        self.compute.clicked.connect(self.compute_episodes)
-        Layouts[-1].addWidget(self.compute)
-        
-        Layouts.append(QtWidgets.QHBoxLayout())
-        self.plotBtn = QtWidgets.QPushButton(' -* PLOT *- ', self)
-        self.plotBtn.setFixedWidth(200)
-        self.plotBtn.clicked.connect(self.plot)
-        Layouts[-1].addWidget(self.plotBtn)
-        
         Layouts.append(QtWidgets.QHBoxLayout())
         self.setBtn = QtWidgets.QPushButton('extract settings', self)
         self.setBtn.setFixedWidth(200)
@@ -445,7 +498,55 @@ class FiguresWindow(NewWindow):
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
             
         return fig, AX
-            
+
+    def plot_raw_data(self):
+        
+        self.fig, ax = ge.figure(axes_extents=[[[6,4]]], bottom=0.1, right=3., top=0.5)
+
+        Tbar = 1 # by default
+        if (self.xmin.text()=='') or (self.xmax.text()==''):
+            tlim = [0, 20]
+        else:
+            tlim = [float(self.xmin.text()), float(self.xmax.text())]
+
+        if self.xbar.text()!='':
+            Tbar = float(self.xbar.text())
+
+        settings = {}
+        for mod in self.modalities:
+            if getattr(self, mod+'Plot').value()>0:
+                settings[mod] = dict(fig_fraction=getattr(self, mod+'Plot').value())
+
+        for key in ['CaImaging', 'CaImagingSum']:
+            if (key in settings) and (self.sqbox.text() in ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved']):
+                settings[key]['subquantity'] = self.sqbox.text()
+        if 'CaImaging' in settings:
+            settings['CaImaging']['roiIndices'] = self.parent.roiIndices
+                
+        self.data.plot(tlim, settings=settings, Tbar=Tbar, ax=ax)
+        ge.show()
+
+    def plot_FOV(self):
+
+        if self.fovMap.currentText()=='black_to_green':
+            cmap=ge.get_linear_colormap('k', ge.green)
+        elif self.fovMap.currentText()=='white_to_green':
+            cmap=ge.get_linear_colormap('w', 'darkgreen')
+        elif self.fovMap.currentText()=='grey':
+            cmap=ge.get_linear_colormap('w', 'darkgrey')
+        else:
+            cmap=ge.viridis
+
+        self.fig, ax = ge.figure(figsize=(2.,4.), bottom=0, top=0, right=0., left=0.)
+        self.data.show_CaImaging_FOV(\
+                                    self.fovType.currentText(),
+                                    NL=float(self.fovNL.value()), cmap=cmap, ax=ax)
+        ge.annotate(ax, self.fovLabel.text(), (.99,.99), ha='right', va='top', color='white')
+        ge.show()
+
+    def plot_correl(self):
+        pass
+        
     def plot(self):
 
         if self.responseType.currentText()=='stim-evoked-traces':
@@ -455,10 +556,9 @@ class FiguresWindow(NewWindow):
         
         ge.show()
 
-
     def select_ROI(self):
-        """ see dataviz/gui.py """
-        roiIndices = self.parent.select_ROI_from_pick(cls=self)
+        """ see dataviz/gui.py   //  dataviz/guiparts.py """
+        roiIndices = self.select_ROI_from_pick(cls=self)
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())
@@ -548,6 +648,7 @@ if __name__=='__main__':
     class Parent:
         def __init__(self, filename=''):
             read_NWB(self, filename, verbose=False)
+            print(self.nwbfile.acquisition)
             self.datafile=filename
             self.app = QtWidgets.QApplication(sys.argv)
             self.description=''
