@@ -333,6 +333,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 print(' /!\ no raw FaceCamera data found ...')
 
             if os.path.isfile(os.path.join(self.datafolder, 'pupil.npy')):
+                
                 self.data = np.load(os.path.join(self.datafolder, 'pupil.npy'),
                                     allow_pickle=True).item()
                 
@@ -344,7 +345,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.sl.setValue(self.data['ROIsaturation'])
                 self.ROI = roi.sROI(parent=self,
                                     pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
-                # self.plot_pupil_trace()
+                self.plot_pupil_trace()
                 
             else:
                 self.data = None
@@ -414,7 +415,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if 'blinking' not in self.data:
                 self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
+                
             self.data['blinking'][i1:i2] = 1
+            
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
                 I = np.arange(i1, i2)
                 self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
@@ -427,14 +430,7 @@ class MainWindow(QtWidgets.QMainWindow):
             #                     kind='linear')
             #     self.data[key] = func(self.data['frame'])
 
-            i1, i2 = self.xaxis.range
-            self.p1.clear()
-            self.p1.plot(self.data['frame'],
-                         self.data['diameter'],
-                         pen=(0,255,0))
-            self.p1.setRange(xRange=(i1,i2), padding=0.0)
-            self.p1.show()
-        
+            self.plot_pupil_trace(xrange=self.xaxis.range)
             self.cframe1, self.cframe2 = 0, -1
     
         
@@ -597,14 +593,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.win.show()
         self.show()
 
-    def plot_pupil_trace(self):
+    def plot_pupil_trace(self, xrange=None):
         self.p1.clear()
         if self.data is not None:
             # self.data = process.remove_outliers(self.data)
             cond = np.isfinite(self.data['diameter'])
             self.p1.plot(self.data['frame'][cond],
                          self.data['diameter'][cond], pen=(0,255,0))
-            self.p1.setRange(xRange=(0, self.data['frame'][cond][-1]),
+            if xrange is None:
+                xrange = (0, self.data['frame'][cond][-1])
+            self.p1.setRange(xRange=xrange,
                              yRange=(self.data['diameter'][cond].min()-.1,
                                      self.data['diameter'][cond].max()+.1),
                              padding=0.0)
