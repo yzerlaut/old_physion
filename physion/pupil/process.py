@@ -4,10 +4,9 @@ from scipy.optimize import minimize
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import interp1d
 
-from analyz.workflow.shell import printProgressBar
-
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from misc.progressBar import printProgressBar
+from assembling.dataset import Dataset
 from assembling.dataset import Dataset
 from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
