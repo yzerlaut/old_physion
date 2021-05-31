@@ -29,9 +29,9 @@ class FiguresWindow(NewWindow):
 
 
         self.modalities = []
-        for key1, key2 in zip(['Photodiode-Signal', 'Running-Speed', 'Pupil',
+        for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'Pupil',
                                'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
-                              ['Photodiode', 'Locomotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
+                              ['Photodiode', 'Electrophy', 'Locomotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
             if key1 in parent.nwbfile.acquisition:
                 self.modalities.append(key2)
 
