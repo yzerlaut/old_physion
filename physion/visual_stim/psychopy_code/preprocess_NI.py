@@ -5,7 +5,17 @@ from scipy.interpolate import RectBivariateSpline, interp2d
 import itertools, string, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
-from datavyz.images import load
+try:
+    from skimage import color, io
+except ModuleNotFoundError:
+    print('"skimage" module not found')
+
+def load(image_path):
+
+    img = color.rgb2gray(io.imread(image_path))
+    
+    return np.rot90(np.array(img), k=3) # needs rotation
+
 
 def img_after_hist_normalization(img):
     """
