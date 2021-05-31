@@ -4,15 +4,20 @@ import numpy as np
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
+
 from dataviz.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
 from analysis.trial_averaging import build_episodes
-from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
 
-from datavyz import graph_env_manuscript as ge
+try:
+    from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
+    from datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    print('"datavyz" module not found, get it with pip install `git+https://github.com/yzerlaut/datavyz`  ')
+
 
 
 class FiguresWindow(NewWindow):
