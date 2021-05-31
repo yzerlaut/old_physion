@@ -14,6 +14,7 @@ def size_dependence_plot(sizes, responses, baselines, ax=None, figsize=(2.5,1.5)
         fig, ax = plt.subplots(1, figsize=figsize)
     ax.plot([0]+list(sizes), [np.mean(baselines)/1e3]+list(responses/1e3), 'o-', color=color, lw=2) # CHECK UNITS
     ax.set_xticks([0]+list(sizes))
+    ax.set_xticklabels(['%.1f' for f in [0]+list(sizes)])
     ax.set_ylabel('resp. integral ($\Delta$F/F.s)', fontsize=9)
     ax.set_xlabel('angle ($^o$)', fontsize=9)
 
@@ -28,11 +29,11 @@ def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, v
         data.varied_parameters['y-center'] = [data.metadata['y-center-1']]
     if 'contrast' not in data.varied_parameters:
         data.varied_parameters['contrast'] = [data.metadata['contrast-1']]
-        
-    fig, AX = plt.subplots(len(data.varied_parameters['angle'])*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center']),
-                           len(data.varied_parameters['radius'])+1,
-                           figsize=(11.4,2.*len(data.varied_parameters['angle']*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center']))))
-    plt.subplots_adjust(left=0.03, top=0.95, bottom=0.12, right=.97)
+
+    Ny = len(data.varied_parameters['angle'])*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])
+    fig, AX = plt.subplots(Ny, len(data.varied_parameters['radius'])+1,
+                           figsize=(11.4,2.*Ny))
+    plt.subplots_adjust(left=0.03, top=1-0.1/Ny, bottom=0.2/Ny, right=.97)
 
     for i, angle in enumerate(data.varied_parameters['angle']):
         for j, size in enumerate(data.varied_parameters['radius']):
@@ -72,8 +73,10 @@ def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, v
     for ax in ge.flat(AX[:,-1:]):
         ax.set_ylim(YLIM)
     add_bar(AX[0, 0], Xbar=2, Ybar=1)
+    
     AX[0,j+1].annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
                        xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
+    
     AX[0,0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.02), xycoords='figure fraction', weight='bold', fontsize=9)
     return fig, responsive
 
