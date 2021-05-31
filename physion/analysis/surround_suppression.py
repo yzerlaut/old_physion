@@ -21,27 +21,47 @@ def size_dependence_plot(sizes, responses, baselines, ax=None, figsize=(2.5,1.5)
 def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True, subprotocol_id=0):
     iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in SURROUND_SUPPRESSION_PROTOCOLS)][subprotocol_id]
     data = CellResponse(FullData, protocol_id=iprotocol, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
-    fig, AX = plt.subplots(len(data.varied_parameters['angle']), len(data.varied_parameters['radius'])+1,
-                           figsize=(11.4,2.*len(data.varied_parameters['angle'])))
+
+    if 'x-center' not in data.varied_parameters:
+        data.varied_parameters['x-center'] = [data.metadata['x-center-1']]
+    if 'y-center' not in data.varied_parameters:
+        data.varied_parameters['y-center'] = [data.metadata['y-center-1']]
+    if 'contrast' not in data.varied_parameters:
+        data.varied_parameters['contrast'] = [data.metadata['contrast-1']]
+        
+    fig, AX = plt.subplots(len(data.varied_parameters['angle'])*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center']),
+                           len(data.varied_parameters['radius'])+1,
+                           figsize=(11.4,2.*len(data.varied_parameters['angle']*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center']))))
     plt.subplots_adjust(left=0.03, top=0.95, bottom=0.12, right=.97)
+
     for i, angle in enumerate(data.varied_parameters['angle']):
         for j, size in enumerate(data.varied_parameters['radius']):
-            if 'contrast' in data.varied_parameters:
+            for ix, x in enumerate(data.varied_parameters['x-center']):
+                for iy, y in enumerate(data.varied_parameters['y-center']):
+                    iax = i*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])+\
+                        ix*len(data.varied_parameters['y-center'])+iy
+                    for ic, c in enumerate(data.varied_parameters['contrast']):
+                        data.plot(['angle', 'radius', 'contrast', 'x-center', 'y-center'], [i,j,ic,ix,iy],
+                                  ax=AX[iax,j], with_std=with_std,
+                                  color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.))
+                        AX[iax,j].set_title('r=%.0f$^o$, $\\theta=$%.0f$^o$, x=%.1f$^o$, y=%.1f$^o$' % (size,angle,x,y), fontsize=7)
+    for ic, c in enumerate(data.varied_parameters['contrast']):
+        AX[0,0].annotate('contrast=%.1f' % c + ic*'\n', (0.5,0), xycoords='figure fraction',
+                         color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.))
+
+    for i, angle in enumerate(data.varied_parameters['angle']):
+        for ix, x in enumerate(data.varied_parameters['x-center']):
+            for iy, y in enumerate(data.varied_parameters['y-center']):
+                iax = i*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])+\
+                    ix*len(data.varied_parameters['y-center'])+iy
                 for ic, c in enumerate(data.varied_parameters['contrast']):
-                    data.plot(['angle', 'radius', 'contrast'], [i,j,ic], ax=AX[i,j], with_std=with_std,
-                              color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.))
-            else:
-                data.plot(['angle', 'radius'], [i,j], ax=AX[i,j], with_std=with_std)
-            AX[i,j].set_title('r=%.0f$^o$, $\\theta=$%.0f$^o$' % (size,angle), fontsize=9)
-        if 'contrast' in data.varied_parameters:
-            for ic, c in enumerate(data.varied_parameters['contrast']):
-                size_dependence_plot(*data.compute_integral_responses('radius',
-                                                                      keys=['angle', 'contrast'], indexes=[i, ic],
-                                                                      with_baseline=True),
-                                                                      color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.),
-                                                                      ax=AX[i,j+1])
-        else:
-            size_dependence_plot(*data.compute_integral_responses('radius', keys=['angle'], indexes=[i], with_baseline=True), ax=AX[i,j+1])
+                    size_dependence_plot(*data.compute_integral_responses('radius',
+                                                                          keys=['angle', 'contrast', 'x-center', 'y-center'],
+                                                                          indexes=[i, ic, ix, iy],
+                                                                          with_baseline=True),
+                                         color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.),
+                                         ax=AX[iax,len(data.varied_parameters['radius'])])
+                    
     responsive = responsiveness(data)
     YLIM = (np.min([ax.get_ylim()[0] for ax in ge.flat(AX)]), np.max([ax.get_ylim()[1] for ax in ge.flat(AX[:,:-1])]))
     for ax in ge.flat(AX[:,:-1]):
@@ -61,7 +81,8 @@ def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, v
 
 if __name__=='__main__':
     
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_15', '2021_04_15-15-48-07.nwb')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_28', '2021_04_28-15-05-26.nwb')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_28', '2021_04_28-15-05-26.nwb')
     # filename = sys.argv[-1]
     
     FullData= Data(filename)
@@ -69,7 +90,7 @@ if __name__=='__main__':
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
     # # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
-    for i in range(np.sum(FullData.iscell))[:3]:
+    for i in range(np.sum(FullData.iscell))[:1]:
         fig, responsive = orientation_size_selectivity_analysis(FullData, roiIndex=i)
         if responsive:
             print('cell %i -> responsive !' % (i+1))
