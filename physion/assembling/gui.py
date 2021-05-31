@@ -3,7 +3,6 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
-from assembling.FaceCamera_compress import compress_datafolder
 from misc.folders import FOLDERS
 
 class MainWindow(QtWidgets.QMainWindow):

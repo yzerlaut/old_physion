@@ -1,3 +1,5 @@
+import os, sys
+import numpy as np
 from scipy import stats
 
 def stat_test_for_evoked_responses(EPISODES, episode_cond,
@@ -9,8 +11,6 @@ def stat_test_for_evoked_responses(EPISODES, episode_cond,
     pre_cond = (EPISODES['t']>=interval_pre[0]) & (EPISODES['t']<=interval_pre[1])
     post_cond = (EPISODES['t']>=interval_post[0]) & (EPISODES['t']<=interval_post[1])
     
-    print(EPISODES['resp'].shape)
-    print(len(episode_cond),len(pre_cond),len(post_cond))
     # print(EPISODES['resp'][episode_cond,post_cond])#.mean(axis=1))
 
     
@@ -35,7 +35,6 @@ def pval_to_star(test, pvalue=1e-5, size=5):
         return 'n.s.', size
 
         
-
 if __name__=='__main__':
+
     pass
-    

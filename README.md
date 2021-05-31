@@ -26,10 +26,18 @@ The software is organized into several modules to perform the acquisition, the p
 
    ```
    conda install pip numpy scipy pyqtgraph matplotlib jupyter
-   pip install pynwb
+   conda install -c conda-forge pynwb
+   ```
+
+   then either (for git users):
+   ```
+   git clone https://github.com/yzerlaut/physion
+   ```
+   or:
+   ```
    pip install git+https://github.com/yzerlaut/physion
    ```
-   
+
    For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
    
 ## Getting started
