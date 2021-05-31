@@ -6,10 +6,17 @@ import itertools, string, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 try:
-    from datavyz.images import load
+    from skimage import color, io
 except ModuleNotFoundError:
-    print('"datavyz" module not found, get it with pip install `git+https://github.com/yzerlaut/datavyz`  ')
+    print('"skimage" module not found')
 
+
+def load(image_path):
+
+    img = color.rgb2gray(io.imread(image_path))
+    
+    return np.rot90(np.array(img), k=3) # needs rotation
+    
 def img_after_hist_normalization(img):
     """
     for NATURAL IMAGES:
