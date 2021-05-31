@@ -1,10 +1,17 @@
 import numpy as np
 import os, sys, pathlib
 
-import skvideo.io
-from PIL import Image
+try:
+    import skvideo.io
+except ModuleNotFoundError:
+    print('"skvideo" module not found')
+try:
+    from PIL import Image
+except ModuleNotFoundError:
+    print('"PIL" module not found')
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from assembling.saving import day_folder, create_day_folder, generate_filename_path,\
     check_datafolder, get_files_with_extension
 
