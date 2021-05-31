@@ -7,7 +7,7 @@ from physion.analysis.orientation_direction_selectivity import *
 from datavyz import ge
 
 
-SURROUND_SUPPRESSION_PROTOCOLS = ['surround-suppression-fast']
+SURROUND_SUPPRESSION_PROTOCOLS = ['surround-suppression-fast', 'surround-suppression-static', 'surround-suppression-drifting']
 
 def size_dependence_plot(sizes, responses, baselines, ax=None, figsize=(2.5,1.5), color='k'):
     if ax is None:
