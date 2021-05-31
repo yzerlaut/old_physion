@@ -14,7 +14,7 @@ def size_dependence_plot(sizes, responses, baselines, ax=None, figsize=(2.5,1.5)
         fig, ax = plt.subplots(1, figsize=figsize)
     ax.plot([0]+list(sizes), [np.mean(baselines)/1e3]+list(responses/1e3), 'o-', color=color, lw=2) # CHECK UNITS
     ax.set_xticks([0]+list(sizes))
-    ax.set_xticklabels(['%.1f' for f in [0]+list(sizes)])
+    ax.set_xticklabels(['%.1f' % f for f in [0]+list(sizes)])
     ax.set_ylabel('resp. integral ($\Delta$F/F.s)', fontsize=9)
     ax.set_xlabel('angle ($^o$)', fontsize=9)
 
