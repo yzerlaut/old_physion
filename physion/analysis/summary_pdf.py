@@ -334,7 +334,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
             #     pdf.savefig()  # saves the current figure into a pdf page
             #     plt.close()
 
-        print('looping over protocols for analysis [...]')
+    print('looping over protocols for analysis [...]')
         
     if 'protocols' in include:
         # looping over protocols
@@ -379,7 +379,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
                     pdf.savefig()  # saves the current figure into a pdf page
                     plt.close()
 
-                elif protocol_type in ['center-grating']:
+                elif protocol_type in ['center-grating', 'drifting-center-grating']:
                     from surround_suppression import orientation_size_selectivity_analysis
                     Nresp, SIs = 0, []
                     for i in range(data.iscell.sum())[:Nmax]:
