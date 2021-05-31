@@ -61,15 +61,18 @@ def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, v
 
 if __name__=='__main__':
     
-    # filename = os.path.join(os.path.expanduser('~'), 'UNPROCESSED', '2021_04_15-15-48-07.nwb')
-    filename = sys.argv[-1]
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_15', '2021_04_15-15-48-07.nwb')
+    # filename = sys.argv[-1]
+    
     FullData= Data(filename)
     print(FullData.protocols)
     print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
                                                                                           len(FullData.iscell)))
     # # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
     for i in range(np.sum(FullData.iscell))[:3]:
-        fig, _ = orientation_size_selectivity_analysis(FullData, roiIndex=i)
+        fig, responsive = orientation_size_selectivity_analysis(FullData, roiIndex=i)
+        if responsive:
+            print('cell %i -> responsive !' % (i+1))
         plt.show()
 
 
