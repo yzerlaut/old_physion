@@ -76,8 +76,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=False,
-                                      row=0,col=0,
-                                      invertY=True,border=[100,100,100])
+                                      row=0,col=0,#border=[100,100,100],
+                                      invertY=True)
 
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
@@ -92,6 +92,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pPupil.setMenuEnabled(False)
         self.pPupilimg = pg.ImageItem(None)
         self.pPupil.addItem(self.pPupilimg)
+        self.scatterPupil = pg.ScatterPlotItem()
+        self.pPupil.addItem(self.scatterPupil)
 
         # roi initializations
         self.iROI = 0
@@ -342,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
 
-                self.sl.setValue(self.data['ROIsaturation'])
+                self.sl.setValue(int(self.data['ROIsaturation']))
                 self.ROI = roi.sROI(parent=self,
                                     pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
                 self.plot_pupil_trace()
@@ -384,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
 
     def print_size(self):
-        print('x, y, sx, sy = ', self.ROI.extract_props())
+        print('x, y, sx, sy, angle = ', self.ROI.extract_props())
 
     def add_ROI(self):
 
@@ -504,14 +506,24 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 for key in ['cx', 'cy', 'sx', 'sy']:
                     coords.append(self.data[key][self.iframe])
-            self.fit = roi.pupilROI(moveable=True,
-                                    parent=self,
-                                    color=(0, 200, 0),
-                                    pos = roi.ellipse_props_to_ROI(coords))
+
+
+            self.plot_pupil_ellipse(coords)
+            # self.fit = roi.pupilROI(moveable=True,
+            #                         parent=self,
+            #                         color=(0, 200, 0),
+            #                         pos = roi.ellipse_props_to_ROI(coords))
             
         self.win.show()
         self.show()
-            
+
+    def plot_pupil_ellipse(self, coords):
+
+        self.scatterPupil.clear()
+        self.scatterPupil.setData(*process.ellipse_coords(*coords),
+                                  size=3, brush=pg.mkBrush(255,0,0))
+        self.pPupil.addItem(self.scatterPupil)
+        
 
     def extract_ROI(self, data):
 
@@ -570,6 +582,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.subsampling = int(self.samplingBox.text())
         if self.pupil_shape.currentText()=='Ellipse fit':
             self.Pshape = 'ellipse'
+            
         else:
             self.Pshape = 'circle'
 
@@ -621,13 +634,21 @@ class MainWindow(QtWidgets.QMainWindow):
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
                                                shape='circle')
-            coords = list(coords)+[coords[-1]] # form circle to ellipse
+            coords = list(coords)+[coords[-1], 0] # form circle to ellipse
 
         if not coords_only:
-            self.pupil = roi.pupilROI(moveable=True,
-                                      pos = roi.ellipse_props_to_ROI(coords),
-                                      parent=self)
+            # self.pupil = roi.pupilROI(moveable=True,
+            #                           pos = roi.ellipse_props_to_ROI(coords),
+            #                           parent=self)
+            self.plot_pupil_ellipse(coords)
 
+        # TROUBLESHOOTING
+        # from datavyz import ge
+        # fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        # ax.plot(*process.ellipse_coords(*coords), 'r')
+        # ge.image(self.img_fit, ax=ax)
+        # ge.show()
+        
         return coords
 
     def interpolate_data(self):

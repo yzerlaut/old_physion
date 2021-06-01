@@ -36,7 +36,7 @@ def load_FaceCamera_data(imgfolder, t0=0, verbose=True):
     nframes = len(times)
     Lx, Ly = np.load(os.path.join(imgfolder, FILES[0])).shape
     if verbose:
-        print('Sampling frequency: %.1f Hz' % (1./np.diff(times).mean()))
+        print('Sampling frequency: %.1f Hz  (datafile: %s)' % (1./np.diff(times).mean(), imgfolder))
     return times, FILES, nframes, Lx, Ly
 
 

@@ -1,6 +1,6 @@
 import sys, os, pathlib
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import interp1d
 
@@ -11,25 +11,33 @@ from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
 from pupil import roi
 
-def ellipse_coords(xc, yc, sx, sy, n=50):
+def ellipse_coords(xc, yc, sx, sy, alpha=0, n=100):
     t = np.linspace(0, 2*np.pi, n)
-    return xc+np.cos(t)*sx/2, yc+np.sin(t)*sy/2
+    # return xc+np.cos(t)*sx/2, yc+np.sin(t)*sy/2 # UNROTATED
+    # return xc+(np.cos(alpha)-np.sin(alpha))*np.cos(t)*sx/2.,\
+    #     yc+(-np.sin(alpha)+np.cos(alpha))*np.sin(t)*sy/2.
+    # https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate
+    # with t=theta and alpha=alpha
+    return xc+sx/2.*np.cos(t)*np.cos(alpha)-sy/2.*np.sin(t)*np.sin(alpha),\
+         yc+sx/2.*np.cos(t)*np.sin(alpha)+sy/2.*np.sin(t)*np.cos(alpha),\
 
 def circle_coords(xc, yc, s, n=50):
     t = np.linspace(0, 2*np.pi, n)
     return xc+np.cos(t)*s/2, yc+np.sin(t)*s/2
 
-def inside_ellipse_cond(X, Y, xc, yc, sx, sy):
-    return ( (X-xc)**2/(sx/2.)**2+\
-             (Y-yc)**2/(sy/2.)**2 ) < 1
+def inside_ellipse_cond(X, Y, xc, yc, sx, sy, alpha=0):
+    # return ( (X-xc)**2/(sx/2.)**2+\
+    #          (Y-yc)**2/(sy/2.)**2 ) < 1 # UNROTATED
+    return ( ( (X-xc)*np.cos(alpha) + (Y-yc)*np.sin(alpha) )**2 / (sx/2.)**2 +\
+             ( (X-xc)*np.sin(alpha) - (Y-yc)*np.cos(alpha) )**2 / (sy/2.)**2 ) < 1
 
 def inside_circle_cond(X, Y, xc, yc, s):
     return ( (X-xc)**2/(s/2.)**2+\
              (Y-yc)**2/(s/2.)**2 ) < 1
 
-def ellipse_binary_func(X, Y, xc, yc, sx, sy):
+def ellipse_binary_func(X, Y, xc, yc, sx, sy, alpha=0):
     Z = np.zeros(X.shape)
-    Z[inside_ellipse_cond(X, Y, xc, yc, sx, sy)] = 1
+    Z[inside_ellipse_cond(X, Y, xc, yc, sx, sy, alpha)] = 1
     return Z
 
 def circle_binary_func(X, Y, xc, yc, s):
@@ -43,7 +51,7 @@ def ellipse_residual(coords, cls):
     """
     im = ellipse_binary_func(cls.x, cls.y, *coords)
     im[~cls.fit_area] = 0
-    return np.mean((cls.img_fit-im)**2)
+    return np.sum((cls.img_fit-im)**2)
 
 
 def circle_residual(coords, cls):
@@ -52,15 +60,16 @@ def circle_residual(coords, cls):
     """
     im = circle_binary_func(cls.x, cls.y, *coords)
     im[~cls.fit_area] = 0
-    return np.mean((cls.img_fit-im)**2)
+    return np.sum((cls.img_fit-im)**2)
 
     
 def perform_fit(cls,
                 shape='ellipse',
                 saturation=100,
-                maxiter=100):
+                maxiter=100,
+                verbose=False):
 
-    cls.img_fit = cls.img
+    cls.img_fit = cls.img.copy()
     cls.img_fit[cls.img<saturation] = 1
     cls.img_fit[cls.img>=saturation] = 0
     
@@ -68,26 +77,49 @@ def perform_fit(cls,
     c0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
     # std_of_mass
     s0 = [4*np.std(cls.x[cls.img_fit>0]),4*np.std(cls.y[cls.img_fit>0])]
-
+    
     if shape=='ellipse':
         residual = ellipse_residual
-        initial_guess = [c0[0], c0[1], s0[0], s0[1]]
+        initial_guess = [c0[0], c0[1], s0[0], s0[1], np.pi/2.]
     else: # circle
         residual = circle_residual
         initial_guess = [c0[0], c0[1], np.mean(s0)]
 
     try:
-        res = minimize(residual, initial_guess,
-                       bounds=[(c0[0]-s0[0],c0[0]+s0[0]),
-                               (c0[1]-s0[1],c0[1]+s0[1]),
-                               (1,2*s0[0]), (1,2*s0[1])],
-                       args=(cls),
-                       method='TNC',
-                       # method='Nelder-Mead',
-                       tol=1e-8, options={'maxiter':maxiter})
-
+        BOUNDS = [(c0[0]-s0[0],c0[0]+s0[0]),
+                  (c0[1]-s0[1],c0[1]+s0[1]),
+                  (1,2*s0[0]), (1,2*s0[1]), [0,np.pi]]
+        
+        # TESTED:
+        # method='L-BFGS-B', options={'gtol':1e-12, 'ftol':1e-15, 'maxiter':maxiter, 'maxls':100})
+        # method='TNC', options={'eps':1e-4, 'gtol':1e-30, 'ftol':1e-30, 'maxfun':maxiter, 'accuracy':1e-4})
+        # method='SLSQP', options={'eps':1e-15, 'ftol':1e-15})
+        
+        res = differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW
         return res.x, None, res.fun
+        
+        # success, n, new_initial_guess = False, 0, initial_guess
+        # while (not success) and (n<10):
+            
+        #     res = minimize(residual, new_initial_guess,
+        #                    args=(cls), method='Nelder-Mead')
+
+        #     success=True
+        #     for i, xr, xb in zip(range(5), res.x, BOUNDS):
+        #         success = success and ((xr>=xb[0]) and (xr<=xb[1]))
+        #         new_initial_guess[i] = np.random.uniform(xb[0], xb[1])
+        #     n+=1
+        # if n>1:
+        #     print('needed', n, 'iterations to get convergence')
+        # if verbose:
+        #     print(res)
+        # if success:
+        #     return res.x, None, res.fun
+        # else:
+        #     return initial_guess, None, 1e8
     except ValueError:
+        if verbose:
+            print('ValueError // -> returning center/std of mass ')
         return initial_guess, None, 1e8
 
 
@@ -136,17 +168,18 @@ def perform_loop(parent,
     return temp
     
 def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
-    cx, cy, sx, sy = ellipse
+    if len(ellipse)==5:
+        cx, cy, sx, sy, angle = ellipse
+    else:
+        cx, cy, sx, sy = ellipse
+        angle=0
     x,y = np.meshgrid(np.arange(0,Lx), np.arange(0,Ly), indexing='ij')
-    ellipse = ((y - cy)**2 / (sy/2)**2 +
-               (x - cx)**2 / (sx/2)**2) <= 1
+    ellipse = inside_ellipse_cond(x, y, cx, cy, sx, sy, alpha=angle)
     xmin, xmax = np.min(x[ellipse]), np.max(x[ellipse])
     ymin, ymax = np.min(y[ellipse]), np.max(y[ellipse])
 
-    return {'xmin':xmin,
-            'xmax':xmax,
-            'ymin':ymin,
-            'ymax':ymax}
+    return {'xmin':xmin, 'xmax':xmax,
+            'ymin':ymin, 'ymax':ymax}
 
 def init_fit_area(cls,
                   fullimg=None,
@@ -311,7 +344,39 @@ if __name__=='__main__':
         args.datafolder = os.path.join(args.root_datafolder, args.day,
                                        args.time)
 
-    if not args.debug:
+    if args.debug:
+        """
+        snippet of code to design/debug the fitting algorithm
+        
+        ---> to be used with the "-Debug-" button of the GUI
+        """
+        from datavyz import ges as ge
+        from analyz.IO.npz import load_dict
+
+        args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
+        args.data = np.load(os.path.join(args.datafolder,
+                                         'pupil.npy'), allow_pickle=True).item()
+        
+        load_folder(args)
+        # print(args.fullimg)
+        args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
+        init_fit_area(args,
+                      fullimg=None,
+                      ellipse=args.data['ROIellipse'],
+                      reflectors=args.data['reflectors'])
+        
+        args.cframe = 7900
+        
+        preprocess(args, with_reinit=False)
+        fit = perform_fit(args,
+                          saturation=args.data['ROIsaturation'],
+                          verbose=True)[0]
+        fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        ax.plot(*ellipse_coords(*fit), 'r')
+        # ax.plot(*ellipse_coords(113, 119, 77, 52, np.pi/2.), 'r')
+        ge.image(args.img_fit, ax=ax)
+        ge.show()
+    else:
         if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
             print('Processing pupil for "%s" [...]' % os.path.join(args.datafolder, 'pupil.npy'))
             args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
@@ -336,21 +401,3 @@ if __name__=='__main__':
             print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'pupil.npy'))
         else:
             print('  /!\ "pupil.npy" file found, create one with the GUI  /!\ ')
-    else:
-        """
-        snippet of code to design/debug the fitting algorithm
-        
-        ---> to be used with the "-Debug-" button of the GUI
-        """
-        from datavyz import ges as ge
-        from analyz.IO.npz import load_dict
-
-        # prepare data
-        data = np.load('pupil.npy', allow_pickle=True).item()
-        x, y = np.meshgrid(data['ximg'], data['yimg'], indexing='ij')
-
-        fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-        ge.image(data['img'], ax=ax)
-        # ax.plot(*ellipse_coords(*data['ROIpupil']))
-        ax.plot(*perform_fit(data['img'], x, y, data['reflectors'], shape='circle')[1])
-        ge.show()
