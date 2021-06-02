@@ -86,14 +86,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pPupil = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True, border=[100,100,100])
-        self.pPupil.setAspectLocked()
+        self.pPupil = self.win.addViewBox(lockAspect=True,#row=0,col=1,
+                                          # border=[100,100,100],
+                                          invertY=True)
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pPupil.setMenuEnabled(False)
         self.pPupilimg = pg.ImageItem(None)
         self.pPupil.addItem(self.pPupilimg)
-        self.scatterPupil = pg.ScatterPlotItem()
-        self.pPupil.addItem(self.scatterPupil)
+        self.pupilContour = pg.ScatterPlotItem()
+        self.pPupil.addItem(self.pupilContour)
+        self.pupilCenter = pg.ScatterPlotItem()
+        self.pPupil.addItem(self.pupilCenter)
 
         # roi initializations
         self.iROI = 0
@@ -420,7 +423,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
             self.data['blinking'][i1:i2] = 1
             
-            for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
                 I = np.arange(i1, i2)
                 self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
 
@@ -480,6 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 process.preprocess(self,\
                                 gaussian_smoothing=float(self.smoothBox.text()),
                                 saturation=self.sl.value())
+                
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
@@ -492,6 +496,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fit.remove(self)
             
         if self.data is not None:
+            
             self.iframe = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe][0]
             self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
                                  self.data['diameter'][self.iframe]*np.ones(1),
@@ -501,10 +506,11 @@ class MainWindow(QtWidgets.QMainWindow):
             coords = []
             if 'sx-corrected' in self.data:
                 for key in ['cx-corrected', 'cy-corrected',
-                            'sx-corrected', 'sy-corrected']:
+                            'sx-corrected', 'sy-corrected',
+                            'angle-corrected']:
                     coords.append(self.data[key][self.iframe])
             else:
-                for key in ['cx', 'cy', 'sx', 'sy']:
+                for key in ['cx', 'cy', 'sx', 'sy', 'angle']:
                     coords.append(self.data[key][self.iframe])
 
 
@@ -519,10 +525,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def plot_pupil_ellipse(self, coords):
 
-        self.scatterPupil.clear()
-        self.scatterPupil.setData(*process.ellipse_coords(*coords),
+        self.pupilContour.setData(*process.ellipse_coords(*coords, transpose=True),
                                   size=3, brush=pg.mkBrush(255,0,0))
-        self.pPupil.addItem(self.scatterPupil)
+        self.pupilCenter.setData([coords[1]], [coords[0]],
+                                 size=8, brush=pg.mkBrush(255,0,0))
         
 
     def extract_ROI(self, data):
@@ -637,22 +643,20 @@ class MainWindow(QtWidgets.QMainWindow):
             coords = list(coords)+[coords[-1], 0] # form circle to ellipse
 
         if not coords_only:
-            # self.pupil = roi.pupilROI(moveable=True,
-            #                           pos = roi.ellipse_props_to_ROI(coords),
-            #                           parent=self)
             self.plot_pupil_ellipse(coords)
 
         # TROUBLESHOOTING
         # from datavyz import ge
         # fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-        # ax.plot(*process.ellipse_coords(*coords), 'r')
-        # ge.image(self.img_fit, ax=ax)
+        # ax.plot(*process.ellipse_coords(*coords, transpose=True), 'r')
+        # ax.plot([coords[1]], [coords[0]], 'ro')
+        # ax.imshow(self.img)
         # ge.show()
         
         return coords
 
     def interpolate_data(self):
-        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
             func = interp1d(self.data['frame'], self.data[key],
                             kind='linear')
             self.data[key] = func(np.arange(self.nframes))

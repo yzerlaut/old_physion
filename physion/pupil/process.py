@@ -1,4 +1,4 @@
-import sys, os, pathlib
+import sys, os, pathlib, time
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
 from scipy.ndimage import gaussian_filter
@@ -11,15 +11,19 @@ from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
 from pupil import roi
 
-def ellipse_coords(xc, yc, sx, sy, alpha=0, n=100):
+def ellipse_coords(xc, yc, sx, sy, alpha=0, n=100, transpose=False):
     t = np.linspace(0, 2*np.pi, n)
     # return xc+np.cos(t)*sx/2, yc+np.sin(t)*sy/2 # UNROTATED
     # return xc+(np.cos(alpha)-np.sin(alpha))*np.cos(t)*sx/2.,\
     #     yc+(-np.sin(alpha)+np.cos(alpha))*np.sin(t)*sy/2.
     # https://math.stackexchange.com/questions/426150/what-is-the-general-equation-of-the-ellipse-that-is-not-in-the-origin-and-rotate
     # with t=theta and alpha=alpha
-    return xc+sx/2.*np.cos(t)*np.cos(alpha)-sy/2.*np.sin(t)*np.sin(alpha),\
-         yc+sx/2.*np.cos(t)*np.sin(alpha)+sy/2.*np.sin(t)*np.cos(alpha),\
+    if transpose:
+        return yc+sx/2.*np.cos(t)*np.sin(alpha)+sy/2.*np.sin(t)*np.cos(alpha),\
+            xc+sx/2.*np.cos(t)*np.cos(alpha)-sy/2.*np.sin(t)*np.sin(alpha)
+    else:
+        return xc+sx/2.*np.cos(t)*np.cos(alpha)-sy/2.*np.sin(t)*np.sin(alpha),\
+            yc+sx/2.*np.cos(t)*np.sin(alpha)+sy/2.*np.sin(t)*np.cos(alpha)
 
 def circle_coords(xc, yc, s, n=50):
     t = np.linspace(0, 2*np.pi, n)
@@ -85,38 +89,52 @@ def perform_fit(cls,
         residual = circle_residual
         initial_guess = [c0[0], c0[1], np.mean(s0)]
 
+    if verbose:
+        start_time = time.time()
+        
     try:
-        BOUNDS = [(c0[0]-s0[0],c0[0]+s0[0]),
-                  (c0[1]-s0[1],c0[1]+s0[1]),
-                  (1,2*s0[0]), (1,2*s0[1]), [0,np.pi]]
+        BOUNDS = [(c0[0]-.3*s0[0],c0[0]+.3*s0[0]),
+                  (c0[1]-.3*s0[1],c0[1]+.3*s0[1]),
+                  # (.7*s0[0],1.3*s0[0]), (.7*s0[1],1.3*s0[1]),
+                  (1,2*s0[0]), (1,2*s0[1]),
+                  [0,np.pi]]
         
         # TESTED:
         # method='L-BFGS-B', options={'gtol':1e-12, 'ftol':1e-15, 'maxiter':maxiter, 'maxls':100})
         # method='TNC', options={'eps':1e-4, 'gtol':1e-30, 'ftol':1e-30, 'maxfun':maxiter, 'accuracy':1e-4})
         # method='SLSQP', options={'eps':1e-15, 'ftol':1e-15})
         
-        res = differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW
+        res = differential_evolution(residual, bounds=BOUNDS, args=[cls], #popsize=2,
+                                     maxiter=int(maxiter/5)) # THIS WORKS WELL BUT VERY SLOW !
+        print(res.fun)
+
+        # res = differential_evolution(residual, bounds=BOUNDS, args=[cls],
+        #                              maxiter=int(maxiter/10)) # THIS WORKS WELL BUT VERY SLOW !
+        # BOUNDS2 = [(.8*xr, 1.2*xr) for xr in res.x]
+        # res = differential_evolution(residual, bounds=BOUNDS2, args=[cls],
+        #                              maxiter=int(maxiter/10)) # THIS WORKS WELL BUT VERY SLOW !
+
+        
+        # print(res.fun)
+        # # a first basive fit
+        # res = minimize(residual, initial_guess,
+        #                args=(cls), method='Nelder-Mead')
+        # # check that it is within the bounds
+        # success=True
+        # for i, xr, xb in zip(range(4), res.x, BOUNDS):
+        #     success = success and ((xr>=xb[0]) and (xr<=xb[1]))
+        
+        # if not success:
+        #     if verbose:
+        #         print('going through the full parameter space fit')
+        #     res = differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW !
+        
+        if verbose:
+            print('time to fit: %.2f s' % ((time.time()-start_time)))
+
+        res.x[4] = res.x[4]%(2*np.pi)
         return res.x, None, res.fun
         
-        # success, n, new_initial_guess = False, 0, initial_guess
-        # while (not success) and (n<10):
-            
-        #     res = minimize(residual, new_initial_guess,
-        #                    args=(cls), method='Nelder-Mead')
-
-        #     success=True
-        #     for i, xr, xb in zip(range(5), res.x, BOUNDS):
-        #         success = success and ((xr>=xb[0]) and (xr<=xb[1]))
-        #         new_initial_guess[i] = np.random.uniform(xb[0], xb[1])
-        #     n+=1
-        # if n>1:
-        #     print('needed', n, 'iterations to get convergence')
-        # if verbose:
-        #     print(res)
-        # if success:
-        #     return res.x, None, res.fun
-        # else:
-        #     return initial_guess, None, 1e8
     except ValueError:
         if verbose:
             print('ValueError // -> returning center/std of mass ')
@@ -131,7 +149,7 @@ def perform_loop(parent,
                  with_ProgressBar=False):
 
     temp = {} # temporary data in case of subsampling
-    for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'diameter', 'residual']:
+    for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'diameter', 'residual', 'angle']:
         temp[key] = []
 
     if with_ProgressBar:
@@ -151,7 +169,7 @@ def perform_loop(parent,
             coords = list(coords)+[coords[-1]] # form circle to ellipse
         temp['frame'].append(parent.cframe)
         temp['residual'].append(res)
-        for key, val in zip(['cx', 'cy', 'sx', 'sy'], coords):
+        for key, val in zip(['cx', 'cy', 'sx', 'sy', 'angle'], coords):
             temp[key].append(val)
         temp['diameter'].append(np.pi*coords[2]*coords[3])
         if with_ProgressBar:
@@ -160,11 +178,11 @@ def perform_loop(parent,
         printProgressBar(parent.nframes, parent.nframes)
         
     print('Pupil size calculation over !')
-
     
     for key in temp:
         temp[key] = np.array(temp[key])
     temp['blinking'] = np.zeros(len(temp['cx']), dtype=np.uint)
+    
     return temp
     
 def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
@@ -307,7 +325,7 @@ def remove_outliers(data, std_criteria=1.):
     print(np.sum(accept_cond))
     
     dt = times[1]-times[0]
-    for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
+    for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
         # duplicating the first and last valid points to avoid boundary errors
         x = np.concatenate([[times[0]-dt], times[accept_cond], [times[-1]+dt]])
         y = np.concatenate([[data[key][accept_cond][0]],

@@ -244,7 +244,8 @@ if __name__=='__main__':
             self.l0 = QtGui.QGridLayout();self.cwidget.setLayout(self.l0)
             self.win = pg.GraphicsLayoutWidget();self.l0.addWidget(self.win)
             
-            self.pPupil = self.win.addViewBox();self.pimg = pg.ImageItem()
+            self.pPupil = self.win.addViewBox(lockAspect=True,invertX=True)
+            self.pimg = pg.ImageItem()
             self.pPupil.setAspectLocked();self.pPupil.addItem(self.pimg)
 
             self.imgfolder = os.path.join('/home/yann/UNPROCESSED/2021_05_20/13-20-51', 'FaceCamera-imgs')
@@ -252,24 +253,31 @@ if __name__=='__main__':
                 self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                         t0=0, verbose=True)
             self.data = np.load(os.path.join(self.imgfolder, '..', 'pupil.npy'), allow_pickle=True).item()
+            self.cframe = 19000
+            
             init_fit_area(self,
-                          fullimg=None,
                           ellipse=self.data['ROIellipse'],
                           reflectors=self.data['reflectors'])
             
-            self.cframe = 1000
+            preprocess(self, with_reinit=False)
+            
             self.scatter = pg.ScatterPlotItem()
+            self.scatter2 = pg.ScatterPlotItem()
             self.pPupil.addItem(self.scatter)
+            self.pPupil.addItem(self.scatter2)
 
             preprocess(self, with_reinit=False)
-            self.pimg.setImage(self.img)
-            self.pimg.setLevels([0, 255])
 
             fit = perform_fit(self,
                               saturation=self.data['ROIsaturation'],
                               verbose=True)[0]
+            
+            self.pimg.setImage(self.img);self.pimg.setLevels([0, 255])
+            # self.pimg.setImage(self.img_fit); self.pimg.setLevels([0, 1])
             self.scatter.setData(*ellipse_coords(*fit),
                                  size=3, brush=pg.mkBrush(255,0,0))
+            self.scatter2.setData([fit[0]], [fit[1]],
+                                  size=10, brush=pg.mkBrush(255,0,0))
             
             self.win.show()
             self.show()
