@@ -1,6 +1,6 @@
 import sys, os, pathlib, time
 import numpy as np
-from scipy.optimize import minimize, differential_evolution
+from scipy import optimize
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import interp1d
 
@@ -93,20 +93,36 @@ def perform_fit(cls,
         start_time = time.time()
         
     try:
-        BOUNDS = [(c0[0]-.3*s0[0],c0[0]+.3*s0[0]),
-                  (c0[1]-.3*s0[1],c0[1]+.3*s0[1]),
-                  # (.7*s0[0],1.3*s0[0]), (.7*s0[1],1.3*s0[1]),
-                  (1,2*s0[0]), (1,2*s0[1]),
-                  [0,np.pi]]
+        BOUNDS = [(c0[0]-.2*s0[0],c0[0]+.2*s0[0]),
+                  (c0[1]-.2*s0[1],c0[1]+.2*s0[1]),
+                  (.5*min(s0),max(s0)), (.5*min(s0),max(s0)),
+                  [0, np.pi]]
         
         # TESTED:
         # method='L-BFGS-B', options={'gtol':1e-12, 'ftol':1e-15, 'maxiter':maxiter, 'maxls':100})
         # method='TNC', options={'eps':1e-4, 'gtol':1e-30, 'ftol':1e-30, 'maxfun':maxiter, 'accuracy':1e-4})
         # method='SLSQP', options={'eps':1e-15, 'ftol':1e-15})
+
+        # WORKING RELATIVELY WELL
+        # res = optimize.minimize(residual, initial_guess,
+        #                args=(cls), method='Nelder-Mead')
+        # res.x[4] = res.x[4]%(2*np.pi) # needed for unbound fit
+
+        # res = optimize.minimize(residual, initial_guess, args=(cls),
+        #                         # method='L-BFGS-B', bounds=BOUNDS, options={'eps':0.1, 'gtol':1e-30, 'ftol':1e-20, 'maxiter':maxiter, 'maxls':100})
+        #                         # method='TNC', bounds=BOUNDS, options={'ftol':1e-30, 'eps':1e-2, 'scale':[b[1]-b[0] for b in BOUNDS], 'maxfun':maxiter, 'accuracy':1e-30}) # OK !
+        #                         method='TNC', bounds=BOUNDS, options={'ftol':1e-30, 'eps':1e-1, 'scale':[b[1]-b[0] for b in BOUNDS], 'maxfun':maxiter, 'accuracy':1e-30})
+        #                         # method='SLSQP', bounds=BOUNDS, options={'eps':0.1, 'ftol':1e-20, 'maxiter':maxiter})
+        #                         # options={'eps':0.05, 'gtol':1e-30, 'ftol':1e-30, 'maxfun':maxiter*10, 'accuracy':1e-30,
+        #                         #          'eta':0.1, 'scale':[b[1]-b[0] for b in BOUNDS]})
         
-        res = differential_evolution(residual, bounds=BOUNDS, args=[cls], #popsize=2,
-                                     maxiter=int(maxiter/5)) # THIS WORKS WELL BUT VERY SLOW !
-        print(res.fun)
+        res = optimize.differential_evolution(residual, bounds=BOUNDS, args=[cls], popsize=2,
+                                              maxiter=30) # THIS WORKS WELL BUT VERY SLOW !
+        
+        
+        # res = optimize.shgo(residual, bounds=BOUNDS, args=(cls))
+        # res = optimize.basinhopping(residual, BOUNDS, minimizer_kwargs=dict(args=(cls)), niter=maxiter)
+        # print(res)
 
         # res = differential_evolution(residual, bounds=BOUNDS, args=[cls],
         #                              maxiter=int(maxiter/10)) # THIS WORKS WELL BUT VERY SLOW !
@@ -115,10 +131,12 @@ def perform_fit(cls,
         #                              maxiter=int(maxiter/10)) # THIS WORKS WELL BUT VERY SLOW !
 
         
-        # print(res.fun)
+        # # print(res.fun)
         # # a first basive fit
-        # res = minimize(residual, initial_guess,
-        #                args=(cls), method='Nelder-Mead')
+        # res = optimize.minimize(residual, initial_guess,
+        #                         args=(cls), method='Nelder-Mead', options={'maxiter':100})
+        # print(res.fun)
+        
         # # check that it is within the bounds
         # success=True
         # for i, xr, xb in zip(range(4), res.x, BOUNDS):
@@ -127,13 +145,17 @@ def perform_fit(cls,
         # if not success:
         #     if verbose:
         #         print('going through the full parameter space fit')
-        #     res = differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW !
+        #     res = optimize.differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW !
         
         if verbose:
-            print('time to fit: %.2f s' % ((time.time()-start_time)))
+            print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
 
-        res.x[4] = res.x[4]%(2*np.pi)
+        # if success:
         return res.x, None, res.fun
+        # else:
+        #     print('fit unsuccesful')
+        #     return initial_guess, None, 1e8
+            
         
     except ValueError:
         if verbose:

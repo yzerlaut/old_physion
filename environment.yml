@@ -28,4 +28,6 @@ dependencies:
     - pynwb
     - sbxreader
     - suite2p
+    - psychopy==2021.1.1
+    - scikit-video
     - git+https://github.com/yzerlaut/datavyz
