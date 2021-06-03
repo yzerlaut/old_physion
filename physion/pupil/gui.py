@@ -288,10 +288,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateFrameSlider()
         
         self.nframes = 0
-        self.cframe = 0
+        self.cframe, self.cframe1, self.cframe2, = 0, 0, 0
 
         self.updateTimer = QtCore.QTimer()
-        self.cframe = 0
         
         self.win.show()
         self.show()
@@ -403,20 +402,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def process_outliers(self):
 
-        if self.data is not None:
-
-            if (self.cframe1!=0) and (self.cframe2!=-1):
-                i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
-                i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
-                self.data['diameter'][i1:i2] = 0
-                if i1>0:
-                    new_i1 = i1-1
-                else:
-                    new_i1 = i2
-                if i2<len(self.data['frame'])-1:
-                    new_i2 = i2+1
-                else:
-                    new_i2 = i1
+        if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
+            
+            i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
+            i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
+            self.data['diameter'][i1:i2] = 0
+            if i1>0:
+                new_i1 = i1-1
+            else:
+                new_i1 = i2
+            if i2<len(self.data['frame'])-1:
+                new_i2 = i2+1
+            else:
+                new_i2 = i1
 
             if 'blinking' not in self.data:
                 self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
@@ -436,7 +434,10 @@ class MainWindow(QtWidgets.QMainWindow):
             #     self.data[key] = func(self.data['frame'])
 
             self.plot_pupil_trace(xrange=self.xaxis.range)
-            self.cframe1, self.cframe2 = 0, -1
+            self.cframe1, self.cframe2 = 0, 0
+        else:
+            print('cursors at: ', self.cframe1, self.cframe2)
+            print('blinking/outlier labelling failed')
     
         
     def debug(self):
@@ -444,11 +445,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
-        print('cursor 1 set to: %i' % self.cframe)
+        print('cursor 1 set to: %i' % self.cframe1)
         
     def set_cursor_2(self):
         self.cframe2 = self.cframe
-        print('cursor 2 set to: %i' % self.cframe)
+        print('cursor 2 set to: %i' % self.cframe2)
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -555,6 +556,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def run_as_subprocess(self):
 
+        import time
+        start_time = time.time()
+        process.init_fit_area(self)
+        I = np.zeros((self.nframes, self.Nx, self.Ny), dtype=np.uint8)
+        for self.cframe in range(100):
+            I[self.cframe] = process.preprocess(self)
+        print('init time: ', time.time()-start_time)
+        
+        """
         self.save_pupil_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
         import subprocess
@@ -563,6 +573,7 @@ class MainWindow(QtWidgets.QMainWindow):
                              # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              shell=True)
         print('"%s" launched as a subprocess' % cmd)
+        """
         
 
     def save_pupil_data(self):

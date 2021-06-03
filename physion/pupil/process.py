@@ -66,22 +66,82 @@ def circle_residual(coords, cls):
     im[~cls.fit_area] = 0
     return np.sum((cls.img_fit-im)**2)
 
-    
+
+from pupil.facemap_fit import fit_gaussian
+
 def perform_fit(cls,
                 shape='ellipse',
                 saturation=100,
                 maxiter=100,
-                verbose=False):
+                verbose=False,
+                fast_fit=True,
+                do_xy=False,
+                inside_std_factor=5.,
+                N_iterations=5):
+    """
+    inspired by the "facemap" algorithm, see:
+    https://github.com/MouseLand/facemap/tree/main/facemap    
+    """
+    if verbose:
+        start_time = time.time()
 
     cls.img_fit = cls.img.copy()
     cls.img_fit[cls.img<saturation] = 1
     cls.img_fit[cls.img>=saturation] = 0
     
-    # center_of_mass
-    c0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-    # std_of_mass
-    s0 = [4*np.std(cls.x[cls.img_fit>0]),4*np.std(cls.y[cls.img_fit>0])]
+    mu0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+    # weighted std_of_mass
+    s0 = [4*np.std(cls.x[cls.img_fit>0]), 4*np.std(cls.y[cls.img_fit>0])]
+
+    # iteratively excluding what is not around the center of mass (factor*std away !)
+    for i in range(N_iterations):
+        # center_of_mass
+        mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+        # std_of_mass
+        std = np.std(cls.x[cls.img_fit>0])
+        # set to 0 if to far
+        cls.img_fit[~inside_circle_cond(cls.x, cls.y,
+                                        mu[0], mu[1], inside_std_factor*std)] = 0
+
+    mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+    xdist = cls.x[cls.img_fit==1].flatten()-mu[0]
+    ydist = cls.y[cls.img_fit==1].flatten()-mu[1]
     
+    xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
+    sigxy = np.sqrt(xydist.T @ xydist) + 0.01*np.eye(2)
+
+    try:
+        sv, u = np.linalg.eig(sigxy)
+        sv, u = sv[::-1], u[:,::-1]
+
+        if np.dot(*u[0])>=0:
+            sv[0], sv[1] = np.sqrt(sv[0]), np.sqrt(2*sv[1]) # manual correction to second dimension
+            angle = np.arctan(u[0][1]/u[0][0])
+        else:
+            angle = np.arctan(u[0][1]/u[0][0])+np.pi # we rotate to have a positive angle (otherwise linear interpol. fail)
+            # BUT CHECK IF LINEAR INTERPOLATION BEHAVES REALLY WELL 
+            u[0] = -u[0]
+            sv[0], sv[1] = np.sqrt(2*sv[0]), np.sqrt(sv[1]) # manual correction to second dimension
+            
+        if do_xy:
+            p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
+            cls.xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv) @ u
+            cls.xy += mu
+
+        if verbose:
+            print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
+
+        coords = [*mu, 2*sv[0], 2*sv[1], angle]
+        return coords, None, ellipse_residual(coords, cls)
+
+    except (np.linalg.LinAlgError, ValueError) as be:
+        if verbose:
+            print(be)
+        return [*mu0, *s0, 0], None, 1e8
+
+
+
+    """
     if shape=='ellipse':
         residual = ellipse_residual
         initial_guess = [c0[0], c0[1], s0[0], s0[1], np.pi/2.]
@@ -89,14 +149,11 @@ def perform_fit(cls,
         residual = circle_residual
         initial_guess = [c0[0], c0[1], np.mean(s0)]
 
-    if verbose:
-        start_time = time.time()
-        
     try:
         BOUNDS = [(c0[0]-.2*s0[0],c0[0]+.2*s0[0]),
                   (c0[1]-.2*s0[1],c0[1]+.2*s0[1]),
                   (.5*min(s0),max(s0)), (.5*min(s0),max(s0)),
-                  [0, np.pi]]
+                  [0, np.pi/2.]]
         
         # TESTED:
         # method='L-BFGS-B', options={'gtol':1e-12, 'ftol':1e-15, 'maxiter':maxiter, 'maxls':100})
@@ -117,7 +174,7 @@ def perform_fit(cls,
         #                         #          'eta':0.1, 'scale':[b[1]-b[0] for b in BOUNDS]})
         
         res = optimize.differential_evolution(residual, bounds=BOUNDS, args=[cls], popsize=2,
-                                              maxiter=30) # THIS WORKS WELL BUT VERY SLOW !
+                                              maxiter=50) # THIS WORKS WELL BUT VERY SLOW !
         
         
         # res = optimize.shgo(residual, bounds=BOUNDS, args=(cls))
@@ -147,8 +204,6 @@ def perform_fit(cls,
         #         print('going through the full parameter space fit')
         #     res = optimize.differential_evolution(residual, bounds=BOUNDS, args=[cls]) # THIS WORKS WELL BUT VERY SLOW !
         
-        if verbose:
-            print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
 
         # if success:
         return res.x, None, res.fun
@@ -161,6 +216,7 @@ def perform_fit(cls,
         if verbose:
             print('ValueError // -> returning center/std of mass ')
         return initial_guess, None, 1e8
+    """
 
 
 def perform_loop(parent,
@@ -296,7 +352,6 @@ def preprocess(cls, with_reinit=True,
     else:
         img = img.copy()
 
-
     if with_reinit:
         init_fit_area(cls)
     cls.img = img[cls.zoom_cond].reshape(cls.Nx, cls.Ny)
@@ -401,21 +456,27 @@ if __name__=='__main__':
         # print(args.fullimg)
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
-                      fullimg=None,
                       ellipse=args.data['ROIellipse'],
                       reflectors=args.data['reflectors'])
         
-        args.cframe = 7900
+        args.cframe = 10000
         
         preprocess(args, with_reinit=False)
-        fit = perform_fit(args,
-                          saturation=args.data['ROIsaturation'],
-                          verbose=True)[0]
+        
+        fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+                          verbose=True, N_iterations=0)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-        ax.plot(*ellipse_coords(*fit), 'r')
-        # ax.plot(*ellipse_coords(113, 119, 77, 52, np.pi/2.), 'r')
-        ge.image(args.img_fit, ax=ax)
-        ge.show()
+        ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
+        ge.image(args.img_fit, ax=ax);ge.show()
+
+        fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+                          verbose=True, N_iterations=8, do_xy=True)[0]
+        fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
+        ax.plot(*args.xy.T, 'r')
+        ge.image(args.img_fit, ax=ax);ge.show()
+        
+        
     else:
         if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
             print('Processing pupil for "%s" [...]' % os.path.join(args.datafolder, 'pupil.npy'))
