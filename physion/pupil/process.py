@@ -76,7 +76,7 @@ def perform_fit(cls,
                 verbose=False,
                 fast_fit=True,
                 do_xy=False,
-                inside_std_factor=5.,
+                inside_std_factor=4.5,
                 N_iterations=5):
     """
     inspired by the "facemap" algorithm, see:
@@ -260,8 +260,6 @@ def preprocess(cls, with_reinit=True,
                img=None,
                gaussian_smoothing=0, saturation=100):
 
-    # if (img is None) and (cls.FaceCamera is not None):
-    #     img = cls.FaceCamera.data[cls.cframe,:,:]
     if (img is None):
         try:
             img = np.load(os.path.join(cls.imgfolder, cls.FILES[cls.cframe]))
