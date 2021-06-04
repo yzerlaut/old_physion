@@ -67,7 +67,6 @@ def circle_residual(coords, cls):
     return np.sum((cls.img_fit-im)**2)
 
 
-from pupil.facemap_fit import fit_gaussian
 
 def perform_fit(cls,
                 shape='ellipse',
