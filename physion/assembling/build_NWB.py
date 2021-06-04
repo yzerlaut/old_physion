@@ -53,8 +53,8 @@ def build_NWB(args,
     else:
         subject_props = {}
         print('subject properties not in metadata ...')
-        dob = ['1988', '24', '4']
-        
+        dob = ['1988', '4', '24']
+
     # NIdaq tstart
     if os.path.isfile(os.path.join(args.datafolder, 'NIdaq.start.npy')):
         metadata['NIdaq_Tstart'] = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
@@ -66,7 +66,7 @@ def build_NWB(args,
                                  species=(subject_props['species'] if ('species' in subject_props) else 'Unknown'),
                                  subject_id=(subject_props['subject_id'] if ('subject_id' in subject_props) else 'Unknown'),
                                  weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
-                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1]),tzinfo=tzlocal()))
+                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[1]),int(dob[2]),tzinfo=tzlocal()))
                                  
     nwbfile = pynwb.NWBFile(identifier=identifier,
                             session_description=str(metadata),
