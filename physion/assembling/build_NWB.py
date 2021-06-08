@@ -53,8 +53,8 @@ def build_NWB(args,
     else:
         subject_props = {}
         print('subject properties not in metadata ...')
-        dob = ['1988', '24', '4']
-        
+        dob = ['1988', '4', '24']
+
     # NIdaq tstart
     if os.path.isfile(os.path.join(args.datafolder, 'NIdaq.start.npy')):
         metadata['NIdaq_Tstart'] = np.load(os.path.join(args.datafolder, 'NIdaq.start.npy'))[0]
@@ -66,7 +66,7 @@ def build_NWB(args,
                                  species=(subject_props['species'] if ('species' in subject_props) else 'Unknown'),
                                  subject_id=(subject_props['subject_id'] if ('subject_id' in subject_props) else 'Unknown'),
                                  weight=(subject_props['weight'] if ('weight' in subject_props) else 'Unknown'),
-                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[2]),int(dob[1]),tzinfo=tzlocal()))
+                                 date_of_birth=datetime.datetime(int(dob[0]),int(dob[1]),int(dob[2]),tzinfo=tzlocal()))
                                  
     nwbfile = pynwb.NWBFile(identifier=identifier,
                             session_description=str(metadata),
@@ -132,7 +132,7 @@ def build_NWB(args,
     # #################################################
     # ####         Visual Stimulation           #######
     # #################################################
-    if metadata['VisualStim'] and ('VisualStim' in args.modalities):
+    if (metadata['VisualStim'] and ('VisualStim' in args.modalities)) and os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
 
         # preprocessing photodiode signal
         _, Psignal = resample_signal(NIdaq_data['analog'][0],
@@ -140,9 +140,6 @@ def build_NWB(args,
                                      pre_smoothing=2./float(metadata['NIdaq-acquisition-frequency']),
                                      new_freq=args.photodiode_sampling)
 
-        if not os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
-            print(' /!\ No VisualStim metadata found /!\ ')
-            print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
         VisualStim = np.load(os.path.join(args.datafolder,
                         'visual-stim.npy'), allow_pickle=True).item()
         # using the photodiod signal for the realignement
@@ -179,6 +176,8 @@ def build_NWB(args,
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
         else:
+            print(' /!\ No VisualStim metadata found /!\ ')
+            # print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
             # TEMPORARY FOR TROUBLESHOOTING !!
             metadata['time_start_realigned'] = metadata['time_start']
             metadata['time_stop_realigned'] = metadata['time_stop']

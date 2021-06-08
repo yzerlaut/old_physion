@@ -398,7 +398,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
                     from receptive_field_mapping import RF_analysis
                     Nresp, SIs = 0, []
                     for i in range(data.iscell.sum())[:Nmax]:
-                        fig, SI, responsive RF_analysis(data, roiIndex=i, verbose=False)
+                        fig, SI, responsive = RF_analysis(data, roiIndex=i, verbose=False)
                         pdf.savefig()  # saves the current figure into a pdf page
                         plt.close()
                         if responsive:
