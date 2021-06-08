@@ -208,17 +208,17 @@ class MultimodalData(Data):
         else:
             return [np.ones(np.sum(self.Pcond), dtype=bool)]
             
-    def build_single_conditions(self):
+    # def build_single_conditions(self):
         
-        full_cond = np.ones(np.sum(self.Pcond), dtype=bool)
+    #     full_cond = np.ones(np.sum(self.Pcond), dtype=bool)
         
-        for i, key in enumerate(self.varied_parameters.keys()):
-            if 'single-value' in getattr(self, '%s_plot' % key).currentText():
-                cond=(np.array(self.nwbfile.stimulus[key].data[self.Pcond],
-                               dtype=str)!=getattr(self, '%s_values' % key).currentText())
-                full_cond[cond] = False
+    #     for i, key in enumerate(self.varied_parameters.keys()):
+    #         if 'single-value' in getattr(self, '%s_plot' % key).currentText():
+    #             cond=(np.array(self.nwbfile.stimulus[key].data[self.Pcond],
+    #                            dtype=str)!=getattr(self, '%s_values' % key).currentText())
+    #             full_cond[cond] = False
                 
-        return full_cond
+    #     return full_cond
 
         
     def plot_trial_average(self,
@@ -244,7 +244,7 @@ class MultimodalData(Data):
                            color='k',
                            label='',
                            ylim=None, xlim=None,
-                           fig=None, AX=None):
+                           fig=None, AX=None, verbose=False):
         
         # ----- building episodes ------
         self.roiIndices = [roiIndex]
@@ -252,7 +252,8 @@ class MultimodalData(Data):
         self.EPISODES = build_episodes(self, protocol_id=protocol_id,
                                        quantity=quantity,
                                        prestim_duration=prestim_duration,
-                                       dt_sampling=dt_sampling, baseline_substraction=baseline_substraction) # this sets "self.Pcond"
+                                       dt_sampling=dt_sampling, baseline_substraction=baseline_substraction,
+                                       verbose=verbose) # this sets "self.Pcond"
         
 
         if with_screen_inset and (self.visual_stim is None):
@@ -428,7 +429,6 @@ if __name__=='__main__':
     filename = sys.argv[-1]
     data = MultimodalData(filename)
 
-    print(data.nwbfile.stimulus.keys())
     # TRIAL AVERAGING EXAMPLE
     fig, AX = data.plot_trial_average(roiIndex=3,
                             protocol_id=0,
