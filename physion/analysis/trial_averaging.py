@@ -9,7 +9,7 @@ from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 
-NMAX_PARAMS = 5
+NMAX_PARAMS = 8
 
 class TrialAverageWindow(NewWindow):
 
@@ -182,7 +182,7 @@ class TrialAverageWindow(NewWindow):
         
     def select_ROI(self):
         """ see dataviz/gui.py """
-        roiIndices = self.parent.select_ROI_from_pick(cls=self)
+        roiIndices = self.parent.select_ROI_from_pick(cls=self.parent)
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())
@@ -338,7 +338,7 @@ def build_episodes(self,
     if quantity=='CaImaging':
         tfull = parent.Neuropil.timestamps[:]
         valfull = compute_CaImaging_trace(parent,
-            parent.CaImaging_key, parent.roiIndices).sum(axis=0) # valid ROI indices inside
+                    parent.CaImaging_key, parent.roiIndices).sum(axis=0) # valid ROI indices inside
     else:
         try:
             tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate

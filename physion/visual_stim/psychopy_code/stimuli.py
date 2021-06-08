@@ -491,13 +491,17 @@ class visual_stim:
         if parent is not None:
             
             # ARROW FOR DRIFTING GRATINGS
-            if 'drifting' in parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]:
+            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]
+            if 'drifting' in Pname:
                 arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
                          'length':40, 'width_factor':0.1, 'color':'red', 'center':[0,0]}
-                if 'x-center' in parent.nwbfile.stimulus.keys():
-                    arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
-                if 'y-center' in parent.nwbfile.stimulus.keys():
-                    arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+                if ('off-center' in Pname):
+                    arrow['center'] = (0,0)
+                else:
+                    if 'x-center' in parent.nwbfile.stimulus.keys():
+                        arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
+                    if 'y-center' in parent.nwbfile.stimulus.keys():
+                        arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
 
             # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
             """

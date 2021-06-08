@@ -122,6 +122,7 @@ class CellResponse:
                 visual_stim.show_frame(icond, ax=AX[i],
                                     label={'degree':10, 'shift_factor':0.02, 'lw':1, 'fontsize':11})
         return fig, AX
+    
 
 def add_bar(ax, Ybar=1, Ybar_unit='$\Delta$F/F', Xbar=1, Xbar_unit='s', fontsize=10):
     xlim, ylim = ax.get_xlim(), ax.get_ylim()
@@ -255,8 +256,9 @@ if __name__=='__main__':
     #     # fig1, _, _ = orientation_selectivity_analysis(FullData, roiIndex=i)
     # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
     for i in range(np.sum(FullData.iscell)):
-        fig2, _, _ = direction_selectivity_analysis(FullData, roiIndex=i)
-    #     # fig1.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'data3', 'ROI#%i.svg' % (i+1)))
-        plt.show()
+        fig2, SI, responsive = direction_selectivity_analysis(FullData, roiIndex=i)
+        if responsive:
+            fig2.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'ODS', 'ROI#%i.png' % (i+1)), dpi=300)
+        # plt.show()
 
 

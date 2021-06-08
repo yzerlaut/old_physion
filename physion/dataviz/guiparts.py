@@ -366,7 +366,7 @@ class NewWindow(QtWidgets.QMainWindow):
             cls = self # so that 
 
         if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(np.sum(self.iscell))
+            roiIndices = np.arange(np.sum(cls.iscell))
         elif len(cls.roiPick.text().split('-'))>1:
             try:
                 roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
@@ -382,7 +382,7 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             try:
                 i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>=len(self.validROI_indices)):
+                if (i0<0) or (i0>=len(cls.validROI_indices)):
                     roiIndices = [0]
                     self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
                 else:

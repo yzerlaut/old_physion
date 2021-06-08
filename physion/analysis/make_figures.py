@@ -16,8 +16,7 @@ try:
     from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
     from datavyz import graph_env_manuscript as ge
 except ModuleNotFoundError:
-    print('"datavyz" module not found, get it with pip install `git+https://github.com/yzerlaut/datavyz`  ')
-
+    print('"datavyz" module not found, get it with:\n                   `pip install git+https://github.com/yzerlaut/datavyz`  ')
 
 
 class FiguresWindow(NewWindow):
@@ -32,7 +31,7 @@ class FiguresWindow(NewWindow):
                                             title=title,
                                             i=-10, size=(800,800))
 
-
+        
         self.modalities = []
         for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'Pupil',
                                'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
@@ -337,8 +336,8 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(self.nameBtn)
 
         self.dpi = QtWidgets.QSpinBox(self)
-        self.dpi.setValue(100)
-        self.dpi.setRange(10, 500)
+        self.dpi.setValue(300)
+        self.dpi.setRange(50, 600)
         self.dpi.setSuffix(' (dpi)')
         self.dpi.setFixedWidth(80)
         Layouts[-1].addWidget(self.dpi)
@@ -434,11 +433,15 @@ class FiguresWindow(NewWindow):
                             self.ylim = [min([self.ylim[0], np.min(my)]),
                                          max([self.ylim[1], np.max(my)])]
 
+                    if self.screen.isChecked() and not (self.parent.visual_stim is not None):
+                        print('initializing stim [...]')
+                        self.parent.load_VisualStim()
                     if self.screen.isChecked():
                         inset = ge.inset(AX[irow][icol], [.8, .9, .3, .25])
                         self.parent.visual_stim.show_frame(\
                                     self.EPISODES['index_from_start'][cond][0],
                                     ax=inset, parent=self.parent, enhance=True, label=None)
+                        
           
         if self.withStatTest.isChecked():
             for irow, row_cond in enumerate(ROW_CONDS):
@@ -563,7 +566,7 @@ class FiguresWindow(NewWindow):
 
     def select_ROI(self):
         """ see dataviz/gui.py   //  dataviz/guiparts.py """
-        roiIndices = self.select_ROI_from_pick(cls=self)
+        roiIndices = self.select_ROI_from_pick(cls=self.parent)
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())
