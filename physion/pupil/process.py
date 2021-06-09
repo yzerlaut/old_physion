@@ -57,6 +57,7 @@ def ellipse_residual(coords, cls):
     im[~cls.fit_area] = 0
     return np.sum((cls.img_fit-im)**2)
 
+
 def circle_residual(coords, cls):
     """
     Residual function: 1/CorrelationCoefficient ! (after blanking)
@@ -65,16 +66,48 @@ def circle_residual(coords, cls):
     im[~cls.fit_area] = 0
     return np.sum((cls.img_fit-im)**2)
 
-def get_ellipse_props_from_image(img, x, y, with_eig_output=False):
 
-    mu = [np.mean(x[img>0]),np.mean(y[img>0])]
-    std = [np.std(x[img>0]-mu[0]),np.std(y[img>0]-mu[1])]
+
+def perform_fit(cls,
+                shape='ellipse',
+                saturation=100,
+                maxiter=100,
+                verbose=False,
+                fast_fit=True,
+                do_xy=False,
+                inside_std_factor=4.5,
+                N_iterations=5):
+    """
+    inspired by the "facemap" algorithm, see:
+    https://github.com/MouseLand/facemap/tree/main/facemap    
+    """
+    if verbose:
+        start_time = time.time()
+
+    cls.img_fit = cls.img.copy()
+    cls.img_fit[cls.img<saturation] = 1
+    cls.img_fit[cls.img>=saturation] = 0
     
-    xdist = x[img==1].flatten()-mu[0]
-    ydist = y[img==1].flatten()-mu[1]
+    mu0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+    # weighted std_of_mass
+    s0 = [4*np.std(cls.x[cls.img_fit>0]), 4*np.std(cls.y[cls.img_fit>0])]
+
+    # iteratively excluding what is not around the center of mass (factor*std away !)
+    for i in range(N_iterations):
+        # center_of_mass
+        mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+        # std_of_mass
+        std = np.std(cls.x[cls.img_fit>0])
+        # set to 0 if to far
+        cls.img_fit[~inside_circle_cond(cls.x, cls.y,
+                                        mu[0], mu[1], inside_std_factor*std)] = 0
+
+    mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
+    xdist = cls.x[cls.img_fit==1].flatten()-mu[0]
+    ydist = cls.y[cls.img_fit==1].flatten()-mu[1]
     
     xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
-    sigxy = np.sqrt(xydist.T @ xydist) #+ 0.01*np.eye(2)
+    sigxy = np.sqrt(xydist.T @ xydist) + 0.01*np.eye(2)
 
     try:
         sv, u = np.linalg.eig(sigxy)
@@ -88,73 +121,22 @@ def get_ellipse_props_from_image(img, x, y, with_eig_output=False):
             # BUT CHECK IF LINEAR INTERPOLATION BEHAVES REALLY WELL 
             u[0] = -u[0]
             sv[0], sv[1] = np.sqrt(2*sv[0]), np.sqrt(sv[1]) # manual correction to second dimension
-        return [*mu, 2*sv[0], 2*sv[1], angle], sv, u, True
+            
+        if do_xy:
+            p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
+            cls.xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv) @ u
+            cls.xy += mu
+
+        if verbose:
+            print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
+
+        coords = [*mu, 2*sv[0], 2*sv[1], angle]
+        return coords, None, ellipse_residual(coords, cls)
 
     except (np.linalg.LinAlgError, ValueError) as be:
-        print(be)
-        print('\n -> ellipse characterization failed !')
-        return [*mu0, *std, 0], None, None, False
-
-
-def perform_fit(cls,
-                shape='ellipse',
-                saturation=100,
-                maxiter=100,
-                verbose=False,
-                fast_fit=True,
-                do_xy=False,
-                inside_std_factor=4.5,
-                reflectors = [],
-                N_iterations_circularity=5,
-                N_iterations_reflection=3):
-    """
-    inspired by the "facemap" algorithm, see:
-    https://github.com/MouseLand/facemap/tree/main/facemap    
-    """
-    if verbose:
-        start_time = time.time()
-
-    cls.img_fit = cls.img.copy()
-    cls.img_fit[cls.img<saturation] = 1
-    cls.img_fit[cls.img>=saturation] = 0
-    
-    # center_of_mass
-    mu0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-    # std_of_mass
-    s0 = [4*np.std(cls.x[cls.img_fit>0]), 4*np.std(cls.y[cls.img_fit>0])]
-
-    # iteratively excluding what is not around the center of mass to re-inforce circularity (factor*std away !) 
-    for i in range(N_iterations_circularity):
-        # center_of_mass
-        mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-        # std_of_mass
-        std = np.max([np.std(cls.x[cls.img_fit>0]), np.std(cls.y[cls.img_fit>0])])
-        # set to 0 if to far
-        cls.img_fit[~inside_circle_cond(cls.x, cls.y,
-                                        mu[0], mu[1], inside_std_factor*std)] = 0
-
-
-    # iteratively re-include the mass inside the reflectors for a better estimate of pupil size
-    coords, sv, u, success = get_ellipse_props_from_image(cls.img_fit, cls.x, cls.y)
-
-    for reflector in reflectors:
-        
-        for i in range(N_iterations_reflection):
-            
-            overlap_cond = inside_ellipse_cond(cls.x, cls.y, *reflector) & inside_ellipse_cond(cls.x, cls.y, *coords)
-            cls.img_fit[overlap_cond] = 1.
-            coords, sv, u, success = get_ellipse_props_from_image(cls.img_fit, cls.x, cls.y)
-
-        
-    if do_xy and success:
-        p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
-        cls.xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv) @ u
-        cls.xy += mu
-
-    if verbose:
-        print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
-
-    return coords, None, ellipse_residual(coords, cls)
+        if verbose:
+            print(be)
+        return [*mu0, *s0, 0], None, 1e8
 
 
 def perform_loop(parent,
@@ -162,7 +144,6 @@ def perform_loop(parent,
                  shape='ellipse',
                  gaussian_smoothing=0,
                  saturation=100,
-                 reflectors=[],
                  with_ProgressBar=False):
 
     temp = {} # temporary data in case of subsampling
@@ -181,7 +162,6 @@ def perform_loop(parent,
         
         coords, _, res = perform_fit(parent,
                                      saturation=saturation,
-                                     reflectors=reflectors,
                                      shape=shape)
         if shape=='circle':
             coords = list(coords)+[coords[-1]] # form circle to ellipse
@@ -220,7 +200,6 @@ def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
 def init_fit_area(cls,
                   fullimg=None,
                   ellipse=None,
-                  blanks=None,
                   reflectors=None):
 
     if fullimg is None:
@@ -260,10 +239,9 @@ def init_fit_area(cls,
         
     cls.x, cls.y = cls.x-cls.x[0,0], cls.y-cls.y[0,0] # after
 
-    if blanks is None:
-        blanks = [r.extract_props() for r in cls.bROI]
-        
-    for r in blanks:
+    if reflectors is None:
+        reflectors = [r.extract_props() for r in cls.rROI]
+    for r in reflectors:
         cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
 
@@ -319,11 +297,11 @@ def load_ROI(cls, with_plot=True):
         cls.sl.setValue(int(saturation))
     cls.ROI = roi.sROI(parent=cls,
                        pos = roi.ellipse_props_to_ROI(cls.data['ROIellipse']))
-    cls.bROI = []
-    cls.blanks = []
-    if 'blanks' in cls.data:
-        for r in cls.data['blanks']:
-            cls.bROI.append(roi.reflectROI(len(cls.bROI),
+    cls.rROI = []
+    cls.reflectors = []
+    if 'reflectors' in cls.data:
+        for r in cls.data['reflectors']:
+            cls.rROI.append(roi.reflectROI(len(cls.rROI),
                                             pos = roi.ellipse_props_to_ROI(r),
                                             moveable=True, parent=cls))
 
@@ -397,24 +375,20 @@ if __name__=='__main__':
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
                       ellipse=args.data['ROIellipse'],
-                      reflectors=args.data['reflectors'],
-                      blanks=args.data['blanks'])
+                      reflectors=args.data['reflectors'])
         
-        args.cframe = 1000
+        args.cframe = 10000
         
         preprocess(args, with_reinit=False)
         
-        fit = perform_fit(args,
-                          saturation=args.data['ROIsaturation'],
-                          reflectors=args.data['reflectors'],
-                          verbose=True, N_iterations_circularity=0)[0]
+        fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+                          verbose=True, N_iterations=0)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ge.image(args.img_fit, ax=ax);ge.show()
 
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          reflectors=args.data['reflectors'],
-                          verbose=True, N_iterations_circularity=8, do_xy=True)[0]
+                          verbose=True, N_iterations=8, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ax.plot(*args.xy.T, 'r')
@@ -431,8 +405,7 @@ if __name__=='__main__':
             init_fit_area(args,
                           fullimg=None,
                           ellipse=args.data['ROIellipse'],
-                          reflectors=args.data['reflectors'],
-                          blanks=args.data['blanks'])
+                          reflectors=args.data['reflectors'])
             temp = perform_loop(args,
                     subsampling=args.subsampling,
                     shape=args.data['shape'],

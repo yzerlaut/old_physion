@@ -114,14 +114,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
-        self.blank = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.blank, 1, 8+6, 1, 1)
-        self.blank.clicked.connect(self.add_blankROI)
-        self.blank.setEnabled(True)
-        self.reflector = QtGui.QPushButton('add reflector')
-        self.l0.addWidget(self.reflector, 2, 8+6, 1, 1)
+        self.reflector = QtGui.QPushButton('add blank')
+        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
+        # self.reflector.setEnabled(True)
         self.reflector.clicked.connect(self.add_reflectROI)
-        self.reflector.setEnabled(True)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
@@ -144,8 +140,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_pupil.clicked.connect(self.jump_to_frame)
 
         self.data = None
-        self.bROI, self.rROI= [], []
-        self.blanks, self.reflectors=[], []
+        self.rROI= []
+        self.reflectors=[]
         self.scatter, self.fit= None, None # the pupil size contour
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
@@ -243,10 +239,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
 
-        self.interpInterval = QtGui.QPushButton('interpolate interval')
-        self.interpInterval.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.interpInterval.clicked.connect(self.interpolate_interval)
-        
         self.printSize = QtGui.QPushButton('print ROI size')
         self.printSize.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.printSize.clicked.connect(self.print_size)
@@ -282,8 +274,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
         self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
         self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
-        self.l0.addWidget(self.interpInterval, 26, 0, 1, 3)
-        self.l0.addWidget(self.printSize, 28, 0, 1, 3)
+        self.l0.addWidget(self.printSize, 26, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -322,7 +313,6 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def load_data(self):
 
-
         self.cframe = 0
         
         # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13',
@@ -338,7 +328,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
             if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
                 
-                self.reset()
+                # self.reset()
                 self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
@@ -375,7 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def reset(self):
-        for r in self.bROI+self.rROI:
+        for r in self.rROI:
             r.remove(self)
         if self.ROI is not None:
             self.ROI.remove(self)
@@ -383,9 +373,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pupil.remove(self)
         if self.fit is not None:
             self.fit.remove(self)
-        self.ROI, self.bROI, self.rROI = None, [], []
+        self.ROI, self.rROI = None, []
         self.fit = None
-        self.blanks=[]
+        self.reflectors=[]
         self.saturation = 255
         self.iROI=0
         self.nROIs=0
@@ -393,9 +383,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def add_reflectROI(self):
         self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
-        
-    def add_blankROI(self):
-        self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self))
 
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
@@ -407,38 +394,33 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.ROI is not None:
             self.ROI.remove(self)
-        for r in self.bROI+self.rROI:
+        for r in self.rROI:
             r.remove(self)
         self.ROI = roi.sROI(parent=self)
-        self.bROI = []
-        self.blanks = []
+        self.rROI = []
+        self.reflectors = []
 
-    def interpolate_interval(self, with_blinking_labeling=False):
+    def process_outliers(self):
 
         if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
             
             i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
             i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
-            
             self.data['diameter'][i1:i2] = 0
-            
             if i1>0:
                 new_i1 = i1-1
             else:
                 new_i1 = i2
-                
             if i2<len(self.data['frame'])-1:
                 new_i2 = i2+1
             else:
                 new_i2 = i1
 
-            if with_blinking_labeling:
+            if 'blinking' not in self.data:
+                self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
                 
-                if 'blinking' not in self.data:
-                    self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
-
-                self.data['blinking'][i1:i2] = 1
-
+            self.data['blinking'][i1:i2] = 1
+            
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
                 I = np.arange(i1, i2)
                 self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
@@ -455,15 +437,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.cframe1, self.cframe2 = 0, 0
         else:
             print('cursors at: ', self.cframe1, self.cframe2)
-            print('interpolation/blinking-labeling failed')
-
-            
-    def process_outliers(self):
-        self.interpolate_interval(self, with_blinking_labeling=True)
+            print('blinking/outlier labelling failed')
     
         
     def debug(self):
-        print('current frame: ', self.cframe)
+        print('No debug function')
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
@@ -510,6 +488,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
+                self.reflector.setEnabled(False)
+                self.reflector.setEnabled(True)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
@@ -534,6 +514,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 for key in ['cx', 'cy', 'sx', 'sy', 'angle']:
                     coords.append(self.data[key][self.iframe])
 
+
             self.plot_pupil_ellipse(coords)
             # self.fit = roi.pupilROI(moveable=True,
             #                         parent=self,
@@ -555,8 +536,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if len(self.rROI)>0:
             data['reflectors'] = [r.extract_props() for r in self.rROI]
-        if len(self.bROI)>0:
-            data['blanks'] = [r.extract_props() for r in self.bROI]
         if self.ROI is not None:
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:
@@ -633,7 +612,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                     shape=self.Pshape,
                                     gaussian_smoothing=int(self.smoothBox.text()),
                                     saturation=self.sl.value(),
-                                    reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                     with_ProgressBar=True)
 
         for key in temp:
@@ -668,12 +646,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.pupil_shape.currentText()=='Ellipse fit':
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
-                                               reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                                shape='ellipse')
         else:
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
-                                               reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                                shape='circle')
             coords = list(coords)+[coords[-1], 0] # form circle to ellipse
 
