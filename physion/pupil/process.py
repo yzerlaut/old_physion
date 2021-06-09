@@ -113,15 +113,17 @@ def perform_fit(cls,
         sv, u = np.linalg.eig(sigxy)
         sv, u = sv[::-1], u[:,::-1]
 
+        
         if np.dot(*u[0])>=0:
             sv[0], sv[1] = np.sqrt(sv[0]), np.sqrt(2*sv[1]) # manual correction to second dimension
+            # angle = np.arctan(u[0][1]/u[0][0])
             angle = np.arctan(u[0][1]/u[0][0])
         else:
             angle = np.arctan(u[0][1]/u[0][0])+np.pi # we rotate to have a positive angle (otherwise linear interpol. fail)
             # BUT CHECK IF LINEAR INTERPOLATION BEHAVES REALLY WELL 
             u[0] = -u[0]
             sv[0], sv[1] = np.sqrt(2*sv[0]), np.sqrt(sv[1]) # manual correction to second dimension
-            
+
         if do_xy:
             p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
             cls.xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv) @ u
@@ -369,13 +371,13 @@ if __name__=='__main__':
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
                                          'pupil.npy'), allow_pickle=True).item()
-        
+        args.rROI = []
         load_folder(args)
         # print(args.fullimg)
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
                       ellipse=args.data['ROIellipse'],
-                      reflectors=args.data['reflectors'])
+                      reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
         
         args.cframe = 10000
         
@@ -386,7 +388,7 @@ if __name__=='__main__':
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ge.image(args.img_fit, ax=ax);ge.show()
-
+        
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
                           verbose=True, N_iterations=8, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
@@ -405,7 +407,7 @@ if __name__=='__main__':
             init_fit_area(args,
                           fullimg=None,
                           ellipse=args.data['ROIellipse'],
-                          reflectors=args.data['reflectors'])
+                          reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
             temp = perform_loop(args,
                     subsampling=args.subsampling,
                     shape=args.data['shape'],
