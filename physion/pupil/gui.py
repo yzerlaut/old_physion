@@ -535,6 +535,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     coords.append(self.data[key][self.iframe])
 
             self.plot_pupil_ellipse(coords)
+            # self.fit = roi.pupilROI(moveable=True,
+            #                         parent=self,
+            #                         color=(0, 200, 0),
+            #                         pos = roi.ellipse_props_to_ROI(coords))
             
         self.win.show()
         self.show()
@@ -629,7 +633,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                     shape=self.Pshape,
                                     gaussian_smoothing=int(self.smoothBox.text()),
                                     saturation=self.sl.value(),
-                                    reflectors = [r.extract_props() for r in self.rROI],
+                                    reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                     with_ProgressBar=True)
 
         for key in temp:
@@ -664,12 +668,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.pupil_shape.currentText()=='Ellipse fit':
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
-                                               reflectors = [r.extract_props() for r in self.rROI],
+                                               reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                                shape='ellipse')
         else:
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
-                                               reflectors = [r.extract_props() for r in self.rROI],
+                                               reflectors = [roi.extract_ellipse_props(r) for r in self.rROI],
                                                shape='circle')
             coords = list(coords)+[coords[-1], 0] # form circle to ellipse
 

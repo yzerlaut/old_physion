@@ -65,7 +65,7 @@ def circle_residual(coords, cls):
     im[~cls.fit_area] = 0
     return np.sum((cls.img_fit-im)**2)
 
-def get_ellipse_props_from_image(img, x, y):
+def get_ellipse_props_from_image(img, x, y, with_eig_output=False):
 
     mu = [np.mean(x[img>0]),np.mean(y[img>0])]
     std = [np.std(x[img>0]-mu[0]),np.std(y[img>0]-mu[1])]
@@ -73,9 +73,8 @@ def get_ellipse_props_from_image(img, x, y):
     xdist = x[img==1].flatten()-mu[0]
     ydist = y[img==1].flatten()-mu[1]
     
-    # xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
-    xydist = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
-    sigxy = np.sqrt(xydist.T @ xydist) + 0.01*np.eye(2)
+    xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
+    sigxy = np.sqrt(xydist.T @ xydist) #+ 0.01*np.eye(2)
 
     try:
         sv, u = np.linalg.eig(sigxy)
@@ -94,7 +93,7 @@ def get_ellipse_props_from_image(img, x, y):
     except (np.linalg.LinAlgError, ValueError) as be:
         print(be)
         print('\n -> ellipse characterization failed !')
-        return [*mu, *std, 0], None, None, False
+        return [*mu0, *std, 0], None, None, False
 
 
 def perform_fit(cls,
@@ -138,27 +137,19 @@ def perform_fit(cls,
     # iteratively re-include the mass inside the reflectors for a better estimate of pupil size
     coords, sv, u, success = get_ellipse_props_from_image(cls.img_fit, cls.x, cls.y)
 
-    # for reflector in reflectors:
-    #     print(reflector, coords, cls.x)
-    #     overlap_cond = inside_ellipse_cond(cls.x, cls.y, *reflector) & inside_ellipse_cond(cls.x, cls.y, *coords)
-    #     print(np.sum(overlap_cond))
-    #     print(cls.img.shape, overlap_cond.shape)
-    #     cls.img[overlap_cond] = cls.img.max()
+    for reflector in reflectors:
         
-    #     for i in range(N_iterations_reflection):
+        for i in range(N_iterations_reflection):
             
-    #         overlap_cond = inside_ellipse_cond(cls.x, cls.y, *reflector) & inside_ellipse_cond(cls.x, cls.y, *coords)
-    #         cls.img_fit[overlap_cond] = 0.
-    #         coords, sv, u, success = get_ellipse_props_from_image(cls.img_fit, cls.x, cls.y)
+            overlap_cond = inside_ellipse_cond(cls.x, cls.y, *reflector) & inside_ellipse_cond(cls.x, cls.y, *coords)
+            cls.img_fit[overlap_cond] = 1.
+            coords, sv, u, success = get_ellipse_props_from_image(cls.img_fit, cls.x, cls.y)
 
         
-    if do_xy:
+    if do_xy and success:
         p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
-        if success:
-            cls.xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv) @ u
-            cls.xy += mu
-        else:
-            cls.xy = np.concatenate((coords[2]*np.cos(p), coords[3]*np.sin(p)), axis=1)+mu
+        cls.xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv) @ u
+        cls.xy += mu
 
     if verbose:
         print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
@@ -400,14 +391,14 @@ if __name__=='__main__':
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
                                          'pupil.npy'), allow_pickle=True).item()
-        args.bROI = []
+        
         load_folder(args)
         # print(args.fullimg)
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
                       ellipse=args.data['ROIellipse'],
-                      reflectors=(args.data['reflectors'] if 'reflectors' in args.data else None),
-                      blanks=(args.data['blanks'] if 'blanks' in args.data else None))
+                      reflectors=args.data['reflectors'],
+                      blanks=args.data['blanks'])
         
         args.cframe = 1000
         
@@ -415,14 +406,14 @@ if __name__=='__main__':
         
         fit = perform_fit(args,
                           saturation=args.data['ROIsaturation'],
-                          reflectors=(args.data['reflectors'] if 'reflectors' in args.data else None),
+                          reflectors=args.data['reflectors'],
                           verbose=True, N_iterations_circularity=0)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ge.image(args.img_fit, ax=ax);ge.show()
 
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          reflectors=(args.data['reflectors'] if 'reflectors' in args.data else None),
+                          reflectors=args.data['reflectors'],
                           verbose=True, N_iterations_circularity=8, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
@@ -440,14 +431,13 @@ if __name__=='__main__':
             init_fit_area(args,
                           fullimg=None,
                           ellipse=args.data['ROIellipse'],
-                          reflectors=(args.data['reflectors'] if 'reflectors' in args.data else None),
-                          blanks=(args.data['blanks'] if 'blanks' in args.data else None))
+                          reflectors=args.data['reflectors'],
+                          blanks=args.data['blanks'])
             temp = perform_loop(args,
-                                subsampling=args.subsampling,
-                                shape=args.data['shape'],
-                                reflectors=(args.data['reflectors'] if 'reflectors' in args.data else None),
-                                gaussian_smoothing=args.data['gaussian_smoothing'],
-                                saturation=args.data['ROIsaturation'],
+                    subsampling=args.subsampling,
+                    shape=args.data['shape'],
+                    gaussian_smoothing=args.data['gaussian_smoothing'],
+                    saturation=args.data['ROIsaturation'],
                                 with_ProgressBar=False)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
