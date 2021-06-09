@@ -212,8 +212,8 @@ class sROI():
 
         # process.preprocess(parent)
         
-        parent.reflector.setEnabled(False)
-        parent.reflector.setEnabled(True)
+        parent.blank.setEnabled(False)
+        parent.blank.setEnabled(True)
         
         parent.win.show()
         parent.show()
@@ -257,7 +257,7 @@ if __name__=='__main__':
             
             init_fit_area(self,
                           ellipse=self.data['ROIellipse'],
-                          reflectors=self.data['reflectors'])
+                          blanks=self.data['blanks'])
             
             preprocess(self, with_reinit=False)
             
