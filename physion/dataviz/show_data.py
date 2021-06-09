@@ -262,6 +262,8 @@ class MultimodalData(Data):
         
         if condition is None:
             condition = np.ones(np.sum(self.Pcond), dtype=bool)
+        elif len(condition)==len(self.Pcond):
+            condition = condition[self.Pcond]
             
         # ----- building episodes ------
         

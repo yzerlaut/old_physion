@@ -12,6 +12,7 @@ class CellResponse:
                  quantity='CaImaging', 
                  subquantity='dF/F', 
                  roiIndex = 0,
+                 prestim_duration=None,
                  verbose=False):
         
         """ build the episodes corresponding to a specific protocol and a ROIR"""
@@ -21,7 +22,8 @@ class CellResponse:
             print('Building episodes for "%s"' % self.protocols[protocol_id])
             
         data.CaImaging_key, data.roiIndices = subquantity, [roiIndex]
-        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity, verbose=verbose)
+        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity,
+                                       prestim_duration=prestim_duration, verbose=verbose)
         self.varied_parameters = data.varied_parameters
         self.metadata = data.metadata
 
@@ -69,6 +71,16 @@ class CellResponse:
 
         return OUTPUT
 
+
+    def get_average(self, condition=None):
+
+        if condition is None:
+            return self.EPISODES['resp'].mean(axis=1)
+        else:
+            return self.EPISODES['resp'][condition,:].mean(axis=0)
+
+    
+    
     
 def stat_test_for_evoked_responses(EPISODES, episode_cond,
                                    interval_pre=[-2,0],

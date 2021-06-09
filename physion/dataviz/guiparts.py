@@ -307,6 +307,8 @@ class NewWindow(QtWidgets.QMainWindow):
         self.homeSc.activated.connect(self.back_to_initial_view)
         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
         self.maxSc.activated.connect(self.showwindow)
+        self.printSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
+        self.printSc.activated.connect(self.print_datafile)
         
         self.setWindowTitle(title)
         
@@ -335,6 +337,9 @@ class NewWindow(QtWidgets.QMainWindow):
 
     def quit(self):
         sys.exit()
+
+    def print_datafile(self):
+        print(self.datafile)
         
     def refresh(self):
         pass # to be implemented in the child class !
