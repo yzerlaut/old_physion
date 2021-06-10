@@ -18,7 +18,8 @@ class MainWindow(NewWindow):
     def __init__(self, app,
                  args=None,
                  parent=None,
-                 subsampling=1000):
+                 spatial_subsampling=1,
+                 time_subsampling=1):
         """
         sampling in Hz
         """
@@ -47,7 +48,8 @@ class MainWindow(NewWindow):
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.subsampling = subsampling
+        self.spatial_subsampling = spatial_subsampling
+        self.time_subsampling = time_subsampling
         
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -60,8 +62,8 @@ class MainWindow(NewWindow):
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,border=[100,100,100])
-        # self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
+        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,
+                                      border=[100,100,100])
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
@@ -69,7 +71,8 @@ class MainWindow(NewWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pFace = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True, border=[100,100,100])
+        self.pFace = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True,
+                                         border=[100,100,100])
         self.pFace.setAspectLocked()
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pFace.setMenuEnabled(False)
@@ -179,12 +182,20 @@ class MainWindow(NewWindow):
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.load.clicked.connect(self.open_file)
 
-        sampLabel = QtGui.QLabel("Subsampling (frame)")
-        sampLabel.setStyleSheet("color: gray;")
-        self.samplingBox = QtGui.QLineEdit()
-        self.samplingBox.setText(str(self.subsampling))
-        self.samplingBox.setFixedWidth(50)
+        sampLabel1 = QtGui.QLabel("spatial subsampling")
+        sampLabel1.setStyleSheet("color: gray;")
+        sampLabel1.setFixedWidth(220)
+        self.SsamplingBox = QtGui.QLineEdit()
+        self.SsamplingBox.setText(str(self.spatial_subsampling))
+        self.SsamplingBox.setFixedWidth(30)
 
+        sampLabel2 = QtGui.QLabel("temporal subsampling")
+        sampLabel2.setStyleSheet("color: gray;")
+        sampLabel2.setFixedWidth(220)
+        self.TsamplingBox = QtGui.QLineEdit()
+        self.TsamplingBox.setText(str(self.time_subsampling))
+        self.TsamplingBox.setFixedWidth(30)
+        
         self.addROI = QtGui.QPushButton("set ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
@@ -219,15 +230,13 @@ class MainWindow(NewWindow):
 
         self.l0.addWidget(self.folderB,1,0,1,3)
         self.l0.addWidget(self.load,2,0,1,3)
-        self.l0.addWidget(sampLabel, 8, 0, 1, 3)
-        self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
-
         self.l0.addWidget(self.addROI,14,0,1,3)
-        
         self.l0.addWidget(self.processBtn, 16, 0, 1, 3)
         
-        # self.l0.addWidget(sampLabel, 8, 0, 1, 3)
-        # self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
+        self.l0.addWidget(sampLabel1, 8, 0, 1, 3)
+        self.l0.addWidget(self.SsamplingBox, 8, 2, 1, 3)
+        self.l0.addWidget(sampLabel2, 9, 0, 1, 3)
+        self.l0.addWidget(self.TsamplingBox, 9, 2, 1, 3)
         # self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
         # self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
         # self.l0.addWidget(self.addROI,14,0,1,3)
