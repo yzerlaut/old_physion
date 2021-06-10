@@ -297,6 +297,7 @@ class NewWindow(QtWidgets.QMainWindow):
         # adding a few keyboard shortcut
         self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
         self.openSc.activated.connect(self.open_file)
+        
         self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
         self.openSc.activated.connect(self.hitting_space)
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)

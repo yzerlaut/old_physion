@@ -6,7 +6,6 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.progressBar import printProgressBar
-from assembling.dataset import Dataset
 from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
 from pupil import roi
@@ -213,10 +212,8 @@ def init_fit_area(cls,
 
     if ellipse is not None:
         bfe = extract_boundaries_from_ellipse(ellipse, cls.Lx, cls.Ly)
-        cls.zoom_cond = ((cls.fullx>=bfe['xmin']) &\
-                         (cls.fullx<=bfe['xmax'])) &\
-                         (cls.fully>=bfe['ymin']) &\
-                         (cls.fully<=bfe['ymax'])
+        cls.zoom_cond = (cls.fullx>=bfe['xmin']) & (cls.fullx<=bfe['xmax']) &\
+                         (cls.fully>=bfe['ymin']) & (cls.fully<=bfe['ymax'])
         Nx, Ny = bfe['xmax']-bfe['xmin']+1, bfe['ymax']-bfe['ymin']+1
     else:
         cls.zoom_cond = ((cls.fullx>=np.min(cls.ROI.x[cls.ROI.ellipse])) &\
@@ -224,10 +221,8 @@ def init_fit_area(cls,
                          (cls.fully>=np.min(cls.ROI.y[cls.ROI.ellipse])) &\
                          (cls.fully<=np.max(cls.ROI.y[cls.ROI.ellipse])))
     
-        Nx=np.max(cls.ROI.x[cls.ROI.ellipse])-\
-            np.min(cls.ROI.x[cls.ROI.ellipse])+1
-        Ny=np.max(cls.ROI.y[cls.ROI.ellipse])-\
-            np.min(cls.ROI.y[cls.ROI.ellipse])+1
+        Nx=np.max(cls.ROI.x[cls.ROI.ellipse])-np.min(cls.ROI.x[cls.ROI.ellipse])+1
+        Ny=np.max(cls.ROI.y[cls.ROI.ellipse])-np.min(cls.ROI.y[cls.ROI.ellipse])+1
 
     cls.Nx, cls.Ny = Nx, Ny
     
@@ -366,8 +361,7 @@ if __name__=='__main__':
         ---> to be used with the "-Debug-" button of the GUI
         """
         from datavyz import ges as ge
-        from analyz.IO.npz import load_dict
-
+        
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
                                          'pupil.npy'), allow_pickle=True).item()

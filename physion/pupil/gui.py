@@ -18,7 +18,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, app,
                  args=None,
                  parent=None,
-                 gaussian_smoothing=2,
+                 gaussian_smoothing=0,
                  cm_scale_px=570,
                  subsampling=1000):
         """
