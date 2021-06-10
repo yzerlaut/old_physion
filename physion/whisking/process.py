@@ -166,7 +166,6 @@ if __name__=='__main__':
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    from datavyz import ges as ge
 
     if args.debug:
         """
@@ -175,6 +174,8 @@ if __name__=='__main__':
         ---> to be used with the "-Debug-" button of the GUI
         """
 
+        from datavyz import ges as ge
+        
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
                                          'whisking.npy'), allow_pickle=True).item()
@@ -203,7 +204,6 @@ if __name__=='__main__':
             args.data['t'] = args.times[frames]
             args.data['motion'] = motion
             np.save(os.path.join(args.datafolder, 'whisking.npy'), args.data)
-            
             print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'whisking.npy'))
         else:
             print('  /!\ "whisking.npy" file found, create one with the GUI  /!\ ')

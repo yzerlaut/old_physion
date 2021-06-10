@@ -1,4 +1,4 @@
-import sys, os, shutil, glob, time
+import sys, os, shutil, glob, time, subprocess
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
@@ -556,24 +556,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def run_as_subprocess(self):
 
-        import time
-        start_time = time.time()
-        process.init_fit_area(self)
-        I = np.zeros((self.nframes, self.Nx, self.Ny), dtype=np.uint8)
-        for self.cframe in range(100):
-            I[self.cframe] = process.preprocess(self)
-        print('init time: ', time.time()-start_time)
+        # import time
+        # start_time = time.time()
+        # process.init_fit_area(self)
+        # I = np.zeros((self.nframes, self.Nx, self.Ny), dtype=np.uint8)
+        # for self.cframe in range(100):
+        #     I[self.cframe] = process.preprocess(self)
+        # print('init time: ', time.time()-start_time)
         
-        """
         self.save_pupil_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
         import subprocess
-        cmd = 'python %s -df %s -s 1' % (process_script, self.datafolder)
-        p = subprocess.Popen(cmd,
-                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             shell=True)
+        cmd = 'python %s -df %s' % (process_script, self.datafolder)
+        p = subprocess.Popen(cmd, shell=True)
         print('"%s" launched as a subprocess' % cmd)
-        """
+
         
 
     def save_pupil_data(self):

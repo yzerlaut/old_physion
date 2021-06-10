@@ -1,4 +1,4 @@
-import sys, os, shutil, glob, time
+import sys, os, shutil, glob, time, subprocess
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
@@ -181,6 +181,7 @@ class MainWindow(NewWindow):
         self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
         self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
+        # self.runAsSubprocess.setEnabled(True)
 
         self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -208,14 +209,6 @@ class MainWindow(NewWindow):
         self.saveData.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.saveData.clicked.connect(self.save_data)
 
-        # self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
-        # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.addOutlier.clicked.connect(self.exclude_outlier)
-
-        # self.processOutliers = QtGui.QPushButton('process outliers [Ctrl+P]')
-        # self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.processOutliers.clicked.connect(self.process_outliers)
-
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
@@ -237,22 +230,13 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.saveData, 16, 0, 1, 3)
         self.l0.addWidget(self.processBtn, 20, 0, 1, 3)
+        self.l0.addWidget(self.runAsSubprocess, 21, 0, 1, 3)
         self.l0.addWidget(self.motionCheckBox, 18, 0, 1, 3)
         
         self.l0.addWidget(sampLabel1, 8, 0, 1, 3)
         self.l0.addWidget(self.SsamplingBox, 8, 2, 1, 3)
         self.l0.addWidget(sampLabel2, 9, 0, 1, 3)
         self.l0.addWidget(self.TsamplingBox, 9, 2, 1, 3)
-        self.l0.addWidget(self.runAsSubprocess, 23, 0, 1, 3)
-
-        # self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
-        # self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
-        # self.l0.addWidget(self.addROI,14,0,1,3)
-        # self.l0.addWidget(self.process, 16, 0, 1, 3)
-        # self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
-        # self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        # self.l0.addWidget(self.addOutlier, 22, 0, 1, 3)
-        # self.l0.addWidget(self.processOutliers, 23, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -280,12 +264,10 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
 
-        folder = '/home/yann/UNPROCESSED/2021_05_20/13-59-57/'
-        
         if folder!='':
             
             self.datafolder = folder
@@ -326,7 +308,6 @@ class MainWindow(NewWindow):
                 self.jump_to_frame()
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
-                self.updateFrameSlider()
                 self.movieLabel.setText(folder)
 
 
@@ -421,55 +402,11 @@ class MainWindow(NewWindow):
 
         self.save_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        import subprocess
+        print('python %s -df %s' % (process_script, self.datafolder))
         p = subprocess.Popen('python %s -df %s' % (process_script, self.datafolder),
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        # print('Script successfully written in "%s"' % script)
+                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             shell=True)
         
-
-    # def save_whisking_data(self):
-    #     """ """
-    #     if self.whisking_shape.currentText()=='Ellipse fit':
-    #         self.data['shape'] = 'ellipse'
-    #     else:
-    #         self.data['shape'] = 'circle'
-    #     self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-    #     self.data = process.clip_to_finite_values(self.data)
-    #     np.save(os.path.join(self.datafolder, 'whisking.npy'), self.data)
-    #     print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'whisking.npy'))
-        
-            
-    # def process_ROIs(self):
-
-    #     self.data = {}
-    #     self.extract_ROI(self.data)
-        
-    #     self.subsampling = int(self.samplingBox.text())
-    #     if self.whisking_shape.currentText()=='Ellipse fit':
-    #         self.Pshape = 'ellipse'
-    #     else:
-    #         self.Pshape = 'circle'
-
-    #     print('processing whisking size over the whole recording [...]')
-    #     print(' with %i frame subsampling' % self.subsampling)
-
-    #     process.init_fit_area(self)
-    #     temp = process.perform_loop(self,
-    #                                 subsampling=self.subsampling,
-    #                                 shape=self.Pshape,
-    #                                 gaussian_smoothing=int(self.smoothBox.text()),
-    #                                 saturation=self.sl.value(),
-    #                                 with_ProgressBar=True)
-
-    #     for key in temp:
-    #         self.data[key] = temp[key]
-    #     self.data['times'] = self.times[self.data['frame']]
-                
-    #     self.plot_motion_trace()
-            
-    #     self.win.show()
-    #     self.show()
-
     def plot_motion_trace(self):
         self.p1.clear()
         self.p1.plot(self.data['frame'],
