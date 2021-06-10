@@ -64,5 +64,8 @@ class faceROI():
         return mx, my, sx, sy
             
 
+    def plot(self):
+        pass
+    
     def extract_props(self):
         return extract_ellipse_props(self.ROI)

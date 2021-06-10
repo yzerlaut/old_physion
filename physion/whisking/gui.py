@@ -26,7 +26,7 @@ class MainWindow(NewWindow):
         self.app = app
         
         super(MainWindow, self).__init__(i=1,
-                                         title='Whisking/Facemap tracking')
+                                         title='Face-motion/Whisking tracking')
         
         # self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         # self.refSc.activated.connect(self.jump_to_frame)
@@ -86,6 +86,7 @@ class MainWindow(NewWindow):
         self.ROI = None
         self.pupil = None
         self.iframes, self.times, self.Pr1, self.Pr2 = [], [], [], []
+        self.times, self.imgfolder, self.nframes, self.FILES = None, None, None, None
 
         # saturation sliders
         self.sl = guiparts.Slider(0, self)
@@ -126,7 +127,7 @@ class MainWindow(NewWindow):
         self.scatter, self.fit= None, None # the pupil size contour
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
-                                   title='P.C. variations')
+                                   title='*face motion*')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
         self.p1.hideAxis('left')
@@ -143,12 +144,12 @@ class MainWindow(NewWindow):
 
 
         # create frame slider
-        self.timeLabel = QtGui.QLabel("Current time (seconds):")
+        self.timeLabel = QtGui.QLabel("time : ")
         self.timeLabel.setStyleSheet("color: white;")
+        # self.timeLabel.setFixedWidth(300)
         self.currentTime = QtGui.QLineEdit()
-        self.currentTime.setText('0')
-        self.currentTime.setValidator(QtGui.QDoubleValidator(0, 100000, 2))
-        self.currentTime.setFixedWidth(50)
+        self.currentTime.setText('0 s')
+        self.currentTime.setFixedWidth(70)
         # self.currentTime.returnPressed.connect(self.set_precise_time)
         
         self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
@@ -156,7 +157,7 @@ class MainWindow(NewWindow):
         self.frameSlider.setMaximum(200)
         self.frameSlider.setTickInterval(1)
         self.frameSlider.setTracking(False)
-        # self.frameSlider.valueChanged.connect(self.go_to_frame)
+        self.frameSlider.valueChanged.connect(self.go_to_frame)
 
         istretch = 23
         iplay = istretch+15
@@ -174,6 +175,9 @@ class MainWindow(NewWindow):
         # self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         # self.interpolate.clicked.connect(self.interpolate_data)
 
+        self.motionCheckBox = QtGui.QCheckBox("display motion frames")
+        self.motionCheckBox.setStyleSheet("color: gray;")
+        
         self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
         self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
@@ -231,42 +235,40 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.folderB,1,0,1,3)
         self.l0.addWidget(self.load,2,0,1,3)
         self.l0.addWidget(self.addROI,14,0,1,3)
-        self.l0.addWidget(self.processBtn, 16, 0, 1, 3)
+        self.l0.addWidget(self.saveData, 16, 0, 1, 3)
+        self.l0.addWidget(self.processBtn, 20, 0, 1, 3)
+        self.l0.addWidget(self.motionCheckBox, 18, 0, 1, 3)
         
         self.l0.addWidget(sampLabel1, 8, 0, 1, 3)
         self.l0.addWidget(self.SsamplingBox, 8, 2, 1, 3)
         self.l0.addWidget(sampLabel2, 9, 0, 1, 3)
         self.l0.addWidget(self.TsamplingBox, 9, 2, 1, 3)
+        self.l0.addWidget(self.runAsSubprocess, 23, 0, 1, 3)
+
         # self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
         # self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
         # self.l0.addWidget(self.addROI,14,0,1,3)
         # self.l0.addWidget(self.process, 16, 0, 1, 3)
         # self.l0.addWidget(self.interpolate, 17, 0, 1, 3)
-        self.l0.addWidget(self.saveData, 18, 0, 1, 3)
         # self.l0.addWidget(self.genscript, 20, 0, 1, 3)
-        self.l0.addWidget(self.runAsSubprocess, 21, 0, 1, 3)
         # self.l0.addWidget(self.addOutlier, 22, 0, 1, 3)
         # self.l0.addWidget(self.processOutliers, 23, 0, 1, 3)
 
-        # self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
-        # self.l0.setRowStretch(istretch,1)
-        # self.l0.addWidget(self.timeLabel, istretch+13,0,1,3)
-        # self.l0.addWidget(self.currentTime, istretch+14,0,1,3)
-        # self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
+        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.setRowStretch(istretch,1)
+        self.l0.addWidget(self.timeLabel, istretch+10,0,1,3)
+        self.l0.addWidget(self.currentTime, istretch+10,1,1,3)
+        self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
         self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
         self.l0.setRowStretch(16,2)
         # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
-        # self.updateFrameSlider()
+        self.timeLabel.setEnabled(True)
+        self.frameSlider.setEnabled(True)
         
         self.nframes = 0
         self.cframe = 0
 
-        self.updateTimer = QtCore.QTimer()
-        self.cframe = 0
-        
-        self.processed = False
-        # self.datafile = args.datafile
         self.show()
 
 
@@ -278,9 +280,12 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-                                    "Choose datafolder",
-                                    FOLDERS[self.folderB.currentText()])
+        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+        #                             "Choose datafolder",
+        #                             FOLDERS[self.folderB.currentText()])
+
+        folder = '/home/yann/UNPROCESSED/2021_05_20/13-59-57/'
+        
         if folder!='':
             
             self.datafolder = folder
@@ -311,8 +316,8 @@ class MainWindow(NewWindow):
                 if 'ROIsaturation' in self.data:
                     self.sl.setValue(int(self.data['ROIsaturation']))
                     
-                if 'frame' in self.data:
-                    self.plot_whisking_trace()
+                if 'motion' in self.data:
+                    self.plot_motion_trace()
                 
             else:
                 self.data = None
@@ -322,8 +327,6 @@ class MainWindow(NewWindow):
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
                 self.updateFrameSlider()
-                self.currentTime.setValidator(\
-                                              QtGui.QDoubleValidator(0, self.nframes, 2))
                 self.movieLabel.setText(folder)
 
 
@@ -344,90 +347,16 @@ class MainWindow(NewWindow):
             self.data['ROI'] = self.ROI.position(self)
 
         np.save(os.path.join(self.datafolder, 'whisking.npy'), self.data)
+        
         print('data saved as: "%s"' % os.path.join(self.datafolder, 'whisking.npy'))
         
-
-    # def add_reflectROI(self):
-    #     self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
-
-    # def draw_whisking(self):
-    #     self.whisking = roi.whiskingROI(moveable=True, parent=self)
-        
-    # def add_ROI(self):
-
-    #     if self.ROI is not None:
-    #         self.ROI.remove(self)
-    #     for r in self.rROI:
-    #         r.remove(self)
-    #     self.ROI = roi.sROI(parent=self)
-    #     self.rROI = []
-    #     self.reflectors = []
-
-    # def exclude_outlier(self):
-
-    #     i0 = np.argmin((self.cframe-self.data['frame'])**2)
-    #     self.data['diameter'][i0] = 0
-
-    # def process_outliers(self):
-
-    #     if self.data is not None:
-
-    #         # self.data = process.remove_outliers(self.data, std_criteria=2.)
-
-    #         if (self.cframe1!=0) and (self.cframe2!=-1):
-    #             i1 = np.argmin((self.cframe1-self.data['frame'])**2)
-    #             i2 = np.argmin((self.cframe2-self.data['frame'])**2)
-    #             self.data['diameter'][i1:i2] = 0
-                
-    #         cond = (self.data['diameter']>0)
-    #         for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
-    #             func = interp1d(self.data['frame'][cond],
-    #                             self.data[key][cond],
-    #                             kind='linear')
-    #             self.data[key] = func(self.data['frame'])
-
-    #         i1, i2 = self.xaxis.range
-    #         self.p1.clear()
-    #         self.p1.plot(self.data['frame'],
-    #                      self.data['diameter'],
-    #                      pen=(0,255,0))
-    #         self.p1.setRange(xRange=(i1,i2), padding=0.0)
-    #         self.p1.show()
-        
-    #         self.cframe1, self.cframe2 = 0, -1
-    
-        
-    # def debug(self):
-    #     print('No debug function')
-    #     pass
-
-    # def set_cursor_1(self):
-    #     self.cframe1 = self.cframe
-    #     print('cursor 1 set to: %i' % self.cframe)
-        
-    # def set_cursor_2(self):
-    #     self.cframe2 = self.cframe
-    #     print('cursor 2 set to: %i' % self.cframe)
-
-    # def set_precise_time(self):
-    #     self.time = float(self.currentTime.text())
-    #     t1, t2 = self.xaxis.range
-    #     frac_value = (self.time-t1)/(t2-t1)
-    #     self.frameSlider.setValue(int(self.slider_nframes*frac_value))
-    #     self.jump_to_frame()
         
     def go_to_frame(self):
-        pass
-        # i1, i2 = self.xaxis.range
-        # self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
-        # self.jump_to_frame()
+        if self.FILES is not None:
+            i1, i2 = self.xaxis.range
+            self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
+            self.jump_to_frame()
 
-    # def fitToWindow(self):
-    #     self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
-
-    def updateFrameSlider(self):
-        self.timeLabel.setEnabled(True)
-        self.frameSlider.setEnabled(True)
 
     def refresh(self):
         self.jump_to_frame()
@@ -445,86 +374,47 @@ class MainWindow(NewWindow):
             if self.ROI is not None:
 
                 process.set_ROI_area(self)
-                self.img = self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny)
+
+                if self.motionCheckBox.isChecked():
+                    self.fullimg2 = np.load(os.path.join(self.imgfolder,
+                                                         self.FILES[self.cframe+1]))
+                    
+                    self.img = self.fullimg2[self.zoom_cond].reshape(self.Nx, self.Ny)-\
+                        self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny)
+                else:
+                    
+                    self.img = self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny)
                 
                 self.pFaceimg.setImage(self.img)
                 
-                # process.init_fit_area(self)
-                # process.preprocess(self,\
-                #                 gaussian_smoothing=float(self.smoothBox.text()),
-                #                 saturation=self.sl.value())
-                
-                # self.pPupilimg.setImage(self.img)
-                # self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
-        if self.fit is not None:
-            self.fit.remove(self)
             
         if self.data is not None:
-            
-            self.iframe = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe][0]
-            self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
-                                 self.data['diameter'][self.iframe]*np.ones(1),
+
+            self.iframe = np.argmin((self.data['frame']-self.cframe)**2)
+            self.scatter.setData([self.cframe],
+                                 [self.data['motion'][self.iframe]],
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
-            coords = []
-            if 'sx-corrected' in self.data:
-                for key in ['cx-corrected', 'cy-corrected',
-                            'sx-corrected', 'sy-corrected',
-                            'angle-corrected']:
-                    coords.append(self.data[key][self.iframe])
-            else:
-                for key in ['cx', 'cy', 'sx', 'sy', 'angle']:
-                    coords.append(self.data[key][self.iframe])
 
+            self.currentTime.setText('%.1f s' % (self.data['t'][self.iframe]-self.data['t'][0]))
 
-            # self.fit = roi.pupilROI(moveable=True,
-            #                         parent=self,
-            #                         color=(0, 200, 0),
-            #                         pos = roi.ellipse_props_to_ROI(coords))
             
         self.win.show()
         self.show()
-    
-    # def extract_ROI(self, data):
-
-    #     if len(self.rROI)>0:
-    #         data['reflectors'] = [r.extract_props() for r in self.rROI]
-    #     if self.ROI is not None:
-    #         data['ROIellipse'] = self.ROI.extract_props()
-    #     if self.whisking is not None:
-    #         data['ROIwhisking'] = self.whisking.extract_props()
-    #     data['ROIsaturation'] = self.saturation
-
-    #     boundaries = process.extract_boundaries_from_ellipse(\
-    #                                 data['ROIellipse'], self.Lx, self.Ly)
-    #     for key in boundaries:
-    #         data[key]=boundaries[key]
-        
-        
-    # def save_ROIs(self):
-    #     """ """
-    #     self.extract_ROI(self.data)
-    #     self.save_whisking_data()
-        
-
-    # def gen_bash_script(self):
-
-    #     self.save_whisking_data()
-    #     process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-    #     script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh')
-    #     # launch without subsampling !!
-    #     with open(script, 'a') as f:
-    #         f.write('python %s -df %s -s 1 &\n' % (process_script, self.datafolder))
-            
-    #     print('Script successfully written in "%s"' % script)
-
 
     def process(self):
-        pass
+
+        process.set_ROI_area(self)
+        frames, motion = process.compute_motion(self,
+                                        time_subsampling=int(self.TsamplingBox.text()),
+                                        with_ProgressBar=True)
+        self.data = {'frame':frames, 't':self.times[frames], 'motion':motion}
+        self.plot_motion_trace()
+        
 
     
     def run_as_subprocess(self):
@@ -532,7 +422,7 @@ class MainWindow(NewWindow):
         self.save_data()
         process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
         import subprocess
-        p = subprocess.Popen('python %s -df %s -s 1' % (process_script, self.datafolder),
+        p = subprocess.Popen('python %s -df %s' % (process_script, self.datafolder),
                              shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         # print('Script successfully written in "%s"' % script)
         
@@ -575,24 +465,20 @@ class MainWindow(NewWindow):
     #         self.data[key] = temp[key]
     #     self.data['times'] = self.times[self.data['frame']]
                 
-    #     self.plot_whisking_trace()
+    #     self.plot_motion_trace()
             
     #     self.win.show()
     #     self.show()
 
-    # def plot_whisking_trace(self):
-    #     self.p1.clear()
-    #     if self.data is not None:
-    #         # self.data = process.remove_outliers(self.data)
-    #         cond = np.isfinite(self.data['diameter'])
-    #         self.p1.plot(self.data['frame'][cond],
-    #                      self.data['diameter'][cond], pen=(0,255,0))
-    #         self.p1.setRange(xRange=(0, self.data['frame'][cond][-1]),
-    #                          yRange=(self.data['diameter'][cond].min()-.1,
-    #                                  self.data['diameter'][cond].max()+.1),
-    #                          padding=0.0)
-    #         self.p1.show()
-
+    def plot_motion_trace(self):
+        self.p1.clear()
+        self.p1.plot(self.data['frame'],
+                     self.data['motion'], pen=(0,0,255))
+        self.p1.setRange(xRange=(0, self.nframes),
+                         yRange=(self.data['motion'].min()-.1,
+                                 self.data['motion'].max()+.1),
+                         padding=0.0)
+        self.p1.show()
     
     def debug(self):
         pass

@@ -32,16 +32,24 @@ def set_ROI_area(cls,
                                              np.arange(fullimg.shape[1]),
                                              indexing='ij')
 
-        # subsampling mask
-        subsampling_mask = np.zeros(cls.fullx.shape, dtype=bool)
-        subsampling_mask[::spatial_subsampling, ::spatial_subsampling]=True
+        # subsampling mask NOT WORKING
+        # subsampling_mask = np.zeros(cls.fullx.shape, dtype=bool)
+        # subsampling_mask[::spatial_subsampling, ::spatial_subsampling]=True
 
         cls.zoom_cond = (cls.fullx>=mx) & (cls.fullx<=(mx+sx)) &\
-            (cls.fully>=my) & (cls.fully<=my+sy) & subsampling_mask
+            (cls.fully>=my) & (cls.fully<=my+sy) # & subsampling_mask
 
-        cls.Nx = np.max(np.sum(cls.zoom_cond, axis=1)) # npoints per dimension
-        cls.Ny = np.max(np.sum(cls.zoom_cond, axis=0))
-                
+        # if cls.ROI is not None:
+        #     mx = cls.fullx[cls.zoom_cond].min()
+        #     my = cls.fully[cls.zoom_cond].min()
+        #     sx = cls.fullx[cls.zoom_cond].max()-mx
+        #     sy = cls.fully[cls.zoom_cond].max()-my
+        #     cls.ROI.ROI.setPos([my, mx])
+        #     cls.ROI.ROI.setSize([sy, sx])
+
+        cls.Nx = cls.fullx[cls.zoom_cond].max()-cls.fullx[cls.zoom_cond].min()+1
+        cls.Ny = cls.fully[cls.zoom_cond].max()-cls.fully[cls.zoom_cond].min()+1
+
     else:
         print('need to provide coords or to create ROI !!')
 
@@ -81,11 +89,11 @@ def compute_motion(cls,
 
     if with_ProgressBar:
         printProgressBar(0, cls.nframes)
-    
+
     for i, frame in enumerate(frames[:-1]):
         imgs = load_ROI_data(cls, frame, frame+2, flatten=True)
         motion[i] = np.mean(np.diff(imgs,axis=0)**2)
-
+        
         if with_ProgressBar and (i%20==0):
             printProgressBar(frame, cls.nframes)
         
