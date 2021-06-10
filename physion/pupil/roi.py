@@ -3,9 +3,6 @@ import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
-from scipy.stats import zscore, skew
-from matplotlib import cm
-from scipy.ndimage import gaussian_filter
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
