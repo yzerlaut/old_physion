@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def build_cmd(self):
         if self.cbc.currentText()=='custom':
-            return 'python %s -df %s --photodiode_sampling %s --running_sampling %s --Pupil_frame_sampling %s --Snout_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
+            return 'python %s -df %s --photodiode_sampling %s --running_sampling %s --Pupil_frame_sampling %s --FaceMotion_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
                                                                        self.folder,
                                                                        self.PHsamplingBox.text(),
                                                                        self.RsamplingBox.text(),

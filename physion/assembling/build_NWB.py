@@ -249,7 +249,6 @@ def build_NWB(args,
                                allow_pickle=True).item()
 
                 if 'cm_to_pix' in data: # SCALE FROM THE PUPIL GUI
-                    print(data['cm_to_pix'])
                     pix_to_mm = 10./float(data['cm_to_pix']) # IN MILLIMETERS FROM HERE
                 else:
                     pix_to_mm = 1
@@ -306,7 +305,49 @@ def build_NWB(args,
                     
                 data = np.load(os.path.join(args.datafolder, 'whisking.npy'),
                                allow_pickle=True).item()
+
+                faceMotion_module = nwbfile.create_processing_module(name='face-motion', 
+                                                                     description='face motion and whisking dynamics')
+                
+
+                FaceMotionProp = pynwb.TimeSeries(name='face-motion time series',
+                                                  data = data['motion'],
+                                                  unit='seconds',
+                                                  timestamps=FC_times[data['frame']])
+                
+                faceMotion_module.add(FaceMotionProp)
+                
+
+                # then add the motion frames subsampled
+                if FC_FILES is not None:
+                    
+                    WHISKING_SUBSAMPLING = build_subsampling_from_freq(args.FaceMotion_frame_sampling,
+                                                                       1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
+                    
+                    img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
+                    x, y = np.meshgrid(np.arange(0,img.shape[0]), np.arange(0,img.shape[1]), indexing='ij')
+                    cond = (x>=data['ROI'][0]) & (x<=(data['ROI'][0]+data['ROI'][2])) &\
+                        (y>=data['ROI'][1]) & (y<=(data['ROI'][1]+data['ROI'][3]))
+
+                    def FaceMotion_frame_generator():
+                        for i in FACEMOTION_SUBSAMPLING:
+                            i0 = np.min([i, len(FC_FILES)-2])
+                            img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[cond].reshape(data['ROI'][2],data['ROI'][3])
+                            img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[cond].reshape(data['ROI'][2],data['ROI'][3])
+                            yield im2-img1
             
+                    FMCI_dataI = DataChunkIterator(data=Facemotion_frame_generator(),
+                                                   maxshape=(None, data['xmax']-data['xmin']+1, data['ymax']-data['ymin']+1),
+                                                   dtype=np.dtype(np.uint8))
+                    FaceMotion_frames = pynwb.image.ImageSeries(name='Face-Motion',
+                                                                data=FMCI_dataI,
+                                                                unit='NA',
+                                                                timestamps=FC_times[FACEMOTION_SUBSAMPLING])
+                    nwbfile.add_acquisition(FaceMotion_frames)
+                        
+            else:
+                print(' /!\ No processed facemotion data found for "%s" /!\ ' % args.datafolder)
+                
 
     #################################################
     ####    Electrophysiological Recording    #######
@@ -393,7 +434,7 @@ if __name__=='__main__':
     parser.add_argument('-cafs', "--CaImaging_frame_sampling", default=0., type=float)
     parser.add_argument('-fcfs', "--FaceCamera_frame_sampling", default=0., type=float)
     parser.add_argument('-pfs', "--Pupil_frame_sampling", default=1., type=float)
-    parser.add_argument('-sfs', "--Snout_frame_sampling", default=0.05, type=float)
+    parser.add_argument('-sfs', "--FaceMotion_frame_sampling", default=0.05, type=float)
     parser.add_argument("--silent", action="store_true")
     parser.add_argument('-lw', "--lightweight", action="store_true")
     parser.add_argument('-fvs', "--from_visualstim_setup", action="store_true")
@@ -410,7 +451,7 @@ if __name__=='__main__':
         args.export='LIGHTWEIGHT'
         # 0 values for all (means 3 frame, start-middle-end)
         args.Pupil_frame_sampling = 0
-        args.Snout_frame_sampling = 0
+        args.FaceMotion_frame_sampling = 0
         args.FaceCamera_frame_sampling = 0
         args.CaImaging_frame_sampling = 0
     if args.export=='FULL' or args.full:
@@ -418,7 +459,7 @@ if __name__=='__main__':
         # push all to very high values
         args.CaImaging_frame_sampling = 1e5
         args.Pupil_frame_sampling = 1e5
-        args.Snout_frame_sampling = 1e5
+        args.FaceMotion_frame_sampling = 1e5
         args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
     if args.nidaq_only:
         args.export='NIDAQ'
