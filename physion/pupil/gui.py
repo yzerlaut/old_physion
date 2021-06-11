@@ -5,14 +5,12 @@ import pyqtgraph as pg
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from pupil import guiparts, process, roi
+from pupil import process, roi
 from misc.folders import FOLDERS
-from misc.style import set_dark_style, set_app_icon
-from assembling.saving import from_folder_to_datetime, check_datafolder
+from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
-from dataviz.plots import convert_index_to_time
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(NewWindow):
     
     def __init__(self, app,
                  args=None,
@@ -21,52 +19,43 @@ class MainWindow(QtWidgets.QMainWindow):
                  cm_scale_px=570,
                  subsampling=1000):
         """
-        sampling in Hz
+        Pupil Tracking GUI
         """
         self.app = app
         
-        super(MainWindow, self).__init__()
+        super(MainWindow, self).__init__(i=1,
+                                         title='Pupil tracking')
 
-        self.setGeometry(500,150,400,400)
 
-        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),'process.py')
-        self.script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh') # for batch processing
+        ##############################
+        ##### keyboard shortcuts #####
+        ##############################
 
-        # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
-        self.quitSc.activated.connect(self.quit)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
-        self.maxSc.activated.connect(self.showwindow)
-        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+F'), self)
-        self.fitSc.activated.connect(self.fit_pupil_size)
-        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
-        self.loadSc.activated.connect(self.load_data)
-        self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
-        self.refSc.activated.connect(self.jump_to_frame)
-        # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
-        # self.refEx.activated.connect(self.exclude_outlier)
-        self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
-        self.refPr.activated.connect(self.process_ROIs)
-        self.refS = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
-        self.refS.activated.connect(self.save_pupil_data)
         self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
         self.refc1.activated.connect(self.set_cursor_1)
         self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
         self.refc2.activated.connect(self.set_cursor_2)
         self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
         self.refc3.activated.connect(self.process_outliers)
+        
+        #############################
+        ##### module quantities #####
+        #############################
 
-        self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
-        self.add2Bash.activated.connect(self.add_to_bash_script)
-        
-        self.minView = False
-        self.showwindow()
-        
-        pg.setConfigOptions(imageAxisOrder='row-major')
-        
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         self.cm_scale_px = cm_scale_px
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                           'process.py')
+        self.saturation = 255
+        self.ROI, self.pupil, self.times = None, None, None
+        self.data = None
+        self.rROI, self.reflectors= [], []
+        self.scatter, self.fit= None, None # the pupil size contour
+        
+        ########################
+        ##### building GUI #####
+        ########################
         
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -102,16 +91,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pupilCenter = pg.ScatterPlotItem()
         self.pPupil.addItem(self.pupilCenter)
 
-        # roi initializations
-        self.iROI = 0
-        self.nROIs = 0
-        self.saturation = 255
-        self.ROI = None
-        self.pupil = None
-        self.iframes, self.times, self.Pr1, self.Pr2 = [], [], [], []
-
         # saturation sliders
-        self.sl = guiparts.Slider(0, self)
+        self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
@@ -142,11 +123,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.refresh_pupil, 2, 11+6, 1, 1)
         self.refresh_pupil.setEnabled(True)
         self.refresh_pupil.clicked.connect(self.jump_to_frame)
-
-        self.data = None
-        self.rROI= []
-        self.reflectors=[]
-        self.scatter, self.fit= None, None # the pupil size contour
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
                                    title='Pupil diameter')
@@ -298,23 +274,10 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.win.show()
         self.show()
-        self.processed = False
 
-        # self.datafile = args.datafile
-        self.show()
-
-    def showwindow(self):
-        if self.minView:
-            self.minView = self.maxview()
-        else:
-            self.minView = self.minview()
-    def maxview(self):
-        self.showFullScreen()
-        return False
-    def minview(self):
-        self.showNormal()
-        return True
-    
+    def open_file(self):
+        self.load_data()
+        
     def load_data(self):
 
         self.cframe = 0
@@ -379,8 +342,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fit = None
         self.reflectors=[]
         self.saturation = 255
-        self.iROI=0
-        self.nROIs=0
         self.cframe1, self.cframe2 = 0, -1
         
     def add_reflectROI(self):
@@ -403,7 +364,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reflectors = []
 
 
-    def interpolate_data(self, with_blinking_flag=False):
+    def interpolate(self, with_blinking_flag=False):
         
         if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
             
@@ -445,7 +406,7 @@ class MainWindow(QtWidgets.QMainWindow):
             print('blinking/outlier labelling failed')
 
     def process_outliers(self):
-        self.interpolate_data(with_blinking_flag=True)
+        self.interpolate(with_blinking_flag=True)
         
     def debug(self):
         print('No debug function')
@@ -590,7 +551,9 @@ class MainWindow(QtWidgets.QMainWindow):
         np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
         print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         
-            
+    def process(self):
+        self.process_ROIs()
+        
     def process_ROIs(self):
 
         self.data = {}
@@ -638,6 +601,11 @@ class MainWindow(QtWidgets.QMainWindow):
                              padding=0.0)
             self.p1.show()
 
+            
+
+    def fit(self):
+        self.fit_pupil_size()
+        
     def fit_pupil_size(self, value=0, coords_only=False):
         
         if not coords_only and (self.pupil is not None):

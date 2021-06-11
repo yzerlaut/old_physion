@@ -7,8 +7,8 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
+from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
-from misc.guiparts import NewWindow
 from pupil import guiparts
 from facemotion import roi, process
 
@@ -20,7 +20,7 @@ class MainWindow(NewWindow):
                  spatial_subsampling=1,
                  time_subsampling=1):
         """
-        sampling in Hz
+        FaceMotion GUI
         """
         self.app = app
         
@@ -31,10 +31,6 @@ class MainWindow(NewWindow):
         ##### keyboard shortcuts #####
         ##############################
 
-        # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
-        # self.refEx.activated.connect(self.exclude_outlier)
-        # self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
-        # self.refPr.activated.connect(self.process_outliers)
         self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
         self.refc1.activated.connect(self.set_cursor_1)
         self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
@@ -94,7 +90,7 @@ class MainWindow(NewWindow):
         self.pFace.addItem(self.pFaceimg)
 
         # saturation sliders
-        self.sl = guiparts.Slider(0, self)
+        self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
@@ -419,11 +415,13 @@ class MainWindow(NewWindow):
     def set_cursor_1(self):
         self.cframe1 = self.cframe
         print('cursor 1 set to: %i' % self.cframe1)
+
         
     def set_cursor_2(self):
         self.cframe2 = self.cframe
         print('cursor 2 set to: %i' % self.cframe2)
 
+        
     def interpolate_data(self, with_blinking_flag=False):
         
         if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
