@@ -18,10 +18,10 @@ def extract_ellipse_props(ROI):
 
 def ellipse_props_to_ROI(coords):
     """ re-translate to ROI props"""
+    mx = coords[0]-coords[2]/2.
+    my = coords[1]-coords[3]/2.
     if len(coords)>4:
-        x0 = coords[0]#-np.cos(180/np.pi*coords[4])*coords[2]/2
-        y0 = coords[1]#+np.sin(180/np.pi*coords[4])*coords[3]/2
-        return x0, y0, coords[2], coords[3], coords[4]
+        return mx, my, coords[2], coords[3], coords[4]
     else:
         x0 = coords[0]-coords[2]/2
         y0 = coords[1]-coords[3]/2

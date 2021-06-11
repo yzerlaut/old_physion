@@ -5,12 +5,13 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
-from dataviz import guiparts, plots
+from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
 from misc.folders import FOLDERS
+from misc import guiparts
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
 settings = {

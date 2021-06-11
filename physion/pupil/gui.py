@@ -209,7 +209,7 @@ class MainWindow(NewWindow):
 
         self.saverois = QtGui.QPushButton('save data [Ctrl+S]')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.saverois.clicked.connect(self.save_ROIs)
+        self.saverois.clicked.connect(self.save)
 
         # self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
         # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
@@ -312,8 +312,10 @@ class MainWindow(NewWindow):
                 self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
 
                 self.sl.setValue(int(self.data['ROIsaturation']))
+
                 self.ROI = roi.sROI(parent=self,
                                     pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
+
                 self.plot_pupil_trace()
                 
             else:
@@ -502,7 +504,6 @@ class MainWindow(NewWindow):
 
     def extract_ROI(self, data):
 
-        print(data)
         if len(self.rROI)>0:
             data['reflectors'] = [r.extract_props() for r in self.rROI]
         if self.ROI is not None:
@@ -517,7 +518,7 @@ class MainWindow(NewWindow):
             data[key]=boundaries[key]
         
         
-    def save_ROIs(self):
+    def save(self):
         """ """
         self.extract_ROI(self.data)
         self.save_pupil_data()

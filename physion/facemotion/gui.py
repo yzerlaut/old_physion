@@ -9,7 +9,6 @@ from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
-from pupil import guiparts
 from facemotion import roi, process
 
 class MainWindow(NewWindow):
@@ -24,7 +23,7 @@ class MainWindow(NewWindow):
         """
         self.app = app
         
-        super(MainWindow, self).__init__(i=1,
+        super(MainWindow, self).__init__(i=2,
                                          title='Face-motion/Whisking tracking')
 
         ##############################

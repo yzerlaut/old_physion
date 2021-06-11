@@ -307,6 +307,9 @@ class NewWindow(QtWidgets.QMainWindow):
         self.spaceSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
         self.spaceSc.activated.connect(self.hitting_space)
 
+        self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
+        self.saveSc.activated.connect(self.save)
+        
         self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
         self.add2Bash.activated.connect(self.add_to_bash_script)
         
