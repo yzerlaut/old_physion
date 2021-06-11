@@ -64,9 +64,4 @@ The different modules of the software are documented in the following links:
 
 ## Troubleshooting / Issues
 
-Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
-
-## Troubleshooting / Issues
-
-Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
-
+Use the dedicated [Issues](https://github.com/yzerlaut/physion/issues) interface of Github.

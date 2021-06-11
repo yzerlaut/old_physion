@@ -1258,6 +1258,7 @@ class sparse_noise(visual_stim):
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events)-1) 
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
+        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
@@ -1292,6 +1293,7 @@ class dense_noise(visual_stim):
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events))
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
+        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['time_start'] = self.noise_gen.events[:-1]
         self.experiment['time_stop'] = self.noise_gen.events[1:]
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]

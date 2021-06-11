@@ -1,8 +1,7 @@
-import sys, os, shutil, glob, time
+import sys, os, shutil, glob, time, subprocess, pathlib
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-import pathlib
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -18,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, app,
                  args=None,
                  parent=None,
-                 gaussian_smoothing=2,
+                 gaussian_smoothing=0,
                  cm_scale_px=570,
                  subsampling=1000):
         """
@@ -29,7 +28,10 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.setGeometry(500,150,400,400)
-        
+
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),'process.py')
+        self.script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'script.sh') # for batch processing
+
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -53,13 +55,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refc2.activated.connect(self.set_cursor_2)
         self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
         self.refc3.activated.connect(self.process_outliers)
+
+        self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
+        self.add2Bash.activated.connect(self.add_to_bash_script)
+        
         self.minView = False
         self.showwindow()
         
         pg.setConfigOptions(imageAxisOrder='row-major')
         
-        self.setWindowTitle('Pupil tracking')
-
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         self.cm_scale_px = cm_scale_px
@@ -553,28 +557,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.extract_ROI(self.data)
         self.save_pupil_data()
         
-
+    def build_cmd(self):
+        return 'python %s -df %s' % (self.process_script, self.datafolder)
+        
     def run_as_subprocess(self):
-
-        import time
-        start_time = time.time()
-        process.init_fit_area(self)
-        I = np.zeros((self.nframes, self.Nx, self.Ny), dtype=np.uint8)
-        for self.cframe in range(100):
-            I[self.cframe] = process.preprocess(self)
-        print('init time: ', time.time()-start_time)
-        
-        """
         self.save_pupil_data()
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        import subprocess
-        cmd = 'python %s -df %s -s 1' % (process_script, self.datafolder)
-        p = subprocess.Popen(cmd,
-                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             shell=True)
+        cmd = self.build_cmd()
+        p = subprocess.Popen(cmd, shell=True)
         print('"%s" launched as a subprocess' % cmd)
-        """
-        
+
+    def add_to_bash_script(self):
+        self.save_pupil_data()
+        cmd = self.build_cmd()
+        with open(self.script, 'a') as f:
+            f.write(cmd+' & \n')
+        print('Command: "%s"\n successfully added to the script: "%s"' % (cmd, self.script))
 
     def save_pupil_data(self):
         """ """

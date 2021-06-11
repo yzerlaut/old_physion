@@ -1,4 +1,4 @@
-import datetime, numpy, os, sys
+import datetime, numpy, os, sys, pathlib
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 import numpy as np
@@ -297,33 +297,32 @@ class NewWindow(QtWidgets.QMainWindow):
         # adding a few keyboard shortcut
         self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
         self.openSc.activated.connect(self.open_file)
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
-        self.openSc.activated.connect(self.hitting_space)
+        
+        self.spaceSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
+        self.spaceSc.activated.connect(self.hitting_space)
+
+        self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
+        self.add2Bash.activated.connect(self.add_to_bash_script)
+        self.script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
+                                   'script.sh') # for batch processing
+        
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
+        
         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
         self.refreshSc.activated.connect(self.refresh)
+        
         self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+I'), self)
         self.homeSc.activated.connect(self.back_to_initial_view)
+        
         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
         self.maxSc.activated.connect(self.showwindow)
+        
         self.printSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
         self.printSc.activated.connect(self.print_datafile)
         
         self.setWindowTitle(title)
         
-        # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
-        self.quitSc.activated.connect(self.quit)
-        self.closeW = QtWidgets.QShortcut(QtGui.QKeySequence('C'), self) # or 'Ctrl+Q'
-        self.closeW.activated.connect(self.close)
-        # adding a refresh shortcut
-        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
-        self.refreshSc.activated.connect(self.refresh)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
-        self.maxSc.activated.connect(self.showwindow)
-
-        self.setWindowTitle(title)
         self.minView = False
 
         self.cwidget = QtGui.QWidget(self)
@@ -340,6 +339,9 @@ class NewWindow(QtWidgets.QMainWindow):
 
     def print_datafile(self):
         print(self.datafile)
+        
+    def add_to_bash_script(self):
+        pass # to be implemented in the child class !
         
     def refresh(self):
         pass # to be implemented in the child class !
@@ -358,9 +360,11 @@ class NewWindow(QtWidgets.QMainWindow):
             self.minView = self.maxview()
         else:
             self.minView = self.minview()
+            
     def maxview(self):
         self.showFullScreen()
         return False
+    
     def minview(self):
         self.showNormal()
         return True

@@ -23,7 +23,7 @@ def realign_from_photodiode(signal,
     
     tlim, tnew = [0, t[-1]], 0
 
-    tstart, tend_previous = metadata['time_start'][0], metadata['time_start'][0]+2
+    tstart, tend_previous, tshift = metadata['time_start'][0], metadata['time_start'][0]+2, 0
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
 

@@ -30,7 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
         LABELS = ["r) [R]un experiments",
                   "s) [S]timulus design",
                   "p) [P]upil preprocessing",
-                  "w) [W]hisking preprocessing",
+                  "f) [F]acemotion preprocessing",
                   "i) [I]maging preprocessing",
                   "e) [E]lectrophy preprocessing",
                   # "b) run [B]ash script",
@@ -46,7 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_visual_stim,
                      # self.launch_organize,
                      self.launch_pupil,
-                     self.launch_whisking,
+                     self.launch_facemotion,
                      self.launch_CaProprocessing,
                      self.launch_electrophy,
                      # self.launch_bash_script,
@@ -89,9 +89,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Module cant be launched, PsychoPy is missing !')
             
         
-    def launch_whisking(self):
-        from physion.whisking.gui import run as RunWhisking
-        child = RunWhisking(self.app, self.args)
+    def launch_facemotion(self):
+        from physion.facemotion.gui import run as RunFacemotion
+        child = RunFacemotion(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
     def launch_visual_stim(self):
