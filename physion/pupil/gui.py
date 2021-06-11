@@ -319,13 +319,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.cframe = 0
         
-        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13',
-        #                         'metadata.npy') # a default for debugging
-        # filename = '/media/yann/Yann/2021_02_19/14-45-21/metadata.npy'
+        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+        #                             "Choose datafolder",
+        #                             FOLDERS[self.folderB.currentText()])
+        folder = '/home/yann/UNPROCESSED/13-26-53/'
 
-        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-                                    "Choose datafolder",
-                                    FOLDERS[self.folderB.currentText()])
         if folder!='':
             
             self.datafolder = folder
@@ -538,6 +536,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def extract_ROI(self, data):
 
+        print(data)
         if len(self.rROI)>0:
             data['reflectors'] = [r.extract_props() for r in self.rROI]
         if self.ROI is not None:
@@ -582,7 +581,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data['gaussian_smoothing'] = int(self.smoothBox.text())
         self.data['cm_to_pix'] = int(self.scaleBox.text())
         self.data = process.clip_to_finite_values(self.data)
-        # if self.times is not None:
             
         np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
         print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
