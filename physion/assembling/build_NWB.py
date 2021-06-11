@@ -18,7 +18,7 @@ from analysis.tools import resample_signal
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
-                  'VisualStim', 'Locomotion', 'Pupil', 'Facemotion', 'Electrophy']
+                  'VisualStim', 'Locomotion', 'Pupil', 'FaceMotion', 'Electrophy']
 
 
 def build_NWB(args,
@@ -257,11 +257,13 @@ def build_NWB(args,
                                         description='processed quantities of Pupil dynamics, pix_to_mm=%.3f' % pix_to_mm)
                 
                     
-                for key, scale in zip(['cx', 'cy', 'sx', 'sy', 'blinking'], [pix_to_mm for i in range(4)]+[1]):
+                for key, scale, unit in zip(['cx', 'cy', 'sx', 'sy', 'angle', 'blinking'],
+                                      [pix_to_mm for i in range(4)]+[1,1],
+                                      ['mm', 'mm', 'mm', 'mm', 'Rd', 'a.u.']):
                     if type(dataP[key]) is np.ndarray:
                         PupilProp = pynwb.TimeSeries(name=key,
                                                      data = dataP[key]*scale,
-                                                     unit='seconds',
+                                                     unit=unit,
                                                      timestamps=FC_times)
                         pupil_module.add(PupilProp)
 
@@ -293,10 +295,10 @@ def build_NWB(args,
                 
     
         #################################################
-        ####      Facemotion from FaceCamera        #######
+        ####      FaceMotion from FaceCamera        #######
         #################################################
     
-        if 'Facemotion' in args.modalities:
+        if 'FaceMotion' in args.modalities:
             
             if os.path.isfile(os.path.join(args.datafolder, 'facemotion.npy')):
                 
@@ -329,14 +331,14 @@ def build_NWB(args,
                     condF = (x>=dataF['ROI'][0]) & (x<=(dataF['ROI'][0]+dataF['ROI'][2])) &\
                         (y>=dataF['ROI'][1]) & (y<=(dataF['ROI'][1]+dataF['ROI'][3]))
 
-                    def Facemotion_frame_generator():
+                    def FaceMotion_frame_generator():
                         for i in FACEMOTION_SUBSAMPLING:
                             i0 = np.min([i, len(FC_FILES)-2])
                             img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
                             img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
                             yield img2-img1
             
-                    FMCI_dataI = DataChunkIterator(data=Facemotion_frame_generator(),
+                    FMCI_dataI = DataChunkIterator(data=FaceMotion_frame_generator(),
                                                    maxshape=(None, dataF['ROI'][2]+1, dataF['ROI'][3]+1),
                                                    dtype=np.dtype(np.uint8))
                     FaceMotion_frames = pynwb.image.ImageSeries(name='Face-Motion',

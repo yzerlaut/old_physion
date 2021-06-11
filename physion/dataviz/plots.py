@@ -70,7 +70,7 @@ def raw_data_plot(self, tzoom,
         t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
     else:
         t_pupil_frame = None
-        
+
     if 'Pupil' in self.nwbfile.processing:
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
@@ -95,7 +95,7 @@ def raw_data_plot(self, tzoom,
             
         except BaseException:
             pass
-        
+
         iplot+=1
 
         coords = []
@@ -104,14 +104,30 @@ def raw_data_plot(self, tzoom,
 
         if t_pupil_frame is not None:
             i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
-            for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.FaceCamera_mm_to_pix)
-            self.fit = roi.pupilROI(moveable=False,
-                                    parent=self,
-                                    color=(125, 0, 0),
-                                    pos = roi.ellipse_props_to_ROI(coords))
+            for key in ['cx', 'cy', 'sx', 'sy', 'angle']:
+                coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
+            ## PLOT FIT HERE !! ##
+            # self.fit = roi.pupilROI(moveable=False,
+            #                         parent=self,
+            #                         color=(125, 0, 0),
+            #                         pos = roi.ellipse_props_to_ROI(coords))
             
 
+    if 'Face-Motion' in self.nwbfile.acquisition:
+        
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Face-Motion'])
+    #     img = self.nwbfile.acquisition['Face-Motion'].data[i0]
+    #     img = (img-img.min())/(img.max()-img.min())
+    #     self.pPupilimg.setImage(255*(1-np.exp(-img/0.2)))
+    #     if hasattr(self, 'PupilFrameLevel'):
+    #         self.plot.removeItem(self.PupilFrameLevel)
+    #     self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
+    #                                           [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Pupil']), linewidth=0.5)
+    #     t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
+    # else:
+    #     t_pupil_frame = None
+        
+            
     # ## -------- Electrophy --------- ##
     
     if ('Electrophysiological-Signal' in self.nwbfile.acquisition):

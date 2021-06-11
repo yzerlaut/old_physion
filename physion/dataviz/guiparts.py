@@ -212,34 +212,36 @@ def load_config1(self,
     Layout12.addWidget(self.dbox)
 
     self.win1 = pg.GraphicsLayoutWidget()
-    self.win1.setMaximumWidth(win1_Wmax)
     self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
     Layout12.addWidget(self.win1)
-
-    self.win2 = pg.GraphicsLayoutWidget()
-    self.win2.setMaximumWidth(win2_Wmax)
-    self.win2.setMaximumHeight(win1_Hmax)
-    Layout1.addWidget(self.win2)
 
     self.winTrace = pg.GraphicsLayoutWidget()
     mainLayout.addWidget(self.winTrace)
 
     build_slider(self, mainLayout)
 
+    # screen panel
     self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
     self.pScreenimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pScreenimg.setLevels([0,255])
+    # FaceCamera panel
     self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
     self.pFaceimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pFaceimg.setLevels([0,255])
+    # Pupil panel
     self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
     self.pPupilimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pPupilimg.setLevels([0,255])
-    self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
+    # Facemotion panel
+    self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+    self.pFacemotionimg = pg.ImageItem(numpy.ones((10,12))*50)
+    self.pFacemotionimg.setLevels([0,255])
+    # Ca-Imaging panel
+    self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
     self.pCaimg = pg.ImageItem(numpy.ones((50,50))*100)
     self.pCaimg.setLevels([0,255])
-    for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
-                    [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pCaimg]):
+    for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pFacemotion,self.pCa],
+                    [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pFacemotionimg,self.pCaimg]):
         x.setAspectLocked()
         x.addItem(y)
         x.show()
