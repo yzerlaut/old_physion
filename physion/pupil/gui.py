@@ -402,8 +402,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rROI = []
         self.reflectors = []
 
-    def process_outliers(self):
 
+    def interpolate_data(self, with_blinking_flag=False):
+        
         if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
             
             i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
@@ -418,10 +419,12 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 new_i2 = i1
 
-            if 'blinking' not in self.data:
-                self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
+            if with_blinking_flag:
                 
-            self.data['blinking'][i1:i2] = 1
+                if 'blinking' not in self.data:
+                    self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
+
+                self.data['blinking'][i1:i2] = 1
             
             for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
                 I = np.arange(i1, i2)
@@ -440,7 +443,9 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             print('cursors at: ', self.cframe1, self.cframe2)
             print('blinking/outlier labelling failed')
-    
+
+    def process_outliers(self):
+        self.interpolate_data(with_blinking_flag=True)
         
     def debug(self):
         print('No debug function')
