@@ -178,7 +178,7 @@ if __name__=='__main__':
         
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
-                                         'whisking.npy'), allow_pickle=True).item()
+                                         'facemotion.npy'), allow_pickle=True).item()
         load_folder(args)
         set_ROI_area(args, roi_coords=args.data['ROI'])
         DATA = load_ROI_data(args, iframe1=0, iframe2=1000)
@@ -189,12 +189,12 @@ if __name__=='__main__':
         ge.show()
         
     else:
-        if os.path.isfile(os.path.join(args.datafolder, 'whisking.npy')):
-            print('Processing face motion for "%s" [...]' % os.path.join(args.datafolder, 'whisking.npy'))
+        if os.path.isfile(os.path.join(args.datafolder, 'facemotion.npy')):
+            print('Processing face motion for "%s" [...]' % os.path.join(args.datafolder, 'facemotion.npy'))
             args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
             
             args.data = np.load(os.path.join(args.datafolder,
-                                             'whisking.npy'), allow_pickle=True).item()
+                                             'facemotion.npy'), allow_pickle=True).item()
             load_folder(args)
 
             set_ROI_area(args, roi_coords=args.data['ROI'])
@@ -203,8 +203,7 @@ if __name__=='__main__':
                                             with_ProgressBar=True)
             args.data['t'] = args.times[frames]
             args.data['motion'] = motion
-            np.save(os.path.join(args.datafolder, 'whisking.npy'), args.data)
-            print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'whisking.npy'))
+            np.save(os.path.join(args.datafolder, 'facemotion.npy'), args.data)
+            print('Data successfully saved as "%s"' % os.path.join(args.datafolder, 'facemotion.npy'))
         else:
-            print('  /!\ "whisking.npy" file found, create one with the GUI  /!\ ')
-
+            print('  /!\ "facemotion.npy" file found, create one with the GUI  /!\ ')

@@ -11,7 +11,7 @@ from misc.style import set_dark_style, set_app_icon
 from assembling.tools import load_FaceCamera_data
 from dataviz.guiparts import NewWindow
 from pupil import guiparts
-from whisking import roi, process
+from facemotion import roi, process
 
 class MainWindow(NewWindow):
     
@@ -282,9 +282,9 @@ class MainWindow(NewWindow):
                 self.times, self.imgfolder, self.nframes, self.FILES = None, None, None, None
                 print(' /!\ no raw FaceCamera data found ...')
 
-            if os.path.isfile(os.path.join(self.datafolder, 'whisking.npy')):
+            if os.path.isfile(os.path.join(self.datafolder, 'facemotion.npy')):
                 
-                self.data = np.load(os.path.join(self.datafolder, 'whisking.npy'),
+                self.data = np.load(os.path.join(self.datafolder, 'facemotion.npy'),
                                     allow_pickle=True).item()
                 
                 if (self.nframes is None) and ('frame' in self.data):
@@ -327,9 +327,9 @@ class MainWindow(NewWindow):
         if self.ROI is not None:
             self.data['ROI'] = self.ROI.position(self)
 
-        np.save(os.path.join(self.datafolder, 'whisking.npy'), self.data)
+        np.save(os.path.join(self.datafolder, 'facemotion.npy'), self.data)
         
-        print('data saved as: "%s"' % os.path.join(self.datafolder, 'whisking.npy'))
+        print('data saved as: "%s"' % os.path.join(self.datafolder, 'facemotion.npy'))
         
         
     def go_to_frame(self):

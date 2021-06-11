@@ -18,7 +18,7 @@ from analysis.tools import resample_signal
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
-                  'VisualStim', 'Locomotion', 'Pupil', 'Whisking', 'Electrophy']
+                  'VisualStim', 'Locomotion', 'Pupil', 'Facemotion', 'Electrophy']
 
 
 def build_NWB(args,
@@ -293,24 +293,24 @@ def build_NWB(args,
                 
     
         #################################################
-        ####      Whisking from FaceCamera        #######
+        ####      Facemotion from FaceCamera        #######
         #################################################
     
-        if 'Whisking' in args.modalities:
+        if 'Facemotion' in args.modalities:
             
-            if os.path.isfile(os.path.join(args.datafolder, 'whisking.npy')):
+            if os.path.isfile(os.path.join(args.datafolder, 'facemotion.npy')):
                 
                 if args.verbose:
-                    print('=> Adding processed whisking data for "%s" [...]' % args.datafolder)
+                    print('=> Adding processed facemotion data for "%s" [...]' % args.datafolder)
                     
-                dataF = np.load(os.path.join(args.datafolder, 'whisking.npy'),
+                dataF = np.load(os.path.join(args.datafolder, 'facemotion.npy'),
                                 allow_pickle=True).item()
 
                 faceMotion_module = nwbfile.create_processing_module(name='face-motion', 
-                                                                     description='face motion and whisking dynamics')
+                                                                     description='face motion dynamics')
                 
 
-                FaceMotionProp = pynwb.TimeSeries(name='face-motion time series',
+                FaceMotionProp = pynwb.TimeSeries(name='face motion time series',
                                                   data = dataF['motion'],
                                                   unit='seconds',
                                                   timestamps=FC_times[dataF['frame']])
