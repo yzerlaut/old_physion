@@ -99,10 +99,10 @@ class MainWindow(NewWindow):
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
-        self.reflector = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
-        # self.reflector.setEnabled(True)
-        self.reflector.clicked.connect(self.add_reflectROI)
+        self.blank = QtGui.QPushButton('add blank')
+        self.l0.addWidget(self.blank, 1, 8+6, 1, 1)
+        # self.blank.setEnabled(True)
+        self.blank.clicked.connect(self.add_reflectROI)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
@@ -342,7 +342,7 @@ class MainWindow(NewWindow):
             self.fit.remove(self)
         self.ROI, self.rROI = None, []
         self.fit = None
-        self.reflectors=[]
+        self.blanks=[]
         self.saturation = 255
         self.cframe1, self.cframe2 = 0, -1
         
@@ -363,7 +363,7 @@ class MainWindow(NewWindow):
             r.remove(self)
         self.ROI = roi.sROI(parent=self)
         self.rROI = []
-        self.reflectors = []
+        self.blanks = []
 
 
     def interpolate(self, with_blinking_flag=False):
@@ -440,6 +440,9 @@ class MainWindow(NewWindow):
         self.timeLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
 
+    def refresh(self):
+        self.jump_to_frame()
+        
     def jump_to_frame(self):
 
         if self.FILES is not None:
@@ -458,8 +461,8 @@ class MainWindow(NewWindow):
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
-                self.reflector.setEnabled(False)
-                self.reflector.setEnabled(True)
+                self.blank.setEnabled(False)
+                self.blank.setEnabled(True)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)

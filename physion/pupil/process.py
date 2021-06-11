@@ -74,8 +74,8 @@ def perform_fit(cls,
                 verbose=False,
                 fast_fit=True,
                 do_xy=False,
-                inside_std_factor=4.5,
-                N_iterations=5):
+                inside_std_factor=4.25,
+                N_iterations=10):
     """
     inspired by the "facemap" algorithm, see:
     https://github.com/MouseLand/facemap/tree/main/facemap    
@@ -295,7 +295,7 @@ def load_ROI(cls, with_plot=True):
     cls.ROI = roi.sROI(parent=cls,
                        pos = roi.ellipse_props_to_ROI(cls.data['ROIellipse']))
     cls.rROI = []
-    cls.reflectors = []
+    cls.blanks = []
     if 'reflectors' in cls.data:
         for r in cls.data['reflectors']:
             cls.rROI.append(roi.reflectROI(len(cls.rROI),
