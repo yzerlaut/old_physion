@@ -245,11 +245,11 @@ def build_NWB(args,
                 if args.verbose:
                     print('=> Adding processed pupil data for "%s" [...]' % args.datafolder)
                     
-                data = np.load(os.path.join(args.datafolder, 'pupil.npy'),
-                               allow_pickle=True).item()
+                dataP = np.load(os.path.join(args.datafolder, 'pupil.npy'),
+                                allow_pickle=True).item()
 
-                if 'cm_to_pix' in data: # SCALE FROM THE PUPIL GUI
-                    pix_to_mm = 10./float(data['cm_to_pix']) # IN MILLIMETERS FROM HERE
+                if 'cm_to_pix' in dataP: # SCALE FROM THE PUPIL GUI
+                    pix_to_mm = 10./float(dataP['cm_to_pix']) # IN MILLIMETERS FROM HERE
                 else:
                     pix_to_mm = 1
                     
@@ -258,9 +258,9 @@ def build_NWB(args,
                 
                     
                 for key, scale in zip(['cx', 'cy', 'sx', 'sy', 'blinking'], [pix_to_mm for i in range(4)]+[1]):
-                    if type(data[key]) is np.ndarray:
+                    if type(dataP[key]) is np.ndarray:
                         PupilProp = pynwb.TimeSeries(name=key,
-                                                     data = data[key]*scale,
+                                                     data = dataP[key]*scale,
                                                      unit='seconds',
                                                      timestamps=FC_times)
                         pupil_module.add(PupilProp)
@@ -269,17 +269,17 @@ def build_NWB(args,
                 if FC_FILES is not None:
                     img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
                     x, y = np.meshgrid(np.arange(0,img.shape[0]), np.arange(0,img.shape[1]), indexing='ij')
-                    cond = (x>=data['xmin']) & (x<=data['xmax']) & (y>=data['ymin']) & (y<=data['ymax'])
+                    cond = (x>=dataP['xmin']) & (x<=dataP['xmax']) & (y>=dataP['ymin']) & (y<=dataP['ymax'])
 
                     PUPIL_SUBSAMPLING = build_subsampling_from_freq(args.Pupil_frame_sampling,
                                                                     1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
                     def Pupil_frame_generator():
                         for i in PUPIL_SUBSAMPLING:
                             yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)[cond].reshape(\
-                                                                                            data['xmax']-data['xmin']+1, data['ymax']-data['ymin']+1)
+                                                                                            dataP['xmax']-dataP['xmin']+1, dataP['ymax']-dataP['ymin']+1)
             
                     PUC_dataI = DataChunkIterator(data=Pupil_frame_generator(),
-                                                  maxshape=(None, data['xmax']-data['xmin']+1, data['ymax']-data['ymin']+1),
+                                                  maxshape=(None, dataP['xmax']-dataP['xmin']+1, dataP['ymax']-dataP['ymin']+1),
                                                   dtype=np.dtype(np.uint8))
                     Pupil_frames = pynwb.image.ImageSeries(name='Pupil',
                                                            data=PUC_dataI,
@@ -303,17 +303,17 @@ def build_NWB(args,
                 if args.verbose:
                     print('=> Adding processed whisking data for "%s" [...]' % args.datafolder)
                     
-                data = np.load(os.path.join(args.datafolder, 'whisking.npy'),
-                               allow_pickle=True).item()
+                dataF = np.load(os.path.join(args.datafolder, 'whisking.npy'),
+                                allow_pickle=True).item()
 
                 faceMotion_module = nwbfile.create_processing_module(name='face-motion', 
                                                                      description='face motion and whisking dynamics')
                 
 
                 FaceMotionProp = pynwb.TimeSeries(name='face-motion time series',
-                                                  data = data['motion'],
+                                                  data = dataF['motion'],
                                                   unit='seconds',
-                                                  timestamps=FC_times[data['frame']])
+                                                  timestamps=FC_times[dataF['frame']])
                 
                 faceMotion_module.add(FaceMotionProp)
                 
@@ -321,27 +321,26 @@ def build_NWB(args,
                 # then add the motion frames subsampled
                 if FC_FILES is not None:
                     
-                    WHISKING_SUBSAMPLING = build_subsampling_from_freq(args.FaceMotion_frame_sampling,
-                                                                       1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
+                    FACEMOTION_SUBSAMPLING = build_subsampling_from_freq(args.FaceMotion_frame_sampling,
+                                                                         1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
                     
                     img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
                     x, y = np.meshgrid(np.arange(0,img.shape[0]), np.arange(0,img.shape[1]), indexing='ij')
-                    cond = (x>=data['ROI'][0]) & (x<=(data['ROI'][0]+data['ROI'][2])) &\
-                        (y>=data['ROI'][1]) & (y<=(data['ROI'][1]+data['ROI'][3]))
+                    condF = (x>=dataF['ROI'][0]) & (x<=(dataF['ROI'][0]+dataF['ROI'][2])) &\
+                        (y>=dataF['ROI'][1]) & (y<=(dataF['ROI'][1]+dataF['ROI'][3]))
 
-                    def FaceMotion_frame_generator():
+                    def Facemotion_frame_generator():
                         for i in FACEMOTION_SUBSAMPLING:
                             i0 = np.min([i, len(FC_FILES)-2])
-                            img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[cond].reshape(data['ROI'][2],data['ROI'][3])
-                            img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[cond].reshape(data['ROI'][2],data['ROI'][3])
-                            yield im2-img1
+                            img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
+                            img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
+                            yield img2-img1
             
                     FMCI_dataI = DataChunkIterator(data=Facemotion_frame_generator(),
-                                                   maxshape=(None, data['xmax']-data['xmin']+1, data['ymax']-data['ymin']+1),
+                                                   maxshape=(None, dataF['ROI'][2]+1, dataF['ROI'][3]+1),
                                                    dtype=np.dtype(np.uint8))
                     FaceMotion_frames = pynwb.image.ImageSeries(name='Face-Motion',
-                                                                data=FMCI_dataI,
-                                                                unit='NA',
+                                                                data=FMCI_dataI, unit='NA',
                                                                 timestamps=FC_times[FACEMOTION_SUBSAMPLING])
                     nwbfile.add_acquisition(FaceMotion_frames)
                         
