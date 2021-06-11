@@ -1,8 +1,7 @@
-import sys, os, shutil, glob, time, subprocess
+import sys, os, shutil, glob, time, subprocess, pathlib
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-import pathlib
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -28,9 +27,6 @@ class MainWindow(NewWindow):
         super(MainWindow, self).__init__(i=1,
                                          title='Face-motion/Whisking tracking')
         
-        # self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
-        # self.refSc.activated.connect(self.jump_to_frame)
-        
         # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
         # self.refEx.activated.connect(self.exclude_outlier)
         # self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
@@ -42,6 +38,9 @@ class MainWindow(NewWindow):
         # self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
         # self.refc3.activated.connect(self.process_outliers)
 
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                           'process.py')
+        
         
         self.minView = False
         self.showwindow()
@@ -298,7 +297,7 @@ class MainWindow(NewWindow):
                 if 'ROIsaturation' in self.data:
                     self.sl.setValue(int(self.data['ROIsaturation']))
                     
-                if 'motion' in self.data:
+                if 'frame' in self.data:
                     self.plot_motion_trace()
                 
             else:
@@ -338,7 +337,6 @@ class MainWindow(NewWindow):
             self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
             self.jump_to_frame()
 
-
     def refresh(self):
         self.jump_to_frame()
         
@@ -372,7 +370,7 @@ class MainWindow(NewWindow):
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
             
-        if self.data is not None:
+        if (self.data is not None) and ('frame' in self.data):
 
             self.iframe = np.argmin((self.data['frame']-self.cframe)**2)
             self.scatter.setData([self.cframe],
@@ -396,16 +394,6 @@ class MainWindow(NewWindow):
         self.data = {'frame':frames, 't':self.times[frames], 'motion':motion}
         self.plot_motion_trace()
         
-
-    
-    def run_as_subprocess(self):
-
-        self.save_data()
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        print('python %s -df %s' % (process_script, self.datafolder))
-        p = subprocess.Popen('python %s -df %s' % (process_script, self.datafolder),
-                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             shell=True)
         
     def plot_motion_trace(self):
         self.p1.clear()
@@ -417,6 +405,23 @@ class MainWindow(NewWindow):
                          padding=0.0)
         self.p1.show()
     
+
+    def build_cmd(self):
+        return 'python %s -df %s' % (self.process_script, self.datafolder)
+    
+    def run_as_subprocess(self):
+        self.save_data()
+        cmd = self.build_cmd()
+        p = subprocess.Popen(cmd, shell=True)
+        print('"%s" launched as a subprocess' % cmd)
+
+    def add_to_bash_script(self):
+        self.save_data()
+        cmd = self.build_cmd()
+        with open(self.script, 'a') as f:
+            f.write(cmd+' & \n')
+        print('Command: "%s"\n successfully added to the script: "%s"' % (cmd, self.script))
+        
     def debug(self):
         pass
     

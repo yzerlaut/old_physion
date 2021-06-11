@@ -57,9 +57,9 @@ class faceROI():
         my, mx = int(self.ROI.pos()[0]), int(self.ROI.pos()[1])
         sy, sx = int(self.ROI.size()[0]), int(self.ROI.size()[1])
         
-        if parent is not None:
-            mx, sx = np.clip(mx, 0, parent.fullimg.shape[0]-1), np.clip(my, 0, parent.fullimg.shape[1]-1)
-            sx, sy = np.clip(sx, 0, parent.fullimg.shape[0]-1-mx), np.clip(sy, 0, parent.fullimg.shape[1]-1-my)
+        # if parent is not None:
+        #     mx, sx = np.clip(mx, 0, parent.fullimg.shape[0]-1), np.clip(my, 0, parent.fullimg.shape[1]-1)
+        #     sx, sy = np.clip(sx, 0, parent.fullimg.shape[0]-1), np.clip(sy, 0, parent.fullimg.shape[1]-1)
 
         return mx, my, sx, sy
             

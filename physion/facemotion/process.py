@@ -49,7 +49,6 @@ def set_ROI_area(cls,
 
         cls.Nx = cls.fullx[cls.zoom_cond].max()-cls.fullx[cls.zoom_cond].min()+1
         cls.Ny = cls.fully[cls.zoom_cond].max()-cls.fully[cls.zoom_cond].min()+1
-
     else:
         print('need to provide coords or to create ROI !!')
 
@@ -57,7 +56,6 @@ def set_ROI_area(cls,
 def load_ROI_data(cls, iframe1=0, iframe2=100,
                   time_subsampling=1,
                   flatten=True):
-
 
     if flatten:
         DATA = np.zeros((iframe2-iframe1, cls.Nx*cls.Ny))
