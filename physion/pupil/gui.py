@@ -98,11 +98,18 @@ class MainWindow(NewWindow):
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
-        # adding blanks ("corneal reflections, ...")
-        self.reflector = QtGui.QPushButton('add reflect.')
-        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
-        self.reflector.setEnabled(True)
-        self.reflector.clicked.connect(self.add_blankROI)
+        # adding blanks (eye borders, ...)
+        self.blankBtn = QtGui.QPushButton('add blanks')
+        self.l0.addWidget(self.blankBtn, 1, 8+6, 1, 1)
+        self.blankBtn.setEnabled(True)
+        self.blankBtn.clicked.connect(self.add_blankROI)
+        
+        # adding reflections ("corneal reflections, ...")
+        self.reflectorBtn = QtGui.QPushButton('add reflect.')
+        self.l0.addWidget(self.reflectorBtn, 2, 8+6, 1, 1)
+        self.reflectorBtn.setEnabled(True)
+        self.reflectorBtn.clicked.connect(self.add_reflectROI)
+        
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
@@ -334,6 +341,8 @@ class MainWindow(NewWindow):
     def reset(self):
         for r in self.bROI:
             r.remove(self)
+        for r in self.reflectors:
+            r.remove(self)
         if self.ROI is not None:
             self.ROI.remove(self)
         if self.pupil is not None:
@@ -349,6 +358,9 @@ class MainWindow(NewWindow):
     def add_blankROI(self):
         self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self))
 
+    def add_reflectROI(self):
+        self.reflectors.append(roi.reflectROI(len(self.reflectors), moveable=True, parent=self))
+        
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
 
@@ -461,9 +473,6 @@ class MainWindow(NewWindow):
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
-                self.reflector.setEnabled(False)
-                self.reflector.setEnabled(True)
-            
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
         if self.fit is not None:
@@ -508,7 +517,9 @@ class MainWindow(NewWindow):
     def extract_ROI(self, data):
 
         if len(self.bROI)>0:
-            data['reflectors'] = [r.extract_props() for r in self.bROI]
+            data['blanks'] = [r.extract_props() for r in self.bROI]
+        if len(self.reflectors)>0:
+            data['reflectors'] = [r.extract_props() for r in self.reflectors]
         if self.ROI is not None:
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:
@@ -618,6 +629,7 @@ class MainWindow(NewWindow):
         if self.pupil_shape.currentText()=='Ellipse fit':
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
+                                               reflectors=[r.extract_props() for r in self.reflectors],
                                                shape='ellipse')
         else:
             coords, _, _ = process.perform_fit(self,

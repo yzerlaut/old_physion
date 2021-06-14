@@ -207,11 +207,6 @@ class sROI():
 
     def plot(self, parent):
 
-        # process.preprocess(parent)
-        
-        parent.reflector.setEnabled(False)
-        parent.reflector.setEnabled(True)
-        
         parent.win.show()
         parent.show()
 

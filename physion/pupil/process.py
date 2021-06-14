@@ -92,7 +92,6 @@ def find_ellipse_props_of_binary_image_from_PCA(x, y, img):
     return mu, eigen_vec_stds, eigen_vec_angles
 
 
-
 def perform_fit(cls,
                 shape='ellipse',
                 saturation=100,
@@ -100,26 +99,36 @@ def perform_fit(cls,
                 verbose=False,
                 fast_fit=True,
                 do_xy=False,
-                N_iterations=10):
+                reflectors=[],
+                N_iterations=3):
     """
-    inspired by the "facemap" algorithm, see:
+    adapted from the "facemap" algorithm, see:
     https://github.com/MouseLand/facemap/tree/main/facemap    
     """
     if verbose:
         start_time = time.time()
 
+    # binarize the image
     cls.img_fit = cls.img.copy()
     cls.img_fit[cls.img<saturation] = 1
     cls.img_fit[cls.img>=saturation] = 0
 
+    # evaluate basiv props
     mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
-    
+    inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)
     # iteratively excluding what is not around the center of mass (factor*std away !)
     for i in range(N_iterations):
-        cls.img_fit[~inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)] = 0
+        # re-introducing the overlap between reflector and ellipse fit
+        for r in reflectors:
+            overlap_cond = (inside_ellipse & inside_ellipse_cond(cls.x, cls.y, *r))
+        cls.img_fit[overlap_cond] = 1
+        # re-evaluate props
         mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
+        # discard what is outside
+        cls.img_fit[~inside_ellipse] = 0
+        inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)
 
-    return [*mu, *stds, angle], None, 1e8
+    return [*mu, *stds, angle], None, np.sum(~inside_ellipse)
     
 
 
@@ -128,10 +137,11 @@ def perform_loop(parent,
                  shape='ellipse',
                  gaussian_smoothing=0,
                  saturation=100,
+                 reflectors=[],
                  with_ProgressBar=False):
 
     temp = {} # temporary data in case of subsampling
-    for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'diameter', 'residual', 'angle']:
+    for key in ['frame', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
         temp[key] = []
 
     if with_ProgressBar:
@@ -146,6 +156,7 @@ def perform_loop(parent,
         
         coords, _, res = perform_fit(parent,
                                      saturation=saturation,
+                                     reflectors=reflectors,
                                      shape=shape)
         if shape=='circle':
             coords = list(coords)+[coords[-1]] # form circle to ellipse
@@ -153,7 +164,6 @@ def perform_loop(parent,
         temp['residual'].append(res)
         for key, val in zip(['cx', 'cy', 'sx', 'sy', 'angle'], coords):
             temp[key].append(val)
-        temp['diameter'].append(np.pi*coords[2]*coords[3])
         if with_ProgressBar:
             printProgressBar(parent.cframe, parent.nframes)
     if with_ProgressBar:
@@ -184,7 +194,7 @@ def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
 def init_fit_area(cls,
                   fullimg=None,
                   ellipse=None,
-                  reflectors=None):
+                  blanks=None):
 
     if fullimg is None:
         fullimg = np.load(os.path.join(cls.imgfolder,cls.FILES[0]))
@@ -219,9 +229,9 @@ def init_fit_area(cls,
         
     cls.x, cls.y = cls.x-cls.x[0,0], cls.y-cls.y[0,0] # after
 
-    if reflectors is None:
-        reflectors = [r.extract_props() for r in cls.bROI]
-    for r in reflectors:
+    if blanks is None:
+        blanks = [r.extract_props() for r in cls.bROI]
+    for r in blanks:
         cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
 
@@ -277,14 +287,19 @@ def load_ROI(cls, with_plot=True):
         cls.sl.setValue(int(saturation))
     cls.ROI = roi.sROI(parent=cls,
                        pos = roi.ellipse_props_to_ROI(cls.data['ROIellipse']))
-    cls.bROI = []
-    cls.reflectors = []
+    cls.bROI, cls.reflectors = [], []
+    if 'blanks' in cls.data:
+        for r in cls.data['blanks']:
+            cls.bROI.append(roi.reflectROI(len(cls.bROI),
+                                           pos = roi.ellipse_props_to_ROI(r),
+                                           moveable=True, parent=cls))
     if 'reflectors' in cls.data:
         for r in cls.data['reflectors']:
-            cls.bROI.append(roi.reflectROI(len(cls.bROI),
-                                            pos = roi.ellipse_props_to_ROI(r),
-                                            moveable=True, parent=cls))
+            cls.reflectors.append(roi.reflectROI(len(cls.reflectors),
+                                                 pos = roi.ellipse_props_to_ROI(r),
+                                                 moveable=True, parent=cls))
 
+            
 def remove_outliers(data, std_criteria=1.):
     """
     Nearest-neighbor interpolation of pupil properties
@@ -354,53 +369,28 @@ if __name__=='__main__':
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
                       ellipse=args.data['ROIellipse'],
-                      reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
+                      blanks=(args.data['blanks'] if 'blanks' in args.data else None))
         
-        args.cframe = 25123
-        
+        args.cframe = 0
+
         preprocess(args, with_reinit=False)
-        
-        # fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-        #                   verbose=True, N_iterations=0)[0]
 
-        # # np.save('/home/yann/Desktop/test.npy', args.img_fit)
-        
-        # fig, ax = plt.subplots(1)
-        # ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
-        # ax.axis('equal')
-        # ax.imshow(args.img_fit,
-        #            extent=(args.x.min(), args.x.max(), args.y.min(), args.y.max()), 
-        #            origin='lower')
-        # plt.show()
-
-
-        # fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-        #                   verbose=True, N_iterations=5)[0]
-
-        # # np.save('/home/yann/Desktop/test.npy', args.img_fit)
-        
-        # fig, ax = plt.subplots(1)
-        # ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
-        # ax.axis('equal')
-        # ax.imshow(args.img_fit,
-        #            extent=(args.x.min(), args.x.max(), args.y.min(), args.y.max()), 
-        #            origin='lower')
-        # plt.show()
-
-        
-        fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          verbose=True, N_iterations=0, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-        ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
-        ge.image(args.img_fit, ax=ax);ge.show()
 
+        for N in [0, 1, 3, 5]:
+            fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+                              reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None),
+                              verbose=True, N_iterations=N)[0]
+            if N==0:
+                ge.image(args.img_fit, ax=ax)
+            ax.plot(*ellipse_coords(*fit), color=ge.tab10(N), label='N=%i' % N)
+            ax.plot([fit[0]], [fit[1]], 'o', color=ge.tab10(N))
+        ax.plot(*ellipse_coords(*args.data['reflectors'][0]), 'r-')
+        ge.legend(ax, loc=(1., .2))
         
-        fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          verbose=True, N_iterations=4, do_xy=True)[0]
-        fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
-        ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
-        ge.image(args.img_fit, ax=ax);ge.show()
-        
+        fig2, ax2 = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        ge.image(args.img_fit, ax=ax2)
+        ge.show()
         
     else:
         if os.path.isfile(os.path.join(args.datafolder, 'pupil.npy')):
@@ -414,10 +404,11 @@ if __name__=='__main__':
                           ellipse=args.data['ROIellipse'],
                           reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
             temp = perform_loop(args,
-                    subsampling=args.subsampling,
-                    shape=args.data['shape'],
-                    gaussian_smoothing=args.data['gaussian_smoothing'],
-                    saturation=args.data['ROIsaturation'],
+                                subsampling=args.subsampling,
+                                shape=args.data['shape'],
+                                gaussian_smoothing=args.data['gaussian_smoothing'],
+                                saturation=args.data['ROIsaturation'],
+                                reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None),
                                 with_ProgressBar=False)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
