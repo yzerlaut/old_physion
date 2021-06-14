@@ -248,7 +248,6 @@ class MainWindow(NewWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderB.currentText()])
-
         # folder = '/home/yann/UNPROCESSED/13-26-53/'
 
         if folder!='':

@@ -17,11 +17,11 @@ from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without
 settings = {
     'window_size':(1000,600),
     # raw data plot settings
-    'increase-factor':2., # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
+    'increase-factor':1.5, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'blank-space':0.1, # so "Calcium" is twice "Eletrophy", that is twice "Pupil",..  "Locomotion"
     'colors':{'Screen':(100, 100, 100, 255),#'grey',
               'Locomotion':(255,255,255,255),#'white',
-              'Whisking':(255,0,255,255),#'purple',
+              'FaceMotion':(255,0,255,255),#'purple',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
@@ -68,11 +68,11 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                            filter="*.nwb")
-        # filename = '/home/yann/DATA/data.nwb'
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #                 (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+        #                     filter="*.nwb")
+        filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
         
         if filename!='':
             self.reset()

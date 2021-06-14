@@ -46,17 +46,45 @@ def raw_data_plot(self, tzoom,
                        pen=pg.mkPen(color=self.settings['colors']['Locomotion']))
             
 
-    ## -------- FaceCamera and Pupil-Size --------- ##
+    ## -------- FaceCamera, Face motion and Pupil-Size --------- ##
     
     if 'FaceCamera' in self.nwbfile.acquisition:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera'].data[i0])
+        
         if hasattr(self, 'FaceCameraFrameLevel'):
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
-                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Whisking']), linewidth=0.5)
+                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
+        
 
+    # if 'FaceMotion' in self.nwbfile.acquisition:
+        
+    #     i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceMotion'])
+    #     img = self.nwbfile.acquisition['FaceMotion'].data[i0]
+    #     img = (img-img.min())/(img.max()-img.min())
+    #     self.pimg.setImage(255*(1-np.exp(-img/0.2)))
+    #     if hasattr(self, 'PupilFrameLevel'):
+    #         self.plot.removeItem(self.PupilFrameLevel)
+    #     self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
+    #                                           [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Pupil']), linewidth=0.5)
+    #     t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
+    # else:
+    #     t_pupil_frame = None
+        
+    if 'FaceMotion' in self.nwbfile.processing:
+
+        i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
+
+        t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
+        
+        y = scale_and_position(self, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2],
+                               i=iplot)
+        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['FaceMotion']))
+            
+        iplot+=1
+        
     if 'Pupil' in self.nwbfile.acquisition:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
@@ -76,12 +104,11 @@ def raw_data_plot(self, tzoom,
         i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
 
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-
+        
         y = scale_and_position(self, self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
                                i=iplot)
 
         try:
-            
             self.plot.plot(t[np.isfinite(y)], y[np.isfinite(y)], pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
             # adding blinking flag (a thick line at the bottom)
@@ -100,13 +127,14 @@ def raw_data_plot(self, tzoom,
         # plotting a circle for the pupil fit
         coords = []
         if t_pupil_frame is not None:
-            i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+            i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['sx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
                 coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.FaceCamera_mm_to_pix)
             if 'angle' in self.nwbfile.processing['Pupil'].data_interfaces:
                 coords.append(self.nwbfile.processing['Pupil'].data_interfaces['angle'].data[i0])
             else:
                 coords.append(0)
+
             self.pupilContour.setData(*process.ellipse_coords(*coords, transpose=True), size=3, brush=pg.mkBrush(255,0,0))
             
 
