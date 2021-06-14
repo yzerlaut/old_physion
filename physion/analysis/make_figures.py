@@ -5,7 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 
-from dataviz.guiparts import NewWindow, smallfont
+from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d

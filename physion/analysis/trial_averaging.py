@@ -4,7 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
-from dataviz.guiparts import NewWindow, smallfont
+from misc.guiparts import NewWindow, smallfont
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array

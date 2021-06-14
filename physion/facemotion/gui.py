@@ -7,9 +7,8 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
+from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
-from dataviz.guiparts import NewWindow
-from pupil import guiparts
 from facemotion import roi, process
 
 class MainWindow(NewWindow):
@@ -20,38 +19,49 @@ class MainWindow(NewWindow):
                  spatial_subsampling=1,
                  time_subsampling=1):
         """
-        sampling in Hz
+        FaceMotion GUI
         """
         self.app = app
         
-        super(MainWindow, self).__init__(i=1,
+        super(MainWindow, self).__init__(i=2,
                                          title='Face-motion/Whisking tracking')
-        
-        # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
-        # self.refEx.activated.connect(self.exclude_outlier)
-        # self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
-        # self.refPr.activated.connect(self.process_outliers)
-        # self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
-        # self.refc1.activated.connect(self.set_cursor_1)
-        # self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
-        # self.refc2.activated.connect(self.set_cursor_2)
-        # self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
-        # self.refc3.activated.connect(self.process_outliers)
 
-        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
-                                           'process.py')
+        ##############################
+        ##### keyboard shortcuts #####
+        ##############################
+
+        self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
+        self.refc1.activated.connect(self.set_cursor_1)
+        self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
+        self.refc2.activated.connect(self.set_cursor_2)
+        self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
+        self.refc3.activated.connect(self.interpolate_data)
+
+        #############################
+        ##### module quantities #####
+        #############################
         
+        # initializing to defaults/None:
+        self.saturation = 255
+        self.ROI, self.pupil = None, None
+        self.times, self.imgfolder, self.nframes, self.FILES = None, None, None, None
+        self.data, self.scatter, self.fit= None, None, None # the pupil size contour
+        self.spatial_subsampling = spatial_subsampling
+        self.time_subsampling = time_subsampling
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                           'process.py') # for batch processing -> execute this script
+        
+        ########################
+        ##### building GUI #####
+        ########################
         
         self.minView = False
         self.showwindow()
-        
-        pg.setConfigOptions(imageAxisOrder='row-major')
-        
-        self.spatial_subsampling = spatial_subsampling
-        self.time_subsampling = time_subsampling
-        
+
+        # central widget
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
+        # layout
         self.l0 = QtGui.QGridLayout()
         self.cwidget.setLayout(self.l0)
         self.win = pg.GraphicsLayoutWidget()
@@ -78,53 +88,26 @@ class MainWindow(NewWindow):
         self.pFaceimg = pg.ImageItem(None)
         self.pFace.addItem(self.pFaceimg)
 
-        # roi initializations
-        self.iROI = 0
-        self.nROIs = 0
-        self.saturation = 255
-        self.ROI = None
-        self.pupil = None
-        self.iframes, self.times, self.Pr1, self.Pr2 = [], [], [], []
-        self.times, self.imgfolder, self.nframes, self.FILES = None, None, None, None
-
         # saturation sliders
-        self.sl = guiparts.Slider(0, self)
+        self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
-        # # # adding blanks ("corneal reflections, ...")
-        # self.roiBtn = QtGui.QPushButton('set ROI')
-        # self.l0.addWidget(self.roiBtn, 1, 8+6, 1, 1)
-        # self.roiBtn.setEnabled(True)
-        # self.roiBtn.clicked.connect(self.add_ROI)
-        
-        # # fit pupil
-        # self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
-        # self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
-        # # self.fit_pupil.setEnabled(True)
-        # self.fit_pupil.clicked.connect(self.fit_pupil_size)
-        # # choose pupil shape
-        # self.pupil_shape = QtGui.QComboBox(self)
-        # self.pupil_shape.addItem("Ellipse fit")
-        # self.pupil_shape.addItem("Circle fit")
-        # self.l0.addWidget(self.pupil_shape, 1, 10+6, 1, 1)
         # reset
         self.reset_btn = QtGui.QPushButton('reset')
         self.l0.addWidget(self.reset_btn, 1, 11+6, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
 
-        
+        # debug
         self.debugBtn = QtGui.QPushButton('- Debug -')
         self.l0.addWidget(self.debugBtn, 2, 11+6, 1, 1)
         self.debugBtn.setEnabled(True)
         self.debugBtn.clicked.connect(self.debug)
 
-        self.data = None
-        self.scatter, self.fit= None, None # the pupil size contour
-
+        
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
                                    title='*face motion*')
         self.p1.setMouseEnabled(x=True,y=False)
@@ -257,7 +240,6 @@ class MainWindow(NewWindow):
 
     def add_ROI(self):
         self.ROI = roi.faceROI(moveable=True, parent=self)
-        
 
     def open_file(self):
 
@@ -397,11 +379,15 @@ class MainWindow(NewWindow):
         self.plot_motion_trace()
         
         
-    def plot_motion_trace(self):
+    def plot_motion_trace(self, xrange=None):
         self.p1.clear()
         self.p1.plot(self.data['frame'],
                      self.data['motion'], pen=(0,0,255))
-        self.p1.setRange(xRange=(0, self.nframes),
+
+        if xrange is None:
+            xrange = (0, self.nframes)
+        
+        self.p1.setRange(xRange=xrange,
                          yRange=(self.data['motion'].min()-.1,
                                  self.data['motion'].max()+.1),
                          padding=0.0)
@@ -423,6 +409,44 @@ class MainWindow(NewWindow):
         with open(self.script, 'a') as f:
             f.write(cmd+' & \n')
         print('Command: "%s"\n successfully added to the script: "%s"' % (cmd, self.script))
+
+
+    def set_cursor_1(self):
+        self.cframe1 = self.cframe
+        print('cursor 1 set to: %i' % self.cframe1)
+
+        
+    def set_cursor_2(self):
+        self.cframe2 = self.cframe
+        print('cursor 2 set to: %i' % self.cframe2)
+
+        
+    def interpolate_data(self, with_blinking_flag=False):
+        
+        if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
+            
+            i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
+            i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
+            self.data['motion'][i1:i2] = 0
+            if i1>0:
+                new_i1 = i1-1
+            else:
+                new_i1 = i2
+            if i2<len(self.data['frame'])-1:
+                new_i2 = i2+1
+            else:
+                new_i2 = i1
+
+            for key in ['motion']:
+                I = np.arange(i1, i2)
+                self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
+
+            self.plot_motion_trace(xrange=self.xaxis.range)
+            self.cframe1, self.cframe2 = 0, 0
+        else:
+            print('cursors at: ', self.cframe1, self.cframe2)
+            print('blinking/outlier labelling failed')
+        
         
     def debug(self):
         pass

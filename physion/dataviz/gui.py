@@ -5,12 +5,13 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
-from dataviz import guiparts, plots
+from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
 from misc.folders import FOLDERS
+from misc import guiparts
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
 settings = {
@@ -26,8 +27,6 @@ settings = {
               'CaImaging':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':500}
-
-pg.setConfigOptions(imageAxisOrder='row-major')
 
 class MainWindow(guiparts.NewWindow):
     
@@ -69,11 +68,11 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        # filename = '/home/yann/DATA/data.nwb'
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Multimodal Experimental Recording (NWB file) ",
                         (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
                             filter="*.nwb")
+        # filename = '/home/yann/DATA/data.nwb'
         
         if filename!='':
             self.reset()
@@ -81,7 +80,10 @@ class MainWindow(guiparts.NewWindow):
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
-            print('"%s" filename not recognized ! ')
+            print('"%s" filename not loaded/recognized ! ' % filename)
+
+    def save(self):
+        pass
 
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows

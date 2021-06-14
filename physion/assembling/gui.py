@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
 from misc.folders import FOLDERS
-from dataviz.guiparts import NewWindow
+from misc.guiparts import NewWindow
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -25,7 +25,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
             
-        
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),'build_NWB.py')
         self.script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),'script.sh') # for batch processing
 

@@ -18,10 +18,10 @@ def extract_ellipse_props(ROI):
 
 def ellipse_props_to_ROI(coords):
     """ re-translate to ROI props"""
+    mx = coords[0]-coords[2]/2.
+    my = coords[1]-coords[3]/2.
     if len(coords)>4:
-        x0 = coords[0]#-np.cos(180/np.pi*coords[4])*coords[2]/2
-        y0 = coords[1]#+np.sin(180/np.pi*coords[4])*coords[3]/2
-        return x0, y0, coords[2], coords[3], coords[4]
+        return mx, my, coords[2], coords[3], coords[4]
     else:
         x0 = coords[0]-coords[2]/2
         y0 = coords[1]-coords[3]/2
@@ -30,10 +30,16 @@ def ellipse_props_to_ROI(coords):
 class reflectROI():
     def __init__(self, wROI, moveable=True,
                  parent=None, pos=None,
-                 yrange=None, xrange=None, ellipse=None):
+                 yrange=None, xrange=None,
+                 ellipse=None, color=''):
         # which ROI it belongs to
         self.wROI = wROI # can have many reflections
-        self.color = (0.0,0.0,0.0)
+        if color=='red':
+            self.color = (255.0,0.0,0.0)
+        elif color=='green':
+            self.color = (0.0,255.0,0.0)
+        else:
+            self.color = (0.0,0.0,0.0)
         self.moveable = moveable
         
         if pos is None:
@@ -207,11 +213,6 @@ class sROI():
 
     def plot(self, parent):
 
-        # process.preprocess(parent)
-        
-        parent.reflector.setEnabled(False)
-        parent.reflector.setEnabled(True)
-        
         parent.win.show()
         parent.show()
 

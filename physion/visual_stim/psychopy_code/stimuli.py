@@ -1254,13 +1254,12 @@ class sparse_noise(visual_stim):
                                                 noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                                 seed=protocol['noise-seed (#)'])
 
-
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events)-1) 
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
-        self.experiment['time_start'] = self.noise_gen.events[:-1]
-        self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
+        self.experiment['time_stop'] = self.noise_gen.events[1:]+protocol['presentation-prestim-period']
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
         self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
 
@@ -1294,8 +1293,8 @@ class dense_noise(visual_stim):
         self.experiment['index'] = np.arange(len(self.noise_gen.events))
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
-        self.experiment['time_start'] = self.noise_gen.events[:-1]
-        self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
+        self.experiment['time_stop'] = self.noise_gen.events[1:]+protocol['presentation-prestim-period']
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
         self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
         
