@@ -37,6 +37,8 @@ class MainWindow(NewWindow):
         self.refc2.activated.connect(self.set_cursor_2)
         self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
         self.refc3.activated.connect(self.process_outliers)
+        self.refc4 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+4'), self)
+        self.refc4.activated.connect(self.interpolate)
         
         #############################
         ##### module quantities #####

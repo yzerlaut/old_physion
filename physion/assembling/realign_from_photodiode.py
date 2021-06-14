@@ -23,7 +23,7 @@ def realign_from_photodiode(signal,
     
     tlim, tnew = [0, t[-1]], 0
 
-    tstart, tend_previous, tshift = metadata['time_start'][0], metadata['time_start'][0]+2, 0
+    tstart, tend_previous = metadata['time_start'][0], metadata['time_start'][0]+2
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
 
@@ -50,7 +50,7 @@ def realign_from_photodiode(signal,
                 plt.show()
         except BaseException as be:
             print('\n', be)
-            print('\n'+' /!\ REALIGNEMENT FAILED /!\ \n')
+            print('\n'+' /!\ REALIGNEMENT FAILED (@ i=%i ) /!\ \n' % i)
             # print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
@@ -86,7 +86,6 @@ def find_onset_time(t, photodiode_signal,
     """
     smoothed = gaussian_filter1d(photodiode_signal, int(smoothing_time/(t[1]-t[0])))
     smoothed = (smoothed-smoothed.min())/(smoothed.max()-smoothed.min())
-    threshold = np.max(smoothed)/2.
     cond = (smoothed[1:]>=0.5) & (smoothed[:-1]<=0.5)
     t0 = t[:-1][cond][0]
     return t0-advance_time, smoothed, smoothed.min()+0.5*(smoothed.max()-smoothed.min())
