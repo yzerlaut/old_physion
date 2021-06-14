@@ -203,33 +203,41 @@ def build_NWB(args,
         
         if args.verbose:
             print('=> Storing FaceCamera acquisition for "%s" [...]' % args.datafolder)
-        if ('raw_FaceCamera' in args.modalities):
-            try:
-                FC_times, FC_FILES, _, _, _ = load_FaceCamera_data(os.path.join(args.datafolder, 'FaceCamera-imgs'),
-                                                                t0=NIdaq_Tstart,
-                                                                verbose=True)
 
-                img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
+            
+        try:
+            
+            FC_times, FC_FILES, _, _, _ = load_FaceCamera_data(os.path.join(args.datafolder, 'FaceCamera-imgs'),
+                                                            t0=NIdaq_Tstart,
+                                                            verbose=True)
 
-                FC_SUBSAMPLING = build_subsampling_from_freq(args.FaceCamera_frame_sampling,
-                                                             1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
-                def FaceCamera_frame_generator():
-                    for i in FC_SUBSAMPLING:
-                        yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)
+            if ('raw_FaceCamera' in args.modalities):
+                    img = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[0]))
 
-                FC_dataI = DataChunkIterator(data=FaceCamera_frame_generator(),
-                                             maxshape=(None, img.shape[0], img.shape[1]),
-                                             dtype=np.dtype(np.uint8))
-                FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
-                                                            data=FC_dataI,
-                                                            unit='NA',
-                                                            timestamps=FC_times[FC_SUBSAMPLING])
-                nwbfile.add_acquisition(FaceCamera_frames)
+                    FC_SUBSAMPLING = build_subsampling_from_freq(args.FaceCamera_frame_sampling,
+                                                                 1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
+                    def FaceCamera_frame_generator():
+                        for i in FC_SUBSAMPLING:
+                            try:
+                                im = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)
+                                yield im
+                            except ValueError:
+                                print('Pb in FaceCamera with frame #', i)
+                                yield np.zeros(img.shape)
+                                
+                    FC_dataI = DataChunkIterator(data=FaceCamera_frame_generator(),
+                                                 maxshape=(None, img.shape[0], img.shape[1]),
+                                                 dtype=np.dtype(np.uint8))
+                    FaceCamera_frames = pynwb.image.ImageSeries(name='FaceCamera',
+                                                                data=FC_dataI,
+                                                                unit='NA',
+                                                                timestamps=FC_times[FC_SUBSAMPLING])
+                    nwbfile.add_acquisition(FaceCamera_frames)
 
-            except BaseException as be:
-                print(be)
-                FC_FILES = None
-                print(' /!\ Problems with FaceCamera data for "%s" /!\ ' % args.datafolder)
+        except BaseException as be:
+            print(be)
+            FC_FILES = None
+            print(' /!\ Problems with FaceCamera data for "%s" /!\ ' % args.datafolder)
             
 
         #################################################
@@ -273,13 +281,20 @@ def build_NWB(args,
 
                     PUPIL_SUBSAMPLING = build_subsampling_from_freq(args.Pupil_frame_sampling,
                                                                     1./np.mean(np.diff(FC_times)), len(FC_FILES), Nmin=3)
+
+                    new_shapeP = dataP['xmax']-dataP['xmin']+1, dataP['ymax']-dataP['ymin']+1
                     def Pupil_frame_generator():
                         for i in PUPIL_SUBSAMPLING:
-                            yield np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)[cond].reshape(\
-                                                                                            dataP['xmax']-dataP['xmin']+1, dataP['ymax']-dataP['ymin']+1)
-            
+                            try:
+                                im = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i])).astype(np.uint8)[cond].reshape(*new_shapeP)
+                                yield im
+                            except ValueError:
+                                print('Pb in FaceCamera with frame #', i)
+                                yield np.zeros(new_shapeP)
+                                
+                            
                     PUC_dataI = DataChunkIterator(data=Pupil_frame_generator(),
-                                                  maxshape=(None, dataP['xmax']-dataP['xmin']+1, dataP['ymax']-dataP['ymin']+1),
+                                                  maxshape=(None, *new_shapeP),
                                                   dtype=np.dtype(np.uint8))
                     Pupil_frames = pynwb.image.ImageSeries(name='Pupil',
                                                            data=PUC_dataI,
@@ -305,7 +320,7 @@ def build_NWB(args,
                     
                 dataF = np.load(os.path.join(args.datafolder, 'facemotion.npy'),
                                 allow_pickle=True).item()
-                print(dataF)
+
                 faceMotion_module = nwbfile.create_processing_module(name='face-motion', 
                                                                      description='face motion dynamics')
                 
@@ -329,15 +344,21 @@ def build_NWB(args,
                     condF = (x>=dataF['ROI'][0]) & (x<=(dataF['ROI'][0]+dataF['ROI'][2])) &\
                         (y>=dataF['ROI'][1]) & (y<=(dataF['ROI'][1]+dataF['ROI'][3]))
 
+                    new_shapeF = dataF['ROI'][2]+1, dataF['ROI'][3]+1
+                    
                     def FaceMotion_frame_generator():
                         for i in FACEMOTION_SUBSAMPLING:
                             i0 = np.min([i, len(FC_FILES)-2])
-                            img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
-                            img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[condF].reshape(dataF['ROI'][2]+1,dataF['ROI'][3]+1)
-                            yield img2-img1
+                            try:
+                                img1 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0])).astype(np.uint8)[condF].reshape(*new_shapeF)
+                                img2 = np.load(os.path.join(args.datafolder, 'FaceCamera-imgs', FC_FILES[i0+1])).astype(np.uint8)[condF].reshape(*new_shapeF)
+                                yield img2-img1
+                            except ValueError:
+                                print('Pb in FaceCamera with frame #', i)
+                                yield np.zeros(new_shapeF)
             
                     FMCI_dataI = DataChunkIterator(data=FaceMotion_frame_generator(),
-                                                   maxshape=(None, dataF['ROI'][2]+1, dataF['ROI'][3]+1),
+                                                   maxshape=(None, *new_shapeF),
                                                    dtype=np.dtype(np.uint8))
                     FaceMotion_frames = pynwb.image.ImageSeries(name='Face-Motion',
                                                                 data=FMCI_dataI, unit='NA',
