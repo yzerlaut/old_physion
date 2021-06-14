@@ -222,10 +222,14 @@ class MainWindow(NewWindow):
         # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         # self.addOutlier.clicked.connect(self.exclude_outlier)
 
+        self.interpBtn = QtGui.QPushButton('interpolate')
+        self.interpBtn.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.interpBtn.clicked.connect(self.interpolate)
+
         self.processOutliers = QtGui.QPushButton('Set blinking interval')
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
-
+        
         self.printSize = QtGui.QPushButton('print ROI size')
         self.printSize.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.printSize.clicked.connect(self.print_size)
@@ -260,8 +264,9 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.saverois, 19, 0, 1, 3)
         self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
         self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
-        self.l0.addWidget(self.printSize, 26, 0, 1, 3)
+        self.l0.addWidget(self.interpBtn, 25, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 26, 0, 1, 3)
+        self.l0.addWidget(self.printSize, 27, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -359,7 +364,7 @@ class MainWindow(NewWindow):
         self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self))
 
     def add_reflectROI(self):
-        self.reflectors.append(roi.reflectROI(len(self.reflectors), moveable=True, parent=self))
+        self.reflectors.append(roi.reflectROI(len(self.reflectors), moveable=True, parent=self, color='green'))
         
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
@@ -384,7 +389,6 @@ class MainWindow(NewWindow):
             
             i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
             i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
-            self.data['diameter'][i1:i2] = 0
             if i1>0:
                 new_i1 = i1-1
             else:
@@ -401,17 +405,9 @@ class MainWindow(NewWindow):
 
                 self.data['blinking'][i1:i2] = 1
             
-            for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
+            for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
                 I = np.arange(i1, i2)
                 self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
-
-            # FOR MORE FANCY INTERPOLATION
-            # cond = (self.data['blinking']>0)
-            # for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
-            #     func = interp1d(self.data['frame'][cond],
-            #                     self.data[key][cond],
-            #                     kind='linear')
-            #     self.data[key] = func(self.data['frame'])
 
             self.plot_pupil_trace(xrange=self.xaxis.range)
             self.cframe1, self.cframe2 = 0, 0
@@ -482,7 +478,7 @@ class MainWindow(NewWindow):
             
             self.iframe = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe][0]
             self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
-                                 self.data['diameter'][self.iframe]*np.ones(1),
+                                 self.data['sx'][self.iframe]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
@@ -543,7 +539,7 @@ class MainWindow(NewWindow):
     def run_as_subprocess(self):
         self.save_pupil_data()
         cmd = self.build_cmd()
-        p = subprocess.Popen(cmd, shell=True)
+        p = subprocess.Popen(cmd+' --verbose', shell=True)
         print('"%s" launched as a subprocess' % cmd)
 
     def add_to_bash_script(self):
@@ -590,6 +586,7 @@ class MainWindow(NewWindow):
                                     shape=self.Pshape,
                                     gaussian_smoothing=int(self.smoothBox.text()),
                                     saturation=self.sl.value(),
+                                    reflectors=[r.extract_props() for r in self.reflectors],
                                     with_ProgressBar=True)
 
         for key in temp:
@@ -605,14 +602,14 @@ class MainWindow(NewWindow):
         self.p1.clear()
         if self.data is not None:
             # self.data = process.remove_outliers(self.data)
-            cond = np.isfinite(self.data['diameter'])
+            cond = np.isfinite(self.data['sx'])
             self.p1.plot(self.data['frame'][cond],
-                         self.data['diameter'][cond], pen=(0,255,0))
+                         self.data['sx'][cond], pen=(0,255,0))
             if xrange is None:
                 xrange = (0, self.data['frame'][cond][-1])
             self.p1.setRange(xRange=xrange,
-                             yRange=(self.data['diameter'][cond].min()-.1,
-                                     self.data['diameter'][cond].max()+.1),
+                             yRange=(self.data['sx'][cond].min()-.1,
+                                     self.data['sx'][cond].max()+.1),
                              padding=0.0)
             self.p1.show()
 
@@ -634,6 +631,7 @@ class MainWindow(NewWindow):
         else:
             coords, _, _ = process.perform_fit(self,
                                                saturation=self.sl.value(),
+                                               reflectors=[r.extract_props() for r in self.reflectors],
                                                shape='circle')
             coords = list(coords)+[coords[-1], 0] # form circle to ellipse
 
@@ -651,7 +649,7 @@ class MainWindow(NewWindow):
         return coords
 
     def interpolate_data(self):
-        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
+        for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
             func = interp1d(self.data['frame'], self.data[key],
                             kind='linear')
             self.data[key] = func(np.arange(self.nframes))

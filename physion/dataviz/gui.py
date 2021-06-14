@@ -28,8 +28,6 @@ settings = {
     # general settings
     'Npoints':500}
 
-pg.setConfigOptions(imageAxisOrder='row-major')
-
 class MainWindow(guiparts.NewWindow):
     
     def __init__(self, app,
@@ -70,11 +68,11 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        # filename = '/home/yann/DATA/data.nwb'
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Multimodal Experimental Recording (NWB file) ",
                         (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
                             filter="*.nwb")
+        # filename = '/home/yann/DATA/data.nwb'
         
         if filename!='':
             self.reset()
@@ -82,7 +80,10 @@ class MainWindow(guiparts.NewWindow):
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
-            print('"%s" filename not recognized ! ')
+            print('"%s" filename not loaded/recognized ! ' % filename)
+
+    def save(self):
+        pass
 
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows

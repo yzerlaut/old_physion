@@ -235,11 +235,12 @@ def load_config1(self,
     self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
     self.pPupilimg = pg.ImageItem(numpy.ones((10,12))*50)
     self.pPupilimg.setLevels([0,255])
+    self.pupilContour = pg.ScatterPlotItem()
     self.pCa=self.win2.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
     self.pCaimg = pg.ImageItem(numpy.ones((50,50))*100)
     self.pCaimg.setLevels([0,255])
-    for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pCa],
-                    [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pCaimg]):
+    for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pCa],
+                    [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour,self.pCaimg]):
         x.setAspectLocked()
         x.addItem(y)
         x.show()
@@ -357,7 +358,6 @@ class NewWindow(QtWidgets.QMainWindow):
         print(' "process" function not implemented')
         print(' --> should be implemented in child class !')
 
-        
     def fit(self):
         print(' "fit" function not implemented')
         print(' --> should be implemented in child class !')
@@ -395,7 +395,10 @@ class NewWindow(QtWidgets.QMainWindow):
     def minview(self):
         self.showNormal()
         return True
-    
+
+    def save(self):
+        pass
+
     def select_ROI_from_pick(self, cls=None):
 
         if cls is None:

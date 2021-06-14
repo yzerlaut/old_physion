@@ -100,6 +100,7 @@ def perform_fit(cls,
                 fast_fit=True,
                 do_xy=False,
                 reflectors=[],
+                inside_std_factor=1.1,
                 N_iterations=3):
     """
     adapted from the "facemap" algorithm, see:
@@ -115,18 +116,19 @@ def perform_fit(cls,
 
     # evaluate basiv props
     mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
-    inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)
+    inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, inside_std_factor*stds[0], inside_std_factor*stds[1], angle)
     # iteratively excluding what is not around the center of mass (factor*std away !)
     for i in range(N_iterations):
         # re-introducing the overlap between reflector and ellipse fit
+        overlap_cond = np.zeros(inside_ellipse.shape, dtype=bool)
         for r in reflectors:
-            overlap_cond = (inside_ellipse & inside_ellipse_cond(cls.x, cls.y, *r))
+            overlap_cond = overlap_cond | (inside_ellipse & inside_ellipse_cond(cls.x, cls.y, *r))
         cls.img_fit[overlap_cond] = 1
         # re-evaluate props
         mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
         # discard what is outside
         cls.img_fit[~inside_ellipse] = 0
-        inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)
+        inside_ellipse = inside_ellipse_cond(cls.x, cls.y, *mu, inside_std_factor*stds[0], inside_std_factor*stds[1], angle)
 
     return [*mu, *stds, angle], None, np.sum(~inside_ellipse)
     
@@ -340,7 +342,7 @@ if __name__=='__main__':
     # parser.add_argument("--gaussian_smoothing", type=float, default=0)
     # parser.add_argument('-df', "--datafolder", default='./')
     # parser.add_argument('-f', "--saving_filename", default='pupil-data.npy')
-    parser.add_argument("-nv", "--non_verbose", help="decrease output verbosity", action="store_true")
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument('-rf', "--root_datafolder", type=str, default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-d', "--day", type=str, default=datetime.datetime.today().strftime('%Y_%m_%d'))
@@ -377,7 +379,7 @@ if __name__=='__main__':
 
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
 
-        for N in [0, 1, 3, 5]:
+        for N in [0, 1, 2]:
             fit = perform_fit(args, saturation=args.data['ROIsaturation'],
                               reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None),
                               verbose=True, N_iterations=N)[0]
@@ -402,14 +404,14 @@ if __name__=='__main__':
             init_fit_area(args,
                           fullimg=None,
                           ellipse=args.data['ROIellipse'],
-                          reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
+                          blanks=(args.data['blanks'] if 'blanks'  in args.data else None))
             temp = perform_loop(args,
                                 subsampling=args.subsampling,
                                 shape=args.data['shape'],
                                 gaussian_smoothing=args.data['gaussian_smoothing'],
                                 saturation=args.data['ROIsaturation'],
                                 reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None),
-                                with_ProgressBar=False)
+                                with_ProgressBar=args.verbose)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:
                 args.data[key] = temp[key]

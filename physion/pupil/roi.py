@@ -30,10 +30,16 @@ def ellipse_props_to_ROI(coords):
 class reflectROI():
     def __init__(self, wROI, moveable=True,
                  parent=None, pos=None,
-                 yrange=None, xrange=None, ellipse=None):
+                 yrange=None, xrange=None,
+                 ellipse=None, color=''):
         # which ROI it belongs to
         self.wROI = wROI # can have many reflections
-        self.color = (0.0,0.0,0.0)
+        if color=='red':
+            self.color = (255.0,0.0,0.0)
+        elif color=='green':
+            self.color = (0.0,255.0,0.0)
+        else:
+            self.color = (0.0,0.0,0.0)
         self.moveable = moveable
         
         if pos is None:
