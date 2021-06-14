@@ -50,7 +50,7 @@ class MainWindow(NewWindow):
         self.saturation = 255
         self.ROI, self.pupil, self.times = None, None, None
         self.data = None
-        self.rROI, self.reflectors= [], []
+        self.bROI, self.reflectors = [], []
         self.scatter, self.fit= None, None # the pupil size contour
         
         ########################
@@ -99,10 +99,10 @@ class MainWindow(NewWindow):
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks ("corneal reflections, ...")
-        self.blank = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.blank, 1, 8+6, 1, 1)
-        # self.blank.setEnabled(True)
-        self.blank.clicked.connect(self.add_reflectROI)
+        self.reflector = QtGui.QPushButton('add reflect.')
+        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
+        self.reflector.setEnabled(True)
+        self.reflector.clicked.connect(self.add_blankROI)
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
@@ -332,7 +332,7 @@ class MainWindow(NewWindow):
 
 
     def reset(self):
-        for r in self.rROI:
+        for r in self.bROI:
             r.remove(self)
         if self.ROI is not None:
             self.ROI.remove(self)
@@ -340,14 +340,14 @@ class MainWindow(NewWindow):
             self.pupil.remove(self)
         if self.fit is not None:
             self.fit.remove(self)
-        self.ROI, self.rROI = None, []
+        self.ROI, self.bROI = None, []
         self.fit = None
-        self.blanks=[]
+        self.reflectors=[]
         self.saturation = 255
         self.cframe1, self.cframe2 = 0, -1
         
-    def add_reflectROI(self):
-        self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
+    def add_blankROI(self):
+        self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self))
 
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
@@ -359,11 +359,11 @@ class MainWindow(NewWindow):
 
         if self.ROI is not None:
             self.ROI.remove(self)
-        for r in self.rROI:
+        for r in self.bROI:
             r.remove(self)
         self.ROI = roi.sROI(parent=self)
-        self.rROI = []
-        self.blanks = []
+        self.bROI = []
+        self.reflectors = []
 
 
     def interpolate(self, with_blinking_flag=False):
@@ -461,8 +461,8 @@ class MainWindow(NewWindow):
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
-                self.blank.setEnabled(False)
-                self.blank.setEnabled(True)
+                self.reflector.setEnabled(False)
+                self.reflector.setEnabled(True)
             
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
@@ -507,8 +507,8 @@ class MainWindow(NewWindow):
 
     def extract_ROI(self, data):
 
-        if len(self.rROI)>0:
-            data['reflectors'] = [r.extract_props() for r in self.rROI]
+        if len(self.bROI)>0:
+            data['reflectors'] = [r.extract_props() for r in self.bROI]
         if self.ROI is not None:
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:

@@ -209,8 +209,8 @@ class sROI():
 
         # process.preprocess(parent)
         
-        parent.blank.setEnabled(False)
-        parent.blank.setEnabled(True)
+        parent.reflector.setEnabled(False)
+        parent.reflector.setEnabled(True)
         
         parent.win.show()
         parent.show()

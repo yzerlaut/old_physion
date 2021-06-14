@@ -104,15 +104,25 @@ def perform_fit(cls,
     mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
     xdist = cls.x[cls.img_fit==1].flatten()-mu[0]
     ydist = cls.y[cls.img_fit==1].flatten()-mu[1]
-    
-    xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
-    sigxy = np.sqrt(xydist.T @ xydist) + 0.01*np.eye(2)
 
+    # lam0 = cls.img_fit
+    # immed0 = np.median(lam0)
+    # lam = lam0.copy()
+    xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
+    # xy = xydist * lam[:,np.newaxis]**0.5
+    im = xydist.T @ xydist
+
+    im = xydist @ xydist.T
+    print(im)
+    # sigxy = np.sqrt(im) # (np.sign(im)+1)/2.*np.sqrt(im)+(np.sign(im)-1)/2.*np.sqrt(-im)
+    sigxy = np.eye(2)
+    # sigxy[im>0] = np.sqrt(im[im>0])
+    # sigxy[im<=0] = np.sqrt(im[im<=0])
+    
     try:
         sv, u = np.linalg.eig(sigxy)
         sv, u = sv[::-1], u[:,::-1]
 
-        
         if np.dot(*u[0])>=0:
             sv[0], sv[1] = np.sqrt(sv[0]), np.sqrt(2*sv[1]) # manual correction to second dimension
             # angle = np.arctan(u[0][1]/u[0][0])
@@ -125,7 +135,7 @@ def perform_fit(cls,
 
         if do_xy:
             p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
-            cls.xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv) @ u
+            cls.xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv) @ u
             cls.xy += mu
 
         if verbose:
@@ -237,7 +247,7 @@ def init_fit_area(cls,
     cls.x, cls.y = cls.x-cls.x[0,0], cls.y-cls.y[0,0] # after
 
     if reflectors is None:
-        reflectors = [r.extract_props() for r in cls.rROI]
+        reflectors = [r.extract_props() for r in cls.bROI]
     for r in reflectors:
         cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
@@ -294,11 +304,11 @@ def load_ROI(cls, with_plot=True):
         cls.sl.setValue(int(saturation))
     cls.ROI = roi.sROI(parent=cls,
                        pos = roi.ellipse_props_to_ROI(cls.data['ROIellipse']))
-    cls.rROI = []
-    cls.blanks = []
+    cls.bROI = []
+    cls.reflectors = []
     if 'reflectors' in cls.data:
         for r in cls.data['reflectors']:
-            cls.rROI.append(roi.reflectROI(len(cls.rROI),
+            cls.bROI.append(roi.reflectROI(len(cls.bROI),
                                             pos = roi.ellipse_props_to_ROI(r),
                                             moveable=True, parent=cls))
 
@@ -332,7 +342,7 @@ if __name__=='__main__':
     import argparse, datetime
 
     parser=argparse.ArgumentParser()
-    parser.add_argument('-df', "--datafolder", type=str,default='')
+    parser.add_argument('-df', "--datafolder", type=str,default='/home/yann/UNPROCESSED/13-26-53/')
     # parser.add_argument("--shape", default='ellipse')
     # parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--maxiter", type=int, default=100)
@@ -365,7 +375,7 @@ if __name__=='__main__':
         args.imgfolder = os.path.join(args.datafolder, 'FaceCamera-imgs')
         args.data = np.load(os.path.join(args.datafolder,
                                          'pupil.npy'), allow_pickle=True).item()
-        args.rROI = []
+        args.bROI = []
         load_folder(args)
         # print(args.fullimg)
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
@@ -373,7 +383,7 @@ if __name__=='__main__':
                       ellipse=args.data['ROIellipse'],
                       reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None))
         
-        args.cframe = 10000
+        args.cframe = 25123
         
         preprocess(args, with_reinit=False)
         
@@ -384,7 +394,7 @@ if __name__=='__main__':
         ge.image(args.img_fit, ax=ax);ge.show()
         
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          verbose=True, N_iterations=8, do_xy=True)[0]
+                          verbose=True, N_iterations=5, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ax.plot(*args.xy.T, 'r')
