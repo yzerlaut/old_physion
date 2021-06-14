@@ -9,6 +9,8 @@ from misc.progressBar import printProgressBar
 from assembling.tools import load_FaceCamera_data
 from pupil.outliers import replace_outliers
 from pupil import roi
+import matplotlib.pylab as plt
+
 
 def ellipse_coords(xc, yc, sx, sy, alpha=0, n=100, transpose=False):
     t = np.linspace(0, 2*np.pi, n)
@@ -29,8 +31,7 @@ def circle_coords(xc, yc, s, n=50):
     return xc+np.cos(t)*s/2, yc+np.sin(t)*s/2
 
 def inside_ellipse_cond(X, Y, xc, yc, sx, sy, alpha=0):
-    # return ( (X-xc)**2/(sx/2.)**2+\
-    #          (Y-yc)**2/(sy/2.)**2 ) < 1 # UNROTATED
+    # return ( (X-xc)**2/(sx/2.)**2 + (Y-yc)**2/(sy/2.)**2 ) < 1 # UNROTATED
     return ( ( (X-xc)*np.cos(alpha) + (Y-yc)*np.sin(alpha) )**2 / (sx/2.)**2 +\
              ( (X-xc)*np.sin(alpha) - (Y-yc)*np.cos(alpha) )**2 / (sy/2.)**2 ) < 1
 
@@ -66,6 +67,31 @@ def circle_residual(coords, cls):
     return np.sum((cls.img_fit-im)**2)
 
 
+def find_ellipse_props_of_binary_image_from_PCA(x, y, img):
+
+    mu = np.median(x[img==1]), np.median(y[img==1])
+    xdist = x[img==1].flatten()-mu[0]
+    ydist = y[img==1].flatten()-mu[1]
+
+    xydist = np.concatenate([xdist[:,np.newaxis],
+                             ydist[:,np.newaxis]],
+                            axis=1)
+
+    
+    C = np.dot(xydist.T, xydist) / (xydist.shape[0]-1)
+    
+    EVALs, EVECS = np.linalg.eig(C)
+    # eigen_vecs = []
+    eigen_vals, eigen_vec_angles, eigen_vec_stds = [np.zeros(xydist.shape[1]) for i in range(3)]
+    for e, i in enumerate(np.argsort(EVALs)[::-1]):
+        eigen_vals[e] = EVALs[i]
+        # eigen_vecs.append(EVECS[i])
+        eigen_vec_angles[e] = (-np.arctan(EVECS[i][1]/(1e-5+EVECS[i][0]))+np.pi)%(np.pi)
+        eigen_vec_stds[e] = 4*np.sqrt(EVALs[i])
+
+    return mu, eigen_vec_stds, eigen_vec_angles
+
+
 
 def perform_fit(cls,
                 shape='ellipse',
@@ -74,7 +100,6 @@ def perform_fit(cls,
                 verbose=False,
                 fast_fit=True,
                 do_xy=False,
-                inside_std_factor=4.25,
                 N_iterations=10):
     """
     inspired by the "facemap" algorithm, see:
@@ -86,68 +111,16 @@ def perform_fit(cls,
     cls.img_fit = cls.img.copy()
     cls.img_fit[cls.img<saturation] = 1
     cls.img_fit[cls.img>=saturation] = 0
-    
-    mu0 = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-    # weighted std_of_mass
-    s0 = [4*np.std(cls.x[cls.img_fit>0]), 4*np.std(cls.y[cls.img_fit>0])]
 
+    mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
+    
     # iteratively excluding what is not around the center of mass (factor*std away !)
     for i in range(N_iterations):
-        # center_of_mass
-        mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-        # std_of_mass
-        std = np.std(cls.x[cls.img_fit>0])
-        # set to 0 if to far
-        cls.img_fit[~inside_circle_cond(cls.x, cls.y,
-                                        mu[0], mu[1], inside_std_factor*std)] = 0
+        cls.img_fit[~inside_ellipse_cond(cls.x, cls.y, *mu, stds[0], stds[1], angle)] = 0
+        mu, stds, [angle, _] = find_ellipse_props_of_binary_image_from_PCA(cls.x, cls.y, cls.img_fit)
 
-    mu = [np.mean(cls.x[cls.img_fit>0]),np.mean(cls.y[cls.img_fit>0])]
-    xdist = cls.x[cls.img_fit==1].flatten()-mu[0]
-    ydist = cls.y[cls.img_fit==1].flatten()-mu[1]
-
-    # lam0 = cls.img_fit
-    # immed0 = np.median(lam0)
-    # lam = lam0.copy()
-    xydist = np.concatenate((ydist[:,np.newaxis], xdist[:,np.newaxis]), axis=1)
-    # xy = xydist * lam[:,np.newaxis]**0.5
-    im = xydist.T @ xydist
-
-    im = xydist @ xydist.T
-    print(im)
-    # sigxy = np.sqrt(im) # (np.sign(im)+1)/2.*np.sqrt(im)+(np.sign(im)-1)/2.*np.sqrt(-im)
-    sigxy = np.eye(2)
-    # sigxy[im>0] = np.sqrt(im[im>0])
-    # sigxy[im<=0] = np.sqrt(im[im<=0])
+    return [*mu, *stds, angle], None, 1e8
     
-    try:
-        sv, u = np.linalg.eig(sigxy)
-        sv, u = sv[::-1], u[:,::-1]
-
-        if np.dot(*u[0])>=0:
-            sv[0], sv[1] = np.sqrt(sv[0]), np.sqrt(2*sv[1]) # manual correction to second dimension
-            # angle = np.arctan(u[0][1]/u[0][0])
-            angle = np.arctan(u[0][1]/u[0][0])
-        else:
-            angle = np.arctan(u[0][1]/u[0][0])+np.pi # we rotate to have a positive angle (otherwise linear interpol. fail)
-            # BUT CHECK IF LINEAR INTERPOLATION BEHAVES REALLY WELL 
-            u[0] = -u[0]
-            sv[0], sv[1] = np.sqrt(2*sv[0]), np.sqrt(sv[1]) # manual correction to second dimension
-
-        if do_xy:
-            p = np.linspace(0, 2*np.pi, 100)[:, np.newaxis]
-            cls.xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv) @ u
-            cls.xy += mu
-
-        if verbose:
-            print('time to fit: %.2f ms' % (1e3*(time.time()-start_time)))
-
-        coords = [*mu, 2*sv[0], 2*sv[1], angle]
-        return coords, None, ellipse_residual(coords, cls)
-
-    except (np.linalg.LinAlgError, ValueError) as be:
-        if verbose:
-            print(be)
-        return [*mu0, *s0, 0], None, 1e8
 
 
 def perform_loop(parent,
@@ -377,7 +350,7 @@ if __name__=='__main__':
                                          'pupil.npy'), allow_pickle=True).item()
         args.bROI = []
         load_folder(args)
-        # print(args.fullimg)
+
         args.fullimg = np.rot90(np.load(os.path.join(args.imgfolder, args.FILES[0])), k=3)
         init_fit_area(args,
                       ellipse=args.data['ROIellipse'],
@@ -387,17 +360,45 @@ if __name__=='__main__':
         
         preprocess(args, with_reinit=False)
         
+        # fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+        #                   verbose=True, N_iterations=0)[0]
+
+        # # np.save('/home/yann/Desktop/test.npy', args.img_fit)
+        
+        # fig, ax = plt.subplots(1)
+        # ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
+        # ax.axis('equal')
+        # ax.imshow(args.img_fit,
+        #            extent=(args.x.min(), args.x.max(), args.y.min(), args.y.max()), 
+        #            origin='lower')
+        # plt.show()
+
+
+        # fit = perform_fit(args, saturation=args.data['ROIsaturation'],
+        #                   verbose=True, N_iterations=5)[0]
+
+        # # np.save('/home/yann/Desktop/test.npy', args.img_fit)
+        
+        # fig, ax = plt.subplots(1)
+        # ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
+        # ax.axis('equal')
+        # ax.imshow(args.img_fit,
+        #            extent=(args.x.min(), args.x.max(), args.y.min(), args.y.max()), 
+        #            origin='lower')
+        # plt.show()
+
+        
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          verbose=True, N_iterations=0)[0]
+                          verbose=True, N_iterations=0, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
         ge.image(args.img_fit, ax=ax);ge.show()
+
         
         fit = perform_fit(args, saturation=args.data['ROIsaturation'],
-                          verbose=True, N_iterations=5, do_xy=True)[0]
+                          verbose=True, N_iterations=4, do_xy=True)[0]
         fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
         ax.plot(*ellipse_coords(*fit), 'r');ax.plot([fit[0]], [fit[1]], 'ro')
-        ax.plot(*args.xy.T, 'r')
         ge.image(args.img_fit, ax=ax);ge.show()
         
         
