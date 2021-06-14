@@ -23,10 +23,18 @@ def realign_from_photodiode(signal,
     
     tlim, tnew = [0, t[-1]], 0
 
+    #######################################################################
+    # TEMPORARY CAN BE REMOVED BECAUSE THE BUG HAS BEEN FIXED (sparse noise wasn't started after presentation time)
+    if metadata['time_start'][0]==0:
+        metadata['time_start'] += metadata['presentation-prestim-period']
+        metadata['time_stop'] += metadata['presentation-prestim-period']
+    # to be removed
+    #######################################################################
+        
     tstart, tend_previous, tshift = metadata['time_start'][0], metadata['time_start'][0]+2, 0
     metadata['time_start_realigned'] = []
     Nepisodes = np.sum(metadata['time_start']<tlim[1])
-
+    
     # compute signal boundaries to evaluate threshold crossing of photodiode signal
     H, bins = np.histogram(signal, bins=50)
     baseline = bins[np.argmax(H)+1]
@@ -34,7 +42,7 @@ def realign_from_photodiode(signal,
 
     # looping over episodes
     i=0
-    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
+    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])) and i<3:
         cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i])
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
