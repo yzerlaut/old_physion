@@ -59,19 +59,18 @@ def raw_data_plot(self, tzoom,
                                                    [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
         
 
-    # if 'FaceMotion' in self.nwbfile.acquisition:
+    if 'FaceMotion' in self.nwbfile.acquisition:
         
-    #     i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceMotion'])
-    #     img = self.nwbfile.acquisition['FaceMotion'].data[i0]
-    #     img = (img-img.min())/(img.max()-img.min())
-    #     self.pimg.setImage(255*(1-np.exp(-img/0.2)))
-    #     if hasattr(self, 'PupilFrameLevel'):
-    #         self.plot.removeItem(self.PupilFrameLevel)
-    #     self.PupilFrameLevel = self.plot.plot(self.nwbfile.acquisition['Pupil'].timestamps[i0]*np.ones(2),
-    #                                           [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Pupil']), linewidth=0.5)
-    #     t_pupil_frame = self.nwbfile.acquisition['Pupil'].timestamps[i0]
-    # else:
-    #     t_pupil_frame = None
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceMotion'])
+        img = self.nwbfile.acquisition['FaceMotion'].data[i0]
+        if hasattr(self, 'FacemotionFrameLevel'):
+            self.plot.removeItem(self.FacemotionFrameLevel)
+        self.FacemotionFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceMotion'].timestamps[i0]*np.ones(2),
+                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
+        t_facemotion_frame = self.nwbfile.acquisition['FaceMotion'].timestamps[i0]
+        
+    else:
+        t_facemotion_frame = None
         
     if 'FaceMotion' in self.nwbfile.processing:
 
@@ -84,6 +83,8 @@ def raw_data_plot(self, tzoom,
         self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['FaceMotion']))
             
         iplot+=1
+
+        # self.facemotionROI        
         
     if 'Pupil' in self.nwbfile.acquisition:
         

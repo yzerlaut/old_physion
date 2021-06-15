@@ -34,6 +34,10 @@ class MainWindow(guiparts.NewWindow):
                  args=None,
                  parent=None,
                  raw_data_visualization=False,
+                 df_width = 600,
+                 selector_height = 30,
+                 win1_Wmax=1200, win1_Wmin=300,
+                 win1_Hmax=500, win2_Wmax=500,
                  fullscreen=False):
 
         self.app = app
@@ -48,7 +52,155 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
         
-        guiparts.load_config1(self)
+        # guiparts.load_config1(self)
+
+        self.cwidget = QtGui.QWidget(self)
+        self.setCentralWidget(self.cwidget)
+
+        self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
+
+        mainLayout = QtWidgets.QVBoxLayout()
+
+        Layout1 = QtWidgets.QHBoxLayout()
+        mainLayout.addLayout(Layout1)
+
+        Layout11 = QtWidgets.QVBoxLayout()
+        Layout1.addLayout(Layout11)
+        guiparts.create_calendar(self, Layout11)
+        self.cal.setMaximumHeight(150)
+
+        # folder box
+        self.fbox = QtWidgets.QComboBox(self)
+        self.fbox.setFont(guiparts.smallfont)
+        self.fbox.activated.connect(self.scan_folder)
+        self.fbox.setMaximumHeight(selector_height)
+        self.folder_default_key = '  [root datafolder]'
+        self.fbox.addItem(self.folder_default_key)
+        self.fbox.setCurrentIndex(0)
+        Layout11.addWidget(self.fbox)
+
+        # subject box
+        self.sbox = QtWidgets.QComboBox(self)
+        self.sbox.setFont(guiparts.smallfont)
+        self.sbox.activated.connect(self.pick_subject) # To be written !!
+        self.sbox.setMaximumHeight(selector_height)
+        self.subject_default_key = '  [subject] '
+        self.sbox.addItem(self.subject_default_key)
+
+        self.sbox.setCurrentIndex(0)
+        Layout11.addWidget(self.sbox)
+
+        # notes
+        self.notes = QtWidgets.QLabel('\n[exp info]'+5*'\n', self)
+        self.notes.setFont(guiparts.smallfont)
+        Layout11.addWidget(self.notes)
+
+        self.pbox = QtWidgets.QComboBox(self)
+        self.pbox.setFont(guiparts.smallfont)
+        self.pbox.activated.connect(self.display_quantities)
+        self.pbox.setMaximumHeight(selector_height)
+        self.pbox.addItem('[visualization/analysis]')
+        self.pbox.addItem('-> Show Raw Data')
+        self.pbox.addItem('-> Trial-average')
+        self.pbox.addItem('-> Behavioral-modulation')
+        self.pbox.addItem('-> Make-figures')
+        self.pbox.addItem('-> Open PDF summary')
+        self.pbox.setCurrentIndex(0)
+
+        Layout11.addWidget(self.pbox)
+
+        Layout113 = QtWidgets.QHBoxLayout()
+        Layout11.addLayout(Layout113)
+
+        add_buttons(self, Layout113)
+
+        Layout12 = QtWidgets.QVBoxLayout()
+        Layout1.addLayout(Layout12)
+
+        self.dbox = QtWidgets.QComboBox(self)
+        self.dbox.setMinimumWidth(df_width)
+        self.dbox.setMaximumWidth(win1_Wmax)
+        self.dbox.setMinimumHeight(selector_height)
+        self.dbox.setMaximumHeight(selector_height)
+        self.dbox.activated.connect(self.pick_datafile)
+        Layout12.addWidget(self.dbox)
+
+        self.win1 = pg.GraphicsLayoutWidget()
+        self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+        Layout12.addWidget(self.win1)
+
+        self.winTrace = pg.GraphicsLayoutWidget()
+        mainLayout.addWidget(self.winTrace)
+
+        guiparts.build_slider(self, mainLayout)
+
+        # screen panel
+        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
+        self.pScreenimg.setLevels([0,255])
+        # FaceCamera panel
+        self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
+        self.pFaceimg.setLevels([0,255])
+        # Pupil panel
+        self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.pPupilimg = pg.ImageItem(np.ones((10,12))*50)
+        self.pPupilimg.setLevels([0,255])
+        self.pupilContour = pg.ScatterPlotItem()
+        # Facemotion panel
+        self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.pFacemotionimg = pg.ImageItem(np.ones((10,12))*50)
+        self.pFacemotionimg.setLevels([0,255])
+        self.facemotionROI = pg.ScatterPlotItem()
+        # Ca-Imaging panel
+        self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
+        self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
+        self.pCaimg.setLevels([0,255])
+        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
+                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
+            x.setAspectLocked()
+            x.addItem(y)
+            x.show()
+
+        self.plot = self.winTrace.addPlot()
+        self.plot.hideAxis('left')
+        self.plot.setMouseEnabled(x=True,y=False)
+        # self.plot.setMenuEnabled(False)
+        self.plot.setLabel('bottom', 'time (s)')
+        self.xaxis = self.plot.getAxis('bottom')
+        self.scatter = pg.ScatterPlotItem()
+        self.plot.addItem(self.scatter)
+
+
+        Layout122 = QtWidgets.QHBoxLayout()
+        Layout12.addLayout(Layout122)
+
+        self.roiPick = QtGui.QLineEdit()
+        self.roiPick.setText(' [...] ')
+        self.roiPick.setMinimumWidth(150)
+        self.roiPick.setMaximumWidth(350)
+        self.roiPick.returnPressed.connect(self.select_ROI)
+        self.roiPick.setFont(guiparts.smallfont)
+
+        self.ephysPick = QtGui.QLineEdit()
+        self.ephysPick.setText(' ')
+        # self.ephysPick.returnPressed.connect(self.select_ROI)
+        self.ephysPick.setFont(guiparts.smallfont)
+
+        self.guiKeywords = QtGui.QLineEdit()
+        self.guiKeywords.setText('     [GUI keywords] ')
+        self.guiKeywords.setFixedWidth(200)
+        self.guiKeywords.returnPressed.connect(self.keyword_update)
+        self.guiKeywords.setFont(guiparts.smallfont)
+
+        Layout122.addWidget(self.guiKeywords)
+        Layout122.addWidget(self.ephysPick)
+        Layout122.addWidget(self.roiPick)
+
+        self.cwidget.setLayout(mainLayout)
+        self.show()
+        
+        
         self.fbox.addItems(FOLDERS.keys())
         self.windowTA, self.windowBM = None, None # sub-windows
 
@@ -66,6 +218,8 @@ class MainWindow(guiparts.NewWindow):
         self.minView = False
         self.showwindow()
 
+
+        
     def open_file(self):
 
         # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
@@ -358,6 +512,9 @@ class MainWindow(guiparts.NewWindow):
                             plot_update=False)
 
 
+
+        
+
     def showwindow(self):
         if self.minView:
             self.minView = self.maxview()
@@ -382,6 +539,85 @@ class MainWindow(guiparts.NewWindow):
             self.io.close()
         sys.exit()
 
+
+def add_buttons(self, Layout):
+
+    self.styleUnpressed = ("QPushButton {Text-align: left; "
+                           "background-color: rgb(200, 200, 200); "
+                           "color:white;}")
+    self.stylePressed = ("QPushButton {Text-align: left; "
+                         "background-color: rgb(100,50,100); "
+                         "color:white;}")
+    self.styleInactive = ("QPushButton {Text-align: left; "
+                          "background-color: rgb(200, 200, 200); "
+                          "color:gray;}")
+
+    iconSize = QtCore.QSize(20, 20)
+
+    self.playButton = QtGui.QToolButton()
+    self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+    self.playButton.setIconSize(iconSize)
+    self.playButton.setToolTip("Play   -> [Space]")
+    self.playButton.setCheckable(True)
+    self.playButton.setEnabled(True)
+    self.playButton.clicked.connect(self.play)
+
+    self.pauseButton = QtGui.QToolButton()
+    self.pauseButton.setCheckable(True)
+    self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+    self.pauseButton.setIconSize(iconSize)
+    self.pauseButton.setToolTip("Pause   -> [Space]")
+    self.pauseButton.clicked.connect(self.pause)
+
+    btns = QtGui.QButtonGroup(self)
+    btns.addButton(self.playButton,0)
+    btns.addButton(self.pauseButton,1)
+    btns.setExclusive(True)
+
+    self.playButton.setEnabled(False)
+    self.pauseButton.setEnabled(True)
+    self.pauseButton.setChecked(True)
+
+    
+    self.refreshButton = QtGui.QToolButton()
+    self.refreshButton.setCheckable(True)
+    self.refreshButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
+    self.refreshButton.setIconSize(iconSize)
+    self.refreshButton.setToolTip("Refresh   -> [r]")
+    self.refreshButton.clicked.connect(self.refresh)
+
+    self.quitButton = QtGui.QToolButton()
+    # self.quitButton.setCheckable(True)
+    self.quitButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DialogCloseButton))
+    self.quitButton.setIconSize(iconSize)
+    self.quitButton.setToolTip("Quit")
+    self.quitButton.clicked.connect(self.quit)
+    
+    self.backButton = QtGui.QToolButton()
+    # self.backButton.setCheckable(True)
+    self.backButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogBack))
+    self.backButton.setIconSize(iconSize)
+    self.backButton.setToolTip("Back to initial view   -> [i]")
+    self.backButton.clicked.connect(self.back_to_initial_view)
+
+    self.settingsButton = QtGui.QToolButton()
+    # self.settingsButton.setCheckable(True)
+    self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
+    self.settingsButton.setIconSize(iconSize)
+    # self.settingsButton.setToolTip("Settings")
+    # self.settingsButton.clicked.connect(self.change_settings)
+    self.settingsButton.setToolTip("Metadata")
+    self.settingsButton.clicked.connect(self.see_metadata)
+    
+    Layout.addWidget(self.quitButton)
+    Layout.addWidget(self.playButton)
+    Layout.addWidget(self.pauseButton)
+    Layout.addWidget(self.refreshButton)
+    Layout.addWidget(self.backButton)
+    Layout.addWidget(self.settingsButton)
+    
+
+        
 
 def run(app, args=None, parent=None,
         raw_data_visualization=False):
