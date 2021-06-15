@@ -57,7 +57,6 @@ def raw_data_plot(self, tzoom,
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
                                                    [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
-        
 
     if 'FaceMotion' in self.nwbfile.acquisition:
         
