@@ -262,7 +262,9 @@ def build_NWB(args,
                     pix_to_mm = 1
                     
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
-                                        description='processed quantities of Pupil dynamics, pix_to_mm=%.3f' % pix_to_mm)
+                                                                description='processed quantities of Pupil dynamics,\n'+\
+                                                                ' pupil ROI: (xmin,xmax,ymin,ymax)=(%i,%i,%i%i)\n' % (dataP['xmin'], dataP['xmax'], dataP['ymin'], dataP['ymax'])+\
+                                                                ' pix_to_mm=%.3f' % pix_to_mm)
                 
                     
                 for key, scale in zip(['cx', 'cy', 'sx', 'sy', 'angle', 'blinking'], [pix_to_mm for i in range(4)]+[1,1]):
@@ -321,7 +323,9 @@ def build_NWB(args,
                                 allow_pickle=True).item()
 
                 faceMotion_module = nwbfile.create_processing_module(name='FaceMotion', 
-                                                                     description='face motion dynamics')
+                                                                     description='face motion dynamics,\n'+\
+                                                                     ' facemotion ROI: (x0,dx,y0,dy)=(%i,%i,%i,%i)\n' % (dataF['ROI'][0],dataF['ROI'][1],
+                                                                                                                         dataF['ROI'][2],dataF['ROI'][3]))
                 
 
                 FaceMotionProp = pynwb.TimeSeries(name='face-motion',
