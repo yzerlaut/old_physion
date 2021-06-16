@@ -88,7 +88,7 @@ def compute_motion(cls,
     if with_ProgressBar:
         printProgressBar(0, cls.nframes)
 
-    for i, frame in enumerate(frames[-5:-1]):
+    for i, frame in enumerate(frames[:-1]):
         try:
             imgs = load_ROI_data(cls, frame, frame+2, flatten=True)
             motion[i] = np.mean(np.diff(imgs,axis=0)**2)
