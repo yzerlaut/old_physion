@@ -37,6 +37,7 @@ def bruker_xml_parser(filename):
     for channel in ['Ch1', 'Ch2']:
         data[channel] = {'relativeTime':[],
                          'absoluteTime':[],
+                         'depth':[],
                          'tifFile':[]}
     data['StartTime'] = frames.attrib['time']
     
@@ -48,6 +49,14 @@ def bruker_xml_parser(filename):
                         data[channel]['tifFile'].append(f.attrib['filename'])
                         for key in ['relativeTime', 'absoluteTime']:
                             data[channel][key].append(float(x.attrib[key]))
+                    # depth
+                    if f.tag == 'PVStateShard':
+                        for d in f:
+                            if d.attrib['key']=='positionCurrent':
+                                for e in d:
+                                    if e.attrib['index']=='ZAxis':
+                                        for g in e:
+                                            data[channel]['depth'].append(float(g.attrib['value']))
 
     # translation to numpy arrays
     for channel in ['Ch1', 'Ch2']:
