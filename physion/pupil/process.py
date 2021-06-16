@@ -93,7 +93,6 @@ def find_ellipse_props_of_binary_image_from_PCA(x, y, img):
 
 
 def perform_fit(cls,
-                shape='ellipse',
                 saturation=100,
                 maxiter=100,
                 verbose=False,
@@ -136,7 +135,6 @@ def perform_fit(cls,
 
 def perform_loop(parent,
                  subsampling=1000,
-                 shape='ellipse',
                  gaussian_smoothing=0,
                  saturation=100,
                  reflectors=[],
@@ -158,10 +156,7 @@ def perform_loop(parent,
         
         coords, _, res = perform_fit(parent,
                                      saturation=saturation,
-                                     reflectors=reflectors,
-                                     shape=shape)
-        if shape=='circle':
-            coords = list(coords)+[coords[-1]] # form circle to ellipse
+                                     reflectors=reflectors)
         temp['frame'].append(parent.cframe)
         temp['residual'].append(res)
         for key, val in zip(['cx', 'cy', 'sx', 'sy', 'angle'], coords):
@@ -196,7 +191,7 @@ def extract_boundaries_from_ellipse(ellipse, Lx, Ly):
 def init_fit_area(cls,
                   fullimg=None,
                   ellipse=None,
-                  blanks=None):
+                  blanks=[]):
 
     if fullimg is None:
         fullimg = np.load(os.path.join(cls.imgfolder,cls.FILES[0]))
@@ -231,11 +226,10 @@ def init_fit_area(cls,
         
     cls.x, cls.y = cls.x-cls.x[0,0], cls.y-cls.y[0,0] # after
 
-    if blanks is None:
+    if hasattr(cls, 'bROI'):
         blanks = [r.extract_props() for r in cls.bROI]
-    for r in blanks:
-        cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
-
+        for r in blanks:
+            cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
 def clip_to_finite_values(data):
     for key in data:
@@ -333,7 +327,6 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument('-df', "--datafolder", type=str,default='/home/yann/UNPROCESSED/13-26-53/')
-    # parser.add_argument("--shape", default='ellipse')
     # parser.add_argument("--saturation", type=float, default=75)
     parser.add_argument("--maxiter", type=int, default=100)
     parser.add_argument('-s', "--subsampling", type=int, default=1)
@@ -404,13 +397,12 @@ if __name__=='__main__':
             init_fit_area(args,
                           fullimg=None,
                           ellipse=args.data['ROIellipse'],
-                          blanks=(args.data['blanks'] if 'blanks'  in args.data else None))
+                          blanks=(args.data['blanks'] if 'blanks' in args.data else []))
             temp = perform_loop(args,
                                 subsampling=args.subsampling,
-                                shape=args.data['shape'],
                                 gaussian_smoothing=args.data['gaussian_smoothing'],
                                 saturation=args.data['ROIsaturation'],
-                                reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else None),
+                                reflectors=(args.data['reflectors'] if 'reflectors'  in args.data else []),
                                 with_ProgressBar=args.verbose)
             temp['t'] = args.times[np.array(temp['frame'])]
             for key in temp:

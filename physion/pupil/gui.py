@@ -553,16 +553,16 @@ class MainWindow(NewWindow):
 
     def save_pupil_data(self):
         """ """
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            self.data['shape'] = 'ellipse'
+        if self.data is not None:
+            self.data['gaussian_smoothing'] = int(self.smoothBox.text())
+            self.data['cm_to_pix'] = int(self.scaleBox.text())
+            self.data = process.clip_to_finite_values(self.data)
+
+            np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
+            print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         else:
-            self.data['shape'] = 'circle'
-        self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-        self.data['cm_to_pix'] = int(self.scaleBox.text())
-        self.data = process.clip_to_finite_values(self.data)
+            print('Need to pre-process data ! ')
             
-        np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
-        print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         
     def process(self):
         self.process_ROIs()
@@ -573,11 +573,6 @@ class MainWindow(NewWindow):
         self.extract_ROI(self.data)
         
         self.subsampling = int(self.samplingBox.text())
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            self.Pshape = 'ellipse'
-            
-        else:
-            self.Pshape = 'circle'
 
         print('processing pupil size over the whole recording [...]')
         print(' with %i frame subsampling' % self.subsampling)
@@ -585,7 +580,6 @@ class MainWindow(NewWindow):
         process.init_fit_area(self)
         temp = process.perform_loop(self,
                                     subsampling=self.subsampling,
-                                    shape=self.Pshape,
                                     gaussian_smoothing=int(self.smoothBox.text()),
                                     saturation=self.sl.value(),
                                     reflectors=[r.extract_props() for r in self.reflectors],
@@ -625,17 +619,9 @@ class MainWindow(NewWindow):
         if not coords_only and (self.pupil is not None):
             self.pupil.remove(self)
 
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            coords, _, _ = process.perform_fit(self,
-                                               saturation=self.sl.value(),
-                                               reflectors=[r.extract_props() for r in self.reflectors],
-                                               shape='ellipse')
-        else:
-            coords, _, _ = process.perform_fit(self,
-                                               saturation=self.sl.value(),
-                                               reflectors=[r.extract_props() for r in self.reflectors],
-                                               shape='circle')
-            coords = list(coords)+[coords[-1], 0] # form circle to ellipse
+        coords, _, _ = process.perform_fit(self,
+                                           saturation=self.sl.value(),
+                                           reflectors=[r.extract_props() for r in self.reflectors])
 
         if not coords_only:
             self.plot_pupil_ellipse(coords)
