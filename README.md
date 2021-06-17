@@ -24,27 +24,33 @@ The software is organized into several modules to perform the acquisition, the p
    
 2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
 
-   ```
-   conda install pip numpy scipy pyqtgraph matplotlib jupyter
-   conda install -c conda-forge pynwb
-   ```
-
-   then either (for git users):
+   clone the repository using git:
    ```
    git clone https://github.com/yzerlaut/physion
    ```
-   or:
+   to create the `physion` environment and perform the installation, run:
    ```
-   pip install git+https://github.com/yzerlaut/physion
+   cd physion
+   conda env create -f environment.yml
    ```
 
-   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
+   For a complete install and setup, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
    
 ## Getting started
 
 After the installation, the program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
    ```
    python -m physion
+   ```
+
+
+   or for git users):
+   ```
+   git clone https://github.com/yzerlaut/physion
+   ```
+   or:
+   ```
+   pip install git+https://github.com/yzerlaut/physion
    ```
 
 ## Modules and documentation

@@ -31,3 +31,4 @@ dependencies:
     - psychopy==2021.1.1
     - scikit-video
     - git+https://github.com/yzerlaut/datavyz
+    - git+https://github.com/yzerlaut/physion
