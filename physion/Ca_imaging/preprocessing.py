@@ -31,12 +31,15 @@ PREPROCESSING_SETTINGS = {
                     'neucoeff': 1.0},
 }
 
+suite2p_path = '$HOME/miniconda3/envs/suite2p/bin/suite2p'
+
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):
         shutil.rmtree(os.path.join(args.CaImaging_folder, 'suite2p'))
     build_suite2p_options(args.CaImaging_folder, PREPROCESSING_SETTINGS[args.setting_key])
-    cmd = 'suite2p --db %s --ops %s &' % (os.path.join(args.CaImaging_folder,'db.npy'),
-                                          os.path.join(args.CaImaging_folder,'ops.npy'))
+    cmd = '%s --db %s --ops %s &' % (suite2p_path,
+                                     os.path.join(args.CaImaging_folder,'db.npy'),
+                                     os.path.join(args.CaImaging_folder,'ops.npy'))
     subprocess.run(cmd, shell=True)
     
 
