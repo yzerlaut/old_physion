@@ -90,10 +90,14 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
     for iplane, ops in enumerate(ops1):
         if iplane==0:
             iscell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy'))
+            if ops['nchannels']>1:
+                redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))
             for fstr in file_strs:
                 traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)))
         else:
             iscell = np.append(iscell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')), axis=0)
+            if ops['nchannels']>1:
+                redcell = np.append(redcell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy')), axis=0)
             for i,fstr in enumerate(file_strs):
                 traces[i] = np.append(traces[i], 
                                     np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)), axis=0) 
@@ -113,6 +117,8 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
         ncells_all+=ncells
 
     ps.add_column('iscell', 'two columns - iscell & probcell', iscell)
+    if ops1['nchannels']>1:
+        ps.add_column('redcell', 'two columns - redcell & probcell', redcell)
 
     rt_region = ps.create_roi_table_region(
         region=list(np.arange(0, ncells_all)),

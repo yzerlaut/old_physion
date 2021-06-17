@@ -7,7 +7,6 @@ from assembling.tools import find_matching_CaImaging_data
 from misc.folders import FOLDERS
 from Ca_imaging.preprocessing import PREPROCESSING_SETTINGS
 
-
 python_path_suite2p_env = '$HOME/miniconda3/envs/suite2p/bin/python'
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -20,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(350, 470, 300, 260)
+        self.setGeometry(350, 470, 300, 300)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -78,6 +77,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
+        HEIGHT +=40 
+        self.gen = QtWidgets.QPushButton('red-cell selection GUI ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.red_cell_selection)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
+        
         self.CMDS = []
         self.show()
 
@@ -122,6 +128,9 @@ class MainWindow(QtWidgets.QMainWindow):
                              shell=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
+
+    def red_cell_selection(self):
+        print('WIP')
             
     def quit(self):
         QtWidgets.QApplication.quit()

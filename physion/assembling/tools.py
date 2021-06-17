@@ -1,11 +1,10 @@
 import os, sys, pathlib, time, datetime
 import numpy as np
 
-
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
-from assembling.IO.bruker_xml_parser import bruker_xml_parser
-from assembling.saving import get_files_with_extension, get_TSeries_folders
-from analysis.read_NWB import read as read_NWB
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.assembling.IO.bruker_xml_parser import bruker_xml_parser
+from physion.assembling.saving import get_files_with_extension, get_TSeries_folders
+from physion.analysis.read_NWB import read as read_NWB
 
 def build_subsampling_from_freq(subsampled_freq=1.,
                                 original_freq=1.,
