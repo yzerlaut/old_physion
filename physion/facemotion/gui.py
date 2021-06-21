@@ -268,7 +268,6 @@ class MainWindow(NewWindow):
                 
                 self.data = np.load(os.path.join(self.datafolder, 'facemotion.npy'),
                                     allow_pickle=True).item()
-                print(self.data)
                 
                 if (self.nframes is None) and ('frame' in self.data):
                     self.nframes = self.data['frame'].max()
