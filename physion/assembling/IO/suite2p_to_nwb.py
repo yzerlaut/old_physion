@@ -13,7 +13,6 @@ from pynwb.ophys import RoiResponseSeries
 from pynwb.ophys import Fluorescence
 from pynwb import NWBHDF5IO
 
-
 def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps,
                                       device=None,
                                       optical_channel=None,
@@ -155,6 +154,3 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
                 images.add_image(GrayscaleImage(name=bstr, data=img))
 
         ophys_module.add(images)
-
-
-

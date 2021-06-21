@@ -79,17 +79,22 @@ def find_ellipse_props_of_binary_image_from_PCA(x, y, img):
 
     
     C = np.dot(xydist.T, xydist) / (xydist.shape[0]-1)
-    
-    EVALs, EVECS = np.linalg.eig(C)
-    # eigen_vecs = []
-    eigen_vals, eigen_vec_angles, eigen_vec_stds = [np.zeros(xydist.shape[1]) for i in range(3)]
-    for e, i in enumerate(np.argsort(EVALs)[::-1]):
-        eigen_vals[e] = EVALs[i]
-        # eigen_vecs.append(EVECS[i])
-        eigen_vec_angles[e] = (-np.arctan(EVECS[i][1]/(1e-5+EVECS[i][0]))+np.pi)%(np.pi)
-        eigen_vec_stds[e] = 4*np.sqrt(EVALs[i])
 
-    return mu, eigen_vec_stds, eigen_vec_angles
+    try:
+        EVALs, EVECS = np.linalg.eig(C)
+        # eigen_vecs = []
+        eigen_vals, eigen_vec_angles, eigen_vec_stds = [np.zeros(xydist.shape[1]) for i in range(3)]
+        for e, i in enumerate(np.argsort(EVALs)[::-1]):
+            eigen_vals[e] = EVALs[i]
+            # eigen_vecs.append(EVECS[i])
+            eigen_vec_angles[e] = (-np.arctan(EVECS[i][1]/(1e-5+EVECS[i][0]))+np.pi)%(np.pi)
+            eigen_vec_stds[e] = 4*np.sqrt(EVALs[i])
+
+        return mu, eigen_vec_stds, eigen_vec_angles
+    except np.linalg.LinAlgError:
+        print('Pb in calculating ellipse props')
+        return mu, [np.std(x[img==1]), np.std(y[img==1])], [0, np.pi/2.]
+
 
 
 def perform_fit(cls,
