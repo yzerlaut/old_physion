@@ -35,26 +35,10 @@ setup(
         "numpy",
         "scipy",
         "argparse",
-        # "scikit-image",
         "scikit-learn",
-        # "scikit-video",
-        # "numba",
-        # "av",
-        # "mkl",
-        # "psychopy",
         "pyqt5",
         "pyqtgraph",
-        # "imageio",
-        # "opencv-python",
-        # "scanimage-tiff-reader>=1.4.1",
-        # "opencv_python_headless",
-        # "tifffile",
-        # "nidaqmx",
-        "xmltodict",
-        "importlib_metadata",
-        # "natsort",
-        # "paramiko",
-        # "rastermap>0.1.0",
-        # "temp"
+        "nidaqmx",
+        "xmltodict"
     ]
 )

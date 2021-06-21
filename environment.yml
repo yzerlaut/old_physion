@@ -18,7 +18,6 @@ dependencies:
     - pyqt5
     - pyqt5.sip
     - h5py==2.10.0
-    - natsort
     - rastermap>0.1.0
     - tifffile
     - scanimage-tiff-reader>=1.4.1
@@ -28,6 +27,7 @@ dependencies:
     - pynwb
     - sbxreader
     - suite2p
+    - nidaqmx
     - psychopy==2021.1.1
     - scikit-video
     - git+https://github.com/yzerlaut/datavyz
