@@ -72,7 +72,6 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
             self.pixel_masks_index = self.Segmentation.columns[0].data[:]
             self.pixel_masks = self.Segmentation.columns[1].data[:]
-            iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
             self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
             self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
             self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
@@ -89,7 +88,12 @@ def read(self, filename, verbose=False, with_tlim=True,
                 self.FaceCamera_mm_to_pix = int(1./float(pd.split('pix_to_mm=')[-1]))
             else:
                 self.FaceCamera_mm_to_pix = 1
-                
+
+
+        if 'FaceMotion' in self.nwbfile.processing:
+            fd = str(self.nwbfile.processing['FaceMotion'].description)
+            self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
+            print(self.FaceMotion_ROI)    
                 
         #     self.t_pupil = self.nmbfile.processing['Pupil']
         #     self.nwbfile.processing['Pupil'].data_interfaces['cx']

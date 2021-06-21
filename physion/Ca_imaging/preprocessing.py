@@ -9,27 +9,43 @@ PREPROCESSING_SETTINGS = {
                       'tau':0.7,
                       'sparse_mode':False,
                       'connected':True,
+                      # 'nonrigid':0,
                       'threshold_scaling':0.5,
                       'neucoeff': 1.0},
     'GCamp6s_1plane':{'cell_diameter':20, # in um
                       'tau':1.3,
                       'sparse_mode':False,
                       'connected':True,
+                      # 'nonrigid':0,
                       'threshold_scaling':0.5,
                       'neucoeff': 1.0},
+    'GCamp6s_1plane_2chan':{'cell_diameter':20, # in um
+                            'tau':1.3,
+                            'nchannels':2,
+                            'functional_chan':1,
+                            'align_by_chan':2,
+                            'sparse_mode':False,
+                            # 'nonrigid':0,
+                            'connected':True,
+                            'threshold_scaling':0.5,
+                            'neucoeff': 1.0},
     'NDNF+_1plane':{'cell_diameter':20, # in um
                     'sparse_mode':True,
                     'connected':True,
+                    # 'nonrigid':0,
                     'threshold_scaling':0.5,
                     'neucoeff': 1.0},
 }
+
+suite2p_path = '$HOME/miniconda3/envs/suite2p/bin/suite2p'
 
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):
         shutil.rmtree(os.path.join(args.CaImaging_folder, 'suite2p'))
     build_suite2p_options(args.CaImaging_folder, PREPROCESSING_SETTINGS[args.setting_key])
-    cmd = 'suite2p --db %s --ops %s &' % (os.path.join(args.CaImaging_folder,'db.npy'),
-                                          os.path.join(args.CaImaging_folder,'ops.npy'))
+    cmd = '%s --db %s --ops %s &' % (suite2p_path,
+                                     os.path.join(args.CaImaging_folder,'db.npy'),
+                                     os.path.join(args.CaImaging_folder,'ops.npy'))
     subprocess.run(cmd, shell=True)
     
 

@@ -20,26 +20,20 @@ The software is organized into several modules to perform the acquisition, the p
 
 1. Install a python distribution for scientific analysis:
 
-   [get the latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) or [the full Anaconda distribution](https://www.anaconda.com/products/individual)
+   get the [latest Miniconda distribution](https://docs.conda.io/en/latest/miniconda.html) and install it on your home folder.
    
-2. For a minimal install, run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
+2. Run the following in the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal):
 
-   ```
-   conda install pip numpy scipy pyqtgraph matplotlib jupyter
-   conda install -c conda-forge pynwb
-   ```
-
-   then either (for git users):
+   clone the repository using git:
    ```
    git clone https://github.com/yzerlaut/physion
    ```
-   or:
+   to create the `physion` environment and perform the installation, run:
    ```
-   pip install git+https://github.com/yzerlaut/physion
+   cd physion
+   conda env create -f environment.yml
    ```
 
-   For a complete install, see the instructions in [Performing multimodal recordings](physion/exp/README.md#full-install-for-experimental-setups)
-   
 ## Getting started
 
 After the installation, the program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
@@ -54,9 +48,9 @@ The different modules of the software are documented in the following links:
 - [Visual stimulation](physion/visual_stim/README.md) -- relying on [PsychoPy](https://psychopy.org)
 - [Performing multimodal recordings](physion/exp/README.md)
 - [Electrophysiology](physion/electrophy/README.md)
-- [Calcium imaging](physion/Ca_imaging/README.md) -- forked from [Suite2P](https://github.com/MouseLand/suite2p)
+- [Calcium imaging](physion/Ca_imaging/README.md) -- pipeline based on [Suite2P](https://github.com/MouseLand/suite2p)
 - [Pupil tracking](physion/pupil/README.md)
-- [Behavioral monitoring](physion/behavioral_monitoring/README.md) -- adapted from [FaceMap](https://github.com/MouseLand/facemap)
+- [Behavioral monitoring](physion/behavioral_monitoring/README.md) 
 - [Assembling pipeline](physion/assembling/README.md)
 - [Hardware control](physion/hardware_control/README.md)
 - [Visualization](physion/dataviz/README.md) -- relying on the excellent [PyQtGraph](http://pyqtgraph.org/)
@@ -64,9 +58,4 @@ The different modules of the software are documented in the following links:
 
 ## Troubleshooting / Issues
 
-Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
-
-## Troubleshooting / Issues
-
-Use the dedicated [Issues](https://github.com/yzerlaut/cortical-physio-icm/issues) interface of Github.
-
+Use the dedicated [Issues](https://github.com/yzerlaut/physion/issues) interface of Github.

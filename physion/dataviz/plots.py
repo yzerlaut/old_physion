@@ -3,7 +3,7 @@ import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore
 import os, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from pupil import roi
+from pupil import roi, process
 from Ca_imaging.tools import compute_CaImaging_trace
 from dataviz.tools import *
 
@@ -46,17 +46,45 @@ def raw_data_plot(self, tzoom,
                        pen=pg.mkPen(color=self.settings['colors']['Locomotion']))
             
 
-    ## -------- FaceCamera and Pupil-Size --------- ##
+    ## -------- FaceCamera, Face motion and Pupil-Size --------- ##
     
     if 'FaceCamera' in self.nwbfile.acquisition:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.nwbfile.acquisition['FaceCamera'].data[i0])
+        
         if hasattr(self, 'FaceCameraFrameLevel'):
             self.plot.removeItem(self.FaceCameraFrameLevel)
         self.FaceCameraFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
-                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['Whisking']), linewidth=0.5)
+                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
 
+    if 'FaceMotion' in self.nwbfile.acquisition:
+        
+        i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceMotion'])
+        img = self.nwbfile.acquisition['FaceMotion'].data[i0]
+        if hasattr(self, 'FacemotionFrameLevel'):
+            self.plot.removeItem(self.FacemotionFrameLevel)
+        self.FacemotionFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceMotion'].timestamps[i0]*np.ones(2),
+                                                   [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
+        t_facemotion_frame = self.nwbfile.acquisition['FaceMotion'].timestamps[i0]
+        
+    else:
+        t_facemotion_frame = None
+        
+    if 'FaceMotion' in self.nwbfile.processing:
+
+        i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
+
+        t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
+        
+        y = scale_and_position(self, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2],
+                               i=iplot)
+        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['FaceMotion']))
+            
+        iplot+=1
+
+        # self.facemotionROI        
+        
     if 'Pupil' in self.nwbfile.acquisition:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['Pupil'])
@@ -76,40 +104,38 @@ def raw_data_plot(self, tzoom,
         i1, i2 = convert_times_to_indices(*self.tzoom, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
 
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-
-        y = scale_and_position(self,
-                               self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
-                               self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2],
+        
+        y = scale_and_position(self, self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
                                i=iplot)
 
         try:
-            
             self.plot.plot(t[np.isfinite(y)], y[np.isfinite(y)], pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
             # adding blinking flag (a thick line at the bottom)
             if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
-                cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinit(y)
+                cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
                 self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
                                symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
                                symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
             
-        except BaseException:
-            pass
+        except BaseException as be:
+            print(be)
+            print('\n ------------------- \n /!\ Pb in plotting pupil ...')
         
         iplot+=1
 
+        # plotting a circle for the pupil fit
         coords = []
-        if hasattr(self, 'fit'):
-            self.fit.remove(self)
-
         if t_pupil_frame is not None:
-            i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+            i0 = convert_time_to_index(t_pupil_frame, self.nwbfile.processing['Pupil'].data_interfaces['sx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
                 coords.append(self.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.FaceCamera_mm_to_pix)
-            self.fit = roi.pupilROI(moveable=False,
-                                    parent=self,
-                                    color=(125, 0, 0),
-                                    pos = roi.ellipse_props_to_ROI(coords))
+            if 'angle' in self.nwbfile.processing['Pupil'].data_interfaces:
+                coords.append(self.nwbfile.processing['Pupil'].data_interfaces['angle'].data[i0])
+            else:
+                coords.append(0)
+
+            self.pupilContour.setData(*process.ellipse_coords(*coords, transpose=True), size=3, brush=pg.mkBrush(255,0,0))
             
 
     # ## -------- Electrophy --------- ##

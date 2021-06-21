@@ -21,7 +21,7 @@ def raw_data_plot_settings(data, subsampling_factor=1):
         settings['Whisking'] = dict(fig_fraction=2, subsampling=2*subsampling_factor, color='red')
     if 'ophys' in data.nwbfile.processing:
         settings['CaImaging'] = dict(fig_fraction=8, roiIndices=data.roiIndices, quantity='CaImaging',
-                                     subquantity='dF/F', vicinity_factor=1., color='tab', subsampling=10*subsampling_factor)
+                                     subquantity='dF/F', vicinity_factor=1., color='green', subsampling=10*subsampling_factor)
         # settings['CaImagingSum'] = dict(fig_fraction=2,
         #                                 subsampling=10, 
         #                                 quantity='CaImaging', subquantity='dF/F', color='green')
@@ -334,7 +334,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
             #     pdf.savefig()  # saves the current figure into a pdf page
             #     plt.close()
 
-        print('looping over protocols for analysis [...]')
+    print('looping over protocols for analysis [...]')
         
     if 'protocols' in include:
         # looping over protocols
@@ -379,7 +379,7 @@ def make_sumary_pdf(filename, Nmax=1000000,
                     pdf.savefig()  # saves the current figure into a pdf page
                     plt.close()
 
-                elif protocol_type in ['center-grating']:
+                elif protocol_type in ['center-grating', 'drifting-center-grating']:
                     from surround_suppression import orientation_size_selectivity_analysis
                     Nresp, SIs = 0, []
                     for i in range(data.iscell.sum())[:Nmax]:
@@ -395,10 +395,10 @@ def make_sumary_pdf(filename, Nmax=1000000,
                     plt.close()
 
                 elif 'noise' in protocol_type:
-                    from surround_suppression import orientation_size_selectivity_analysis
+                    from receptive_field_mapping import RF_analysis
                     Nresp, SIs = 0, []
                     for i in range(data.iscell.sum())[:Nmax]:
-                        fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
+                        fig, SI, responsive = RF_analysis(data, roiIndex=i, verbose=False)
                         pdf.savefig()  # saves the current figure into a pdf page
                         plt.close()
                         if responsive:
@@ -459,5 +459,6 @@ if __name__=='__main__':
     # fig3 = roi_analysis_fig(data, roiIndex=0)
     # plt.show()
     
+    # make_sumary_pdf(filename, include=['raw', 'protocols'])
     make_sumary_pdf(filename, include=['protocols'])
     

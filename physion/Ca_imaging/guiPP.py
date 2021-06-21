@@ -7,6 +7,8 @@ from assembling.tools import find_matching_CaImaging_data
 from misc.folders import FOLDERS
 from Ca_imaging.preprocessing import PREPROCESSING_SETTINGS
 
+python_path_suite2p_env = '$HOME/miniconda3/envs/suite2p/bin/python'
+
 class MainWindow(QtWidgets.QMainWindow):
     
     def __init__(self, app,
@@ -17,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(350, 470, 300, 260)
+        self.setGeometry(350, 470, 300, 300)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -75,6 +77,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
+        HEIGHT +=40 
+        self.gen = QtWidgets.QPushButton('red-cell selection GUI ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.red_cell_selection)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
+        
         self.CMDS = []
         self.show()
 
@@ -86,7 +95,8 @@ class MainWindow(QtWidgets.QMainWindow):
         delay = ''
         if self.delayBox.currentText()!='None':
             delay = 'sleep %s; ' % self.delayBox.currentText()
-        return delay+'python %s --CaImaging_folder %s --setting_key %s -v' % (self.process_script, folder, key)
+        return delay+'%s %s --CaImaging_folder %s --setting_key %s -v' % (python_path_suite2p_env,
+                                                                          self.process_script, folder, key)
     
     def load_imaging(self):
 
@@ -114,10 +124,13 @@ class MainWindow(QtWidgets.QMainWindow):
             print('"%s" launched as a subprocess' % cmd)
 
     def open_suite2p(self):
-        p = subprocess.Popen('python -m suite2p',
+        p = subprocess.Popen('%s -m suite2p' % python_path_suite2p_env,
                              shell=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
+
+    def red_cell_selection(self):
+        print('WIP')
             
     def quit(self):
         QtWidgets.QApplication.quit()

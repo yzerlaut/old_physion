@@ -491,13 +491,17 @@ class visual_stim:
         if parent is not None:
             
             # ARROW FOR DRIFTING GRATINGS
-            if 'drifting' in parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]:
+            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]
+            if 'drifting' in Pname:
                 arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
                          'length':40, 'width_factor':0.1, 'color':'red', 'center':[0,0]}
-                if 'x-center' in parent.nwbfile.stimulus.keys():
-                    arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
-                if 'y-center' in parent.nwbfile.stimulus.keys():
-                    arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+                if ('off-center' in Pname):
+                    arrow['center'] = (0,0)
+                else:
+                    if 'x-center' in parent.nwbfile.stimulus.keys():
+                        arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
+                    if 'y-center' in parent.nwbfile.stimulus.keys():
+                        arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
 
             # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
             """
@@ -1250,12 +1254,12 @@ class sparse_noise(visual_stim):
                                                 noise_rdm_jitter_refresh_time=protocol['jitter-refresh-time (s)'],
                                                 seed=protocol['noise-seed (#)'])
 
-
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events)-1) 
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
-        self.experiment['time_start'] = self.noise_gen.events[:-1]
-        self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
+        self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
+        self.experiment['time_stop'] = self.noise_gen.events[1:]+protocol['presentation-prestim-period']
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
         self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
 
@@ -1288,8 +1292,9 @@ class dense_noise(visual_stim):
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events))
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
-        self.experiment['time_start'] = self.noise_gen.events[:-1]
-        self.experiment['time_stop'] = self.noise_gen.events[1:]
+        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
+        self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
+        self.experiment['time_stop'] = self.noise_gen.events[1:]+protocol['presentation-prestim-period']
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
         self.experiment['time_duration'] = self.experiment['time_stop']-self.experiment['time_start']
         

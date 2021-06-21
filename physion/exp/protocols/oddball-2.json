@@ -15,7 +15,7 @@
   "spatial-freq (cycle/deg)": 0.04,
   "contrast (norm.)": 1.0,
   "stim-duration (s)": 2.0,
-  "mean-interstim (s)": 3.0,
+  "mean-interstim (s)": 4.0,
   "jitter-interstim (s)": 0.5,
   "presentation-interstim-screen (lum.)": 0.0,
   "N_repeat (#)": 20.0,

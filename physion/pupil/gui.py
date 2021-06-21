@@ -1,68 +1,63 @@
-import sys, os, shutil, glob, time
+import sys, os, shutil, glob, time, subprocess, pathlib
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-import pathlib
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from pupil import guiparts, process, roi
+from pupil import process, roi
 from misc.folders import FOLDERS
-from misc.style import set_dark_style, set_app_icon
-from assembling.saving import from_folder_to_datetime, check_datafolder
+from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
-from dataviz.plots import convert_index_to_time
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(NewWindow):
     
     def __init__(self, app,
                  args=None,
                  parent=None,
-                 gaussian_smoothing=2,
+                 gaussian_smoothing=1,
                  cm_scale_px=570,
                  subsampling=1000):
         """
-        sampling in Hz
+        Pupil Tracking GUI
         """
         self.app = app
         
-        super(MainWindow, self).__init__()
+        super(MainWindow, self).__init__(i=1,
+                                         title='Pupil tracking')
 
-        self.setGeometry(500,150,400,400)
-        
-        # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
-        self.quitSc.activated.connect(self.quit)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
-        self.maxSc.activated.connect(self.showwindow)
-        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+F'), self)
-        self.fitSc.activated.connect(self.fit_pupil_size)
-        self.loadSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
-        self.loadSc.activated.connect(self.load_data)
-        self.refSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
-        self.refSc.activated.connect(self.jump_to_frame)
-        # self.refEx = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
-        # self.refEx.activated.connect(self.exclude_outlier)
-        self.refPr = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
-        self.refPr.activated.connect(self.process_ROIs)
-        self.refS = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
-        self.refS.activated.connect(self.save_pupil_data)
+
+        ##############################
+        ##### keyboard shortcuts #####
+        ##############################
+
         self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
         self.refc1.activated.connect(self.set_cursor_1)
         self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
         self.refc2.activated.connect(self.set_cursor_2)
         self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
         self.refc3.activated.connect(self.process_outliers)
-        self.minView = False
-        self.showwindow()
+        self.refc4 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+4'), self)
+        self.refc4.activated.connect(self.interpolate)
         
-        pg.setConfigOptions(imageAxisOrder='row-major')
-        
-        self.setWindowTitle('Pupil tracking')
+        #############################
+        ##### module quantities #####
+        #############################
 
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
         self.cm_scale_px = cm_scale_px
+        self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                           'process.py')
+        self.saturation = 255
+        self.ROI, self.pupil, self.times = None, None, None
+        self.data = None
+        self.bROI, self.reflectors = [], []
+        self.scatter, self.fit= None, None # the pupil size contour
+        
+        ########################
+        ##### building GUI #####
+        ########################
         
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -76,8 +71,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=False,
-                                      row=0,col=0,
-                                      invertY=True,border=[100,100,100])
+                                      row=0,col=0,#border=[100,100,100],
+                                      invertY=True)
 
         self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
@@ -86,33 +81,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pPupil = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True, border=[100,100,100])
-        self.pPupil.setAspectLocked()
+        self.pPupil = self.win.addViewBox(lockAspect=True,#row=0,col=1,
+                                          # border=[100,100,100],
+                                          invertY=True)
         #self.p0.setMouseEnabled(x=False,y=False)
         self.pPupil.setMenuEnabled(False)
         self.pPupilimg = pg.ImageItem(None)
         self.pPupil.addItem(self.pPupilimg)
-
-        # roi initializations
-        self.iROI = 0
-        self.nROIs = 0
-        self.saturation = 255
-        self.ROI = None
-        self.pupil = None
-        self.iframes, self.times, self.Pr1, self.Pr2 = [], [], [], []
+        self.pupilContour = pg.ScatterPlotItem()
+        self.pPupil.addItem(self.pupilContour)
+        self.pupilCenter = pg.ScatterPlotItem()
+        self.pPupil.addItem(self.pupilCenter)
 
         # saturation sliders
-        self.sl = guiparts.Slider(0, self)
+        self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel= QtGui.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
-        # adding blanks ("corneal reflections, ...")
-        self.reflector = QtGui.QPushButton('add blank')
-        self.l0.addWidget(self.reflector, 1, 8+6, 1, 1)
-        # self.reflector.setEnabled(True)
-        self.reflector.clicked.connect(self.add_reflectROI)
+        # adding blanks (eye borders, ...)
+        self.blankBtn = QtGui.QPushButton('add blanks')
+        self.l0.addWidget(self.blankBtn, 1, 8+6, 1, 1)
+        self.blankBtn.setEnabled(True)
+        self.blankBtn.clicked.connect(self.add_blankROI)
+        
+        # adding reflections ("corneal reflections, ...")
+        self.reflectorBtn = QtGui.QPushButton('add reflect.')
+        self.l0.addWidget(self.reflectorBtn, 2, 8+6, 1, 1)
+        self.reflectorBtn.setEnabled(True)
+        self.reflectorBtn.clicked.connect(self.add_reflectROI)
+        
         # fit pupil
         self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
@@ -133,11 +132,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.refresh_pupil, 2, 11+6, 1, 1)
         self.refresh_pupil.setEnabled(True)
         self.refresh_pupil.clicked.connect(self.jump_to_frame)
-
-        self.data = None
-        self.rROI= []
-        self.reflectors=[]
-        self.scatter, self.fit= None, None # the pupil size contour
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0, colspan=2, rowspan=4,
                                    title='Pupil diameter')
@@ -224,16 +218,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.saverois = QtGui.QPushButton('save data [Ctrl+S]')
         self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.saverois.clicked.connect(self.save_ROIs)
+        self.saverois.clicked.connect(self.save)
 
         # self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
         # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         # self.addOutlier.clicked.connect(self.exclude_outlier)
 
+        self.interpBtn = QtGui.QPushButton('interpolate')
+        self.interpBtn.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.interpBtn.clicked.connect(self.interpolate)
+
         self.processOutliers = QtGui.QPushButton('Set blinking interval')
         self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
-
+        
         self.printSize = QtGui.QPushButton('print ROI size')
         self.printSize.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.printSize.clicked.connect(self.print_size)
@@ -268,8 +266,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.l0.addWidget(self.saverois, 19, 0, 1, 3)
         self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
         self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
-        self.l0.addWidget(self.printSize, 26, 0, 1, 3)
+        self.l0.addWidget(self.interpBtn, 25, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 26, 0, 1, 3)
+        self.l0.addWidget(self.printSize, 27, 0, 1, 3)
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -283,48 +282,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateFrameSlider()
         
         self.nframes = 0
-        self.cframe = 0
+        self.cframe, self.cframe1, self.cframe2, = 0, 0, 0
 
         self.updateTimer = QtCore.QTimer()
-        self.cframe = 0
         
         self.win.show()
         self.show()
-        self.processed = False
 
-        # self.datafile = args.datafile
-        self.show()
-
-    def showwindow(self):
-        if self.minView:
-            self.minView = self.maxview()
-        else:
-            self.minView = self.minview()
-    def maxview(self):
-        self.showFullScreen()
-        return False
-    def minview(self):
-        self.showNormal()
-        return True
-    
+    def open_file(self):
+        self.load_data()
+        
     def load_data(self):
 
         self.cframe = 0
         
-        # filename = os.path.join('C:\\Users\\yann.zerlaut\\DATA\\2021_02_16\\15-41-13',
-        #                         'metadata.npy') # a default for debugging
-        # filename = '/media/yann/Yann/2021_02_19/14-45-21/metadata.npy'
-
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderB.currentText()])
+        # folder = '/home/yann/UNPROCESSED/13-26-53/'
+
         if folder!='':
             
             self.datafolder = folder
             
             if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
                 
-                # self.reset()
+                self.reset()
                 self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
@@ -342,9 +325,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 self.smoothBox.setText('%i' % self.data['gaussian_smoothing'])
 
-                self.sl.setValue(self.data['ROIsaturation'])
+                self.sl.setValue(int(self.data['ROIsaturation']))
+
                 self.ROI = roi.sROI(parent=self,
                                     pos=roi.ellipse_props_to_ROI(self.data['ROIellipse']))
+
                 self.plot_pupil_trace()
                 
             else:
@@ -361,7 +346,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def reset(self):
-        for r in self.rROI:
+        for r in self.bROI:
+            r.remove(self)
+        for r in self.reflectors:
             r.remove(self)
         if self.ROI is not None:
             self.ROI.remove(self)
@@ -369,81 +356,80 @@ class MainWindow(QtWidgets.QMainWindow):
             self.pupil.remove(self)
         if self.fit is not None:
             self.fit.remove(self)
-        self.ROI, self.rROI = None, []
+        self.ROI, self.bROI = None, []
         self.fit = None
         self.reflectors=[]
         self.saturation = 255
-        self.iROI=0
-        self.nROIs=0
         self.cframe1, self.cframe2 = 0, -1
         
-    def add_reflectROI(self):
-        self.rROI.append(roi.reflectROI(len(self.rROI), moveable=True, parent=self))
+    def add_blankROI(self):
+        self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self))
 
+    def add_reflectROI(self):
+        self.reflectors.append(roi.reflectROI(len(self.reflectors), moveable=True, parent=self, color='green'))
+        
     def draw_pupil(self):
         self.pupil = roi.pupilROI(moveable=True, parent=self)
 
     def print_size(self):
-        print('x, y, sx, sy = ', self.ROI.extract_props())
+        print('x, y, sx, sy, angle = ', self.ROI.extract_props())
 
     def add_ROI(self):
 
         if self.ROI is not None:
             self.ROI.remove(self)
-        for r in self.rROI:
+        for r in self.bROI:
             r.remove(self)
         self.ROI = roi.sROI(parent=self)
-        self.rROI = []
+        self.bROI = []
         self.reflectors = []
 
-    def process_outliers(self):
 
-        if self.data is not None:
-
-            if (self.cframe1!=0) and (self.cframe2!=-1):
-                i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
-                i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
-                self.data['diameter'][i1:i2] = 0
-                if i1>0:
-                    new_i1 = i1-1
-                else:
-                    new_i1 = i2
-                if i2<len(self.data['frame'])-1:
-                    new_i2 = i2+1
-                else:
-                    new_i2 = i1
-
-            if 'blinking' not in self.data:
-                self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
-                
-            self.data['blinking'][i1:i2] = 1
+    def interpolate(self, with_blinking_flag=False):
+        
+        if self.data is not None and (self.cframe1!=0) and (self.cframe2!=0):
             
-            for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+            i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
+            i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
+            if i1>0:
+                new_i1 = i1-1
+            else:
+                new_i1 = i2
+            if i2<len(self.data['frame'])-1:
+                new_i2 = i2+1
+            else:
+                new_i2 = i1
+
+            if with_blinking_flag:
+                
+                if 'blinking' not in self.data:
+                    self.data['blinking'] = np.zeros(len(self.data['frame']), dtype=np.uint)
+
+                self.data['blinking'][i1:i2] = 1
+            
+            for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
                 I = np.arange(i1, i2)
                 self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
 
-            # FOR MORE FANCY INTERPOLATION
-            # cond = (self.data['blinking']>0)
-            # for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
-            #     func = interp1d(self.data['frame'][cond],
-            #                     self.data[key][cond],
-            #                     kind='linear')
-            #     self.data[key] = func(self.data['frame'])
-
             self.plot_pupil_trace(xrange=self.xaxis.range)
-            self.cframe1, self.cframe2 = 0, -1
-    
+            self.cframe1, self.cframe2 = 0, 0
+        else:
+            print('cursors at: ', self.cframe1, self.cframe2)
+            print('blinking/outlier labelling failed')
+
+    def process_outliers(self):
+        self.interpolate(with_blinking_flag=True)
         
     def debug(self):
         print('No debug function')
 
     def set_cursor_1(self):
         self.cframe1 = self.cframe
-        print('cursor 1 set to: %i' % self.cframe)
+        print('cursor 1 set to: %i' % self.cframe1)
         
     def set_cursor_2(self):
         self.cframe2 = self.cframe
-        print('cursor 2 set to: %i' % self.cframe)
+        print('cursor 2 set to: %i' % self.cframe2)
 
     def set_precise_time(self):
         self.time = float(self.currentTime.text())
@@ -464,6 +450,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timeLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
 
+    def refresh(self):
+        self.jump_to_frame()
+        
     def jump_to_frame(self):
 
         if self.FILES is not None:
@@ -478,45 +467,57 @@ class MainWindow(QtWidgets.QMainWindow):
                 process.preprocess(self,\
                                 gaussian_smoothing=float(self.smoothBox.text()),
                                 saturation=self.sl.value())
+                
                 self.pPupilimg.setImage(self.img)
                 self.pPupilimg.setLevels([self.img.min(), self.img.max()])
 
-                self.reflector.setEnabled(False)
-                self.reflector.setEnabled(True)
-            
         if self.scatter is not None:
             self.p1.removeItem(self.scatter)
         if self.fit is not None:
             self.fit.remove(self)
             
         if self.data is not None:
+            
             self.iframe = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe][0]
             self.scatter.setData(self.data['frame'][self.iframe]*np.ones(1),
-                                 self.data['diameter'][self.iframe]*np.ones(1),
+                                 self.data['sx'][self.iframe]*np.ones(1),
                                  size=10, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter)
             self.p1.show()
             coords = []
             if 'sx-corrected' in self.data:
                 for key in ['cx-corrected', 'cy-corrected',
-                            'sx-corrected', 'sy-corrected']:
+                            'sx-corrected', 'sy-corrected',
+                            'angle-corrected']:
                     coords.append(self.data[key][self.iframe])
             else:
-                for key in ['cx', 'cy', 'sx', 'sy']:
+                for key in ['cx', 'cy', 'sx', 'sy', 'angle']:
                     coords.append(self.data[key][self.iframe])
-            self.fit = roi.pupilROI(moveable=True,
-                                    parent=self,
-                                    color=(0, 200, 0),
-                                    pos = roi.ellipse_props_to_ROI(coords))
+
+
+            self.plot_pupil_ellipse(coords)
+            # self.fit = roi.pupilROI(moveable=True,
+            #                         parent=self,
+            #                         color=(0, 200, 0),
+            #                         pos = roi.ellipse_props_to_ROI(coords))
             
         self.win.show()
         self.show()
-            
+
+    def plot_pupil_ellipse(self, coords):
+
+        self.pupilContour.setData(*process.ellipse_coords(*coords, transpose=True),
+                                  size=3, brush=pg.mkBrush(255,0,0))
+        self.pupilCenter.setData([coords[1]], [coords[0]],
+                                 size=8, brush=pg.mkBrush(255,0,0))
+        
 
     def extract_ROI(self, data):
 
-        if len(self.rROI)>0:
-            data['reflectors'] = [r.extract_props() for r in self.rROI]
+        if len(self.bROI)>0:
+            data['blanks'] = [r.extract_props() for r in self.bROI]
+        if len(self.reflectors)>0:
+            data['reflectors'] = [r.extract_props() for r in self.reflectors]
         if self.ROI is not None:
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:
@@ -529,49 +530,49 @@ class MainWindow(QtWidgets.QMainWindow):
             data[key]=boundaries[key]
         
         
-    def save_ROIs(self):
+    def save(self):
         """ """
         self.extract_ROI(self.data)
         self.save_pupil_data()
         
-
-    def run_as_subprocess(self):
-
-        self.save_pupil_data()
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'process.py')
-        import subprocess
-        cmd = 'python %s -df %s -s 1' % (process_script, self.datafolder)
-        p = subprocess.Popen(cmd,
-                             # stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             shell=True)
-        print('"%s" launched as a subprocess' % cmd)
+    def build_cmd(self):
+        return 'python %s -df %s' % (self.process_script, self.datafolder)
         
+    def run_as_subprocess(self):
+        self.save_pupil_data()
+        cmd = self.build_cmd()
+        p = subprocess.Popen(cmd+' --verbose', shell=True)
+        print('"%s" launched as a subprocess' % cmd)
+
+    def add_to_bash_script(self):
+        self.save_pupil_data()
+        cmd = self.build_cmd()
+        with open(self.script, 'a') as f:
+            f.write(cmd+' & \n')
+        print('Command: "%s"\n successfully added to the script: "%s"' % (cmd, self.script))
 
     def save_pupil_data(self):
         """ """
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            self.data['shape'] = 'ellipse'
+        if self.data is not None:
+            self.data['gaussian_smoothing'] = int(self.smoothBox.text())
+            self.data['cm_to_pix'] = int(self.scaleBox.text())
+            self.data = process.clip_to_finite_values(self.data)
+
+            np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
+            print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         else:
-            self.data['shape'] = 'circle'
-        self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-        self.data['cm_to_pix'] = int(self.scaleBox.text())
-        self.data = process.clip_to_finite_values(self.data)
-        # if self.times is not None:
+            print('Need to pre-process data ! ')
             
-        np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
-        print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         
-            
+    def process(self):
+        self.process_ROIs()
+        
     def process_ROIs(self):
 
         self.data = {}
         self.extract_ROI(self.data)
         
         self.subsampling = int(self.samplingBox.text())
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            self.Pshape = 'ellipse'
-        else:
-            self.Pshape = 'circle'
 
         print('processing pupil size over the whole recording [...]')
         print(' with %i frame subsampling' % self.subsampling)
@@ -579,9 +580,9 @@ class MainWindow(QtWidgets.QMainWindow):
         process.init_fit_area(self)
         temp = process.perform_loop(self,
                                     subsampling=self.subsampling,
-                                    shape=self.Pshape,
                                     gaussian_smoothing=int(self.smoothBox.text()),
                                     saturation=self.sl.value(),
+                                    reflectors=[r.extract_props() for r in self.reflectors],
                                     with_ProgressBar=True)
 
         for key in temp:
@@ -597,41 +598,46 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p1.clear()
         if self.data is not None:
             # self.data = process.remove_outliers(self.data)
-            cond = np.isfinite(self.data['diameter'])
+            cond = np.isfinite(self.data['sx'])
             self.p1.plot(self.data['frame'][cond],
-                         self.data['diameter'][cond], pen=(0,255,0))
+                         self.data['sx'][cond], pen=(0,255,0))
             if xrange is None:
                 xrange = (0, self.data['frame'][cond][-1])
             self.p1.setRange(xRange=xrange,
-                             yRange=(self.data['diameter'][cond].min()-.1,
-                                     self.data['diameter'][cond].max()+.1),
+                             yRange=(self.data['sx'][cond].min()-.1,
+                                     self.data['sx'][cond].max()+.1),
                              padding=0.0)
             self.p1.show()
 
+            
+
+    def fit(self):
+        self.fit_pupil_size()
+        
     def fit_pupil_size(self, value=0, coords_only=False):
         
         if not coords_only and (self.pupil is not None):
             self.pupil.remove(self)
 
-        if self.pupil_shape.currentText()=='Ellipse fit':
-            coords, _, _ = process.perform_fit(self,
-                                               saturation=self.sl.value(),
-                                               shape='ellipse')
-        else:
-            coords, _, _ = process.perform_fit(self,
-                                               saturation=self.sl.value(),
-                                               shape='circle')
-            coords = list(coords)+[coords[-1]] # form circle to ellipse
+        coords, _, _ = process.perform_fit(self,
+                                           saturation=self.sl.value(),
+                                           reflectors=[r.extract_props() for r in self.reflectors])
 
         if not coords_only:
-            self.pupil = roi.pupilROI(moveable=True,
-                                      pos = roi.ellipse_props_to_ROI(coords),
-                                      parent=self)
+            self.plot_pupil_ellipse(coords)
 
+        # TROUBLESHOOTING
+        # from datavyz import ge
+        # fig, ax = ge.figure(figsize=(1.4,2), left=0, bottom=0, right=0, top=0)
+        # ax.plot(*process.ellipse_coords(*coords, transpose=True), 'r')
+        # ax.plot([coords[1]], [coords[0]], 'ro')
+        # ax.imshow(self.img)
+        # ge.show()
+        
         return coords
 
     def interpolate_data(self):
-        for key in ['diameter', 'cx', 'cy', 'sx', 'sy', 'residual']:
+        for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
             func = interp1d(self.data['frame'], self.data[key],
                             kind='linear')
             self.data[key] = func(np.arange(self.nframes))

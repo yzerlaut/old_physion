@@ -2,16 +2,33 @@ name: physion
 channels:
   - conda-forge
 dependencies:
-  - python>3.5
+  - python>=3.7.6,<3.8
   - pip
   - mkl_fft=1.0.10
   - mkl=2019.3
-  - numpy>=1.16
-  - numba>=0.43.1
+  - tbb
+  - numpy<1.19.0
+  - numba<0.50.0
+  - matplotlib
   - scipy
-  - pyqt
+  - scikit-learn
+  - ruamel
+  - ruamel.yaml
   - pip:
-    - pyqtgraph==0.11.0rc0
+    - pyqt5
+    - pyqt5.sip
+    - h5py==2.10.0
     - natsort
-    - opencv_python_headless
-    - facemap
+    - rastermap>0.1.0
+    - tifffile
+    - scanimage-tiff-reader>=1.4.1
+    - pyqtgraph
+    - importlib-metadata
+    - paramiko
+    - pynwb
+    - sbxreader
+    - suite2p
+    - psychopy==2021.1.1
+    - scikit-video
+    - git+https://github.com/yzerlaut/datavyz
+    - git+https://github.com/yzerlaut/physion
