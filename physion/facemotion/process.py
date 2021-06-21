@@ -203,6 +203,7 @@ if __name__=='__main__':
             frames, motion = compute_motion(args,
                                             time_subsampling=args.time_subsampling,
                                             with_ProgressBar=True)
+            args.data['frame'] = frames
             args.data['t'] = args.times[frames]
             args.data['motion'] = motion
             np.save(os.path.join(args.datafolder, 'facemotion.npy'), args.data)
