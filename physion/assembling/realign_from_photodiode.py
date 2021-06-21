@@ -13,7 +13,6 @@ def realign_from_photodiode(signal,
 
     success = True
 
-    
     # extract parameters
     if sampling_rate is None:
         dt = 1./metadata['NIdaq-acquisition-frequency']
@@ -42,7 +41,7 @@ def realign_from_photodiode(signal,
 
     # looping over episodes
     i=0
-    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])) and i<3:
+    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
         cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i])
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
@@ -126,10 +125,18 @@ if __name__=='__main__':
     for key in ['time_start', 'time_stop', 'time_duration']:
         metadata[key] = VisualStim[key]
 
-
     plt.plot(data[::1000][:1000])
     plt.title('photodiode-signal (subsampled/100)')
     plt.show()
     
-    realign_from_photodiode(data, metadata, debug=True, n_vis=args.n_vis)
+    realign_from_photodiode(data, metadata, debug=True, n_vis=args.n_vis, verbose=True)
     
+
+
+
+
+
+
+
+
+
