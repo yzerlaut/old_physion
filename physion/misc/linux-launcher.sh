@@ -1,2 +1,2 @@
 cd ~/work/physion
-~/miniconda3/bin/python -m physion
+~/miniconda3/envs/physion/bin/python -m physion
