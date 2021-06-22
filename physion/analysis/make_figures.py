@@ -6,7 +6,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 
 from misc.guiparts import NewWindow, smallfont
-from dataviz.show_data import MultimodalData
+from dataviz.show_data import MultimodalData, format_key_value
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
@@ -326,7 +326,7 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(self.exportBtn)
 
         self.locBtn = QtWidgets.QComboBox(self)
-        self.locBtn.addItems(['Desktop', 'summary'])
+        self.locBtn.addItems(['Desktop', 'Desktop/figs', 'summary'])
         self.locBtn.setFixedWidth(200)
         Layouts[-1].addWidget(self.locBtn)
 
@@ -336,8 +336,8 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(self.nameBtn)
 
         self.dpi = QtWidgets.QSpinBox(self)
-        self.dpi.setValue(300)
         self.dpi.setRange(50, 600)
+        self.dpi.setValue(300)
         self.dpi.setSuffix(' (dpi)')
         self.dpi.setFixedWidth(80)
         Layouts[-1].addWidget(self.dpi)
@@ -348,6 +348,9 @@ class FiguresWindow(NewWindow):
     def set_fig_name(self):
         if self.locBtn.currentText()=='Desktop':
             self.fig_name = os.path.join(os.path.expanduser('~'), 'Desktop', self.nameBtn.text()+'.svg')
+        elif self.locBtn.currentText()=='Desktop/figs':
+            pathlib.Path(os.path.join(os.path.expanduser('~'), 'Desktop', 'figs')).mkdir(parents=True, exist_ok=True)
+            self.fig_name = os.path.join(os.path.expanduser('~'), 'Desktop', 'figs', self.nameBtn.text()+'.svg')
         elif self.locBtn.currentText()=='summary':
             summary_dir = os.path.join(os.path.dirname(self.parent.datafile), 'summary', os.path.basename(self.parent.datafile).replace('.nwb', ''))
             pathlib.Path(summary_dir).mkdir(parents=True, exist_ok=True)
@@ -382,7 +385,7 @@ class FiguresWindow(NewWindow):
         self.xbar.setText('%.1f' % dx)
         self.xbarlabel.setText('%.1f' % dx)
         self.ybar.setText('%.1f' % dy)
-        self.ybarlabel.setText('%.1f' % dy)
+        self.ybarlabel.setText('%.1f ' % dy)
 
     def reset_settings(self):
         for x in [self.xmin, self.xmax, self.ymin, self.ymax,
@@ -408,11 +411,11 @@ class FiguresWindow(NewWindow):
                 
         if self.fig_presets.currentText()=='raw-traces-preset':
             fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)), reshape_axes=False,
-                                top=0.4, bottom=0.4, left=0.7, right=0.7,
+                                top=2., bottom=0.6, left=0.7, right=2.5,
                                 wspace=0.5, hspace=0.5)
         else:
             fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
-                                reshape_axes=False)
+                                reshape_axes=False, right=2.)
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -433,16 +436,38 @@ class FiguresWindow(NewWindow):
                             self.ylim = [min([self.ylim[0], np.min(my)]),
                                          max([self.ylim[1], np.max(my)])]
 
+                        if self.annot.isChecked():
+                            # column label
+                            if (len(COL_CONDS)>1) and (irow==0) and (icolor==0):
+                                s = ''
+                                for i, key in enumerate(self.varied_parameters.keys()):
+                                    if 'column' in getattr(self, '%s_plot' % key).currentText():
+                                        s+=format_key_value(key, self.EPISODES[key][cond][0])+4*' ' # should have a unique value
+                                ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom')
+                            # row label
+                            if (len(ROW_CONDS)>1) and (icol==0) and (icolor==0):
+                                s = ''
+                                for i, key in enumerate(self.varied_parameters.keys()):
+                                    if 'row' in getattr(self, '%s_plot' % key).currentText():
+                                        s+=format_key_value(key, self.EPISODES[key][cond][0])+4*' ' # should have a unique value
+                                ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90)
+                            # n per cond
+                            ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
+                                        (.99,0), color=COLORS[icolor], size='xx-small',
+                                        ha='left', va='bottom')
+                            
+
                     if self.screen.isChecked() and not (self.parent.visual_stim is not None):
                         print('initializing stim [...]')
                         self.parent.load_VisualStim()
+                        
                     if self.screen.isChecked():
                         inset = ge.inset(AX[irow][icol], [.8, .9, .3, .25])
                         self.parent.visual_stim.show_frame(\
                                     self.EPISODES['index_from_start'][cond][0],
                                     ax=inset, parent=self.parent, enhance=True, label=None)
                         
-          
+
         if self.withStatTest.isChecked():
             for irow, row_cond in enumerate(ROW_CONDS):
                 for icol, col_cond in enumerate(COL_CONDS):
@@ -459,7 +484,15 @@ class FiguresWindow(NewWindow):
                         ps, size = pval_to_star(test)
                         AX[irow][icol].annotate(ps, ((self.t1pre+self.t0post)/2., self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
                             
-                            
+        # color label
+        if self.annot.isChecked() and (len(COLOR_CONDS)>1):
+            for icolor, color_cond in enumerate(COLOR_CONDS):
+                cond = np.array(single_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
+                for i, key in enumerate(self.varied_parameters.keys()):
+                    if 'color' in getattr(self, '%s_plot' % key).currentText():
+                        s = format_key_value(key, self.EPISODES[key][cond][0])
+                        ge.annotate(fig, s, (1.-icolor/(len(COLOR_CONDS)+2), 0), color=COLORS[icolor], ha='right', va='bottom')
+                        
         if (self.ymin.text()!='') and (self.ymax.text()!=''):
             self.ylim = [float(self.ymin.text()), float(self.ymax.text())]
         if (self.xmin.text()!='') and (self.xmax.text()!=''):
@@ -485,7 +518,7 @@ class FiguresWindow(NewWindow):
                                Xbar=(0. if self.xbar.text()=='' else float(self.xbar.text())),
                                Xbar_label=self.xbarlabel.text(),
                                Ybar=(0. if self.ybar.text()=='' else float(self.ybar.text())),
-                               Ybar_label=self.ybarlabel.text(),
+                               Ybar_label=self.ybarlabel.text()+' ',
                                Xbar_fraction=0.1, Xbar_label_format='%.1f',
                                Ybar_fraction=0.2, Ybar_label_format='%.1f',
                                loc='top-left')
@@ -499,11 +532,18 @@ class FiguresWindow(NewWindow):
         if self.annot.isChecked():
             S=''
             if hasattr(self, 'roiPick'):
-                S+='roi #%s' % self.roiPick.text()
+                S+='roi #%s, ' % self.roiPick.text()
             for i, key in enumerate(self.varied_parameters.keys()):
                 if 'single-value' in getattr(self, '%s_plot' % key).currentText():
-                    S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
+                    S += '%s=%.2f, ' % (key, getattr(self, '%s_values' % key).currentText())
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
+                    
+        if self.annot.isChecked():
+            ge.annotate(fig, "%s, %s, %s, %s" % (self.parent.metadata['subject_ID'],
+                                                 self.parent.protocols[self.pbox.currentIndex()-1][:20],
+                                                 self.parent.metadata['filename'].split('\\')[-2],
+                                                 self.parent.metadata['filename'].split('\\')[-1]),
+                        (0,1), color='k', ha='left', va='top', size='x-small')
             
         return fig, AX
 
@@ -622,11 +662,12 @@ class FiguresWindow(NewWindow):
         return full_cond
 
     def build_column_conditions(self):
-        X, K = [], []
+        X, K, L = [], [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if 'column' in getattr(self, '%s_plot' % key).currentText():
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
+                L.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
         return self.build_conditions(X, K)
     
     def build_row_conditions(self):
@@ -645,7 +686,8 @@ class FiguresWindow(NewWindow):
                 K.append(key)
         return self.build_conditions(X, K)
 
-        
+
+
 if __name__=='__main__':
 
     import sys
@@ -670,6 +712,7 @@ if __name__=='__main__':
 
     if '.nwb' in sys.argv[-1]:
         cls = Parent(filename)
+        print(cls.metadata)
         window = FiguresWindow(cls)
         sys.exit(cls.app.exec_())
     else:

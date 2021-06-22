@@ -423,6 +423,21 @@ class MultimodalData(Data):
         ge.title(ax, key)
         
         return fig, ax
+
+def format_key_value(key, value):
+    if key=='angle':
+        return '$\\theta$=%.0f$^{o}$' % value
+    elif key=='x-center':
+        return '$x$=%.0f$^{o}$' % value
+    elif key=='y-center':
+        return '$y$=%.0f$^{o}$' % value
+    elif key=='contrast':
+        return '$c$=%.1f' % value
+    elif key=='repeat':
+        return 'trial #%i' % (value+1)
+    else:
+        return '%.2f' % value
+
     
      
 if __name__=='__main__':
