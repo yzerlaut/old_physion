@@ -43,7 +43,7 @@ class MultimodalData(Data):
 
 
     def add_Electrophy(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='k',
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color='k',
                        name='LFP'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Electrophysiological-Signal'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
@@ -53,7 +53,7 @@ class MultimodalData(Data):
                     fontsize=8, ha='right')
         
     def add_Locomotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.blue, name='run. speed'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.blue, name='run. speed'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
@@ -65,7 +65,7 @@ class MultimodalData(Data):
                     fontsize=8, ha='right')
         
     def add_FaceMotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=1, color=ge.purple, name='facemotion'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.purple, name='facemotion'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
         t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
         motion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2]
@@ -75,7 +75,7 @@ class MultimodalData(Data):
                     fontsize=8, ha='right')
 
     def add_Pupil(self, tlim, ax,
-                  fig_fraction_start=0., fig_fraction=1., subsampling=1, color='red', name='pupil diam.'):
+                  fig_fraction_start=0., fig_fraction=1., subsampling=2, color='red', name='pupil diam.'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
         diameter = np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
@@ -445,6 +445,13 @@ def format_key_value(key, value):
         return '$c$=%.1f' % value
     elif key=='repeat':
         return 'trial #%i' % (value+1)
+    elif key=='light-level':
+        if value==0:
+            return 'grey'
+        elif value==1:
+            return 'white'
+        else:
+            return 'lum.=%.1f' % value
     else:
         return '%.2f' % value
 

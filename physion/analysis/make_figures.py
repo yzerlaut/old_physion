@@ -325,7 +325,7 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(self.exportBtn)
 
         self.locBtn = QtWidgets.QComboBox(self)
-        self.locBtn.addItems(['Desktop', 'Desktop/figs', 'summary'])
+        self.locBtn.addItems(['Desktop/figs', 'Desktop', 'summary'])
         self.locBtn.setFixedWidth(200)
         Layouts[-1].addWidget(self.locBtn)
 
@@ -534,7 +534,7 @@ class FiguresWindow(NewWindow):
                 S+='roi #%s, ' % self.roiPick.text()
             for i, key in enumerate(self.varied_parameters.keys()):
                 if 'single-value' in getattr(self, '%s_plot' % key).currentText():
-                    S += '%s=%.2f, ' % (key, getattr(self, '%s_values' % key).currentText())
+                    S += '%s=%s, ' % (key, getattr(self, '%s_values' % key).currentText())
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
                     
         if self.annot.isChecked():
@@ -542,9 +542,11 @@ class FiguresWindow(NewWindow):
                                                  self.parent.protocols[self.pbox.currentIndex()-1][:20],
                                                  self.parent.metadata['filename'].split('\\')[-2],
                                                  self.parent.metadata['filename'].split('\\')[-1]),
-                        (0,1), color='k', ha='left', va='top', size='x-small')
+                    (0,1), color='k', ha='left', va='top', size='x-small')
             
         return fig, AX
+
+
 
     def plot_raw_data(self):
         
@@ -567,10 +569,20 @@ class FiguresWindow(NewWindow):
         for key in ['CaImaging', 'CaImagingSum']:
             if (key in settings) and (self.sqbox.text() in ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved']):
                 settings[key]['subquantity'] = self.sqbox.text()
+                
         if 'CaImaging' in settings:
             settings['CaImaging']['roiIndices'] = self.parent.roiIndices
-                
+
+
         self.data.plot_raw_data(tlim, settings=settings, Tbar=Tbar, ax=ax)
+            
+        if self.annot.isChecked():
+            ge.annotate(self.fig, "%s, %s, %s, %s" % (self.parent.metadata['subject_ID'],
+                                             self.parent.protocols[self.pbox.currentIndex()-1][:20],
+                                                 self.parent.metadata['filename'].split('\\')[-2],
+                                                 self.parent.metadata['filename'].split('\\')[-1]),
+                    (1,1), color='k', ha='right', va='top', size='x-small')
+        
         ge.show()
 
     def plot_FOV(self):
