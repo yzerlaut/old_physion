@@ -33,7 +33,7 @@ class MultimodalData(Data):
     ###-------------------------------------
     
     def add_Photodiode(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='grey', name='photodiode'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Photodiode-Signal'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
@@ -43,7 +43,7 @@ class MultimodalData(Data):
 
 
     def add_Electrophy(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='grey',
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='k',
                        name='LFP'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Electrophysiological-Signal'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
@@ -53,25 +53,38 @@ class MultimodalData(Data):
                     fontsize=8, ha='right')
         
     def add_Locomotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='blue', name='run. speed'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.blue, name='run. speed'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
-        ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        if y.max()>y.min():
+            ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        else:
+            ax.plot(x, 0*x+fig_fraction_start, color=color)
         ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
         
+    def add_FaceMotion(self, tlim, ax,
+                       fig_fraction_start=0., fig_fraction=1., subsampling=1, color=ge.purple, name='facemotion'):
+        i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
+        t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
+        motion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2]
+        x, y = t[::subsampling], motion[::subsampling]
+        ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
+                    fontsize=8, ha='right')
+
     def add_Pupil(self, tlim, ax,
                   fig_fraction_start=0., fig_fraction=1., subsampling=1, color='red', name='pupil diam.'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        diameter = self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2]*\
-                               self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]
+        diameter = np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
+                           self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0)
         x, y = t[::subsampling], diameter[::subsampling]
         ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
         ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
-    
+        
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
@@ -151,14 +164,11 @@ class MultimodalData(Data):
         ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
     
-    # but deprecated, DON'T USE
-    def plot(self, **args):
-        return plot_raw_data(self, **args)
-    
     def plot_raw_data(self, 
                       tlim=[0,100],
                       settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
                            'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
+                           'FaceMotion':dict(fig_fraction=1, subsampling=10, color='purple'),
                            'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
                            'CaImaging':dict(fig_fraction=4, 
                                             quantity='CaImaging', subquantity='Fluorescence', color='green',

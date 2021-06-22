@@ -30,15 +30,14 @@ class FiguresWindow(NewWindow):
         super(FiguresWindow, self).__init__(parent=parent.app,
                                             title=title,
                                             i=-10, size=(800,800))
-
         
         self.modalities = []
-        for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'Pupil',
+        print(parent.nwbfile.acquisition)
+        for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'FaceMotion', 'Pupil',
                                'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
-                              ['Photodiode', 'Electrophy', 'Locomotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
+                              ['Photodiode', 'Electrophy', 'Locomotion', 'FaceMotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
             if key1 in parent.nwbfile.acquisition:
                 self.modalities.append(key2)
-
 
         self.parent = parent
         self.get_varied_parameters()
@@ -571,7 +570,7 @@ class FiguresWindow(NewWindow):
         if 'CaImaging' in settings:
             settings['CaImaging']['roiIndices'] = self.parent.roiIndices
                 
-        self.data.plot(tlim, settings=settings, Tbar=Tbar, ax=ax)
+        self.data.plot_raw_data(tlim, settings=settings, Tbar=Tbar, ax=ax)
         ge.show()
 
     def plot_FOV(self):
@@ -712,7 +711,6 @@ if __name__=='__main__':
 
     if '.nwb' in sys.argv[-1]:
         cls = Parent(filename)
-        print(cls.metadata)
         window = FiguresWindow(cls)
         sys.exit(cls.app.exec_())
     else:
