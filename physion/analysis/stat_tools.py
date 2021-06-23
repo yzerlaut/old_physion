@@ -1,9 +1,10 @@
 import os, sys, itertools
 import numpy as np
 from scipy import stats
-sys.path.append('.')
-from physion.analysis.read_NWB import read as read_NWB, Data
-from physion.analysis.trial_averaging import build_episodes
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from analysis.read_NWB import read as read_NWB, Data
+from analysis.trial_averaging import build_episodes
 
 class CellResponse:
     

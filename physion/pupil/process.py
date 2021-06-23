@@ -92,7 +92,7 @@ def find_ellipse_props_of_binary_image_from_PCA(x, y, img):
 
         return mu, eigen_vec_stds, eigen_vec_angles
     except np.linalg.LinAlgError:
-        print('Pb in calculating ellipse props')
+        print('Pb in calculating ellipse props\n')
         return mu, [np.std(x[img==1]), np.std(y[img==1])], [0, np.pi/2.]
 
 
