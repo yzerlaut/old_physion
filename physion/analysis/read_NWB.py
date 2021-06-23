@@ -1,5 +1,8 @@
+import pynwb, time, ast, sys, pathlib, os
 import numpy as np
-import pynwb, time, ast, sys
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from assembling.saving import day_folder, list_dayfolder, get_files_with_extension
 
 def init(self):
 
@@ -128,9 +131,46 @@ def read(self, filename, verbose=False, with_tlim=True,
         print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
 
 
+class DummyParent:
+    def __init__(self):
+        pass
+
+def scan_folder_for_NWBfiles(folder, verbose=True):
+
+    if verbose:
+        print('inspecting the folder "%s" [...]' % folder)
+
+    parent = DummyParent()
+    
+    FILES = get_files_with_extension(folder, extension='.nwb', recursive=True)
+    DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
+    SUBJECTS = []
+    
+    for f in FILES:
+        try:
+            read(parent, f, metadata_only=True)
+            SUBJECTS.append(parent.metadata['subject_ID'])
+        except BaseException as be:
+            SUBJECTS.append('N/A')
+            if verbose:
+                print(be)
+                print('\n /!\ Pb with "%s" \n' % f)
+        parent.io.close()
+        
+    if verbose:
+        print(' -> found n=%i datafiles ' % len(FILES))
+
+    return np.array(FILES), np.array(DATES), np.array(SUBJECTS)
 
 
+if __name__=='__main__':
+
+    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/')
+    print(np.unique(SUBJECTS))
+    
+    # for f, d, s in zip(FILES, DATES, SUBJECTS):
+    #     print(f, d, s)
 
 
-
+    
 
