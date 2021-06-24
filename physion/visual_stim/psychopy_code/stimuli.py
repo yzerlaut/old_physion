@@ -1142,8 +1142,8 @@ def generate_VSE(duration=5,
     
     np.random.seed(seed)
     
-    tsaccades = np.cumsum(np.clip(mean_saccade_duration+np.abs(np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
-                                  mean_saccade_duration/2., 1.5*mean_saccade_duration))
+    tsaccades = np.cumsum(np.clip(np.abs(mean_saccade_duration+np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
+                                  mean_saccade_duration/4., 1.75*mean_saccade_duration))
 
     x = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
     y = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
@@ -1187,7 +1187,6 @@ class natural_image_vse(visual_stim):
         """
         sx, sy = img.shape
         new_im = np.zeros(img.shape)
-        print(sx, sy, ix, iy)
 	# print(img[:sx-ix,:sy-iy].shape)
         # print(img[sx-ix:,:].shape)
         # print(img[:,sy-iy:].shape)
