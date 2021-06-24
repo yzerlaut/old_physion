@@ -13,6 +13,7 @@ dependencies:
   - scikit-learn
   - ruamel
   - ruamel.yaml
+  - pathlib
   - pip:
     - pyqt5
     - pyqt5.sip

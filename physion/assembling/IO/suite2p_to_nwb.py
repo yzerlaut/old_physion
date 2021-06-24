@@ -31,7 +31,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
 
     ops = ops1[0]
 
-
+    
     if device is None:
         device = nwbfile.create_device(
             name='Microscope', 
@@ -116,7 +116,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
         ncells_all+=ncells
 
     ps.add_column('iscell', 'two columns - iscell & probcell', iscell)
-    if ops1['nchannels']>1:
+    if ops['nchannels']>1:
         ps.add_column('redcell', 'two columns - redcell & probcell', redcell)
 
     rt_region = ps.create_roi_table_region(
