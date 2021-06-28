@@ -487,8 +487,7 @@ if __name__=='__main__':
         args.FaceCamera_frame_sampling = 0.5 # no need to have it too high
     if args.nidaq_only:
         args.export='NIDAQ'
-        args.modalities = ['VisualStim', 'Locomotion', 'Electrophy']        
-
+        args.modalities = ['VisualStim', 'Electrophy']        
 
     if args.time!='':
         args.datafolder = os.path.join(args.root_datafolder, args.day, args.time)
