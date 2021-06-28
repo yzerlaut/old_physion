@@ -96,7 +96,6 @@ def read(self, filename, verbose=False, with_tlim=True,
         if 'FaceMotion' in self.nwbfile.processing:
             fd = str(self.nwbfile.processing['FaceMotion'].description)
             self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
-            print(self.FaceMotion_ROI)    
                 
         #     self.t_pupil = self.nmbfile.processing['Pupil']
         #     self.nwbfile.processing['Pupil'].data_interfaces['cx']

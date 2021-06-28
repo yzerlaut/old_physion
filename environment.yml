@@ -14,6 +14,7 @@ dependencies:
   - ruamel
   - ruamel.yaml
   - pathlib
+  - jupyter
   - pip:
     - pyqt5
     - pyqt5.sip
