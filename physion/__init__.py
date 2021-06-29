@@ -38,7 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
                   "c) Add [C]a2+ data",
                   "t) [T]ransfer data",
                   "v) [V]isualize data",
-                  "n) summary [P]DF ",
+                  "b) summary [P]DF ",
+                  "n) launch [Notebook] ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
 
@@ -55,6 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_transfer,
                      self.launch_visualization,
                      self.summary_pdf,
+                     self.launch_notebook,
                      self.quit]
         
         self.setGeometry(50, 100, 300, 46*len(LABELS))
@@ -155,6 +157,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def summary_pdf(self):
         from physion.misc.notebook import run as RunNotebook
         self.child = RunNotebook(self.app, self.args)
+
+    def launch_notebook(self):
+        import subprocess
+        from physion.misc.folders import python_path
+        cmd = '%s notebook %s' % (python_path.replace('python', 'jupyter'),
+                                  os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),'notebooks'))
+        print(cmd)
+        os.system(cmd)
         
     def quit(self):
         QtWidgets.QApplication.quit()
