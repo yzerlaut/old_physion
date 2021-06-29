@@ -8,7 +8,7 @@ from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 
-class MainWindow(NewWindow):
+class RCGwindow(NewWindow):
     
     def __init__(self, app,
                  args=None,
@@ -18,7 +18,7 @@ class MainWindow(NewWindow):
         """
         self.app = app
         
-        super(MainWindow, self).__init__(i=3,
+        super(RCGwindow, self).__init__(i=3,
                                          title='red-cell gui')
 
 
@@ -101,8 +101,6 @@ class MainWindow(NewWindow):
             if redcell[i,0] and iscell[i,0]:
                 xmean = np.mean(stat[i]['xpix'])
                 ymean = np.mean(stat[i]['ypix'])
-                # x.append(xmean)
-                # y.append(ymean)
                 x += list(xmean+size*np.cos(2*np.pi*t/n))
                 y += list(ymean+size*np.sin(2*np.pi*t/n))
         
@@ -111,9 +109,9 @@ class MainWindow(NewWindow):
     
 
 def run(app, args=None, parent=None):
-    return MainWindow(app,
-                      args=args,
-                      parent=parent)
+    return RCGwindow(app,
+                     args=args,
+                     parent=parent)
     
 if __name__=='__main__':
     from misc.colors import build_dark_palette
@@ -127,7 +125,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
-    main = MainWindow(app,
+    main = RCGwindow(app,
                       args=args)
     sys.exit(app.exec_())
 

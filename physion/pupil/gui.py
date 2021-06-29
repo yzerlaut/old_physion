@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import process, roi
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path
 from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
 
@@ -536,7 +536,7 @@ class MainWindow(NewWindow):
         self.save_pupil_data()
         
     def build_cmd(self):
-        return 'python %s -df %s' % (self.process_script, self.datafolder)
+        return '%s %s -df %s' % (python_path, self.process_script, self.datafolder)
         
     def run_as_subprocess(self):
         self.save_pupil_data()
