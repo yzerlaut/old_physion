@@ -75,15 +75,22 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
             self.pixel_masks_index = self.Segmentation.columns[0].data[:]
             self.pixel_masks = self.Segmentation.columns[1].data[:]
-            self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
-            self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
+            print(np.unique(self.pixel_masks_index))
             self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
             self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
             self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
             self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
+            
+            if len(self.Segmentation.columns)>2: # DEPRECATED
+                self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
+                self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
+            else:
+                self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool)
+                self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
+                
         else:
-            self.Segmentation, self.Fluorescence, self.iscell,\
-                self.Neuropil, self.Deconvolved = None, None, None, None, None
+            self.Segmentation, self.Fluorescence, self.iscell, self.validROI_indices,\
+                self.Neuropil, self.Deconvolved = None, None, None, None, None, None
 
         if 'Pupil' in self.nwbfile.processing:
             pd = str(self.nwbfile.processing['Pupil'].description)

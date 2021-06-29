@@ -28,7 +28,8 @@ def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
                             with_sliding_mean = False,
                             sum=False):
     """
-    # /!\ the validROI_indices are used here  /!\
+    # /!\ the validROI_indices are used here  /!\ (DEPRECATED NOW STORING ONLY THE VALID ROIS)
+
     """
     if CaImaging_key in ['Fluorescence', 'Neuropil', 'Deconvolved']:
         return getattr(cls, CaImaging_key).data[cls.validROI_indices[roiIndices], :]
