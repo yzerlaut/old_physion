@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path
 from misc.guiparts import NewWindow
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -132,7 +132,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def build_cmd(self):
         if self.cbc.currentText()=='custom':
-            return 'python %s -df %s --photodiode_sampling %s --running_sampling %s --Pupil_frame_sampling %s --FaceMotion_frame_sampling %s --FaceCamera_frame_sampling %s' % (self.process_script,
+            return '%s %s -df %s --photodiode_sampling %s --running_sampling %s --Pupil_frame_sampling %s --FaceMotion_frame_sampling %s --FaceCamera_frame_sampling %s' % (python_path,
+                                                                       self.process_script,
                                                                        self.folder,
                                                                        self.PHsamplingBox.text(),
                                                                        self.RsamplingBox.text(),
@@ -141,7 +142,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                                                        self.FsamplingBox.text())
 
         else:
-            return 'python %s -df %s --%s' % (self.process_script,
+            return '%s %s -df %s --%s' % (python_path,
+                                              self.process_script,
                                               self.folder,
                                               self.cbc.currentText())
     def run(self):

@@ -1,5 +1,8 @@
 import os
 
+python_path = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'physion', 'bin', 'python')
+python_path_suite2p_env = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p', 'bin', 'python')
+
 FOLDERS = {
     '~/DATA':os.path.join(os.path.expanduser('~'), 'DATA'),
     '~/UNPROCESSED':os.path.join(os.path.expanduser('~'), 'UNPROCESSED')
@@ -19,3 +22,6 @@ else:
     FOLDERS['usb (code)'] = '/media/yann/CODE_YANN/'
     FOLDERS['10.0.0.1:~/DATA'] = 'yann@10.0.0.1:/home/yann/DATA/'
     FOLDERS['10.0.0.2:~/DATA'] = 'yann@10.0.0.2:/home/yann/DATA/'
+
+
+    

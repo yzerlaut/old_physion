@@ -4,10 +4,9 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
 from assembling.tools import find_matching_CaImaging_data
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path, python_path_suite2p_env
 from Ca_imaging.preprocessing import PREPROCESSING_SETTINGS
-
-python_path_suite2p_env = '$HOME/miniconda3/envs/suite2p/bin/python'
+from Ca_imaging.redcell_gui import run as RunRedCellGui
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -18,7 +17,8 @@ class MainWindow(QtWidgets.QMainWindow):
         sampling in Hz
         """
         super(MainWindow, self).__init__()
-
+        self.app, self.args = app, args
+        
         self.setGeometry(350, 470, 300, 300)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
@@ -130,7 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
                              stderr=subprocess.STDOUT)
 
     def red_cell_selection(self):
-        print('WIP')
+        children = RunRedCellGui(self.app, self.args)
             
     def quit(self):
         QtWidgets.QApplication.quit()
