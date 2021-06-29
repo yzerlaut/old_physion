@@ -177,8 +177,8 @@ def raw_data_plot(self, tzoom,
             indices = np.arange(self.pixel_masks_index[ir], self.pixel_masks_index[ir+1])
             x = [self.pixel_masks[ii][1] for ii in indices]
             y = [self.pixel_masks[ii][0] for ii in indices]
-            X += list(np.mean(x)+np.std(x)*np.cos(t))
-            Y += list(np.mean(x)+np.std(x)*np.sin(t))
+            X += list(np.mean(x)+3*np.std(x)*np.cos(t))
+            Y += list(np.mean(y)+3*np.std(y)*np.sin(t))
         self.ROIscatter.setData(X, Y, size=1, brush=pg.mkBrush(0,255,0))
         self.pCa.addItem(self.ROIscatter)
 
