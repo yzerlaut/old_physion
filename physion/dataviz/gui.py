@@ -222,11 +222,11 @@ class MainWindow(guiparts.NewWindow):
         
     def open_file(self):
 
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #                 (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-        #                     filter="*.nwb")
-        filename = '/home/yann/UNPROCESSED/2021_06_25/2021_06_25-10-26-28_NDNF_not_SST.nwb'
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                            filter="*.nwb")
+        # filename = '/home/yann/UNPROCESSED/2021_06_25/2021_06_25-10-26-28.nwb'
         
         if filename!='':
             self.reset()
