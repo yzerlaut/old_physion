@@ -222,11 +222,11 @@ class MainWindow(guiparts.NewWindow):
         
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                            filter="*.nwb")
-        # filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #                 (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+        #                     filter="*.nwb")
+        filename = '/home/yann/UNPROCESSED/2021_06_25/2021_06_25-10-26-28_NDNF_not_SST.nwb'
         
         if filename!='':
             self.reset()
@@ -627,6 +627,7 @@ def run(app, args=None, parent=None,
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",
