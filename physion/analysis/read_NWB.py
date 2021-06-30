@@ -80,8 +80,8 @@ def read(self, filename, verbose=False, with_tlim=True,
             self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
             self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
             self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
-            
-            if len(self.Segmentation.columns)>2: # DEPRECATED
+
+            if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='iscell') : # DEPRECATED
                 self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
                 self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
             else:
@@ -171,12 +171,22 @@ def scan_folder_for_NWBfiles(folder, verbose=True):
 
 if __name__=='__main__':
 
-    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/')
-    print(np.unique(SUBJECTS))
-    
+    # FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/')
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
+    # print(np.unique(SUBJECTS))
 
+    data = DummyParent()
+    read(data, sys.argv[-1])
+    # print(data.nwbfile.processing['ophys'])
+    print(data.iscell)
 
     
+
+
+
+
+
+
+
 
