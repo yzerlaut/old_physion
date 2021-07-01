@@ -134,34 +134,8 @@ class MainWindow(guiparts.NewWindow):
 
         guiparts.build_slider(self, mainLayout)
 
-        # screen panel
-        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
-        self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pScreenimg.setLevels([0,255])
-        # FaceCamera panel
-        self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
-        self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pFaceimg.setLevels([0,255])
-        # Pupil panel
-        self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
-        self.pPupilimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pPupilimg.setLevels([0,255])
-        self.pupilContour = pg.ScatterPlotItem()
-        # Facemotion panel
-        self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
-        self.pFacemotionimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pFacemotionimg.setLevels([0,255])
-        self.facemotionROI = pg.ScatterPlotItem()
-        # Ca-Imaging panel
-        self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
-        self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
-        self.pCaimg.setLevels([0,255])
-        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
-                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
-            x.setAspectLocked()
-            x.addItem(y)
-            x.show()
-
+        self.init_panels()
+        
         self.plot = self.winTrace.addPlot()
         self.plot.hideAxis('left')
         self.plot.setMouseEnabled(x=True,y=False)
@@ -200,7 +174,6 @@ class MainWindow(guiparts.NewWindow):
         self.cwidget.setLayout(mainLayout)
         self.show()
         
-        
         self.fbox.addItems(FOLDERS.keys())
         self.windowTA, self.windowBM = None, None # sub-windows
 
@@ -219,17 +192,49 @@ class MainWindow(guiparts.NewWindow):
         self.showwindow()
 
 
+    def init_panel_imgs(self):
         
+        self.pScreenimg.setImage(np.ones((10,12))*50)
+        self.pFaceimg.setImage(np.ones((10,12))*50)
+        self.pPupilimg.setImage(np.ones((10,12))*50)
+        self.pFacemotionimg.setImage(np.ones((10,12))*50)
+        self.pCaimg.setImage(np.ones((50,50))*100)
+        self.pupilContour.setData([0], [0], size=1, brush=pg.mkBrush(0,0,0))
+
+    def init_panels(self):
+
+        # screen panel
+        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
+        # FaceCamera panel
+        self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
+        # Pupil panel
+        self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.pupilContour = pg.ScatterPlotItem()
+        self.pPupilimg = pg.ImageItem(np.ones((10,12))*50)
+        # Facemotion panel
+        self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.facemotionROI = pg.ScatterPlotItem()
+        self.pFacemotionimg = pg.ImageItem(np.ones((10,12))*50)
+        # Ca-Imaging panel
+        self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
+        self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
+        
+        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
+                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
+            x.addItem(y)
+
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                            filter="*.nwb")
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #                 (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+        #                     filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
-        
+        filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
+        filename = '/home/yann/DATA/CaImaging/Wild_Type_GCamp6s/2021_05_20/2021_05_20-13-59-57.nwb'
         if filename!='':
-            self.reset()
             self.datafile=filename
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
@@ -242,11 +247,13 @@ class MainWindow(guiparts.NewWindow):
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
         self.no_subsampling = False
-        self.plot.clear()
-        self.pScreenimg.clear()
-        self.pFaceimg.clear()
-        self.pCaimg.clear()
-        self.pPupilimg.clear()
+        self.init_panel_imgs()
+        # self.plot.clear()
+        # self.pScreenimg.clear()
+        # self.pFaceimg.clear()
+        # self.pCaimg.clear()
+        # self.pPupilimg.clear()
+        # self.win1.clear()
         self.roiIndices = None
 
         
@@ -258,6 +265,8 @@ class MainWindow(guiparts.NewWindow):
             
     def load_file(self, filename):
         """ should be a minimal processing so that the loading is fast"""
+        self.reset()
+        
         read_NWB(self, filename,
                  verbose=True) # see ../analysis/read_NWB.py
 

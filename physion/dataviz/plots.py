@@ -117,10 +117,11 @@ def raw_data_plot(self, tzoom,
             # adding blinking flag (a thick line at the bottom)
             if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
                 cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
-                self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
-                               symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
-                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
-            
+                if np.sum(cond):
+                    self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
+                                   symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
+                                   symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+                    
         except BaseException as be:
             print(be)
             print('\n ------------------- \n /!\ Pb in plotting pupil ...')
