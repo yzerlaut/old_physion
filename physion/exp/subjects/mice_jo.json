@@ -1,10 +1,10 @@
 {
-    "Mouse1":{"description":"Mouse1",
+    "Mouse1_CB1_TdTomato":{"description":"Mouse1_CB1_TdTomato",
 		 "anibio":"Unknown",
 		 "sex":"Unknown",
 		 "genotype":"Unknown",
 		 "species":"Mouse",
-		 "subject_id":"Mouse1",
+		 "subject_id":"Mouse1_CB1_TdTomato",
 		 "weight":"Unknown",
 		 "virus":"Unknown",
 		 "surgery":"Unknown",
