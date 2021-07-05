@@ -31,6 +31,9 @@ class MultimodalData(Data):
     ###-------------------------------------
     ### ----- RAW DATA PLOT components -----
     ###-------------------------------------
+
+    def shifted_start(self, tlim, frac_shift=0.01):
+        return tlim[0]-0.01*(tlim[1]-tlim[0])
     
     def add_Photodiode(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
@@ -38,8 +41,7 @@ class MultimodalData(Data):
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
         ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction/2.+fig_fraction_start), xycoords='data', color=color, va='center')
 
 
     def add_Electrophy(self, tlim, ax,
@@ -49,8 +51,7 @@ class MultimodalData(Data):
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Electrophysiological-Signal'].data[i1:i2][::subsampling]
         ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction/2.+fig_fraction_start), xycoords='data', color=color, va='center')
         
     def add_Locomotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=2,
@@ -61,13 +62,12 @@ class MultimodalData(Data):
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
         scale_range = (y.max()-y.min())
         if scale_range>0:
-            ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color)
-            ax.annotate('%.0fcm/s' % Sscale, (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8)
+            ax.plot(self.shifted_start(tlim)*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color, lw=1)
+            ge.annotate(ax, '%.0fcm/s' % Sscale, (self.shifted_start(tlim), fig_fraction_start), ha='right', color=color, va='center', xycoords='data')
             ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
         else:
             ax.plot(x, 0*x+fig_fraction_start, color=color)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction/2.+fig_fraction_start), xycoords='data', color=color, va='center')
         
     def add_FaceMotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.purple, name='facemotion'):
@@ -77,10 +77,9 @@ class MultimodalData(Data):
         x, y = t[::subsampling], motion[::subsampling]
         scale_range = (y.max()-y.min())
         ax.plot(x, (y-y.min())/scale_range*fig_fraction+fig_fraction_start, color=color)
-        ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color)
-        ax.annotate('a.u.', (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ax.plot(self.shifted_start(tlim)*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color, lw=1)
+        ge.annotate(ax, 'a.u. ', (self.shifted_start(tlim), fig_fraction_start), ha='right', color=color, xycoords='data')
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction/2.+fig_fraction_start), color=color, xycoords='data', va='center')
 
     def add_Pupil(self, tlim, ax,
                   fig_fraction_start=0., fig_fraction=1., subsampling=2,
@@ -93,10 +92,9 @@ class MultimodalData(Data):
         x, y = t[::subsampling], diameter[::subsampling]
         scale_range = (y.max()-y.min())
         ax.plot(x, (y-y.min())/scale_range*fig_fraction+fig_fraction_start, color=color)
-        ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*Pbar/scale_range, color=color)
-        ax.annotate('%.1fmm' % Pbar, (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8) # twice for diam.
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ax.plot(self.shifted_start(tlim)*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*Pbar/scale_range, color=color, lw=1)
+        ge.annotate(ax, '%.1fmm ' % Pbar, (self.shifted_start(tlim), fig_fraction_start), ha='right', va='center', xycoords='data', color=color) # twice for diam.
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction/2.+fig_fraction_start), color=color, va='center', xycoords='data')
         
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
@@ -122,17 +120,17 @@ class MultimodalData(Data):
             ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start
             if subquantity in ['dF/F', 'dFoF']:
                 ax.plot(tt, y/2.*ymax_factor+ypos, color=COLORS[n], lw=1)
-                ax.plot(tlim[0]*np.ones(2), np.arange(2)/2.*ymax_factor+ypos, color=COLORS[n], lw=1)
+                ax.plot(self.shifted_start(tlim)*np.ones(2), np.arange(2)/2.*ymax_factor+ypos, color=COLORS[n], lw=1)
             elif y.max()>y.min():
                 rescaled_y = (y-y.min())/(y.max()-y.min())
                 ax.plot(tt, rescaled_y*ymax_factor+ypos, color=COLORS[n], lw=1)
 
             ax.annotate('ROI#%i'%(ir+1), (tlim[1], ypos), color=COLORS[n], fontsize=8)
         if subquantity in ['dF/F', 'dFoF']:
-            ax.annotate('1$\Delta$F/F', (tlim[0], fig_fraction_start), ha='right',
-                        rotation=90, color='k', fontsize=9)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+            ax.annotate('1$\Delta$F/F', (self.shifted_start(tlim), fig_fraction_start), ha='right',
+                        rotation=90, color=color, fontsize=9)
+        ge.annotate(ax, name+'\n ', (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
+                    xycoords='data', ha='right', va='center', rotation=90)
             
 
     def add_CaImagingSum(self, tlim, ax,
@@ -174,7 +172,7 @@ class MultimodalData(Data):
             if True:
                 vse = None
             self.visual_stim.show_frame(i, ax=axi, label=None, arrow=arrow, enhance=True)
-        ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
+        ax.annotate(name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
     
     def plot_raw_data(self, 
@@ -206,10 +204,10 @@ class MultimodalData(Data):
             getattr(self, 'add_%s' % key)(tlim, ax, **settings[key])
             
         ax.axis('off')
-        ax.plot([tlim[0], tlim[0]+Tbar], [1.,1.], lw=2, color='k')
-        ax.set_xlim([tlim[0]-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
+        ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=2, color='k')
+        ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
         ax.set_ylim([-0.05,1.05])
-        ax.annotate(' %is' % Tbar, [tlim[0], 1.02], color='k', fontsize=9)
+        ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         return fig, ax
         

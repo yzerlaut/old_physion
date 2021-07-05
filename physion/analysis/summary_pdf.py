@@ -12,16 +12,18 @@ from analysis.tools import *
 def raw_data_plot_settings(data, subsampling_factor=1):
     settings = {}
     if 'Photodiode-Signal' in data.nwbfile.acquisition:
-        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100*subsampling_factor, color='grey')
+        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=10*subsampling_factor, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:
-        settings['Locomotion'] = dict(fig_fraction=1, subsampling=100*subsampling_factor, color='b')
+        settings['Locomotion'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
     if 'Pupil' in data.nwbfile.processing:
-        settings['Pupil'] = dict(fig_fraction=2, subsampling=2*subsampling_factor, color='red')
-    if 'Whisking' in data.nwbfile.processing:
-        settings['Whisking'] = dict(fig_fraction=2, subsampling=2*subsampling_factor, color='red')
+        settings['Pupil'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
+    if 'FaceMotion' in data.nwbfile.processing:
+        settings['FaceMotion'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
     if 'ophys' in data.nwbfile.processing:
-        settings['CaImaging'] = dict(fig_fraction=8, roiIndices=data.roiIndices, quantity='CaImaging',
-                                     subquantity='dF/F', vicinity_factor=1., color='green', subsampling=10*subsampling_factor)
+        settings['CaImaging'] = dict(fig_fraction=8,
+                                     roiIndices=np.random.choice(np.arange(np.sum(data.iscell)), 20, replace=True), # picking 20 random non-redundant rois
+                                     quantity='CaImaging',
+                                     subquantity='dF/F', vicinity_factor=1., color='green', subsampling=subsampling_factor)
         # settings['CaImagingSum'] = dict(fig_fraction=2,
         #                                 subsampling=10, 
         #                                 quantity='CaImaging', subquantity='dF/F', color='green')
@@ -310,28 +312,29 @@ def make_sumary_pdf(filename, Nmax=1000000,
             print('plotting full data view [...]')
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
-            data.plot_raw_data(data.tlim, settings=raw_data_plot_settings(data, subsampling_factor=1000),
+            data.plot_raw_data(data.tlim,
+                               settings=raw_data_plot_settings(data, subsampling_factor=5),
                                ax=ax, Tbar=Tbar_raw_data)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
             
-            # # plot raw data sample
-            # for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
-            #     TLIM = [np.max([10,t0-T_raw_data]),t0]
-            #     print('plotting raw data sample at times ', TLIM)
-            #     fig, ax = plt.subplots(1, figsize=(11.4, 5))
-            #     fig.subplots_adjust(top=0.8, bottom=0.05)
-            #     data.plot(TLIM, settings=raw_data_plot_settings(data),
-            #               ax=ax, Tbar=Tbar_raw_data)
-            #     # inset with time sample
-            #     axT = plt.axes([0.6, 0.9, 0.3, 0.05])
-            #     axT.axis('off')
-            #     axT.plot(data.tlim, [0,0], 'k-', lw=2)
-            #     axT.plot(TLIM, [0,0], '-', color=plt.cm.tab10(3), lw=5)
-            #     axT.annotate('0 ', (0,0), xycoords='data', ha='right', fontsize=9)
-            #     axT.annotate(' %.1fmin' % (data.tlim[1]/60.), (data.tlim[1],0), xycoords='data', fontsize=9)
-            #     pdf.savefig()  # saves the current figure into a pdf page
-            #     plt.close()
+            # plot raw data sample
+            for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
+                TLIM = [np.max([10,t0-T_raw_data]),t0]
+                print('plotting raw data sample at times ', TLIM)
+                fig, ax = plt.subplots(1, figsize=(11.4, 5))
+                fig.subplots_adjust(top=0.8, bottom=0.05)
+                data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data),
+                                   ax=ax, Tbar=Tbar_raw_data)
+                # inset with time sample
+                axT = plt.axes([0.6, 0.9, 0.3, 0.05])
+                axT.axis('off')
+                axT.plot(data.tlim, [0,0], 'k-', lw=2)
+                axT.plot(TLIM, [0,0], '-', color=plt.cm.tab10(3), lw=5)
+                axT.annotate('0 ', (0,0), xycoords='data', ha='right', fontsize=9)
+                axT.annotate(' %.1fmin' % (data.tlim[1]/60.), (data.tlim[1],0), xycoords='data', fontsize=9)
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
 
     print('looping over protocols for analysis [...]')
         
@@ -451,13 +454,14 @@ if __name__=='__main__':
     
     # pdf_dir = os.path.join(os.path.dirname(filename), 'summary', os.path.basename(filename))
 
-    data = MultimodalData(filename)
+    # data = MultimodalData(filename)
     
     # fig1 = metadata_fig(data)
     # fig2 = behavior_analysis_fig(data)
     # fig3 = roi_analysis_fig(data, roiIndex=0)
     # plt.show()
     
-    make_sumary_pdf(filename, include=['raw', 'protocols'])
-    # make_sumary_pdf(filename, include=['protocols'])
+    # make_sumary_pdf(filename, include=['exp', 'raw', 'protocols'])
+    make_sumary_pdf(filename, include=['raw'])
+
     
