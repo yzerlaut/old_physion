@@ -14,6 +14,7 @@ if os.name=='nt':
     FOLDERS['F-drive'] = 'F:\\'
     FOLDERS['G-drive'] = 'G:\\'
 else:
+    FOLDERS['curated'] = '/media/yann/DATADRIVE1/CURATED'
     FOLDERS['usb (YANN)'] = '/media/yann/YANN/'
     FOLDERS['usb (Yann)'] = '/media/yann/Yann/'
     FOLDERS['desktop-storage'] = '/media/yann/DATADRIVE1/DATA/'

@@ -183,6 +183,7 @@ class TrialAverageWindow(NewWindow):
     def select_ROI(self):
         """ see dataviz/gui.py """
         roiIndices = self.parent.select_ROI_from_pick(cls=self.parent)
+        print(roiIndices)
         if len(roiIndices)>0:
             self.parent.roiIndices = roiIndices
             self.parent.roiPick.setText(self.roiPick.text())

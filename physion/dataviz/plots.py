@@ -108,24 +108,21 @@ def raw_data_plot(self, tzoom,
 
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
         
-        y = scale_and_position(self, self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
+        y = scale_and_position(self,
+                               np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
+                                       self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0),
                                i=iplot)
 
-        try:
-            self.plot.plot(t[np.isfinite(y)], y[np.isfinite(y)], pen=pg.mkPen(color=self.settings['colors']['Pupil']))
+        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
-            # adding blinking flag (a thick line at the bottom)
-            if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
-                cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
-                if np.sum(cond):
-                    self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
-                                   symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
-                                   symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
-                    
-        except BaseException as be:
-            print(be)
-            print('\n ------------------- \n /!\ Pb in plotting pupil ...')
-        
+        # adding blinking flag (a thick line at the bottom)
+        if 'blinking' in self.nwbfile.processing['Pupil'].data_interfaces:
+            cond = (self.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
+            if np.sum(cond):
+                self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
+                               symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
+                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+                
         iplot+=1
 
         # plotting a circle for the pupil fit

@@ -310,11 +310,10 @@ def make_sumary_pdf(filename, Nmax=1000000,
             print('plotting full data view [...]')
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
-            data.plot(data.tlim, settings=raw_data_plot_settings(data, subsampling_factor=1000),
-                      ax=ax, Tbar=Tbar_raw_data)
+            data.plot_raw_data(data.tlim, settings=raw_data_plot_settings(data, subsampling_factor=1000),
+                               ax=ax, Tbar=Tbar_raw_data)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
-
             
             # # plot raw data sample
             # for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
@@ -459,6 +458,6 @@ if __name__=='__main__':
     # fig3 = roi_analysis_fig(data, roiIndex=0)
     # plt.show()
     
-    # make_sumary_pdf(filename, include=['raw', 'protocols'])
-    make_sumary_pdf(filename, include=['protocols'])
+    make_sumary_pdf(filename, include=['raw', 'protocols'])
+    # make_sumary_pdf(filename, include=['protocols'])
     

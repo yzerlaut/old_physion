@@ -53,11 +53,16 @@ class MultimodalData(Data):
                     fontsize=8, ha='right')
         
     def add_Locomotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.blue, name='run. speed'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2,
+                       Sscale=1, # cm/s
+                       color=ge.blue, name='run. speed'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
         x = convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
-        if y.max()>y.min():
+        scale_range = (y.max()-y.min())
+        if scale_range>0:
+            ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color)
+            ax.annotate('%.0fcm/s' % Sscale, (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8)
             ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
         else:
             ax.plot(x, 0*x+fig_fraction_start, color=color)
@@ -70,18 +75,26 @@ class MultimodalData(Data):
         t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
         motion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2]
         x, y = t[::subsampling], motion[::subsampling]
-        ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        scale_range = (y.max()-y.min())
+        ax.plot(x, (y-y.min())/scale_range*fig_fraction+fig_fraction_start, color=color)
+        ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color)
+        ax.annotate('a.u.', (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8)
         ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
 
     def add_Pupil(self, tlim, ax,
-                  fig_fraction_start=0., fig_fraction=1., subsampling=2, color='red', name='pupil diam.'):
+                  fig_fraction_start=0., fig_fraction=1., subsampling=2,
+                  Pbar = 0.5, # scale bar in mm
+                  color='red', name='pupil diam.'):
         i1, i2 = convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        diameter = np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
+        diameter = 2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
                            self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0)
         x, y = t[::subsampling], diameter[::subsampling]
-        ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
+        scale_range = (y.max()-y.min())
+        ax.plot(x, (y-y.min())/scale_range*fig_fraction+fig_fraction_start, color=color)
+        ax.plot(x[0]*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*Pbar/scale_range, color=color)
+        ax.annotate('%.1fmm' % Pbar, (tlim[0], fig_fraction_start), ha='right', rotation=90, color=color, fontsize=8) # twice for diam.
         ax.annotate(name, (tlim[0], fig_fraction/2.+fig_fraction_start), color=color,
                     fontsize=8, ha='right')
         
@@ -147,7 +160,7 @@ class MultimodalData(Data):
         for i in np.arange(self.nwbfile.stimulus['time_start_realigned'].num_samples)[cond]:
             tstart = self.nwbfile.stimulus['time_start_realigned'].data[i]
             tstop = self.nwbfile.stimulus['time_stop_realigned'].data[i]
-            ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
+            # ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
             axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
             axi.axis('equal')
@@ -167,19 +180,18 @@ class MultimodalData(Data):
     def plot_raw_data(self, 
                       tlim=[0,100],
                       settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
-                           'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
-                           'FaceMotion':dict(fig_fraction=1, subsampling=10, color='purple'),
-                           'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-                           'CaImaging':dict(fig_fraction=4, 
-                                            quantity='CaImaging', subquantity='Fluorescence', color='green',
-                                            roiIndices='all'),
-                           'VisualStim':dict(fig_fraction=0, color='black')},                    
+                                'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
+                                'FaceMotion':dict(fig_fraction=1, subsampling=10, color='purple'),
+                                'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
+                                'CaImaging':dict(fig_fraction=4, 
+                                                 quantity='CaImaging', subquantity='Fluorescence', color='green',
+                                                 roiIndices='all'),
+                                'VisualStim':dict(fig_fraction=0, color='black')},                    
                       figsize=(15,6), Tbar=20,
                       ax=None):
         
         if ax is None:
-            fig, ax = plt.subplots(1, figsize=figsize)
-            plt.subplots_adjust(left=0, right=1., top=.9)
+            fig, ax = ge.figure(figsize=(3,2), bottom=.3, left=.5)
         else:
             fig = None
             
@@ -459,39 +471,42 @@ def format_key_value(key, value):
      
 if __name__=='__main__':
     
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
+    # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
     filename = sys.argv[-1]
     data = MultimodalData(filename)
 
     # TRIAL AVERAGING EXAMPLE
-    fig, AX = data.plot_trial_average(roiIndex=3,
-                            protocol_id=0,
-                            quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
-                            xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                            fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
-    data.plot_trial_average(roiIndex=3,
-                            protocol_id=0,
-                            quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
-                            xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                            ylim=AX[0][0].get_ylim(),
-                            fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
-    ge.show()
+    # fig, AX = data.plot_trial_average(roiIndex=3,
+    #                         protocol_id=0,
+    #                         quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
+    #                         xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+    #                         fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+    # data.plot_trial_average(roiIndex=3,
+    #                         protocol_id=0,
+    #                         quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
+    #                         xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+    #                         ylim=AX[0][0].get_ylim(),
+    #                         fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
+    # ge.show()
     
     # RAW DATA EXAMPLE
-    # # data.plot([250, 300], 
-    # #           settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
-    # #                     'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
-    # #                     'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-    # #                     'CaImaging':dict(fig_fraction=4, subsampling=10, 
-    # #                                      quantity='CaImaging', subquantity='Fluorescence', color='green',
-    # #                                                roiIndices=[2, 6, 9, 10, 13, 15, 16, 17, 38, 41]),
-    # #                     'VisualStim':dict(fig_fraction=0, color='black')},                    
-    # #           Tbar=10)
-                            
+    # data.plot_raw_data([1040, 1060], 
+    #           # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
+    #           settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
+    #                     'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
+    #                     'CaImaging':dict(fig_fraction=7, subsampling=2, 
+    #                                      # quantity='CaImaging', subquantity='dF/F', color=ge.green,
+    #                                      quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+    #                                      # roiIndices=np.arange(np.sum(data.iscell))),
+    #                                      roiIndices=np.sort([5, 0, 18, 1, 3, 2, 11, 6, 8, 10, 9])),
+    #                     'VisualStim':dict(fig_fraction=2, color='black')},                    
+    #           Tbar=10)
+
+
     # from datavyz import ge
-    # fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', ge.green))
-    # ge.save_on_desktop(fig, 'fig.png')
-    # plt.show()
+    fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
+    ge.save_on_desktop(fig, 'fig.png')
+    plt.show()
 
 
 

@@ -229,13 +229,14 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #                 (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-        #                     filter="*.nwb")
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                                                        filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
-        filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
-        filename = '/home/yann/DATA/CaImaging/Wild_Type_GCamp6s/2021_05_20/2021_05_20-13-59-57.nwb'
+        # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
+        # filename = '/home/yann/DATA/CaImaging/Wild_Type_GCamp6s/2021_05_20/2021_05_20-13-59-57.nwb'
+        
         if filename!='':
             self.datafile=filename
             self.load_file(self.datafile)
@@ -638,6 +639,7 @@ def run(app, args=None, parent=None,
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",

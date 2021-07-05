@@ -421,16 +421,17 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             try:
                 i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>=len(cls.validROI_indices)):
+                if (i0<0) or (i0>=np.sum(cls.iscell)):
                     roiIndices = [0]
-                    self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
+                    self.statusBar.showMessage(' "%i" not a valid ROI index, roiIndices set to [0]'  % i0)
                 else:
                     roiIndices = [i0]
 
             except BaseException as be:
                 print(be)
-                roiIndices = []
+                roiIndices = [0]
                 self.statusBar.showMessage(' /!\ Problem in setting indices /!\ ')
+                
         return roiIndices
 
     def keyword_update(self, string=None, parent=None):
@@ -446,7 +447,7 @@ class NewWindow(QtWidgets.QMainWindow):
             cls.visual_stim = None
         elif string in ['scan_folder', 'scanF', 'scan']:
             cls.scan_folder()
-        elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
+        elif string in ['meanImg', 'meanImg_chan2', 'meanImgE', 'Vcorr', 'max_proj']:
             cls.CaImaging_bg_key = string
         elif string=='no_subsampling':
             cls.no_subsampling = True
