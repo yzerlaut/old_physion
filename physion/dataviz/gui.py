@@ -24,6 +24,8 @@ settings = {
               'FaceMotion':(255,0,255,255),#'purple',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
+              'LFP':(100,100,255,255),#'blue',
+              'Vm':(100,100,100,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':500}

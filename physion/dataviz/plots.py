@@ -64,7 +64,7 @@ def raw_data_plot(self, tzoom,
     if 'FaceMotion' in self.nwbfile.acquisition:
         
         i0 = convert_time_to_index(self.time, self.nwbfile.acquisition['FaceMotion'])
-        img = self.nwbfile.acquisition['FaceMotion'].data[i0]
+        self.pFacemotionimg.setImage(self.nwbfile.acquisition['FaceMotion'].data[i0])
         if hasattr(self, 'FacemotionFrameLevel'):
             self.plot.removeItem(self.FacemotionFrameLevel)
         self.FacemotionFrameLevel = self.plot.plot(self.nwbfile.acquisition['FaceMotion'].timestamps[i0]*np.ones(2),
@@ -145,6 +145,7 @@ def raw_data_plot(self, tzoom,
     # ## -------- Electrophy --------- ##
     
     if ('Electrophysiological-Signal' in self.nwbfile.acquisition):
+        # deprecated
         
         i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Electrophysiological-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Electrophysiological-Signal'])-1
@@ -157,7 +158,34 @@ def raw_data_plot(self, tzoom,
         self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Electrophysiological-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Electrophy']))
 
+    if ('LFP' in self.nwbfile.acquisition):
+        
+        i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['LFP'])+1
+        i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['LFP'])-1
+        if self.no_subsampling:
+            isampling = np.arange(i1,i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        y = scale_and_position(self,self.nwbfile.acquisition['LFP'].data[list(isampling)], i=iplot)
+        iplot+=1
+        self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['LFP']), y,
+                       pen=pg.mkPen(color=self.settings['colors']['LFP']))
 
+
+    if ('Vm' in self.nwbfile.acquisition):
+        
+        i1 = convert_time_to_index(tzoom[0], self.nwbfile.acquisition['Vm'])+1
+        i2 = convert_time_to_index(tzoom[1], self.nwbfile.acquisition['Vm'])-1
+        if self.no_subsampling:
+            isampling = np.arange(i1,i2)
+        else:
+            isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
+        y = scale_and_position(self,self.nwbfile.acquisition['Vm'].data[list(isampling)], i=iplot)
+        iplot+=1
+        self.plot.plot(convert_index_to_time(isampling, self.nwbfile.acquisition['Vm']), y,
+                       pen=pg.mkPen(color=self.settings['colors']['Vm']))
+
+        
     # ## -------- Calcium --------- ##
     
     # if (self.time==0) and ('ophys' in self.nwbfile.processing):
