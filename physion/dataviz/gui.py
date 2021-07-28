@@ -151,6 +151,10 @@ class MainWindow(guiparts.NewWindow):
         Layout122 = QtWidgets.QHBoxLayout()
         Layout12.addLayout(Layout122)
 
+        self.stimSelect = QtGui.QCheckBox("show stim")
+        self.stimSelect.setFont(guiparts.smallfont)
+        self.stimSelect.clicked.connect(self.select_stim)
+        
         self.roiPick = QtGui.QLineEdit()
         self.roiPick.setText(' [...] ')
         self.roiPick.setMinimumWidth(150)
@@ -169,6 +173,7 @@ class MainWindow(guiparts.NewWindow):
         self.guiKeywords.returnPressed.connect(self.keyword_update)
         self.guiKeywords.setFont(guiparts.smallfont)
 
+        Layout122.addWidget(self.stimSelect)
         Layout122.addWidget(self.guiKeywords)
         Layout122.addWidget(self.ephysPick)
         Layout122.addWidget(self.roiPick)
@@ -259,6 +264,11 @@ class MainWindow(guiparts.NewWindow):
         # self.win1.clear()
         self.roiIndices = None
 
+    def select_stim(self):
+        if self.stimSelect.isChecked():
+            self.keyword_update(string='stim')
+        else:
+            self.keyword_update(string='no_stim')
         
     def select_ROI(self):
         """ see select ROI above """
