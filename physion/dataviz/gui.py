@@ -1,4 +1,4 @@
-import sys, time, tempfile, os, pathlib, datetime, string, pynwb
+import sys, time, tempfile, os, pathlib, datetime, string, pynwb, subprocess
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
@@ -10,7 +10,8 @@ from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import read as read_NWB
-from misc.folders import FOLDERS
+from analysis.summary_pdf import summary_pdf_folder
+from misc.folders import FOLDERS, python_path
 from misc import guiparts
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
@@ -105,8 +106,9 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
         self.pbox.addItem('-> Behavioral-modulation')
-        self.pbox.addItem('-> Make-figures')
-        self.pbox.addItem('-> Open PDF summary')
+        self.pbox.addItem('-> draw figures')
+        self.pbox.addItem('-> produce PDF summary')
+        self.pbox.addItem('-> open PDF summary')
         self.pbox.setCurrentIndex(0)
 
         Layout11.addWidget(self.pbox)
@@ -440,20 +442,26 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
-        elif self.pbox.currentText()=='-> Make-figures':
+        elif self.pbox.currentText()=='-> draw figures':
             self.windowFG = FiguresWindow(parent=self)
             self.windowFG.show()
-        elif self.pbox.currentText()=='-> Open PDF summary':
-            print('looking for pdf summary [...]')
-            PDFS = []
-            if os.path.isdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary')):
-                PDFS = os.listdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary'))
-                print('set of pdf-files found:')
-                print(PDFS)
+        elif self.pbox.currentText()=='-> produce PDF summary':
+            cmd = '%s %s -df %s --ops exp raw rois protocols --verbose' % (python_path,
+                        os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
+                                     'analysis', 'summary_pdf.py'),
+                                                                           self.datafile)
+            p = subprocess.Popen(cmd, shell=True)
+            print('"%s" launched as a subprocess' % cmd)
+        elif self.pbox.currentText()=='-> open PDF summary':
+            pdf_folder = summary_pdf_folder(self.datafile)
+            if os.path.isdir(pdf_folder):
+                PDFS = os.listdir(pdf_folder)
+                for pdf in PDFS:
+                    print(' - opening: "%s"' % pdf)
+                    os.system('$(basename $(xdg-mime query default application/pdf) .desktop) %s & ' % os.path.join(pdf_folder, pdf))
             else:
                 print('no PDF summary files found !')
-            pdf_filename = '~/Desktop/test.pdf'
-            os.system('$(basename $(xdg-mime query default application/pdf) .desktop) %s ' % pdf_filename)
+
         else:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,

@@ -31,7 +31,7 @@ class CellResponse:
         if verbose:
             print('Building episodes for "%s"' % self.protocols[protocol_id])
         data.CaImaging_key, data.roiIndices = subquantity, [roiIndex]
-        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity)
+        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity, verbose=verbose)
         self.varied_parameters = data.varied_parameters
         self.metadata = data.metadata
 
@@ -173,29 +173,38 @@ def orientation_selectivity_plot(angles, responses, ax=None, figsize=(2.5,1.5), 
     ax.set_xlabel('angle ($^o$)', fontsize=9)
     return SI
 
-def orientation_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True, subprotocol_id=0):
+def OS_ROI_analysis(FullData, roiIndex=0, with_std=True, verbose=True, subprotocol_id=0):
+    """
+    orientation selectivity ROI analysis
+    """
+
     iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in ORIENTATION_PROTOCOLS)][subprotocol_id]
-    data = CellResponse(FullData, protocol_id=iprotocol,
-                        quantity='CaImaging', subquantity='dF/F',
-                        roiIndex = roiIndex, verbose=verbose)
-    fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
-    plt.subplots_adjust(left=0.03, right=.75, top=0.9, bottom=0.05)
-    for i, angle in enumerate(data.varied_parameters['angle']):
-        data.plot('angle',i, ax=AX[i], with_std=with_std)
-        AX[i].set_title('%.0f$^o$' % angle, fontsize=9)
-    YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
-    for ax in AX:
-        ax.set_ylim(YLIM)
-        data.add_stim(ax)
-        ax.axis('off')
-    add_bar(AX[0], Xbar=2, Ybar=1)
-    ax = plt.axes([0.84,0.25,0.13,0.6])
+    
+    fig, AX = FullData.plot_trial_average(protocol_id=iprotocol,
+                                          quantity='CaImaging', subquantity='dF/F',
+                                          roiIndex = roiIndex,
+                                          ybar=1., ybarlabel='1dF/F',
+                                          with_stat_test=True,
+                                          verbose=verbose)
+    
+    # fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(11.4,2.5))
+    # plt.subplots_adjust(left=0.03, right=.75, top=0.9, bottom=0.05)
+    # for i, angle in enumerate(data.varied_parameters['angle']):
+    #     data.plot('angle',i, ax=AX[i], with_std=with_std)
+    #     AX[i].set_title('%.0f$^o$' % angle, fontsize=9)
+    # YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
+    # for ax in AX:
+    #     ax.set_ylim(YLIM)
+    #     data.add_stim(ax)
+    #     ax.axis('off')
+    # add_bar(AX[0], Xbar=2, Ybar=1)
+    # ax = plt.axes([0.84,0.25,0.13,0.6])
     responsive = responsiveness(data)
     SI = orientation_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax, color=('k' if responsive else 'lightgray'))
-    ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
-                weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
-    ax.annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
-                xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
+    # ax.annotate('SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
+    #             weight='bold', fontsize=9, color=('k' if responsive else 'lightgray'))
+    # ax.annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
+    #             xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     AX[0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.1), xycoords='figure fraction', weight='bold', fontsize=9)
     return fig, SI, responsive
 
@@ -213,7 +222,10 @@ def direction_selectivity_plot(angles, responses, ax=None, figsize=(1.5,1.5), co
     return orientation_selectivity_index(Angles, responses)
 
 
-def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True, subprotocol_id=0):
+def DS_ROI_analysis(FullData, roiIndex=0, verbose=True, subprotocol_id=0):
+    """
+    direction selectivity ROI analysis
+    """
     iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in DIRECTION_PROTOCOLS)][subprotocol_id]
     data = CellResponse(FullData, protocol_id=iprotocol,
                         quantity='CaImaging', subquantity='dF/F',
@@ -242,6 +254,22 @@ def direction_selectivity_analysis(FullData, roiIndex=0, verbose=True, subprotoc
     AX[0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.1), xycoords='figure fraction', weight='bold', fontsize=9)
     return fig, SI, responsive
 
+def summary_fig(Nresp, Ntot, quantity,
+                label='Orient. Select. Index',
+                labels=['responsive', 'unresponsive']):
+    fig, AX = plt.subplots(1, 4, figsize=(11.4, 2.5))
+    fig.subplots_adjust(left=0.1, right=0.8, bottom=0.2)
+    AX[1].pie([100*Nresp/Ntot, 100*(1-Nresp/Ntot)], explode=(0, 0.1),
+              colors=[plt.cm.tab10(2), plt.cm.tab10(3)],
+              labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+    AX[1].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    AX[3].hist(quantity)
+    AX[3].set_xlabel(label, fontsize=9)
+    AX[3].set_ylabel('count', fontsize=9)
+    for ax in [AX[0], AX[2]]:
+        ax.axis('off')
+    return fig, AX
+    
 
 if __name__=='__main__':
     

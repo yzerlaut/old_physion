@@ -63,6 +63,6 @@ def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
         print(20*'--')
         print(' /!\ "%s" not recognized to process the CaImaging signal /!\ ')
         print(20*'--')
-        return None
+
 
               

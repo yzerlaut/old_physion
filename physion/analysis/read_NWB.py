@@ -3,6 +3,7 @@ import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, list_dayfolder, get_files_with_extension
+from visual_stim.psychopy_code.stimuli import build_stim
 
 def init(self):
 
@@ -12,14 +13,68 @@ def init(self):
     self.keys = []
 
 class Data:
+    
     """
     a basic class to be the parent of specific applications
     """
+    
     def __init__(self, filename,
                  verbose=False, with_visual_stim=False):
+        
         read(self, filename,
              with_visual_stim=with_visual_stim,
              verbose=verbose)
+
+        
+    def close(self):
+        self.io.close()
+        
+            
+    def init_visual_stim(self):
+        self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
+        self.visual_stim = build_stim(self.metadata, no_psychopy=True)
+
+        
+    def get_protocol_id(protocol_name):
+        # TO BE DONE
+        return -1
+
+    
+    def get_protocol_cond(self, protocol_id):
+        """
+        ## a recording can have multiple protocols inside
+        -> find the condition of a given protocol ID
+        """
+
+        if ('protocol_id' in self.nwbfile.stimulus) and (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1):
+            Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
+        else:
+            Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+            
+        # limiting to available episodes
+        Pcond[np.arange(len(Pcond))>=self.nwbfile.stimulus['time_start_realigned'].num_samples] = False
+
+        return Pcond
+        
+    
+    def get_stimulus_conditions(self, X, K, protocol_id):
+        """
+        find the episodes where the keys "K" have the values "X"
+        """
+        Pcond = self.get_protocol_cond(protocol_id)
+        
+        if len(K)>0:
+            CONDS = []
+            XK = np.meshgrid(*X)
+            for i in range(len(XK[0].flatten())): # looping over joint conditions
+                cond = np.ones(np.sum(Pcond), dtype=bool)
+                for k, xk in zip(K, XK):
+                    cond = cond & (self.nwbfile.stimulus[k].data[Pcond]==xk.flatten()[i])
+                CONDS.append(cond)
+            return CONDS
+        else:
+            return [np.ones(np.sum(Pcond), dtype=bool)]
+            
         
     
 def read(self, filename, verbose=False, with_tlim=True,
@@ -128,10 +183,7 @@ def read(self, filename, verbose=False, with_tlim=True,
                                                                self.nwbfile.stimulus['time_start'].data.shape[0])
 
     if with_visual_stim:
-        sys.path.append('.')
-        from physion.visual_stim.psychopy_code.stimuli import build_stim
-        self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
-        self.visual_stim = build_stim(self.metadata, no_psychopy=True)
+        self.init_visual_stim()
 
     if verbose:
         print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))

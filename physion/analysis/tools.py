@@ -13,7 +13,6 @@ def resample_signal(original_signal,
 
     if verbose:
         print('resampling signal [...]')
-        
 
     if (pre_smoothing*original_freq)>1:
         if verbose:
@@ -94,7 +93,8 @@ def autocorrel_on_NWB_quantity(Q1=None,
 
     # Q1 signal
     if (t_q1 is not None) and (q1 is not None):
-        print(q1[:])
+        pass
+        # print(q1[:])
     elif Q1.timestamps is not None:
         t_q1 = Q1.timestamps[:]
         q1 =Q1.data[:]

@@ -38,7 +38,6 @@ class MainWindow(QtWidgets.QMainWindow):
                   "c) Add [C]a2+ data",
                   "t) [T]ransfer data",
                   "v) [V]isualize data",
-                  "b) summary [P]DF ",
                   "n) launch [Notebook] ",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
@@ -55,7 +54,6 @@ class MainWindow(QtWidgets.QMainWindow):
                      self.launch_CaAddition,
                      self.launch_transfer,
                      self.launch_visualization,
-                     self.summary_pdf,
                      self.launch_notebook,
                      self.quit]
         
@@ -154,10 +152,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.child = RunAnalysisGui(self.app, self.args,
                                     raw_data_visualization=True)
         
-    def summary_pdf(self):
-        from physion.misc.notebook import run as RunNotebook
-        self.child = RunNotebook(self.app, self.args)
-
     def launch_notebook(self):
         import subprocess
         from physion.misc.folders import python_path

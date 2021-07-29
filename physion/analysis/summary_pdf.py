@@ -8,13 +8,14 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
 from Ca_imaging.tools import compute_CaImaging_trace
 from analysis.tools import *
+from analysis import orientation_direction_selectivity
 
 def raw_data_plot_settings(data, subsampling_factor=1):
     settings = {}
     if 'Photodiode-Signal' in data.nwbfile.acquisition:
-        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=10*subsampling_factor, color='grey')
+        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100*subsampling_factor, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:
-        settings['Locomotion'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
+        settings['Locomotion'] = dict(fig_fraction=2, subsampling=3*subsampling_factor)
     if 'Pupil' in data.nwbfile.processing:
         settings['Pupil'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
     if 'FaceMotion' in data.nwbfile.processing:
@@ -81,7 +82,7 @@ def metadata_fig(data):
     s, ds ='', 150
     for key in data.nwbfile.devices:
         S = str(data.nwbfile.devices[key])
-        print(S[:100], len(S))
+        # print(S[:100], len(S))
         i=0
         while i<len(S)-ds:
             s += S[i:i+ds]+'\n'
@@ -171,7 +172,8 @@ def roi_analysis_fig(data, roiIndex=0):
     return fig
 
 
-def behavior_analysis_fig(data):
+def behavior_analysis_fig(data,
+                          running_speed_threshold=0.1):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
     n = len(MODALITIES)+(len(MODALITIES)-1)
@@ -192,6 +194,17 @@ def behavior_analysis_fig(data):
         AX[i][0].set_xlabel(unit, fontsize=10)
         AX[i][0].set_ylabel('occurence (%)', fontsize=10)
 
+        if mod=='Running-Speed':
+            # do a small inset with fraction above threshold
+            inset = AX[i][0].inset_axes([0.6, 0.6, 0.4, 0.4])
+            frac_running = np.sum(quantity>running_speed_threshold)/len(quantity)
+            inset.pie([100*frac_running, 100*(1-frac_running)], explode=(0, 0.1),
+                      colors=[color, 'lightgrey'],
+                      labels=['run ', ' rest'],
+                      autopct='%.0f%%  ', shadow=True, startangle=90)
+            inset.set_title('thresh=%.1fcm/s' % running_speed_threshold, fontsize=7)
+            inset.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+            
         quantity = (quant.data[:] if times is None else quant)
         AX[i][1].hist(quantity, bins=10,
                       weights=100*np.ones(len(quantity))/len(quantity), log=True, color=color)
@@ -264,128 +277,154 @@ def behavior_analysis_fig(data):
     return fig
 
 
-def make_sumary_pdf(filename, Nmax=1000000,
+def add_inset_with_time_sample(TLIM, tlim):
+    # inset with time sample
+    axT = plt.axes([0.6, 0.9, 0.3, 0.05])
+    axT.axis('off')
+    axT.plot(tlim, [0,0], 'k-', lw=2)
+    axT.plot(TLIM, [0,0], '-', color=plt.cm.tab10(3), lw=5)
+    axT.annotate('0 ', (0,0), xycoords='data', ha='right', fontsize=9)
+    axT.annotate(' %.1fmin' % (tlim[1]/60.), (tlim[1],0), xycoords='data', fontsize=9)
+
+def make_summary_pdf(filename, Nmax=1000000,
                     include=['exp', 'rois', 'raw', 'protocols'],
                     T_raw_data=60,
                     N_raw_data=5,
                     ROI_raw_data=20,
-                    Tbar_raw_data=5):
+                    verbose=True):
 
     data = MultimodalData(filename)
-    data.roiIndices = np.sort(np.random.choice(np.arange(data.iscell.sum()),
+    
+    if bool(data.metadata['CaImaging']):
+        data.roiIndices = np.sort(np.random.choice(np.arange(data.iscell.sum()),
                                                size=min([data.iscell.sum(), ROI_raw_data]),
                                                replace=False))
+    else:
+        data.roiIndices = []
 
-    folder = filename.replace('.nwb', '')
+    folder = summary_pdf_folder(filename)
+    
     if not os.path.isdir(folder):
         os.mkdir(folder)
-
+        print('-> created summary PDF folder !')
+    else:
+        print('summary PDF folder already exists !')
+        
     if 'exp' in include:
         with PdfPages(os.path.join(folder, 'exp.pdf')) as pdf:
 
-            print('writing experimental metadata ')
+            print('* writing experimental metadata as "exp.pdf" [...] ')
+            
+            print('   - notes')
             fig = metadata_fig(data)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
-            print('plotting behavior analysis ')
+            print('   - behavior analysis ')
             fig = behavior_analysis_fig(data)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
-    if 'exp' in include:
+    if 'rois' in include:
+        
         with PdfPages(os.path.join(folder, 'rois.pdf')) as pdf:
 
-            print('plotting imaging FOV ')
-            fig, AX = plt.subplots(1, 4, figsize=(11.4, 2))
+            print('* plotting ROI analysis as "rois.pdf" [...]')
+            print('   - plotting imaging FOV')
+            fig, AX = plt.subplots(1, 4, figsize=(11.4, 2.))
             data.show_CaImaging_FOV(key='meanImg', NL=1, cmap='viridis', ax=AX[0])
             data.show_CaImaging_FOV(key='meanImg', NL=2, cmap='viridis', ax=AX[1])
             data.show_CaImaging_FOV(key='meanImgE', NL=2, cmap='viridis', ax=AX[2])
             data.show_CaImaging_FOV(key='max_proj', NL=2, cmap='viridis', ax=AX[3])
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
+            for i in data.roiIndices:
+                print('   - plotting analysis of ROI #%i' % (i+1))
+                fig = roi_analysis_fig(data, roiIndex=i)
+                pdf.savefig()  # saves the current figure into a pdf page
+                plt.close()
+                
         
     if 'raw' in include:
         
         with PdfPages(os.path.join(folder, 'raw.pdf')) as pdf:
 
-            print('plotting full data view [...]')
+            print('* plotting raw data as "raw.pdf" [...]')
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
+            print('   - plotting full data view')
             data.plot_raw_data(data.tlim,
-                               settings=raw_data_plot_settings(data, subsampling_factor=5),
-                               ax=ax, Tbar=Tbar_raw_data)
+                               settings=raw_data_plot_settings(data, subsampling_factor=int(2*(data.tlim[1]-data.tlim[0])/60.+1)),
+                               ax=ax, Tbar=int((data.tlim[1]-data.tlim[0])/30.))
+            axT = add_inset_with_time_sample(data.tlim, data.tlim)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
             
             # plot raw data sample
             for t0 in np.linspace(T_raw_data, data.tlim[1], N_raw_data):
                 TLIM = [np.max([10,t0-T_raw_data]),t0]
-                print('plotting raw data sample at times ', TLIM)
+                print('   - plotting raw data sample at times ', TLIM)
                 fig, ax = plt.subplots(1, figsize=(11.4, 5))
                 fig.subplots_adjust(top=0.8, bottom=0.05)
                 data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data),
-                                   ax=ax, Tbar=Tbar_raw_data)
-                # inset with time sample
-                axT = plt.axes([0.6, 0.9, 0.3, 0.05])
-                axT.axis('off')
-                axT.plot(data.tlim, [0,0], 'k-', lw=2)
-                axT.plot(TLIM, [0,0], '-', color=plt.cm.tab10(3), lw=5)
-                axT.annotate('0 ', (0,0), xycoords='data', ha='right', fontsize=9)
-                axT.annotate(' %.1fmin' % (data.tlim[1]/60.), (data.tlim[1],0), xycoords='data', fontsize=9)
+                                   ax=ax, Tbar=int(T_raw_data/30.))
+                axT = add_inset_with_time_sample(TLIM, data.tlim)
                 pdf.savefig()  # saves the current figure into a pdf page
                 plt.close()
-
-    print('looping over protocols for analysis [...]')
+                
         
     if 'protocols' in include:
+        print('* looping over protocols for analysis [...]')
+        
         # looping over protocols
         for p, protocol in enumerate(data.protocols):
 
-            print('plotting protocol "%s" [...]' % protocol)
+            print('* * plotting protocol "%s" [...]' % protocol)
             
             with PdfPages(os.path.join(folder, '%s.pdf' % protocol)) as pdf:
             
                 # finding protocol type
                 protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
-                print(protocol_type)
+                # print(protocol_type)
                 # then protocol-dependent analysis
 
                 if protocol_type=='full-field-grating':
-                    from analysis.orientation_direction_selectivity import orientation_selectivity_analysis
                     Nresp, SIs = 0, []
-                    for i in range(data.iscell.sum())[:Nmax]:
-                        fig, SI, responsive = orientation_selectivity_analysis(data, roiIndex=i, verbose=False)
+                    for i in data.roiIndices[:Nmax]:
+                        print('   - plotting analysis of ROI #%i' % (i+1))
+                        fig, SI, responsive = orientation_direction_selectivity.OS_ROI_analysis(data, roiIndex=i, verbose=False)
                         pdf.savefig()  # saves the current figure into a pdf page
                         plt.close()
                         if responsive:
                             Nresp += 1
                             SIs.append(SI)
                     # summary figure for this protocol
-                    fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs))
+                    fig, AX = orientation_direction_selectivity.summary_fig(Nresp, data.iscell.sum(), np.array(SIs))
                     pdf.savefig()  # saves the current figure into a pdf page
                     plt.close()
 
                 elif protocol_type=='drifting-full-field-grating':
-                    from analysis.orientation_direction_selectivity import direction_selectivity_analysis
                     Nresp, SIs = 0, []
-                    for i in range(data.iscell.sum())[:Nmax]:
-                        fig, SI, responsive = direction_selectivity_analysis(data, roiIndex=i, verbose=False)
+                    for i in data.roiIndices[:Nmax]:
+                        print('   - plotting analysis of ROI #%i' % (i+1))
+                        fig, SI, responsive = orientation_direction_selectivity.DS_ROI_analysis(data, roiIndex=i, verbose=False)
                         pdf.savefig()  # saves the current figure into a pdf page
                         plt.close()
                         if responsive:
                             Nresp += 1
                             SIs.append(SI)
-                    fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
-                                          label='Direction Select. Index')
+                    fig, AX = orientation_direction_selectivity.summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
+                                                                            label='Direction Select. Index')
                     pdf.savefig()  # saves the current figure into a pdf page
                     plt.close()
 
                 elif protocol_type in ['center-grating', 'drifting-center-grating']:
-                    from surround_suppression import orientation_size_selectivity_analysis
+                    from analysis.surround_suppression import orientation_size_selectivity_analysis
+                    from analysis.orientation_direction_selectivity import summary_fig
                     Nresp, SIs = 0, []
                     for i in range(data.iscell.sum())[:Nmax]:
-                        fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
+                        fig, responsive = orientation_size_selectivity_analysis(data,
+                                                                roiIndex=i, verbose=False)
                         pdf.savefig()  # saves the current figure into a pdf page
                         plt.close()
                         if responsive:
@@ -429,39 +468,44 @@ def make_sumary_pdf(filename, Nmax=1000000,
     print('[ok] pdfs succesfully saved in "%s" !' % folder)
 
 
-def summary_fig(Nresp, Ntot, quantity,
-                label='Orient. Select. Index',
-                labels=['responsive', 'unresponsive']):
-    fig, AX = plt.subplots(1, 4, figsize=(11.4, 2.5))
-    fig.subplots_adjust(left=0.1, right=0.8, bottom=0.2)
-    AX[1].pie([100*Nresp/Ntot, 100*(1-Nresp/Ntot)], explode=(0, 0.1),
-              colors=[plt.cm.tab10(2), plt.cm.tab10(3)],
-              labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
-    AX[1].axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    AX[3].hist(quantity)
-    AX[3].set_xlabel(label, fontsize=9)
-    AX[3].set_ylabel('count', fontsize=9)
-    for ax in [AX[0], AX[2]]:
-        ax.axis('off')
-    return fig, AX
     
+def summary_pdf_folder(filename):
+    return filename.replace('.nwb', '')
 
-    
+
 if __name__=='__main__':
     
-    # filename = '/home/yann/DATA/Wild_Type/2021_03_11-17-13-03.nwb'
-    filename = sys.argv[-1]
+    import argparse, datetime
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument('-df', "--datafile", type=str,
+                        default='/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/2021_07_01/2021_07_01-16-27-22.nwb')
+    parser.add_argument('-o', "--ops", type=str, nargs='*',
+                        default=['exp'])
+    parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     
+    args = parser.parse_args()
+
     # pdf_dir = os.path.join(os.path.dirname(filename), 'summary', os.path.basename(filename))
 
-    # data = MultimodalData(filename)
-    
     # fig1 = metadata_fig(data)
     # fig2 = behavior_analysis_fig(data)
+    # data = MultimodalData(args.datafile)
     # fig3 = roi_analysis_fig(data, roiIndex=0)
     # plt.show()
     
-    # make_sumary_pdf(filename, include=['exp', 'raw', 'protocols'])
-    make_sumary_pdf(filename, include=['raw'])
+    make_summary_pdf(args.datafile,
+                     include=args.ops,
+                     # include=['exp', 'raw', 'rois', 'protocols'],
+                     Nmax=args.Nmax,
+                     verbose=args.verbose)
 
     
+
+
+
+
+
+
+

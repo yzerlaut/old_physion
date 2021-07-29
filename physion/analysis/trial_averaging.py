@@ -195,6 +195,7 @@ class TrialAverageWindow(NewWindow):
 
     def plot_row_column_of_quantity(self):
 
+        self.Pcond = self.parent.get_protocol_cond(self.pbox.currentIndex()-1)
         COL_CONDS = self.build_column_conditions()
         ROW_CONDS = self.build_row_conditions()
         COLOR_CONDS = self.build_color_conditions()
@@ -233,6 +234,9 @@ class TrialAverageWindow(NewWindow):
                             self.AX[irow][icol].addItem(pfill)
                             ylim[0] = np.min([np.min(my-sy), ylim[0]])
                             ylim[1] = np.max([np.max(my+sy), ylim[1]])
+                        else:
+                            ylim[0] = np.min([np.min(my), ylim[0]])
+                            ylim[1] = np.max([np.max(my), ylim[1]])
                         self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
                     else:
                         print(' /!\ Problem with episode (%i, %i, %i)' % (irow, icol, icolor))
@@ -246,28 +250,13 @@ class TrialAverageWindow(NewWindow):
         self.AX[0][0].setRange(xRange=[self.EPISODES['t'][0], self.EPISODES['t'][-1]], yRange=ylim, padding=0.0)
             
         
-    def build_conditions(self, X, K):
-        if len(K)>0:
-            CONDS = []
-            XK = np.meshgrid(*X)
-            for i in range(len(XK[0].flatten())): # looping over joint conditions
-                cond = np.ones(np.sum(self.Pcond), dtype=bool)
-                for k, xk in zip(K, XK):
-                    cond = cond & (self.parent.nwbfile.stimulus[k].data[self.Pcond]==xk.flatten()[i])
-                CONDS.append(cond)
-            return CONDS
-        else:
-            return [np.ones(np.sum(self.Pcond), dtype=bool)]
-            
-    
     def build_column_conditions(self):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('column'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
-
+        return self.parent.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
     
     def build_row_conditions(self):
         X, K = [], []
@@ -275,7 +264,8 @@ class TrialAverageWindow(NewWindow):
             if len(getattr(self, 'box%i'%i).currentText().split('row'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
+        return self.parent.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
+
 
     def build_color_conditions(self):
         X, K = [], []
@@ -283,8 +273,8 @@ class TrialAverageWindow(NewWindow):
             if len(getattr(self, 'box%i'%i).currentText().split('color'))>1:
                 X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
-
+        return self.parent.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
+    
         
 def build_episodes(self,
                    parent=None,
@@ -303,12 +293,7 @@ def build_episodes(self,
     parent = (parent if parent is not None else self)
 
     # choosing protocol (if multiprotocol)
-    if ('protocol_id' in parent.nwbfile.stimulus) and (len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1):
-        Pcond = (parent.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
-    else:
-        Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
-    # limiting to available episodes
-    Pcond[np.arange(len(Pcond))>=parent.nwbfile.stimulus['time_start_realigned'].num_samples] = False
+    Pcond = parent.get_protocol_cond(protocol_id)
     
     if verbose:
         print('Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
@@ -323,7 +308,6 @@ def build_episodes(self,
                 EPISODES['varied_parameters'][key] = unique
     # for the parent class
     self.varied_parameters = EPISODES['varied_parameters'] # adding this as a shortcut
-    self.Pcond = Pcond # protocol condition
     
     # new sampling
     if (prestim_duration is None) and ('interstim' in parent.nwbfile.stimulus):
@@ -387,27 +371,16 @@ def build_episodes(self,
     
 if __name__=='__main__':
 
-    # folder = os.path.join(os.path.expanduser('~'),\
-    #                       'DATA', '2020_11_04', '01-02-03')
+    from analysis.read_NWB import Data
     
-    # dataset = Dataset(folder,
-    #                   with_CaImaging_stat=False,
-    #                   modalities=['Screen', 'Locomotion', 'CaImaging'])
-    import sys
-    sys.path.append('/home/yann/work/physion')
-    from physion.analysis.read_NWB import read as read_NWB
-    
-    # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
-    
-    class Parent:
+    class Parent(Data):
         def __init__(self, filename=''):
-            read_NWB(self, filename, verbose=False)
+            super().__init__(filename)
             self.app = QtWidgets.QApplication(sys.argv)
             self.description=''
             self.roiIndices = [0]
             self.CaImaging_key = 'Fluorescence'
-
-    
+                
     filename = sys.argv[-1]
 
     if '.nwb' in sys.argv[-1]:
