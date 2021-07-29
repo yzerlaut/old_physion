@@ -399,29 +399,26 @@ class NewWindow(QtWidgets.QMainWindow):
     def save(self):
         pass
 
-    def select_ROI_from_pick(self, cls=None):
+    def select_ROI_from_pick(self, data):
 
-        if cls is None:
-            cls = self # so that 
-
-        if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(np.sum(cls.iscell))
-        elif len(cls.roiPick.text().split('-'))>1:
+        if self.roiPick.text() in ['sum', 'all']:
+            roiIndices = np.arange(np.sum(data.iscell))
+        elif len(self.roiPick.text().split('-'))>1:
             try:
-                roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
+                roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
             except BaseException as be:
                 print(be)
                 roiIndices = None
-        elif len(cls.roiPick.text().split(','))>1:
+        elif len(self.roiPick.text().split(','))>1:
             try:
-                roiIndices = np.array([int(ii) for ii in cls.roiPick.text().split(',')])
+                roiIndices = np.array([int(ii) for ii in self.roiPick.text().split(',')])
             except BaseException as be:
                 print(be)
                 roiIndices = None
         else:
             try:
-                i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>=np.sum(cls.iscell)):
+                i0 = int(self.roiPick.text())
+                if (i0<0) or (i0>=np.sum(data.iscell)):
                     roiIndices = [0]
                     self.statusBar.showMessage(' "%i" not a valid ROI index, roiIndices set to [0]'  % i0)
                 else:

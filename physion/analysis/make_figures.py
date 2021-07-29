@@ -10,7 +10,6 @@ from dataviz.show_data import MultimodalData, format_key_value
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
-from analysis.trial_averaging import build_episodes
 
 try:
     from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png

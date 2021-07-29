@@ -3,45 +3,44 @@ import numpy as np
 from scipy import stats
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from analysis.read_NWB import read as read_NWB, Data
-from analysis.trial_averaging import build_episodes
+from analysis.read_NWB import Data
 
-class CellResponse:
+# class CellResponse:
     
-    def __init__(self, data,
-                 protocol_id=0,
-                 quantity='CaImaging', 
-                 subquantity='dF/F', 
-                 roiIndex = 0,
-                 prestim_duration=None,
-                 verbose=False):
+#     def __init__(self, data,
+#                  protocol_id=0,
+#                  quantity='CaImaging', 
+#                  subquantity='dF/F', 
+#                  roiIndex = 0,
+#                  prestim_duration=None,
+#                  verbose=False):
         
-        """ build the episodes corresponding to a specific protocol and a ROIR"""
-        for key in data.__dict__.keys():
-            setattr(self, key, getattr(data, key))
-        if verbose:
-            print('Building episodes for "%s"' % self.protocols[protocol_id])
+#         """ build the episodes corresponding to a specific protocol and a ROIR"""
+#         for key in data.__dict__.keys():
+#             setattr(self, key, getattr(data, key))
+#         if verbose:
+#             print('Building episodes for "%s"' % self.protocols[protocol_id])
             
-        data.CaImaging_key, data.roiIndices = subquantity, [roiIndex]
-        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity,
-                                       prestim_duration=prestim_duration, verbose=verbose)
-        self.varied_parameters = data.varied_parameters
-        self.metadata = data.metadata
+#         data.CaImaging_key, data.roiIndices = subquantity, [roiIndex]
+#         self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity,
+#                                        prestim_duration=prestim_duration, verbose=verbose)
+#         self.varied_parameters = data.varied_parameters
+#         self.metadata = data.metadata
 
-    def find_cond(self, key, index):
-        return find_cond(self, key, index)
+#     def find_cond(self, key, index):
+#         return find_cond(self, key, index)
 
-    def compute_responsiveness(self, **args):
-        return compute_responsiveness(self, **args)
+#     def compute_responsiveness(self, **args):
+#         return compute_responsiveness(self, **args)
 
-    def get_average(self, condition=None):
-        if condition is None:
-            return self.EPISODES['resp'].mean(axis=1)
-        else:
-            return self.EPISODES['resp'][condition,:].mean(axis=0)
+#     def get_average(self, condition=None):
+#         if condition is None:
+#             return self.EPISODES['resp'].mean(axis=1)
+#         else:
+#             return self.EPISODES['resp'][condition,:].mean(axis=0)
 
-    def compute_pre_post_cond(self, interval_pre, interval_post):
-        return compute_pre_post_cond(self.EPISODES, interval_pre, interval_post)
+#     def compute_pre_post_cond(self, interval_pre, interval_post):
+#         return compute_pre_post_cond(self.EPISODES, interval_pre, interval_post)
 
     
 def find_cond(data, key, index):
@@ -86,7 +85,6 @@ def compute_responsiveness(cell_data,
             OUTPUT['responsive'].append(True)
         else:
             OUTPUT['responsive'].append(False)
-
 
         pre_cond, post_cond = compute_pre_post_cond(cell_data.EPISODES, interval_pre, interval_post)
 

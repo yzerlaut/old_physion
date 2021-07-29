@@ -9,7 +9,7 @@ from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
-from analysis.read_NWB import read as read_NWB
+from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
 from misc import guiparts
@@ -191,7 +191,7 @@ class MainWindow(guiparts.NewWindow):
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        self.time, self.io, self.roiIndices, self.tzoom = 0, None, [], [0,50]
+        self.time, self.data, self.roiIndices, self.tzoom = 0, None, [], [0,50]
         self.CaImaging_bg_key = 'meanImg'
         self.CaImaging_key = 'Fluorescence'
 
@@ -268,49 +268,48 @@ class MainWindow(guiparts.NewWindow):
 
     def select_stim(self):
         if self.stimSelect.isChecked():
+            if self.data.visual_stim is None:
+                self.load_VisualStim()
             self.keyword_update(string='stim')
         else:
             self.keyword_update(string='no_stim')
+            self.data.visual_stim = None
         
     def select_ROI(self):
         """ see select ROI above """
-        self.roiIndices = self.select_ROI_from_pick()
+        self.roiIndices = self.select_ROI_from_pick(self.data)
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             
     def load_file(self, filename):
         """ should be a minimal processing so that the loading is fast"""
         self.reset()
-        
-        read_NWB(self, filename,
-                 verbose=True) # see ../analysis/read_NWB.py
 
-        self.tzoom = self.tlim
-        self.notes.setText(self.description)
+        self.data = Data(filename)
+            
+        self.tzoom = self.data.tlim
+        self.notes.setText(self.data.description)
 
-        self.cal.setSelectedDate(self.nwbfile.session_start_time.date())
+        self.cal.setSelectedDate(self.data.nwbfile.session_start_time.date())
         if self.dbox.currentIndex()<1:
             self.dbox.clear()
-            self.dbox.addItem(self.df_name)
+            self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
         self.sbox.clear()
-        self.sbox.addItem(self.nwbfile.subject.description)
+        self.sbox.addItem(self.data.nwbfile.subject.description)
         self.sbox.setCurrentIndex(0)
         self.pbox.setCurrentIndex(1)
-        self.visual_stim = None
 
-        if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
+        if 'ophys' in self.data.nwbfile.processing:
+            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.data.validROI_indices)-1))
 
     def load_VisualStim(self):
 
         # load visual stimulation
-        if self.metadata['VisualStim']:
-            self.metadata['load_from_protocol_data'] = True
-            self.metadata['no-window'] = True
-            self.visual_stim = build_stim(self.metadata, no_psychopy=True)
+        if self.data.metadata['VisualStim']:
+            self.data.init_visual_stim()
         else:
-            self.visual_stim = None
+            self.data.visual_stim = None
             print(' /!\ No stimulation in this recording /!\  ')
 
 
@@ -390,7 +389,7 @@ class MainWindow(guiparts.NewWindow):
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
-            self.metadata = None
+            self.data.metadata = None
             self.notes.setText(20*'-'+5*'\n')
         
 
@@ -409,22 +408,22 @@ class MainWindow(guiparts.NewWindow):
                 self.dbox.addItem(self.preload_datafolder(fn)['display_name'])
                 
     def preload_datafolder(self, fn):
-        read_NWB(self, fn, metadata_only=True)
-        infos = {'display_name' : self.df_name,
-                 'subject': self.nwbfile.subject.description}
-        self.io.close()
+        data = Data(fn, metadata_only=True)
+        infos = {'display_name' : data.df_name,
+                 'subject': data.nwbfile.subject.description}
+        data.io.close()
         return infos
 
     def add_datafolder_annotation(self):
         info = 20*'-'+'\n'
 
-        if self.metadata['protocol']=='None':
+        if self.data.metadata['protocol']=='None':
             self.notes.setText('\nNo visual stimulation')
         else:
-            for key in self.metadata:
-                if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
-                    info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
-            info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
+            for key in self.data.metadata:
+                if (key[:2]=='N-') and (key!='N-repeat') and (self.data.metadata[key]>1): # meaning it was varied
+                    info += '%s=%i (%.1f to %.1f)\n' % (key, self.data.metadata[key], self.data.metadata[key[2:]+'-1'], self.data.metadata[key[2:]+'-2'])
+            info += '%s=%i' % ('N-repeat', self.data.metadata['N-repeat'])
             self.notes.setText(info)
 
     def display_quantities(self,
@@ -558,15 +557,15 @@ class MainWindow(guiparts.NewWindow):
         return True
 
     def see_metadata(self):
-        for key, val in self.metadata.items():
+        for key, val in self.data.metadata.items():
             print('- %s : ' % key, val)
             
     def change_settings(self):
         pass
     
     def quit(self):
-        if self.io is not None:
-            self.io.close()
+        if self.data is not None:
+            self.data.io.close()
         sys.exit()
 
 

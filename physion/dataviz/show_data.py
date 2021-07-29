@@ -6,7 +6,6 @@ import matplotlib.pylab as plt
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools
-from analysis.trial_averaging import build_episodes
 from analysis.read_NWB import Data
 from analysis import stat_tools
 from Ca_imaging.tools import compute_CaImaging_trace

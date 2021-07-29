@@ -23,46 +23,52 @@ def sliding_percentile(array, percentile, Window):
     x[-int(Window/2):] = y[-1]
     return x
 
-def compute_CaImaging_trace(cls, CaImaging_key, roiIndices,
-                            Tsliding=60, percentile=5.,
-                            with_sliding_mean = False,
-                            sum=False):
+def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
+                            Tsliding=60,
+                            percentile=5.):
     """
-    # /!\ the validROI_indices are used here  /!\ (DEPRECATED NOW STORING ONLY THE VALID ROIS)
+    # /!\ the validROI_indices are used here  /!\ (July 2021: DEPRECATED NOW STORING ONLY THE VALID ROIS)
 
     """
     if CaImaging_key in ['Fluorescence', 'Neuropil', 'Deconvolved']:
-        return getattr(cls, CaImaging_key).data[cls.validROI_indices[roiIndices], :]
+        return getattr(data, CaImaging_key).data[data.validROI_indices[roiIndices], :]
         
     elif CaImaging_key in ['dF/F', 'dFoF']:
         """
         computes dF/F with a smotthed sliding percentile
         """
-        iTsm = int(Tsliding/cls.CaImaging_dt)
+        iTsm = int(Tsliding/data.CaImaging_dt)
 
         DFoF = []
-        for ROI in cls.validROI_indices[roiIndices]:
-            Fmin = sliding_percentile(cls.Fluorescence.data[ROI,:], percentile, iTsm) # sliding percentile
+        for ROI in data.validROI_indices[roiIndices]:
+            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile, iTsm) # sliding percentile
             Fmin = gaussian_filter1d(Fmin, Tsliding) # + smoothing
-            DFoF.append((cls.Fluorescence.data[ROI,:]-Fmin)/Fmin)
+            DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
+            print(np.mean(DFoF[-1]))
         return np.array(DFoF)
 
     elif CaImaging_key in ['F-Fneu', 'dF']:
         DF = []
-        for ROI in cls.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
-            DF.append(cls.Fluorescence.data[ROI,:]-cls.Neuropil.data[ROI,:])
+        for ROI in data.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
+            DF.append(data.Fluorescence.data[ROI,:]-data.Neuropil.data[ROI,:])
         return np.array(DF)
     
-    elif 'F-' in CaImaging_key: # key of the form "F-0.85*Fneu"
+    elif 'F-' in CaImaging_key: # key of the form "F-0.853*Fneu"
         coef = float(CaImaging_key.replace('F-', '').replace('*Fneu', ''))
         DF = []
-        for ROI in cls.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
-            DF.append(cls.Fluorescence.data[ROI,:]-coef*cls.Neuropil.data[ROI,:])
+        for ROI in data.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
+            DF.append(data.Fluorescence.data[ROI,:]-coef*data.Neuropil.data[ROI,:])
         return np.array(DF)
     else:
         print(20*'--')
-        print(' /!\ "%s" not recognized to process the CaImaging signal /!\ ')
+        print(' /!\ "%s" not recognized to process the CaImaging signal /!\ ' % CaImaging_key)
         print(20*'--')
 
 
               
+
+
+
+
+
+
