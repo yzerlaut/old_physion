@@ -408,7 +408,7 @@ class MainWindow(guiparts.NewWindow):
                 self.dbox.addItem(self.preload_datafolder(fn)['display_name'])
                 
     def preload_datafolder(self, fn):
-        data = Data(fn, metadata_only=True)
+        data = Data(fn, metadata_only=True, with_tlim=False)
         infos = {'display_name' : data.df_name,
                  'subject': data.nwbfile.subject.description}
         data.io.close()

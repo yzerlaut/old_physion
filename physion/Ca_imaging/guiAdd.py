@@ -135,8 +135,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.filename!='':
             print('searching for a match [...]')
             self.imagingF.setText('searching [...]')
-            success, folder = find_matching_CaImaging_data(self, self.filename,
-                                                FOLDERS[self.folderI.currentText()])
+            success, folder = find_matching_CaImaging_data(self.filename,
+                                                           FOLDERS[self.folderI.currentText()])
             if success:
                 self.imagingF.setText('"%s"' % folder.split(os.path.sep)[-1])
                 self.Ifolder = folder

@@ -2,7 +2,7 @@ import pynwb, time, ast, sys, pathlib, os
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, list_dayfolder, get_files_with_extension
+from assembling.saving import get_files_with_extension
 from visual_stim.psychopy_code.stimuli import build_stim
 
 
@@ -26,7 +26,7 @@ class Data:
 
         self.read_metadata()
         
-        if not metadata_only and with_tlim:
+        if with_tlim:
             self.read_tlim()
         else:
             self.tlim=None
