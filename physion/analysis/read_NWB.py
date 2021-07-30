@@ -133,13 +133,19 @@ class Data:
         self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
         self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
 
-        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='iscell') : # DEPRECATED
+        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='iscell'): # DEPRECATED
             self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
             self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
         else:
             self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool)
             self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
-                
+
+        # red-labelling
+        if len(self.Segmentation.columns)>1 and (self.Segmentation.columns[2].name=='redcell'):
+            self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
+        else:
+            self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
+        
             
     def read_pupil(self):
 

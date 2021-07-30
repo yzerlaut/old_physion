@@ -1,8 +1,13 @@
+import sys, pathlib
 import numpy as np
 import matplotlib.pylab as plt
 
-def behavior_analysis_fig(data,
-                          running_speed_threshold=0.1):
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from analysis.tools import *
+
+
+def analysis_fig(data,
+                 running_speed_threshold=0.1):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
     n = len(MODALITIES)+(len(MODALITIES)-1)
@@ -104,5 +109,24 @@ def behavior_analysis_fig(data,
             AX[i][3].set_ylabel('cross correl.', fontsize=10)
             
     return fig
+
+
+
+if __name__=='__main__':
+
+    from analysis.read_NWB import Data
+    
+    if '.nwb' in sys.argv[-1]:
+        data = Data(sys.argv[-1])
+        fig = analysis_fig(data)
+        plt.show()
+    else:
+        print('/!\ Need to provide a NWB datafile as argument ')
+
+
+
+
+
+
 
 

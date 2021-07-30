@@ -2,6 +2,10 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
 
+def summary_pdf_folder(filename):
+    return filename.replace('.nwb', '')
+
+
 def find_modalities(data):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
@@ -272,7 +276,18 @@ def crosshistogram_on_NWB_quantity(Q1=None, Q2=None,
                 var_q2.append(new_q2[cond].std())
 
     return mean_q1, var_q1, mean_q2, var_q2
+
+
+def add_inset_with_time_sample(TLIM, tlim, plt):
+    # inset with time sample
+    axT = plt.axes([0.6, 0.9, 0.3, 0.05])
+    axT.axis('off')
+    axT.plot(tlim, [0,0], 'k-', lw=2)
+    axT.plot(TLIM, [0,0], '-', color=plt.cm.tab10(3), lw=5)
+    axT.annotate('0 ', (0,0), xycoords='data', ha='right', fontsize=9)
+    axT.annotate(' %.1fmin' % (tlim[1]/60.), (tlim[1],0), xycoords='data', fontsize=9)
     
+
 if __name__=='__main__':
 
 
