@@ -10,6 +10,7 @@ from dataviz.show_data import MultimodalData, format_key_value
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
+from analysis.process_NWB import EpisodeResponse
 
 try:
     from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
@@ -20,31 +21,37 @@ except ModuleNotFoundError:
 
 class FiguresWindow(NewWindow):
 
-    def __init__(self, 
+    def __init__(self, datafile,
                  parent=None,
                  dt_sampling=10, # ms
                  fig_name=os.path.join(os.path.expanduser('~'), 'Desktop', 'fig.svg'),
                  title='Figures'):
 
-        super(FiguresWindow, self).__init__(parent=parent.app,
+        if parent is None:
+            self.app = QtWidgets.QApplication(sys.argv)
+        else:
+            self.app = parent.app
+
+        super(FiguresWindow, self).__init__(parent=self.app,
                                             title=title,
                                             i=-10, size=(800,800))
+
+        self.datafile = datafile
+        self.data = MultimodalData(self.datafile)
         
         self.modalities = []
-        print(parent.nwbfile.acquisition)
         for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'FaceMotion', 'Pupil',
                                'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
                               ['Photodiode', 'Electrophy', 'Locomotion', 'FaceMotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
-            if key1 in parent.nwbfile.acquisition:
+            if key1 in self.data.nwbfile.acquisition:
                 self.modalities.append(key2)
 
-        self.parent = parent
+
         self.get_varied_parameters()
         self.fig_name = fig_name
         
-        self.data = MultimodalData(self.parent.datafile)
-        
-        self.EPISODES = None
+        self.CaImaging_key = 'dF/F'
+        self.roiIndices = [0]
         self.xlim, self.ylim = [-10, 10], [-10, 10]
         
         mainLayout, Layouts = QtWidgets.QVBoxLayout(self.cwidget), []
@@ -55,7 +62,7 @@ class FiguresWindow(NewWindow):
         self.pbox = QtWidgets.QComboBox(self)
         self.pbox.setFixedWidth(400)
         self.pbox.addItem(' [PROTOCOL] ')
-        self.pbox.addItems(self.parent.protocols)
+        self.pbox.addItems(self.data.protocols)
         Layouts[-1].addWidget(self.pbox)
         
         # -- quantity and subquantity
@@ -63,10 +70,10 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(QtWidgets.QLabel('-- Quantity:   ', self))
         self.qbox = QtWidgets.QComboBox(self)
         self.qbox.addItem('')
-        if 'ophys' in self.parent.nwbfile.processing:
+        if 'ophys' in self.data.nwbfile.processing:
             self.qbox.addItem('CaImaging')
-        for key in parent.nwbfile.acquisition:
-            if len(parent.nwbfile.acquisition[key].data.shape)==1:
+        for key in self.data.nwbfile.acquisition:
+            if len(self.data.nwbfile.acquisition[key].data.shape)==1:
                 self.qbox.addItem(key) # only for scalar variables
         self.qbox.setFixedWidth(400)
         Layouts[-1].addWidget(self.qbox)
@@ -77,7 +84,7 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(self.sqbox)
         
         # -- roi
-        if 'ophys' in self.parent.nwbfile.processing:
+        if 'ophys' in self.data.nwbfile.processing:
             Layouts[-1].addWidget(QtWidgets.QLabel('    -- ROI:   ', self))
             self.roiPick = QtGui.QLineEdit()
             self.roiPick.setText('    [select ROI]  e.g.: "1",  "10-20", "3, 45, 7", ... ')
@@ -99,7 +106,7 @@ class FiguresWindow(NewWindow):
             Layouts[-1].addWidget(getattr(self, mod+'Plot'))
             
         ### PLOT FIELD OF VIEW
-        if 'ophys' in self.parent.nwbfile.processing:
+        if 'ophys' in self.data.nwbfile.processing:
             Layouts.append(QtWidgets.QHBoxLayout())
             self.fovPlotBtn = QtWidgets.QPushButton('plot imaging field of view ', self)
             self.fovPlotBtn.setFixedWidth(250)
@@ -158,7 +165,7 @@ class FiguresWindow(NewWindow):
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel('       -* RESPONSES *-        ', self))
         self.responseType = QtWidgets.QComboBox(self)
-        self.responseType.addItems(['stim-evoked-traces', 'mean-stim-evoked', 'integral-stim-evoked'])
+        self.responseType.addItems(['stim-evoked-traces', 'mean-stim-evoked', 'integral-stim-evoked', 'stim-evoked-patterns'])
         Layouts[-1].addWidget(self.responseType)
         Layouts[-1].addWidget(QtWidgets.QLabel('       color:  ', self))
         self.color = QtGui.QLineEdit()
@@ -350,7 +357,7 @@ class FiguresWindow(NewWindow):
             pathlib.Path(os.path.join(os.path.expanduser('~'), 'Desktop', 'figs')).mkdir(parents=True, exist_ok=True)
             self.fig_name = os.path.join(os.path.expanduser('~'), 'Desktop', 'figs', self.nameBtn.text()+'.svg')
         elif self.locBtn.currentText()=='summary':
-            summary_dir = os.path.join(os.path.dirname(self.parent.datafile), 'summary', os.path.basename(self.parent.datafile).replace('.nwb', ''))
+            summary_dir = os.path.join(os.path.dirname(self.datafile), 'summary', os.path.basename(self.datafile).replace('.nwb', ''))
             pathlib.Path(summary_dir).mkdir(parents=True, exist_ok=True)
             self.fig_name = os.path.join(summary_dir, self.nameBtn.text()+'.svg')
 
@@ -366,10 +373,10 @@ class FiguresWindow(NewWindow):
     
     def get_varied_parameters(self):
         self.varied_parameters = {}
-        for key in self.parent.nwbfile.stimulus.keys():
+        for key in self.data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
                            'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim', 'interstim-screen']:
-                unique = np.unique(self.parent.nwbfile.stimulus[key].data[:])
+                unique = np.unique(self.data.nwbfile.stimulus[key].data[:])
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
         self.show()
@@ -393,6 +400,7 @@ class FiguresWindow(NewWindow):
             
     def plot_row_column_of_quantity(self):
 
+        self.Pcond = self.data.get_protocol_cond(self.pbox.currentIndex()-1)
         single_cond = self.build_single_conditions()
         COL_CONDS = self.build_column_conditions()
         ROW_CONDS = self.build_row_conditions()
@@ -419,17 +427,17 @@ class FiguresWindow(NewWindow):
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
-                    if self.EPISODES['resp'][cond,:].shape[0]>0:
-                        my = self.EPISODES['resp'][cond,:].mean(axis=0)
+                    cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
+                    if self.EPISODES.resp[cond,:].shape[0]>0:
+                        my = self.EPISODES.resp[cond,:].mean(axis=0)
                         if self.withSTDbox.isChecked():
-                            sy = self.EPISODES['resp'][cond,:].std(axis=0)
-                            ge.plot(self.EPISODES['t'], my, sy=sy,
+                            sy = self.EPISODES.resp[cond,:].std(axis=0)
+                            ge.plot(self.EPISODES.t, my, sy=sy,
                                     ax=AX[irow][icol], color=COLORS[icolor], lw=1)
                             self.ylim = [min([self.ylim[0], np.min(my-sy)]),
                                          max([self.ylim[1], np.max(my+sy)])]
                         else:
-                            AX[irow][icol].plot(self.EPISODES['t'], my,
+                            AX[irow][icol].plot(self.EPISODES.t, my,
                                                 color=COLORS[icolor], lw=1)
                             self.ylim = [min([self.ylim[0], np.min(my)]),
                                          max([self.ylim[1], np.max(my)])]
@@ -440,14 +448,14 @@ class FiguresWindow(NewWindow):
                                 s = ''
                                 for i, key in enumerate(self.varied_parameters.keys()):
                                     if 'column' in getattr(self, '%s_plot' % key).currentText():
-                                        s+=format_key_value(key, self.EPISODES[key][cond][0])+4*' ' # should have a unique value
+                                        s+=format_key_value(key, getattr(self.EPISODES, key)[cond][0])+4*' ' # should have a unique value
                                 ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom')
                             # row label
                             if (len(ROW_CONDS)>1) and (icol==0) and (icolor==0):
                                 s = ''
                                 for i, key in enumerate(self.varied_parameters.keys()):
                                     if 'row' in getattr(self, '%s_plot' % key).currentText():
-                                        s+=format_key_value(key, self.EPISODES[key][cond][0])+4*' ' # should have a unique value
+                                        s+=format_key_value(key, getattr(self.EPISODES, key)[cond][0])+4*' ' # should have a unique value
                                 ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90)
                             # n per cond
                             ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
@@ -455,15 +463,15 @@ class FiguresWindow(NewWindow):
                                         ha='left', va='bottom')
                             
 
-                    if self.screen.isChecked() and not (self.parent.visual_stim is not None):
+                    if self.screen.isChecked() and not (self.data.visual_stim is not None):
                         print('initializing stim [...]')
-                        self.parent.load_VisualStim()
+                        self.data.init_visual_stim()
                         
                     if self.screen.isChecked():
                         inset = ge.inset(AX[irow][icol], [.8, .9, .3, .25])
-                        self.parent.visual_stim.show_frame(\
-                                    self.EPISODES['index_from_start'][cond][0],
-                                    ax=inset, parent=self.parent, enhance=True, label=None)
+                        self.data.visual_stim.show_frame(\
+                                                         self.EPISODES.index_from_start[cond][0],
+                                                         ax=inset, enhance=True, label=None)
                         
 
         if self.withStatTest.isChecked():
@@ -471,7 +479,7 @@ class FiguresWindow(NewWindow):
                 for icol, col_cond in enumerate(COL_CONDS):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
-                        cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
+                        cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
                         test = stat_test_for_evoked_responses(self.EPISODES, cond,
                                                               interval_pre=[self.t0pre, self.t1pre],
                                                               interval_post=[self.t0post, self.t1post],
@@ -485,10 +493,10 @@ class FiguresWindow(NewWindow):
         # color label
         if self.annot.isChecked() and (len(COLOR_CONDS)>1):
             for icolor, color_cond in enumerate(COLOR_CONDS):
-                cond = np.array(single_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
+                cond = np.array(single_cond & color_cond)[:self.EPISODES.resp.shape[0]]
                 for i, key in enumerate(self.varied_parameters.keys()):
                     if 'color' in getattr(self, '%s_plot' % key).currentText():
-                        s = format_key_value(key, self.EPISODES[key][cond][0])
+                        s = format_key_value(key, getattr(self.EPISODES, key)[cond][0])
                         ge.annotate(fig, s, (1.-icolor/(len(COLOR_CONDS)+2), 0), color=COLORS[icolor], ha='right', va='bottom')
                         
         if (self.ymin.text()!='') and (self.ymax.text()!=''):
@@ -496,7 +504,7 @@ class FiguresWindow(NewWindow):
         if (self.xmin.text()!='') and (self.xmax.text()!=''):
             self.xlim = [float(self.xmin.text()), float(self.xmax.text())]
         else:
-            self.xlim = [self.EPISODES['t'][0], self.EPISODES['t'][-1]]
+            self.xlim = [self.EPISODES.t[0], self.EPISODES.t[-1]]
                             
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
@@ -507,7 +515,7 @@ class FiguresWindow(NewWindow):
                             ylabel=(self.ybarlabel.text() if self.axis.isChecked() else ''))
 
                 if self.stim.isChecked():
-                    AX[irow][icol].fill_between([0, np.mean(self.EPISODES['time_duration'])],
+                    AX[irow][icol].fill_between([0, np.mean(self.EPISODES.time_duration)],
                                         self.ylim[0]*np.ones(2), self.ylim[1]*np.ones(2),
                                         color='grey', alpha=.2, lw=0)
 
@@ -537,10 +545,10 @@ class FiguresWindow(NewWindow):
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
                     
         if self.annot.isChecked():
-            ge.annotate(fig, "%s, %s, %s, %s" % (self.parent.metadata['subject_ID'],
-                                                 self.parent.protocols[self.pbox.currentIndex()-1][:20],
-                                                 self.parent.metadata['filename'].split('\\')[-2],
-                                                 self.parent.metadata['filename'].split('\\')[-1]),
+            ge.annotate(fig, "%s, %s, %s, %s" % (self.data.metadata['subject_ID'],
+                                                 self.data.protocols[self.pbox.currentIndex()-1][:20],
+                                                 self.data.metadata['filename'].split('\\')[-2],
+                                                 self.data.metadata['filename'].split('\\')[-1]),
                     (0,1), color='k', ha='left', va='top', size='x-small')
             
         return fig, AX
@@ -570,16 +578,16 @@ class FiguresWindow(NewWindow):
                 settings[key]['subquantity'] = self.sqbox.text()
                 
         if 'CaImaging' in settings:
-            settings['CaImaging']['roiIndices'] = self.parent.roiIndices
+            settings['CaImaging']['roiIndices'] = self.roiIndices
 
 
         self.data.plot_raw_data(tlim, settings=settings, Tbar=Tbar, ax=ax)
             
         if self.annot.isChecked():
-            ge.annotate(self.fig, "%s, %s, %s, %s" % (self.parent.metadata['subject_ID'],
-                                             self.parent.protocols[self.pbox.currentIndex()-1][:20],
-                                                 self.parent.metadata['filename'].split('\\')[-2],
-                                                 self.parent.metadata['filename'].split('\\')[-1]),
+            ge.annotate(self.fig, "%s, %s, %s, %s" % (self.data.metadata['subject_ID'],
+                                             self.data.protocols[self.pbox.currentIndex()-1][:20],
+                                                 self.data.metadata['filename'].split('\\')[-2],
+                                                 self.data.metadata['filename'].split('\\')[-1]),
                     (1,1), color='k', ha='right', va='top', size='x-small')
         
         ge.show()
@@ -615,17 +623,19 @@ class FiguresWindow(NewWindow):
         ge.show()
 
     def select_ROI(self):
-        """ see dataviz/gui.py   //  dataviz/guiparts.py """
-        roiIndices = self.select_ROI_from_pick(cls=self.parent)
-        if len(roiIndices)>0:
-            self.parent.roiIndices = roiIndices
-            self.parent.roiPick.setText(self.roiPick.text())
-        self.statusBar.showMessage('ROIs set to %s ' % self.parent.roiIndices)
+        """ see dataviz/gui.py """
+        try:
+            self.roiIndices = [int(self.roiPick.text())]
+            self.statusBar.showMessage('ROIs set to %s' % self.roiIndices)
+        except BaseException:
+            self.roiIndices = [0]
+            self.roiPick.setText('0')
+            self.statusBar.showMessage('/!\ ROI string not recognized /!\ --> ROI set to [0]')
         
     def compute_episodes(self):
         
         if self.sqbox.text() in ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved']:
-            self.parent.CaImaging_key = self.sqbox.text()
+            self.CaImaging_key = self.sqbox.text()
 
         self.t0pre = float(self.preWindow.text().replace('[', '').replace(']', '').split(',')[0])
         self.t1pre = float(self.preWindow.text().replace('[', '').replace(']', '').split(',')[1])
@@ -633,68 +643,59 @@ class FiguresWindow(NewWindow):
         self.t1post = float(self.postWindow.text().replace('[', '').replace(']', '').split(',')[1])
             
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
-            self.EPISODES = build_episodes(self,
-                                           parent=self.parent,
-                                           protocol_id=self.pbox.currentIndex()-1,
-                                           quantity=self.qbox.currentText(),
-                                           dt_sampling=self.samplingBox.value(), # ms
-                                           interpolation='linear',
-                                           baseline_substraction=self.baseline.isChecked(),
-                                           prestim_duration=(self.t1pre-self.t0pre),
-                                           verbose=True)
+
+            self.EPISODES = EpisodeResponse(self.data,
+                                            protocol_id=self.pbox.currentIndex()-1,
+                                            quantity=self.qbox.currentText(),
+                                            # subquantity=self.sqbox.currentText(),
+                                            subquantity=self.CaImaging_key,
+                                            dt_sampling=self.samplingBox.value(), # ms
+                                            roiIndices=self.roiIndices,
+                                            interpolation='linear',
+                                            baseline_substraction=self.baseline.isChecked(),
+                                            prestim_duration=(self.t1pre-self.t0pre),
+                                            verbose=True)
         else:
             print(' /!\ Pick a protocol and a quantity')
             
         
-    def build_conditions(self, X, K):
-        if len(K)>0:
-            CONDS = []
-            XK = np.meshgrid(*X)
-            for i in range(len(XK[0].flatten())): # looping over joint conditions
-                cond = np.ones(np.sum(self.Pcond), dtype=bool)
-                for k, xk in zip(K, XK):
-                    cond = cond & (self.parent.nwbfile.stimulus[k].data[self.Pcond]==xk.flatten()[i])
-                CONDS.append(cond)
-            return CONDS
-        else:
-            return [np.ones(np.sum(self.Pcond), dtype=bool)]
-            
     def build_single_conditions(self):
         
         full_cond = np.ones(np.sum(self.Pcond), dtype=bool)
         
         for i, key in enumerate(self.varied_parameters.keys()):
             if 'single-value' in getattr(self, '%s_plot' % key).currentText():
-                cond=(np.array(self.parent.nwbfile.stimulus[key].data[self.Pcond],
+                cond=(np.array(self.data.nwbfile.stimulus[key].data[self.Pcond],
                                dtype=str)!=getattr(self, '%s_values' % key).currentText())
                 full_cond[cond] = False
                 
         return full_cond
 
     def build_column_conditions(self):
-        X, K, L = [], [], []
+        X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if 'column' in getattr(self, '%s_plot' % key).currentText():
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-                L.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
-        return self.build_conditions(X, K)
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
+
     
     def build_row_conditions(self):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if 'row' in getattr(self, '%s_plot' % key).currentText():
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
+
 
     def build_color_conditions(self):
         X, K = [], []
         for i, key in enumerate(self.varied_parameters.keys()):
             if 'color' in getattr(self, '%s_plot' % key).currentText():
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
 
 
 
@@ -702,28 +703,10 @@ if __name__=='__main__':
 
     import sys
     sys.path.append('/home/yann/work/physion')
-    from physion.analysis.read_NWB import read as read_NWB
-    from physion.visual_stim.psychopy_code.stimuli import build_stim
-    
-    class Parent:
-        def __init__(self, filename=''):
-            read_NWB(self, filename, verbose=False)
-            print(self.nwbfile.acquisition)
-            self.datafile=filename
-            self.app = QtWidgets.QApplication(sys.argv)
-            self.description=''
-            self.roiIndices = [0]
-            self.CaImaging_key = 'Fluorescence'
-            self.metadata['load_from_protocol_data'] = True
-            self.metadata['no-window'] = True
-            self.visual_stim = build_stim(self.metadata, no_psychopy=True)
-
-    filename = sys.argv[-1]
 
     if '.nwb' in sys.argv[-1]:
-        cls = Parent(filename)
-        window = FiguresWindow(cls)
-        sys.exit(cls.app.exec_())
+        filename = sys.argv[-1]
+        window = FiguresWindow(filename)
+        sys.exit(window.app.exec_())
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
-    

@@ -9,7 +9,8 @@ from visual_stim.psychopy_code.stimuli import build_stim
 class Data:
     
     """
-    a basic class to be the parent of specific applications
+    a basic class to read NWB
+    thought to be the parent for specific applications
     """
     
     def __init__(self, filename,

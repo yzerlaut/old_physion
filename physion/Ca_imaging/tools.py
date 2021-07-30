@@ -25,7 +25,8 @@ def sliding_percentile(array, percentile, Window):
 
 def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
                             Tsliding=60,
-                            percentile=5.):
+                            percentile=5.,
+                            with_baseline=False):
     """
     # /!\ the validROI_indices are used here  /!\ (July 2021: DEPRECATED NOW STORING ONLY THE VALID ROIS)
 
@@ -39,13 +40,17 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         """
         iTsm = int(Tsliding/data.CaImaging_dt)
 
-        DFoF = []
-        for ROI in data.validROI_indices[roiIndices]:
+        DFoF, FMIN = [], []
+        for ROI in data.validROI_indices[np.array(roiIndices)]:
             Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile, iTsm) # sliding percentile
-            Fmin = gaussian_filter1d(Fmin, Tsliding) # + smoothing
+            Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
             DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
-            print(np.mean(DFoF[-1]))
-        return np.array(DFoF)
+            if with_baseline:
+                FMIN.append(Fmin)
+        if with_baseline:
+            return np.array(DFoF), np.array(FMIN)
+        else:
+            return np.array(DFoF)
 
     elif CaImaging_key in ['F-Fneu', 'dF']:
         DF = []

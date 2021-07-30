@@ -202,11 +202,11 @@ def raw_data_plot(self, tzoom,
             self.pCa.removeItem(self.ROIscatter)
         self.ROIscatter = pg.ScatterPlotItem()
         X, Y = [], []
-        for ir in self.validROI_indices[self.roiIndices]:
-            indices = np.arange((self.pixel_masks_index[ir-1] if ir>0 else 0),
-                                (self.pixel_masks_index[ir] if ir<len(self.validROI_indices) else len(self.pixel_masks_index)))
-            x = [self.pixel_masks[ii][1] for ii in indices]
-            y = [self.pixel_masks[ii][0] for ii in indices]
+        for ir in self.data.validROI_indices[self.roiIndices]:
+            indices = np.arange((self.data.pixel_masks_index[ir-1] if ir>0 else 0),
+                                (self.data.pixel_masks_index[ir] if ir<len(self.data.validROI_indices) else len(self.data.pixel_masks_index)))
+            x = [self.data.pixel_masks[ii][1] for ii in indices]
+            y = [self.data.pixel_masks[ii][0] for ii in indices]
             X += list(np.mean(x)+3*np.std(x)*np.cos(t)) # TO PLOT CIRCLES
             Y += list(np.mean(y)+3*np.std(y)*np.sin(t))
             # X += x # TO PLOT THE REAL ROIS
@@ -215,31 +215,30 @@ def raw_data_plot(self, tzoom,
         self.pCa.addItem(self.ROIscatter)
 
     if ('ophys' in self.data.nwbfile.processing) and (self.roiIndices is not None):
-        i1 = convert_time_to_index(self.tzoom[0], self.Neuropil, axis=1)
-        i2 = convert_time_to_index(self.tzoom[1], self.Neuropil, axis=1)
+        i1 = convert_time_to_index(self.tzoom[0], self.data.Neuropil, axis=1)
+        i2 = convert_time_to_index(self.tzoom[1], self.data.Neuropil, axis=1)
         if self.no_subsampling:
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
-        tt = np.array(self.Neuropil.timestamps[:])[isampling]
+        tt = np.array(self.data.Neuropil.timestamps[:])[isampling]
 
         if self.roiPick.text()=='sum' or (len(self.roiIndices)==1):
-            y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, self.roiIndices).sum(axis=0)[isampling], i=iplot) # valid ROIs inside
+            y = scale_and_position(self, compute_CaImaging_trace(self.data, self.CaImaging_key, self.roiIndices).sum(axis=0)[isampling], i=iplot) # valid ROIs inside
             self.plot.plot(tt, y, pen=pg.mkPen(color=(0,250,0), linewidth=1))
             # if self.CaImaging_key=='Fluorescence':
-            #     nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
+            #     nrnp = scale_and_position(self, y, value=self.data.Neuropil.data[:,isampling][self.data.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
             #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
             for n, ir in enumerate(self.roiIndices):
-                y = scale_and_position(self, compute_CaImaging_trace(self, self.CaImaging_key, [ir]).sum(axis=0)[isampling], i=iplot)+n/2.
+                y = scale_and_position(self, compute_CaImaging_trace(self.data, self.CaImaging_key, [ir]).sum(axis=0)[isampling], i=iplot)+n/2.
                 self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
                 # if self.CaImaging_key=='Fluorescence':
-                #     nrnp = scale_and_position(self, y, value=self.Neuropil.data[:,isampling][self.validROI_indices[ir],:], i=iplot)+n/2.
+                #     nrnp = scale_and_position(self, y, value=self.data.Neuropil.data[:,isampling][self.data.validROI_indices[ir],:], i=iplot)+n/2.
                 #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         iplot += 1
 
     # ## -------- Visual Stimulation --------- ##
-
 
     if self.stimSelect.isChecked():
         

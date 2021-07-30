@@ -354,13 +354,19 @@ class NewWindow(QtWidgets.QMainWindow):
     def quit(self):
         sys.exit()
 
+    def print_datafile(self):
+        if hasattr(self, 'datafile'):
+            print('current datafile:\n', self.datafile)
+            
     def process(self):
         print(' "process" function not implemented')
         print(' --> should be implemented in child class !')
+        self.print_datafile()
 
     def fit(self):
         print(' "fit" function not implemented')
         print(' --> should be implemented in child class !')
+        self.print_datafile()
         
     def add_to_bash_script(self):
         print(' "add_to_bash_script" function not implemented')

@@ -62,7 +62,7 @@ class MultimodalData(Data):
         scale_range = (y.max()-y.min())
         if scale_range>0:
             ax.plot(self.shifted_start(tlim)*np.ones(2), fig_fraction_start+np.arange(2)*fig_fraction*0.3/scale_range, color=color, lw=1)
-            ge.annotate(ax, '%.0fcm/s' % Sscale, (self.shifted_start(tlim), fig_fraction_start), ha='right', color=color, va='center', xycoords='data')
+            ge.annotate(ax, '%.0fcm/s ' % Sscale, (self.shifted_start(tlim), fig_fraction_start), ha='right', color=color, va='center', xycoords='data')
             ax.plot(x, (y-y.min())/(y.max()-y.min())*fig_fraction+fig_fraction_start, color=color)
         else:
             ax.plot(x, 0*x+fig_fraction_start, color=color)
@@ -124,11 +124,11 @@ class MultimodalData(Data):
                 rescaled_y = (y-y.min())/(y.max()-y.min())
                 ax.plot(tt, rescaled_y*ymax_factor+ypos, color=COLORS[n], lw=1)
 
-            ax.annotate('ROI#%i'%(ir+1), (tlim[1], ypos), color=COLORS[n], fontsize=8)
+            ax.annotate(' ROI#%i'%(ir+1), (tlim[1], ypos), color=COLORS[n], fontsize=8)
         if subquantity in ['dF/F', 'dFoF']:
             ax.annotate('1$\Delta$F/F', (self.shifted_start(tlim), fig_fraction_start), ha='right',
                         rotation=90, color=color, fontsize=9)
-        ge.annotate(ax, name+'\n ', (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
+        ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
                     xycoords='data', ha='right', va='center', rotation=90)
             
 
@@ -171,8 +171,7 @@ class MultimodalData(Data):
             if True:
                 vse = None
             self.visual_stim.show_frame(i, ax=axi, label=None, arrow=arrow, enhance=True)
-        ax.annotate(name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
-                    fontsize=8, ha='right')
+        ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
     
     def plot_raw_data(self, 
                       tlim=[0,100],
