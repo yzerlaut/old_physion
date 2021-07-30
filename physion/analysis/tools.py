@@ -2,6 +2,28 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
 
+def find_modalities(data):
+
+    MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
+    if 'Running-Speed' in data.nwbfile.acquisition:
+        MODALITIES.append('Running-Speed')
+        QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
+        TIMES.append(None)
+        UNITS.append('cm/s')
+    if 'Pupil' in data.nwbfile.processing:
+        MODALITIES.append('Pupil')
+        area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
+            data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
+        QUANTITIES.append(area)
+        TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
+        UNITS.append('mm$^2$')
+    if 'Whisking' in data.nwbfile.processing:
+        MODALITIES.append('Whisking')
+        
+    return MODALITIES, QUANTITIES, TIMES, UNITS
+    
+
+
 def resample_signal(original_signal,
                     original_freq=1e4,
                     t_sample=None,
