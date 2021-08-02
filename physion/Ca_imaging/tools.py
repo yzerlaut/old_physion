@@ -82,19 +82,24 @@ def compute_CaImaging_raster(data, CaImaging_key,
                              roiIndices='all',
                              normalization='None',
                              compute_CaImaging_options=dict(T_sliding_min=T_SLIDING_MIN,
-                                                            percentile_sliding_min=PERCENTILE_SLIDING_MIN)):
+                                                            percentile_sliding_min=PERCENTILE_SLIDING_MIN),
+                             verbose=False):
     """
     normalization can be: 'None', 'per line'
 
     """
 
-    if roiIndices=='all':
+    if (not type(roiIndices) in [list, np.array]) and (roiIndices=='all'):
         roiIndices = np.arange(data.iscell.sum())
 
+    if verbose:
+        print('computing raster [...]')
     raster = compute_CaImaging_trace(data, CaImaging_key, roiIndices, **compute_CaImaging_options)
 
+    if verbose:
+        print('normalizing raster [...]')
     if normalization in ['per line', 'per-line']:
-        for n in raster.shape[0]:
+        for n in range(raster.shape[0]):
             raster[n,:] = (raster[n,:]-raster[n,:].min())/(raster[n,:].max()-raster[n,:].min())
 
     return raster

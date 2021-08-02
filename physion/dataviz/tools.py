@@ -92,5 +92,16 @@ def extract_from_times(t1, t2, nwb_quantity, axis=0):
     
 def convert_index_to_time(index, nwb_quantity):
     """ index can be an array """
-    return nwb_quantity.starting_time+index/nwb_quantity.rate
+    if nwb_quantity.timestamps is not None:
+        return nwb_quantity.timestamps[index]
+    else:
+        return nwb_quantity.starting_time+index/nwb_quantity.rate
+
+
+
+
+
+
+
+
 

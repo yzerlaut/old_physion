@@ -8,7 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools
 from analysis.read_NWB import Data
 from analysis import stat_tools
-from Ca_imaging.tools import compute_CaImaging_trace
+from Ca_imaging.tools import compute_CaImaging_trace, compute_CaImaging_raster
 from visual_stim.psychopy_code.stimuli import build_stim
 from datavyz import graph_env_manuscript as ge
 
@@ -37,16 +37,22 @@ class MultimodalData(Data):
     def plot_scaled_signal(self, ax, t, signal, tlim, scale_bar, ax_fraction_extent, ax_fraction_start,
                            color=ge.blue, scale_unit_string='%.1f'):
         # generic function to add scaled signal
-        
-        scale_range = np.max([(signal.max()-signal.min()), scale_bar])
-        ax.plot(t, ax_fraction_start+(signal-signal.min())*ax_fraction_extent/scale_range, color=color, lw=1)
+
+        try:
+            scale_range = np.max([(signal.max()-signal.min()), scale_bar])
+            min_signal = signal.min()
+        except ValueError:
+            scale_range = scale_bar
+            min_signal = 0
+            
+        ax.plot(t, ax_fraction_start+(signal-min_signal)*ax_fraction_extent/scale_range, color=color, lw=1)
         if scale_unit_string!='':
             ax.plot(self.shifted_start(tlim)*np.ones(2), ax_fraction_start+scale_bar*np.arange(2)*ax_fraction_extent/scale_range, color=color, lw=1)
             ge.annotate(ax, str(scale_unit_string+' ') % scale_bar, (self.shifted_start(tlim), ax_fraction_start), ha='right', color=color, va='center', xycoords='data')
 
     def add_name_annotation(self, ax, name, tlim, ax_fraction_extent, ax_fraction_start,
-                            color=ge.blue):
-        return ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center')
+                            color='k', rotation=0):
+        ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
@@ -101,6 +107,39 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
+
+    def add_CaImagingRaster(self, tlim, ax,
+                            fig_fraction_start=0., fig_fraction=1., color='green',
+                            quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
+                            cmap=plt.cm.binary,
+                            normalization='None', subsampling=1,
+                            name='\nROIs'):
+
+        raster = compute_CaImaging_raster(self, subquantity,
+                                          roiIndices=roiIndices,
+                                          normalization=normalization) # validROI indices inside !!
+        indices=np.arange(*tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1))[::subsampling]
+        
+        ax.imshow(raster[:,indices], origin='lower', cmap=cmap,
+                  aspect='auto', interpolation='none',
+                  extent=(tools.convert_index_to_time(indices[0], self.Neuropil),
+                          tools.convert_index_to_time(indices[-1], self.Neuropil),
+                          fig_fraction_start, fig_fraction_start+fig_fraction))
+
+        ge.bar_legend(ax, X=[0,1], bounds=[0,1], continuous=False, colormap=cmap,
+                      inset=dict(rect=[-.04,
+                                       fig_fraction_start+.2*fig_fraction,
+                                       .01,
+                                       .6*fig_fraction], facecolor=None),
+                      color_discretization=100, labelpad=6,
+                      label='norm F', fontsize='small')
+        
+        self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, rotation=90)
+
+        ge.annotate(ax, '1', (tlim[1], fig_fraction_start), xycoords='data')
+        ge.annotate(ax, '%i' % raster.shape[0],
+                    (tlim[1], fig_fraction_start+fig_fraction), va='top', xycoords='data')
+        
         
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
@@ -127,8 +166,8 @@ class MultimodalData(Data):
             
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
-        ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
-                    xycoords='data', ha='right', va='center', rotation=90)
+        # ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
+        #             xycoords='data', ha='right', va='center', rotation=90)
             
 
     def add_CaImagingSum(self, tlim, ax,
@@ -183,11 +222,11 @@ class MultimodalData(Data):
                                                  quantity='CaImaging', subquantity='Fluorescence', color='green',
                                                  roiIndices='all'),
                                 'VisualStim':dict(fig_fraction=0, color='black')},                    
-                      figsize=(15,6), Tbar=20,
+                      figsize=(15,6), Tbar=0.,
                       ax=None, ax_raster=None):
-        
-        if (('CaImaging' in settings) and ('raster' in settings['CaImaging']['subquantity'])) and ax_raster is None:
-            fig, [ax_raster, ax] = ge.figure(axes=(1,2), figsize=(3,1), bottom=.3, left=.5, hspace=0.2)
+
+        if ('CaImaging' in settings) and ('raster' in settings['CaImaging']) and (ax_raster is None):
+            fig, [ax, ax_raster] = ge.figure(axes=(1,2), figsize=(3,1), bottom=.3, left=.5, hspace=0.)
         if ax is None:
             fig, ax = ge.figure(figsize=(3,2), bottom=.3, left=.5)
         else:
@@ -207,6 +246,8 @@ class MultimodalData(Data):
         ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=1, color='k')
         ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
         ax.set_ylim([-0.05,1.05])
+        if Tbar==0.:
+            Tbar = int((tlim[1]-tlim[0])/30.)
         ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         return fig, ax
@@ -457,43 +498,43 @@ if __name__=='__main__':
     data = MultimodalData(filename)
 
     # TRIAL AVERAGING EXAMPLE
-    fig, AX = data.plot_trial_average(roiIndex=3,
-                                      protocol_id=0,
-                                      quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
-                                      xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                                      with_stat_test=True,
-                                      with_annot=True,
-                                      fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+    # fig, AX = data.plot_trial_average(roiIndex=3,
+    #                                   protocol_id=0,
+    #                                   quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
+    #                                   xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+    #                                   with_stat_test=True,
+    #                                   with_annot=True,
+    #                                   fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
     # data.plot_trial_average(roiIndex=3,
     #                         protocol_id=0,
     #                         quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
     #                         xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
     #                         ylim=AX[0][0].get_ylim(),
     #                         fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
-    ge.show()
     
     # RAW DATA EXAMPLE
-    # data.plot_raw_data([1040, 1060], 
-    #           # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
-    #           settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
-    #                     'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
-    #                     'CaImaging':dict(fig_fraction=7, subsampling=2, 
-    #                                      # quantity='CaImaging', subquantity='dF/F', color=ge.green,
-    #                                      quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
-    #                                      # roiIndices=np.arange(np.sum(data.iscell))),
-    #                                      roiIndices=np.sort([5, 0, 18, 1, 3, 2, 11, 6, 8, 10, 9])),
-    #                     'VisualStim':dict(fig_fraction=2, color='black')},                    
-    #           Tbar=10)
+    data.plot_raw_data([10, 200], 
+              # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
+              settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
+                        # 'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
+                        'CaImaging':dict(fig_fraction=7, subsampling=2, 
+                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
+                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+                                         # roiIndices=np.arange(np.sum(data.iscell))),
+                                         roiIndices=np.arange(5,7)),
+                        'CaImagingRaster':dict(fig_fraction=7, subsampling=10,
+                                               # roiIndices=np.arange(10),
+                                               normalization='per-line',
+                                               quantity='CaImaging', subquantity='Fluorescence'),
+                        'VisualStim':dict(fig_fraction=.2, color='black')},                    
+              Tbar=10)
+    ge.show()
 
 
     # from datavyz import ge
     # fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
     # ge.save_on_desktop(fig, 'fig.png')
     # plt.show()
-
-
-
-
 
 
 
