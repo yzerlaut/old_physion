@@ -70,6 +70,25 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         print(20*'--')
 
 
+def compute_CaImaging_raster(data, CaImaging_key, roiIndices='all',
+                             compute_CaImaging_options=dict(Tsliding=60, percentile=5.),
+                             normalization='None'):
+    """
+    normalization can be: 'None', 'per line'
+
+    """
+
+    if roiIndices=='all':
+        roiIndices = np.arange(data.iscell.sum())
+
+    raster = compute_CaImaging_trace(data, CaImaging_key, roiIndices, **compute_CaImaging_options)
+
+    if normalization in ['per line', 'per-line']:
+        for n in raster.shape[0]:
+            raster[n,:] = (raster[n,:]-raster[n,:].min())/(raster[n,:].max()-raster[n,:].min())
+
+    return raster
+
               
 
 
@@ -77,3 +96,12 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
 
 
 
+              
+
+
+
+
+
+
+
+        
