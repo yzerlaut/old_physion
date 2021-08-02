@@ -39,12 +39,12 @@ class MultimodalData(Data):
         # generic function to add scaled signal
 
         try:
-            scale_range = np.max([(signal.max()-signal.min()), scale_bar])
+            scale_range = np.max([signal.max()-signal.min(), scale_bar])
             min_signal = signal.min()
         except ValueError:
             scale_range = scale_bar
             min_signal = 0
-            
+
         ax.plot(t, ax_fraction_start+(signal-min_signal)*ax_fraction_extent/scale_range, color=color, lw=1)
         if scale_unit_string!='':
             ax.plot(self.shifted_start(tlim)*np.ones(2), ax_fraction_start+scale_bar*np.arange(2)*ax_fraction_extent/scale_range, color=color, lw=1)
@@ -60,7 +60,7 @@ class MultimodalData(Data):
         t = tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
         
-        self.plot_scaled_signal(ax, t, y, 1., tlim, fig_fraction_extent, fig_fraction_start, color=color, scale_unit_string='')        
+        self.plot_scaled_signal(ax, t, y, tlim, 1e-5, fig_fraction, fig_fraction_start, color=color, scale_unit_string='')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
     def add_Electrophy(self, tlim, ax,
@@ -126,13 +126,16 @@ class MultimodalData(Data):
                           tools.convert_index_to_time(indices[-1], self.Neuropil),
                           fig_fraction_start, fig_fraction_start+fig_fraction))
 
-        ge.bar_legend(ax, X=[0,1], bounds=[0,1], continuous=False, colormap=cmap,
-                      inset=dict(rect=[-.04,
-                                       fig_fraction_start+.2*fig_fraction,
-                                       .01,
-                                       .6*fig_fraction], facecolor=None),
-                      color_discretization=100, labelpad=6,
-                      label='norm F', fontsize='small')
+        if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
+            ge.bar_legend(ax,
+                          # X=[0,1], bounds=[0,1],
+                          continuous=False, colormap=cmap,
+                          inset=dict(rect=[-.04,
+                                           fig_fraction_start+.2*fig_fraction,
+                                           .01,
+                                           .6*fig_fraction], facecolor=None),
+                          color_discretization=100, no_ticks=True, labelpad=4.,
+                          label='norm F', fontsize='small')
         
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, rotation=90)
 
@@ -162,7 +165,7 @@ class MultimodalData(Data):
             y = dF[n, np.arange(i1,i2)][::subsampling]
 
             self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
-                                    scale_unit_string=('%.0dF/F' if subquantity in ['dF/F', 'dFoF'] else ''))
+                                    scale_unit_string=('%.0dF/F' if ((n==0) and subquantity in ['dF/F', 'dFoF']) else ''))
             
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
@@ -241,14 +244,16 @@ class MultimodalData(Data):
             
         for key in settings:
             getattr(self, 'add_%s' % key)(tlim, ax, **settings[key])
-            
-        ax.axis('off')
+
+        # time scale bar
+        if Tbar==0.:
+            Tbar = np.max([int((tlim[1]-tlim[0])/30.), 1])
         ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=1, color='k')
+        ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
+        
+        ax.axis('off')
         ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
         ax.set_ylim([-0.05,1.05])
-        if Tbar==0.:
-            Tbar = int((tlim[1]-tlim[0])/30.)
-        ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         return fig, ax
         
@@ -522,12 +527,11 @@ if __name__=='__main__':
                                          quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
                                          # roiIndices=np.arange(np.sum(data.iscell))),
                                          roiIndices=np.arange(5,7)),
-                        'CaImagingRaster':dict(fig_fraction=7, subsampling=10,
-                                               # roiIndices=np.arange(10),
+                        'CaImagingRaster':dict(fig_fraction=7, subsampling=1,
+                                               roiIndices='all',
                                                normalization='per-line',
                                                quantity='CaImaging', subquantity='Fluorescence'),
-                        'VisualStim':dict(fig_fraction=.2, color='black')},                    
-              Tbar=10)
+                        'VisualStim':dict(fig_fraction=.5, color='black')})
     ge.show()
 
 

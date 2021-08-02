@@ -52,7 +52,11 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         for ROI in data.validROI_indices[np.array(roiIndices)]:
             Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, iTsm) # sliding percentile
             Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
-            DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
+            if np.mean(Fmin)!=0:
+                DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
+            else:
+                DFoF.append(data.Fluorescence.data[ROI,:])
+                
             if with_baseline:
                 FMIN.append(Fmin)
         if with_baseline:
@@ -98,9 +102,11 @@ def compute_CaImaging_raster(data, CaImaging_key,
 
     if verbose:
         print('normalizing raster [...]')
-    if normalization in ['per line', 'per-line']:
+    if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
         for n in range(raster.shape[0]):
-            raster[n,:] = (raster[n,:]-raster[n,:].min())/(raster[n,:].max()-raster[n,:].min())
+            Fmax, Fmin = raster[n,:].max(), raster[n,:].min()
+            if Fmax>Fmin:
+                raster[n,:] = (raster[n,:]-Fmin)/(Fmax-Fmin)
 
     return raster
               

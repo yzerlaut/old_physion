@@ -445,10 +445,9 @@ class MainWindow(guiparts.NewWindow):
             self.windowFG = FiguresWindow(parent=self)
             self.windowFG.show()
         elif self.pbox.currentText()=='-> produce PDF summary':
-            cmd = '%s %s -df %s --ops exp raw rois protocols --verbose' % (python_path,
-                        os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
-                                     'analysis', 'summary_pdf.py'),
-                                                                           self.datafile)
+            cmd = '%s %s %s --verbose' % (python_path,
+                            os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
+                                     'analysis', 'summary_pdf.py'), self.datafile)
             p = subprocess.Popen(cmd, shell=True)
             print('"%s" launched as a subprocess' % cmd)
         elif self.pbox.currentText()=='-> open PDF summary':

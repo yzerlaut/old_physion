@@ -1,10 +1,13 @@
-import sys, pathlib
+import sys, os, pathlib
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from analysis.tools import *
+from dataviz.show_data import MultimodalData
+from dataviz import tools
 
+from analysis.tools import *
 
 def analysis_fig(data,
                  running_speed_threshold=0.1):
@@ -111,22 +114,35 @@ def analysis_fig(data,
     return fig
 
 
+def analysis_pdf(datafile):
+
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), 'behavior.pdf')
+
+    data = MultimodalData(datafile)
+    
+    with PdfPages(pdf_filename) as pdf:
+
+        print('* plotting behavioral data as "behavior.pdf" [...]')
+        
+        print('   - behavior analysis ')
+        fig = analysis_fig(data)
+        pdf.savefig()  # saves the current figure into a pdf page
+        plt.close()
+    
+    print('[ok] behavioral data saved as: "%s" ' % pdf_filename)
+
 
 if __name__=='__main__':
 
-    from analysis.read_NWB import Data
+    import argparse
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument("datafile", type=str)
+    parser.add_argument("-v", "--verbose", action="store_true")
+
+    args = parser.parse_args()
     
-    if '.nwb' in sys.argv[-1]:
-        data = Data(sys.argv[-1])
-        fig = analysis_fig(data)
-        plt.show()
+    if '.nwb' in args.datafile:
+        analysis_pdf(args.datafile)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
-
-
-
-
-
-
-
-
