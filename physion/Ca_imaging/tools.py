@@ -1,8 +1,16 @@
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d # for gaussian smoothing
 
-#########################
-#########################
+####################################
+# ---------------------------------
+# DEFAULT_CA_IMAGING_OPTIONS
+
+T_SLIDING_MIN = 60. # seconds
+PERCENTILE_SLIDING_MIN = 5. # percent
+
+# ---------------------------------
+####################################
+
 
 # numpy code for ~efficiently evaluating the distrib percentile over a sliding window
 def strided_app(a, L, S ):  # Window len = L, Stride len/stepsize = S
@@ -24,13 +32,13 @@ def sliding_percentile(array, percentile, Window):
     return x
 
 def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
-                            Tsliding=60,
-                            percentile=5.,
-                            with_baseline=False):
+                            with_baseline=False,
+                            T_sliding_min=T_SLIDING_MIN,
+                            percentile_sliding_min=PERCENTILE_SLIDING_MIN):
     """
     # /!\ the validROI_indices are used here  /!\ (July 2021: DEPRECATED NOW STORING ONLY THE VALID ROIS)
-
     """
+
     if CaImaging_key in ['Fluorescence', 'Neuropil', 'Deconvolved']:
         return getattr(data, CaImaging_key).data[data.validROI_indices[roiIndices], :]
         
@@ -38,11 +46,11 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         """
         computes dF/F with a smotthed sliding percentile
         """
-        iTsm = int(Tsliding/data.CaImaging_dt)
+        iTsm = int(T_sliding_min/data.CaImaging_dt)
 
         DFoF, FMIN = [], []
         for ROI in data.validROI_indices[np.array(roiIndices)]:
-            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile, iTsm) # sliding percentile
+            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, iTsm) # sliding percentile
             Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
             DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
             if with_baseline:
@@ -70,9 +78,11 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         print(20*'--')
 
 
-def compute_CaImaging_raster(data, CaImaging_key, roiIndices='all',
-                             compute_CaImaging_options=dict(Tsliding=60, percentile=5.),
-                             normalization='None'):
+def compute_CaImaging_raster(data, CaImaging_key,
+                             roiIndices='all',
+                             normalization='None',
+                             compute_CaImaging_options=dict(T_sliding_min=T_SLIDING_MIN,
+                                                            percentile_sliding_min=PERCENTILE_SLIDING_MIN)):
     """
     normalization can be: 'None', 'per line'
 
@@ -88,14 +98,6 @@ def compute_CaImaging_raster(data, CaImaging_key, roiIndices='all',
             raster[n,:] = (raster[n,:]-raster[n,:].min())/(raster[n,:].max()-raster[n,:].min())
 
     return raster
-
-              
-
-
-
-
-
-
               
 
 
