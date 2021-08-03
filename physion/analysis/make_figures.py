@@ -10,7 +10,6 @@ from dataviz.show_data import MultimodalData, format_key_value
 from dataviz import tools as dv_tools
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
-from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
 from analysis.process_NWB import EpisodeResponse
 
 try:
@@ -475,10 +474,10 @@ class FiguresWindow(NewWindow):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
                         cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
-                        results = stat_test_for_evoked_responses(EPISODES, cond,
-                                                                 interval_pre=[self.t0pre, self.t1pre],
-                                                                 interval_post=[self.t0post, self.t1post],
-                                                                 test='wilcoxon')
+                        results = self.EPISODES.stat_test_for_evoked_responses(episode_cond=cond,
+                                                                          interval_pre=[self.t0pre, self.t1pre],
+                                                                          interval_post=[self.t0post, self.t1post],
+                                                                          test='wilcoxon')
                         ps, size = results.pval_annot()
                         AX[irow][icol].annotate(ps, ((self.t1pre+self.t0post)/2., self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
                         AX[irow][icol].plot([self.t0pre, self.t1pre], self.ylim[0]*np.ones(2), 'k-', lw=2)
