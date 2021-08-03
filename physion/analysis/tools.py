@@ -5,7 +5,6 @@ from scipy.interpolate import interp1d
 def summary_pdf_folder(filename):
     return filename.replace('.nwb', '')
 
-
 def find_modalities(data):
 
     MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
