@@ -7,34 +7,7 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import python_path
 from dataviz.show_data import MultimodalData
-from Ca_imaging.tools import compute_CaImaging_trace
 from analysis.tools import *
-from analysis import orientation_direction_selectivity, spont_behavior, rois
-
-
-def raw_data_plot_settings(data, subsampling_factor=1):
-    settings = {}
-    if 'Photodiode-Signal' in data.nwbfile.acquisition:
-        settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100*subsampling_factor, color='grey')
-    if 'Running-Speed' in data.nwbfile.acquisition:
-        settings['Locomotion'] = dict(fig_fraction=2, subsampling=3*subsampling_factor)
-    if 'Pupil' in data.nwbfile.processing:
-        settings['Pupil'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
-    if 'FaceMotion' in data.nwbfile.processing:
-        settings['FaceMotion'] = dict(fig_fraction=2, subsampling=2*subsampling_factor)
-    if 'ophys' in data.nwbfile.processing:
-        settings['CaImaging'] = dict(fig_fraction=5,
-                                     roiIndices=np.random.choice(np.arange(np.sum(data.iscell)), 10, replace=True), # picking 20 random non-redundant rois
-                                     quantity='CaImaging',
-                                     subquantity='dF/F', vicinity_factor=1., color='green', subsampling=subsampling_factor)
-        settings['CaImagingRaster'] = dict(fig_fraction=5,
-                                           roiIndices='all',
-                                           quantity='CaImaging', subquantity='Fluorescence', normalization='per-cell',
-                                           subsampling=5*subsampling_factor)
-    if not (subsampling_factor>1):
-        settings['VisualStim'] = dict(fig_fraction=0.01, color='black')
-    return settings
-
 
 def metadata_fig(data):
     
@@ -73,7 +46,6 @@ def metadata_fig(data):
     ax.annotate(s, (0,0), fontsize=6)
         
     return fig
-
 
 
 
@@ -128,11 +100,12 @@ def make_summary_pdf(filename, Nmax=1000000,
 
             print('* * plotting protocol "%s" [...]' % protocol)
             
+            protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
+            print(protocol_type)
+            
             # with PdfPages(os.path.join(folder, '%s.pdf' % protocol)) as pdf:
             
             #     # finding protocol type
-            #     protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
-            #     # print(protocol_type)
             #     # then protocol-dependent analysis
 
             #     if protocol_type=='full-field-grating':

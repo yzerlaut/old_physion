@@ -7,6 +7,7 @@ from assembling.saving import day_folder
 
 from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData, format_key_value
+from dataviz import tools as dv_tools
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.stat_tools import stat_test_for_evoked_responses, pval_to_star
@@ -211,7 +212,7 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(QtWidgets.QLabel('       -* Figure Properties *-        ', self))
         self.fig_presets = QtWidgets.QComboBox(self)
         self.fig_presets.setFixedWidth(400)
-        self.fig_presets.addItems(['', 'raw-traces-preset', 'IO-curves-preset'])
+        self.fig_presets.addItems(dv_tools.FIGURE_PRESETS.keys())
         Layouts[-1].addWidget(self.fig_presets)
         
         Layouts[-1].addWidget(QtWidgets.QLabel('Panel size:  ', self))
@@ -415,13 +416,7 @@ class FiguresWindow(NewWindow):
         else:
             COLORS = ['k']
                 
-        if self.fig_presets.currentText()=='raw-traces-preset':
-            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)), reshape_axes=False,
-                                top=2., bottom=0.6, left=0.7, right=2.5,
-                                wspace=0.5, hspace=0.5)
-        else:
-            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
-                                reshape_axes=False, right=2.)
+        fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)), **dv_tools.FIGURE_PRESETS[self.fig_presets.currentText()])
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -480,15 +475,14 @@ class FiguresWindow(NewWindow):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
                         cond = np.array(single_cond & col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
-                        test = stat_test_for_evoked_responses(self.EPISODES, cond,
-                                                              interval_pre=[self.t0pre, self.t1pre],
-                                                              interval_post=[self.t0post, self.t1post],
-                                                              test='wilcoxon')
-                        
+                        results = stat_test_for_evoked_responses(EPISODES, cond,
+                                                                 interval_pre=[self.t0pre, self.t1pre],
+                                                                 interval_post=[self.t0post, self.t1post],
+                                                                 test='wilcoxon')
+                        ps, size = results.pval_annot()
+                        AX[irow][icol].annotate(ps, ((self.t1pre+self.t0post)/2., self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
                         AX[irow][icol].plot([self.t0pre, self.t1pre], self.ylim[0]*np.ones(2), 'k-', lw=2)
                         AX[irow][icol].plot([self.t0post, self.t1post], self.ylim[0]*np.ones(2), 'k-', lw=2)
-                        ps, size = pval_to_star(test)
-                        AX[irow][icol].annotate(ps, ((self.t1pre+self.t0post)/2., self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
                             
         # color label
         if self.annot.isChecked() and (len(COLOR_CONDS)>1):

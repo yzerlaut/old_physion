@@ -11,7 +11,7 @@ class EpisodeResponse:
                  protocol_id=0,
                  quantity='Photodiode-Signal',
                  subquantity='',
-                 roiIndices=[0],
+                 roiIndex=None, roiIndices=[0],
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
                  dt_sampling=1, # ms
                  interpolation='linear',
@@ -20,6 +20,10 @@ class EpisodeResponse:
 
         self.dt_sampling = dt_sampling,
         self.quantity = quantity
+        if roiIndex is not None:
+            self.roiIndices = [roiIndex]
+        else:
+            self.roiIndices = roiIndices
         resp = []
 
         # choosing protocol (if multiprotocol)
@@ -54,7 +58,7 @@ class EpisodeResponse:
         if quantity=='CaImaging':
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
-                                                               roiIndices).sum(axis=0) # valid ROI indices inside
+                                                               self.roiIndices).sum(axis=0) # valid ROI indices inside
         else:
             if quantity in full_data.nwbfile.acquisition:
                 tfull = np.arange(full_data.nwbfile.acquisition[quantity].data.shape[0])/full_data.nwbfile.acquisition[quantity].rate
@@ -102,7 +106,53 @@ class EpisodeResponse:
             print('  -> [ok] episodes ready !')
 
 
+    def compute_interval_cond(self, interval):
+        return (self.t>=interval[0]) & (self.t<=interval[1])
 
+    def find_episode_cond(self, key, index):
+        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray]) :
+            cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
+            for n in range(1, len(key)):
+                cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
+        else:
+            cond = (getattr(self, key)==self.varied_parameters[key][index])
+        return cond
+
+    def stat_test_for_evoked_responses(self,
+                                       episode_cond=None,
+                                       interval_pre=[-2,0],
+                                       interval_post=[1,3],
+                                       test='wilcoxon'):
+
+        if episode_cond is None:
+            episode_cond = np.ones(self.resp.shape[0], dtype=bool)
+
+        pre_cond  = self.compute_interval_cond(interval_pre)
+        post_cond  = self.compute_interval_cond(interval_post)
+
+        return stat_tools.StatTest(self.resp[episode_cond,:][:,pre_cond].mean(axis=1),
+                                   self.resp[episode_cond,:][:,post_cond].mean(axis=1))
+
+    def compute_stats_over_repeated_trials(self, key, index,
+                                           interval_cond=None,
+                                           quantity='mean'):
+        
+        cond = self.find_episode_cond(key, index)
+        
+        if interval_cond is None:
+            interval_cond = np.ones(len(self.t), dtype=bool)
+
+        quantities = []
+        for i in np.arange(self.resp.shape[0])[cond]:
+            if quantity=='mean':
+                quantities.append(np.mean(self.resp[i, interval_cond]))
+            elif quantity=='integral':
+                quantities.append(np.trapz(self.resp[i, interval_cond]))
+        return np.array(quantities)
+    
+
+
+    
 if __name__=='__main__':
 
     from analysis.read_NWB import Data
@@ -111,7 +161,7 @@ if __name__=='__main__':
     
     if '.nwb' in sys.argv[-1]:
         data = Data(filename)
-        cell_resp = EpisodeResponse(data)
+        cell_resp = EpisodeResponse(data, roiIndex=0)
         print(cell_resp.t)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
