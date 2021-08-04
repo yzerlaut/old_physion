@@ -101,8 +101,18 @@ def make_summary_pdf(filename, Nmax=1000000,
             print('* * plotting protocol "%s" [...]' % protocol)
             
             protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
-            print(protocol_type)
-            
+
+            # orientation selectivity analyis
+            if protocol in ['Pakan-et-al-static']:
+                process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                              'orientation_direction_selectivity.py')
+                p = subprocess.Popen('%s %s %s orientation' % (python_path, process_script, filename), shell=True)
+
+            if protocol in ['Pakan-et-al-drifting']:
+                process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                              'orientation_direction_selectivity.py')
+                p = subprocess.Popen('%s %s %s direction' % (python_path, process_script, filename), shell=True)
+                
             # with PdfPages(os.path.join(folder, '%s.pdf' % protocol)) as pdf:
             
             #     # finding protocol type
@@ -191,13 +201,12 @@ def make_summary_pdf(filename, Nmax=1000000,
 
 if __name__=='__main__':
     
-    import argparse, datetime
+    import argparse
 
     parser=argparse.ArgumentParser()
-    parser.add_argument("datafile", type=str,
-                        default='/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/2021_07_01/2021_07_01-16-27-22.nwb')
+    parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", type=str, nargs='*',
-                        default=['exp', 'raw', 'rois', 'behavior'])
+                        default=['exp', 'raw', 'behavior', 'rois', 'protocols'])
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     

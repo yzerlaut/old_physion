@@ -7,13 +7,14 @@ from PIL import Image
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
+from assembling.saving import get_files_with_extension
 
 def build_from_bruker_tiffs(folder,
                             channel='Ch2',
                             threshold=255):
 
 
-    xml_file = os.path.join(folder, os.path.join(folder.split('/')[-1]+'.xml'))
+    xml_file = os.path.join(folder, get_files_with_extension(folder, extension='.xml')[0])
     bruker_data = bruker_xml_parser(xml_file)
 
 
@@ -66,10 +67,22 @@ def plot(xs, ys, zs, ms=2):
 
     
 if __name__=='__main__':
-    
-    folder = sys.argv[-1] # '/media/yann/Yann/2020_11_10/TSeries-11102020-1605-016'
 
-    plot(*build_from_bruker_tiffs(folder, threshold=1400), ms=2)
+    import argparse
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument('-f', "--folder", type=str,
+                        default='/home/yann/DATA/CaImaging/SSTcre_GCamp6s/Z-Stacks/In-Vivo-Mouse2')
+    # parser.add_argument('-o', "--ops", type=str, nargs='*',
+    #                     default=['exp', 'raw', 'behavior', 'rois', 'protocols'])
+    parser.add_argument('-t', "--threshold", type=int, default=1400)
+    # parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+    
+    args = parser.parse_args()
+
+
+    
+    plot(*build_from_bruker_tiffs(args.folder, threshold=args.threshold), ms=2)
 
     plt.show()
 
