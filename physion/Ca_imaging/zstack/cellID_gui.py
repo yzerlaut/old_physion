@@ -15,6 +15,9 @@ from pupil.roi import extract_ellipse_props, ellipse_props_to_ROI
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.saving import get_files_with_extension
 
+roipen1 = pg.mkPen((255, 0, 0), width=2, style=QtCore.Qt.SolidLine) # red line
+roipen2 = pg.mkPen((0, 255, 0), width=1, style=QtCore.Qt.SolidLine) # green
+
 class MainWindow(NewWindow):
     
     def __init__(self, app,
@@ -24,7 +27,7 @@ class MainWindow(NewWindow):
                  cm_scale_px=570,
                  subsampling=1000):
         """
-        Pupil Tracking GUI
+        Cell Identification GUI for Z-stacks Imaging
         """
         self.app = app
         
@@ -41,12 +44,14 @@ class MainWindow(NewWindow):
         self.refc1.activated.connect(self.next_frames)
         self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
         self.refc2.activated.connect(self.previous_frames)
+        self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+C'), self)
+        self.refc3.activated.connect(self.new_ROI)
         
         #############################
         ##### module quantities #####
         #############################
 
-        self.ROI = None
+        self.ROIS = []
         
         ########################
         ##### building GUI #####
@@ -67,40 +72,60 @@ class MainWindow(NewWindow):
         self.grid.addWidget(self.load, 1, 2, 1, 1)
 
         self.channelB = QtWidgets.QComboBox(self)
-        self.channelB.setMinimumWidth(150)
         self.channelB.addItems(['Ch2', 'Ch1'])
         self.grid.addWidget(self.channelB, 1, 3, 1, 1)
+
+        self.grid.addWidget(QtGui.QLabel("sampling (frame):"), 1, 4, 1, 1)
+        self.samplingB = QtWidgets.QComboBox(self)
+        self.samplingB.addItems(['1', '2', '3', '5', '7', '10'])
+        self.grid.addWidget(self.samplingB, 1, 5, 1, 1)
+
+        self.depth = QtGui.QLineEdit()
+        self.depth.setText("depth= %.1f um" % 0)
+        self.grid.addWidget(self.depth, 1, 6, 1, 2)
+
+        self.grid.addWidget(QtGui.QLabel("cell-range (um):"), 1, 8, 1, 1)
+        self.cellRange = QtWidgets.QComboBox(self)
+        self.cellRange.addItems(['1', '10', '20', '50', '100', '1000'])
+        self.cellRange.setCurrentIndex(2)
+        self.grid.addWidget(self.cellRange, 1, 9, 1, 1)
+
         
-        self.newRoiBtn = QtGui.QPushButton('new ROI')
+        self.newRoiBtn = QtGui.QPushButton('new Cell [Ctrl+C]')
         self.newRoiBtn.clicked.connect(self.new_ROI)
-        self.grid.addWidget(self.newRoiBtn, 1, 5, 1, 1)
+        self.grid.addWidget(self.newRoiBtn, 2, 1, 1, 1)
 
-        self.saveRoiBtn = QtGui.QPushButton('save ROI')
-        self.saveRoiBtn.clicked.connect(self.save_ROI)
-        self.grid.addWidget(self.saveRoiBtn, 1, 6, 1, 1)
-
+        self.showCells = QtGui.QCheckBox("show cells")
+        self.showCells.clicked.connect(self.display_frames)
+        self.grid.addWidget(self.showCells, 2, 2, 1, 2)
+        
         self.prevBtn = QtGui.QPushButton('next frames [Ctrl+N]')
         self.prevBtn.clicked.connect(self.next_frames)
-        self.grid.addWidget(self.prevBtn, 1, 9, 1, 1)
+        self.grid.addWidget(self.prevBtn, 2, 4, 1, 1)
         
         self.nextBtn = QtGui.QPushButton('prev. frames [Ctrl+P]')
         self.nextBtn.clicked.connect(self.previous_frames)
-        self.grid.addWidget(self.nextBtn, 1, 10, 1, 1)
-
-        self.threeDBtn = QtGui.QPushButton('show 3D view')
-        self.threeDBtn.clicked.connect(self.show_3d_view)
-        self.grid.addWidget(self.threeDBtn, 1, 12, 1, 1)
+        self.grid.addWidget(self.nextBtn, 2, 5, 1, 1)
 
         self.saveCellsBtn = QtGui.QPushButton('save cells')
         self.saveCellsBtn.clicked.connect(self.save_cells)
-        self.grid.addWidget(self.saveCellsBtn, 1, 11, 1, 1)
+        self.grid.addWidget(self.saveCellsBtn, 2, 7, 1, 1)
         
+        self.threeDBtn = QtGui.QPushButton('show 3D view')
+        self.threeDBtn.clicked.connect(self.show_3d_view)
+        self.grid.addWidget(self.threeDBtn, 2, 8, 1, 1)
+
+        self.resetBtn = QtGui.QPushButton('reset')
+        self.resetBtn.clicked.connect(self.reset)
+        self.grid.addWidget(self.resetBtn, 2, 9, 1, 1)
+
         self.cwidget.setLayout(self.grid)
         self.win = pg.GraphicsLayoutWidget()
-        self.grid.addWidget(self.win,2,1,12,12)
+        self.grid.addWidget(self.win,3,1,10,10)
         layout = self.win.ci.layout
 
-        for i, key in enumerate(['pPrev', 'Prev', 'Center', 'Next', 'nNext']):
+        # for i, key in enumerate(['pPrev', 'Prev', 'Center', 'Next', 'nNext']):
+        for i, key in enumerate(['Prev', 'Center', 'Next']):
             # A plot area (ViewBox + axes) for displaying the image
             setattr(self, 'view_%s' % key,
                     self.win.addViewBox(lockAspect=True,
@@ -110,35 +135,34 @@ class MainWindow(NewWindow):
             setattr(self, 'img_%s' % key, pg.ImageItem())
             getattr(self, 'view_%s' % key).addItem(getattr(self, 'img_%s' % key))
 
+        self.load_data(args.folder)
         self.win.show()
         self.show()
 
-    def new_ROI(self):
-        self.newROI = pg.EllipseROI([200, 200], [20, 20],
-            pen=pg.mkPen([0,200,50], width=3, style=QtCore.Qt.SolidLine),
-            movable=True)
-        self.view_Center.addItem(self.newROI)
-
-    def save_ROI(self):
-        coords = extract_ellipse_props(self.newROI)
-        cell = {}
-        for key, c in zip(['x', 'y', 'sx', 'sy'], coords):
-            cell[key] = c
-        cell['z'] = self.bruker_data[self.channelB.currentText()]['depth'][self.cframe]
-        self.ROIS.append(cell)
+    def reset(self):
+        pass
     
+    def hitting_space(self):
+
+        if self.showCells.isChecked():
+            self.showCells.setChecked(False)
+        else:
+            self.showCells.setChecked(True)
+        self.display_frames()
+
+    def new_ROI(self):
+        self.ROIS.append(cellROI(depth=float(self.bruker_data[self.channelB.currentText()]['depth'][self.cframe]),
+                                 parent=self))
+
     def open_file(self):
-        self.load_data()
-        
-    def load_data(self):
 
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        self.load_data(folder)
+        
+    def load_data(self, folder):
 
-        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
-        
-        folder = '/home/yann/DATA/CaImaging/SSTcre_GCamp6s/Z-Stacks/In-Vitro-Mouse2'
-        
         if folder!='':
             self.folder=folder
             xml_file = os.path.join(folder, get_files_with_extension(self.folder,
@@ -149,56 +173,61 @@ class MainWindow(NewWindow):
             self.nframes = len(self.bruker_data[self.channelB.currentText()]['tifFile'])
             self.display_frames()
             self.ROIS = []
+            if os.path.isfile(os.path.join(self.folder, 'cells.npy')):
+                cells=np.load(os.path.join(self.folder, 'cells.npy'), allow_pickle=True).item()
+                for x, y, z in zip(cells['x'], cells['y'], cells['z']):
+                    self.ROIS.append(cellROI(depth=z,pos=(x,y),
+                                             parent=self))
+        else:
+            print('"%s" is not a valid folder' % folder)
 
     def plot_frame(self, panel, cframe):
         
-        
-        if (self.cframe>0) and (self.cframe<(self.nframes-1)):
-            imgP = np.array(Image.open(os.path.join(self.folder,
-                    self.bruker_data[self.channelB.currentText()]['tifFile'][cframe-1])))
-            imgC = np.array(Image.open(os.path.join(self.folder,
-                    self.bruker_data[self.channelB.currentText()]['tifFile'][cframe])))
-            imgN = np.array(Image.open(os.path.join(self.folder,
-                    self.bruker_data[self.channelB.currentText()]['tifFile'][cframe+1])))
-            img = .25*(imgN+imgP)+.5*imgC
-        else:
-            img = np.array(Image.open(os.path.join(self.folder,
-                    self.bruker_data[self.channelB.currentText()]['tifFile'][cframe])))
-            
+        N = int(self.samplingB.currentText())
+        iframes = np.arange(np.max([0, cframe-N-1]), np.min([self.nframes-1, cframe+N]))
+
+        img = np.zeros((int(self.bruker_data['settings']['pixelsPerLine']),
+                       int(self.bruker_data['settings']['linesPerFrame'])))
+        for i in iframes:
+            img += np.array(Image.open(os.path.join(self.folder,self.bruker_data[self.channelB.currentText()]['tifFile'][i])))*np.exp(-(i-cframe)**2/N**2)
+
         panel.setImage(img)
         panel.setLevels([img.min(), img.max()])
-        # panel.setLevels([0, 5000])
 
     def display_frames(self):
 
-        if self.cframe>1:
-            self.plot_frame(self.img_pPrev, self.cframe-2)
-        else:
-            self.img_pPrev.setImage(np.zeros((2,2)))
-            
-        if self.cframe>0:
-            self.plot_frame(self.img_Prev, self.cframe-1)
+        current_depth = float(self.bruker_data[self.channelB.currentText()]['depth'][self.cframe])
+        self.depth.setText("depth= %.1f um" % current_depth)
+        
+        # remove previous and add rois
+        for roi in self.ROIS:
+            roi.remove_from_view(self.view_Center)
+            if roi.depth==current_depth and self.showCells.isChecked():
+                    roi.ROI.setPen(roipen1)
+                    roi.add_to_view(self.view_Center)
+            elif self.showCells.isChecked() and (np.abs(current_depth-roi.depth)<float(self.cellRange.currentText())):
+                roi.ROI.setPen(roipen2)
+                roi.add_to_view(self.view_Center)
+                
+        if self.cframe>(int(self.samplingB.currentText())-1):
+            self.plot_frame(self.img_Prev, self.cframe-int(self.samplingB.currentText()))
         else:
             self.img_Prev.setImage(np.zeros((2,2)))
 
         self.plot_frame(self.img_Center, self.cframe)
         
-        if self.cframe<(self.nframes-1):
-            self.plot_frame(self.img_Next, self.cframe+1)
+        if self.cframe<(self.nframes-int(self.samplingB.currentText())):
+            self.plot_frame(self.img_Next, self.cframe+int(self.samplingB.currentText()))
         else:
             self.img_Next.setImage(np.zeros((2,2)))
             
-        if self.cframe<(self.nframes-2):
-            self.plot_frame(self.img_nNext, self.cframe+2)
-        else:
-            self.img_nNext.setImage(np.zeros((2,2)))
         
     def previous_frames(self):
-        self.cframe = np.max([0, self.cframe-1])
+        self.cframe = np.max([0, self.cframe-int(self.samplingB.currentText())])
         self.display_frames()
 
     def next_frames(self):
-        self.cframe = np.min([self.nframes-1, self.cframe+1])
+        self.cframe = np.min([self.nframes-1, self.cframe+int(self.samplingB.currentText())])
         self.display_frames()
 
     def init_cells_data(self):
@@ -214,9 +243,9 @@ class MainWindow(NewWindow):
     def save_cells(self):
         cells = self.init_cells_data()
         for roi in self.ROIS:
-            for key in ['x', 'y', 'z', 'sx', 'sy']:
-                cells[key].append(roi[key])
-        print(cells)
+            cells['z'].append(roi.depth)
+            for key, val in zip(['x', 'y', 'sx', 'sy'], roi.extract_props()[:-1]):
+                cells[key].append(val)
         np.save(os.path.join(self.folder, 'cells.npy'), cells)
             
     def show_3d_view(self):
@@ -243,21 +272,67 @@ class MainWindow(NewWindow):
     def quit(self):
         QtWidgets.QApplication.quit()
 
+
+class cellROI():
+    def __init__(self, depth=0., parent=None, pos=None):
+        # which ROI it belongs to
+        self.depth = depth
+        self.color = (255.,0.,0.)
+        dx, dy = 20, 20
+        if pos is None:
+            view = parent.view_Center.viewRange()
+            imx = (view[0][1] + view[0][0]) / 2
+            imy = (view[1][1] + view[1][0]) / 2
+            imx, imy = imx - dx / 2, imy - dy / 2
+        else:
+            imy, imx = pos[0] - dx / 2, pos[1] - dy / 2, 
+        self.draw(parent, imy, imx, dy, dx)
+        self.ROI.sigRemoveRequested.connect(lambda: self.remove(parent))
+
+    def draw(self, parent, imy, imx, dy, dx, angle=0, movable = True, removable=True):
+        roipen = pg.mkPen(self.color, width=2, style=QtCore.Qt.SolidLine)
+        self.ROI = pg.EllipseROI(
+            [imx, imy], [dx, dy], pen=roipen, 
+            movable = True, removable=True, resizable=False, rotatable=False)
+        self.ROI.handleSize = 1
+        self.ROI.handlePen = roipen
+        self.ROI.addScaleHandle([0.1, 0], [0.1, 0.2])
+        self.ROI.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
+        self.add_to_view(parent.view_Center)
+
+    def add_to_view(self, view):
+        view.addItem(self.ROI)
+
+    def remove_from_view(self, view):
+        view.removeItem(self.ROI)
+
+    def remove(self, parent):
+        parent.view_Center.removeItem(self.ROI)
+        parent.ROIS.remove(self)
+
+    def position(self, parent):
+        pass
+
+    def extract_props(self):
+        return extract_ellipse_props(self.ROI)
+        
 def run(app, args=None, parent=None):
     return MainWindow(app,
                       args=args,
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",
                        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-f', "--datafile", type=str,default='')
-    parser.add_argument('-rf', "--root_datafolder", type=str,
-                        default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-f', "--folder", type=str,
+                        default = '/home/yann/DATA/CaImaging/SSTcre_GCamp6s/Z-Stacks/In-Vivo-Mouse2')
     parser.add_argument('-v', "--verbose", action="store_true")
+    
     args = parser.parse_args()
+    
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
     main = MainWindow(app,

@@ -21,8 +21,8 @@ def build_from_bruker_tiffs(folder,
     dx = float(bruker_data['settings']['micronsPerPixel']['XAxis'])
 
     img = np.array(Image.open(os.path.join(folder, bruker_data[channel]['tifFile'][0])))
-    X, Y = np.meshgrid(dx*np.arange(img.shape[0]), dx*np.arange(img.shape[1]), indexing='ij')
     
+    X, Y = np.meshgrid(dx*np.arange(img.shape[0]), dx*np.arange(img.shape[1]), indexing='ij')
     x, y = X.flatten(), Y.flatten()
 
     print('looping over tif files [...]')
