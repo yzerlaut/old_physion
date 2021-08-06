@@ -32,7 +32,7 @@ class MainWindow(NewWindow):
         self.app = app
         
         super(MainWindow, self).__init__(i=-2,
-                                         size=(1200,400),
+                                         size=(1000,800),
                                          title='Cell Identification GUI for Z-stacks Imaging')
 
 
@@ -125,7 +125,7 @@ class MainWindow(NewWindow):
         layout = self.win.ci.layout
 
         # for i, key in enumerate(['pPrev', 'Prev', 'Center', 'Next', 'nNext']):
-        for i, key in enumerate(['Prev', 'Center', 'Next']):
+        for i, key in enumerate(['Center']):
             # A plot area (ViewBox + axes) for displaying the image
             setattr(self, 'view_%s' % key,
                     self.win.addViewBox(lockAspect=True,
@@ -142,7 +142,8 @@ class MainWindow(NewWindow):
         self.show()
 
     def reset(self):
-        pass
+        self.ROIS = []
+        print('[ok] cell data reset !')
     
     def hitting_space(self):
 
@@ -211,17 +212,17 @@ class MainWindow(NewWindow):
                 roi.ROI.setPen(roipen2)
                 roi.add_to_view(self.view_Center)
                 
-        if self.cframe>(int(self.samplingB.currentText())-1):
-            self.plot_frame(self.img_Prev, self.cframe-int(self.samplingB.currentText()))
-        else:
-            self.img_Prev.setImage(np.zeros((2,2)))
+        # if self.cframe>(int(self.samplingB.currentText())-1):
+        #     self.plot_frame(self.img_Prev, self.cframe-int(self.samplingB.currentText()))
+        # else:
+        #     self.img_Prev.setImage(np.zeros((2,2)))
 
         self.plot_frame(self.img_Center, self.cframe)
         
-        if self.cframe<(self.nframes-int(self.samplingB.currentText())):
-            self.plot_frame(self.img_Next, self.cframe+int(self.samplingB.currentText()))
-        else:
-            self.img_Next.setImage(np.zeros((2,2)))
+        # if self.cframe<(self.nframes-int(self.samplingB.currentText())):
+        #     self.plot_frame(self.img_Next, self.cframe+int(self.samplingB.currentText()))
+        # else:
+        #     self.img_Next.setImage(np.zeros((2,2)))
             
         
     def previous_frames(self):
@@ -249,6 +250,7 @@ class MainWindow(NewWindow):
             for key, val in zip(['x', 'y', 'sx', 'sy'], roi.extract_props()[:-1]):
                 cells[key].append(val)
         np.save(os.path.join(self.folder, 'cells.npy'), cells)
+        print('[ok] cell data saved as: ', os.path.join(self.folder, 'cells.npy'))
             
     def show_3d_view(self):
 
@@ -339,7 +341,7 @@ if __name__=='__main__':
     build_dark_palette(app)
     main = MainWindow(app,
                       args=args)
-    sys.exit(app.exec_())
+p    sys.exit(app.exec_())
 
 
 
