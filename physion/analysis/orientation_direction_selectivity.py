@@ -11,9 +11,6 @@ from analysis.tools import summary_pdf_folder
 from analysis.process_NWB import EpisodeResponse
 from analysis import stat_tools
 
-ORIENTATION_PROTOCOLS = ['Pakan-et-al-static']
-DIRECTION_PROTOCOLS = ['Pakan-et-al-drifting']
-
 
 def orientation_selectivity_index(angles, resp):
     """
@@ -29,16 +26,16 @@ def orientation_selectivity_index(angles, resp):
 
 def OS_ROI_analysis(FullData,
                     roiIndex=0,
+                    iprotocol = 0,
                     subprotocol_id=0,
                     verbose=False,
-                    response_significance_threshold=0.05,
+                    response_significance_threshold=0.01,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
                                          test='wilcoxon')):
     """
     orientation selectivity ROI analysis
     """
 
-    iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in ORIENTATION_PROTOCOLS)][subprotocol_id]
 
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
@@ -110,16 +107,14 @@ def direction_selectivity_plot(angles, responses, ax=None, figsize=(1.5,1.5), co
 
 def DS_ROI_analysis(FullData,
                     roiIndex=0,
-                    subprotocol_id=0,
+                    iprotocol=0,
                     verbose=False,
-                    response_significance_threshold=0.05,
+                    response_significance_threshold=0.01,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
                                          test='wilcoxon')):
     """
     direction selectivity ROI analysis
     """
-
-    iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in DIRECTION_PROTOCOLS)][subprotocol_id]
 
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
@@ -136,10 +131,11 @@ def DS_ROI_analysis(FullData,
                                           fig_preset='raw-traces-preset+right-space',
                                           with_annotation=True,
                                           with_stat_test=True, stat_test_props=stat_test_props,
+                                          return_responsive_angles=False,
                                           verbose=verbose)
     
     ax = ge.inset(fig, (0.92,0.4,0.07,0.4))
-    angles, y, sy = [], [], []
+    angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
         means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
@@ -158,6 +154,7 @@ def DS_ROI_analysis(FullData,
         
         if stats.significant(response_significance_threshold):
             responsive = True
+            responsive_angles.append(angle)
             
     ge.plot(angles, np.array(y), sy=np.array(sy), ax=ax,
             axes_args=dict(ylabel='<post dF/F>         ', xlabel='angle ($^{o}$)',
@@ -169,7 +166,10 @@ def DS_ROI_analysis(FullData,
     ge.annotate(fig, ('responsive' if responsive else 'unresponsive'), (0.9, 0.98), ha='left', va='top',
                 xycoords='figure fraction', weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     
-    return fig, SI, responsive
+    if return_responsive_angles:
+        return fig, SI, responsive, responsive_angles
+    else:
+        return fig, SI, responsive
 
 
 def summary_fig(Nresp, Ntot, quantity,
@@ -186,18 +186,18 @@ def summary_fig(Nresp, Ntot, quantity,
     return fig, AX
     
 
-def OS_analysis_pdf(datafile, Nmax=1000000):
-
-    pdf_filename = os.path.join(summary_pdf_folder(datafile), 'orientation_selectivity.pdf')
+def OS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     data = MultimodalData(datafile)
+    
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-orientation_selectivity.pdf' % data.protocols[iprotocol])
 
     Nresp, SIs = 0, []
     with PdfPages(pdf_filename) as pdf:
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
-            fig, SI, responsive = OS_ROI_analysis(data, roiIndex=roi, subprotocol_id=0)
+            fig, SI, responsive = OS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
@@ -211,18 +211,18 @@ def OS_analysis_pdf(datafile, Nmax=1000000):
 
     print('[ok] orientation selectivity analysis saved as: "%s" ' % pdf_filename)
     
-def DS_analysis_pdf(datafile, Nmax=1000000):
-
-    pdf_filename = os.path.join(summary_pdf_folder(datafile), 'direction_selectivity.pdf')
+def DS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     data = MultimodalData(datafile)
 
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-direction_selectivity.pdf' % data.protocols[iprotocol])
+    
     Nresp, SIs = 0, []
     with PdfPages(pdf_filename) as pdf:
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
-            fig, SI, responsive = DS_ROI_analysis(data, roiIndex=roi, subprotocol_id=0)
+            fig, SI, responsive = DS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
@@ -244,6 +244,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
     parser.add_argument("analysis", type=str, help='should be either "orientation"/"direction"')
+    parser.add_argument("--iprotocol", type=int, default=0, help='index for the protocol in case of multiprotocol in datafile')
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -251,16 +252,8 @@ if __name__=='__main__':
 
     if '.nwb' in args.datafile:
         if args.analysis=='orientation':
-            OS_analysis_pdf(args.datafile, Nmax=args.Nmax)
+            OS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
         elif args.analysis=='direction':
-            DS_analysis_pdf(args.datafile, Nmax=args.Nmax)
+            DS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
-
-
-
-
-
-
-
-
