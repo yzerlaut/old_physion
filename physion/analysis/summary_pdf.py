@@ -98,7 +98,7 @@ def make_summary_pdf(filename, Nmax=1000000,
         # looping over protocols
         for p, protocol in enumerate(data.protocols):
 
-            print('* * plotting protocol "%s" [...]' % protocol)
+            print('* * analyzing protocol #%i: "%s" [...]' % (p+1, protocol))
             
             protocol_type = (data.metadata['Protocol-%i-Stimulus' % (p+1)] if (len(data.protocols)>1) else data.metadata['Stimulus'])
 
@@ -106,12 +106,12 @@ def make_summary_pdf(filename, Nmax=1000000,
             if protocol in ['Pakan-et-al-static']:
                 process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                               'orientation_direction_selectivity.py')
-                p = subprocess.Popen('%s %s %s orientation' % (python_path, process_script, filename), shell=True)
+                p = subprocess.Popen('%s %s %s orientation --iprotocol %i' % (python_path, process_script, filename, p), shell=True)
 
             if protocol in ['Pakan-et-al-drifting']:
                 process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                               'orientation_direction_selectivity.py')
-                p = subprocess.Popen('%s %s %s direction' % (python_path, process_script, filename), shell=True)
+                p = subprocess.Popen('%s %s %s direction --iprotocol %i' % (python_path, process_script, filename, p), shell=True)
                 
             # with PdfPages(os.path.join(folder, '%s.pdf' % protocol)) as pdf:
             
