@@ -68,7 +68,7 @@ class MainWindow(NewWindow):
 
         self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.load.clicked.connect(self.load_data)
+        self.load.clicked.connect(self.open_file)
         self.grid.addWidget(self.load, 1, 2, 1, 1)
 
         self.channelB = QtWidgets.QComboBox(self)
@@ -117,7 +117,7 @@ class MainWindow(NewWindow):
 
         self.resetBtn = QtGui.QPushButton('reset')
         self.resetBtn.clicked.connect(self.reset)
-        self.grid.addWidget(self.resetBtn, 2, 9, 1, 1)
+        self.grid.addWidget(self.resetBtn, 2, 10, 1, 1)
 
         self.cwidget.setLayout(self.grid)
         self.win = pg.GraphicsLayoutWidget()
@@ -135,7 +135,9 @@ class MainWindow(NewWindow):
             setattr(self, 'img_%s' % key, pg.ImageItem())
             getattr(self, 'view_%s' % key).addItem(getattr(self, 'img_%s' % key))
 
-        self.load_data(args.folder)
+        if hasattr(args, 'folder'):
+            self.load_data(args.folder)
+            
         self.win.show()
         self.show()
 
