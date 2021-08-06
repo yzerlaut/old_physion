@@ -16,7 +16,7 @@ class EpisodeResponse:
                  dt_sampling=1, # ms
                  interpolation='linear',
                  baseline_substraction=False,
-                 verbose=True):
+                 verbose=False):
 
         self.dt_sampling = dt_sampling,
         self.quantity = quantity

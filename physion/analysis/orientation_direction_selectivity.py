@@ -30,20 +30,19 @@ def OS_ROI_analysis(FullData,
                     subprotocol_id=0,
                     verbose=False,
                     response_significance_threshold=0.01,
+                    with_responsive_angles = False,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
                                          test='wilcoxon')):
     """
     orientation selectivity ROI analysis
     """
 
-
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
                                quantity='CaImaging', subquantity='dF/F',
                                roiIndex = roiIndex)
-    
+
     fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
-                                          protocol_id=iprotocol,
                                           quantity='CaImaging', subquantity='dF/F',
                                           roiIndex = roiIndex,
                                           column_key='angle',
@@ -55,7 +54,7 @@ def OS_ROI_analysis(FullData,
                                           verbose=verbose)
     
     ax = ge.inset(fig, (0.88,0.4,0.1,0.4))
-    angles, y, sy = [], [], []
+    angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
         means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
@@ -74,6 +73,7 @@ def OS_ROI_analysis(FullData,
         
         if stats.significant(response_significance_threshold):
             responsive = True
+            responsive_angles.append(angle)
             
     ge.plot(angles, np.array(y), sy=np.array(sy), ax=ax,
             axes_args=dict(ylabel='<post dF/F>         ', xlabel='angle ($^{o}$)',
@@ -85,7 +85,11 @@ def OS_ROI_analysis(FullData,
     ge.annotate(fig, ('responsive' if responsive else 'unresponsive'), (0.78, 0.98), ha='left', va='top',
                 xycoords='figure fraction', weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     
-    return fig, SI, responsive
+    if with_responsive_angles:
+        return fig, SI, responsive, responsive_angles
+    else:
+        return fig, SI, responsive
+
 
 
 
@@ -110,6 +114,7 @@ def DS_ROI_analysis(FullData,
                     iprotocol=0,
                     verbose=False,
                     response_significance_threshold=0.01,
+                    with_responsive_angles = False,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
                                          test='wilcoxon')):
     """
@@ -166,7 +171,7 @@ def DS_ROI_analysis(FullData,
     ge.annotate(fig, ('responsive' if responsive else 'unresponsive'), (0.9, 0.98), ha='left', va='top',
                 xycoords='figure fraction', weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     
-    if return_responsive_angles:
+    if with_responsive_angles:
         return fig, SI, responsive, responsive_angles
     else:
         return fig, SI, responsive
@@ -197,6 +202,7 @@ def OS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
+            print('   - orientation-selectivity analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
             fig, SI, responsive = OS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
@@ -222,6 +228,7 @@ def DS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
+            print('   - direction-selectivity analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
             fig, SI, responsive = DS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()

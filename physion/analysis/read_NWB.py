@@ -182,9 +182,11 @@ class Data:
         """
         ## a recording can have multiple protocols inside
         -> find the condition of a given protocol ID
+
+        'None' to have them all 
         """
 
-        if ('protocol_id' in self.nwbfile.stimulus) and (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1):
+        if ('protocol_id' in self.nwbfile.stimulus) and (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1) and (protocol_id is not None):
             Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
         else:
             Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)

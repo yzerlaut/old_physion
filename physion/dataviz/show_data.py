@@ -297,7 +297,8 @@ class MultimodalData(Data):
                                                    quantity=quantity,
                                                    subquantity=subquantity,
                                                    roiIndex=roiIndex,
-                                                   dt_sampling=dt_sampling)
+                                                   dt_sampling=dt_sampling,
+                                                   verbose=verbose)
 
         if with_screen_inset and (self.visual_stim is None):
             print('initializing stim [...]')
@@ -509,6 +510,8 @@ def format_key_value(key, value):
             return 'white'
         else:
             return 'lum.=%.1f' % value
+    elif key=='protocol_id':
+        return 'p.#%i' % (value+1)
     else:
         return '%.2f' % value
 
