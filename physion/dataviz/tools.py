@@ -6,7 +6,7 @@ import numpy as np
 FIGURE_PRESETS = {
     ' ':dict(reshape_axes=False, right=2.),
     'raw-traces-preset': dict(reshape_axes=False,
-                              top=0.4, bottom=0.4, left=0.7, right=0.7,
+                              top=0.4, bottom=0.4, left=0.7, right=3.,
                               wspace=0.5, hspace=0.5),
     'raw-traces-preset+right-space': dict(reshape_axes=False,figsize=(1.1,1.1),
                                           top=0.4, bottom=0.4, left=0.7, right=10.,

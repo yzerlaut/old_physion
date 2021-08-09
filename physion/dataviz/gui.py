@@ -389,7 +389,7 @@ class MainWindow(guiparts.NewWindow):
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
-            self.data.metadata = None
+            # self.data.metadata = None
             self.notes.setText(20*'-'+5*'\n')
         
 

@@ -94,11 +94,18 @@ def make_summary_pdf(filename, Nmax=1000000,
     if 'protocols' in include:
 
         print('* looping over protocols for analysis [...]')
+
+        print(data.metadata['protocol'])
         
         # --- analysis of multi-protocols ---
         if data.metadata['protocol']=='mismatch-negativity':
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'mismatch_negativity.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif 'surround-suppression' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         else:
@@ -120,91 +127,8 @@ def make_summary_pdf(filename, Nmax=1000000,
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s direction --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
                 
-            # with PdfPages(os.path.join(folder, '%s.pdf' % protocol)) as pdf:
-            
-            #     # finding protocol type
-            #     # then protocol-dependent analysis
-
-            #     if protocol_type=='full-field-grating':
-            #         Nresp, SIs = 0, []
-            #         for i in data.roiIndices[:Nmax]:
-            #             print('   - plotting analysis of ROI #%i' % (i+1))
-            #             fig, SI, responsive = orientation_direction_selectivity.OS_ROI_analysis(data, roiIndex=i, verbose=False)
-            #             pdf.savefig()  # saves the current figure into a pdf page
-            #             plt.close()
-            #             if responsive:
-            #                 Nresp += 1
-            #                 SIs.append(SI)
-            #         # summary figure for this protocol
-            #         fig, AX = orientation_direction_selectivity.summary_fig(Nresp, data.iscell.sum(), np.array(SIs))
-            #         pdf.savefig()  # saves the current figure into a pdf page
-            #         plt.close()
-
-            #     elif protocol_type=='drifting-full-field-grating':
-            #         Nresp, SIs = 0, []
-            #         for i in data.roiIndices[:Nmax]:
-            #             print('   - plotting analysis of ROI #%i' % (i+1))
-            #             fig, SI, responsive = orientation_direction_selectivity.DS_ROI_analysis(data, roiIndex=i, verbose=False)
-            #             pdf.savefig()  # saves the current figure into a pdf page
-            #             plt.close()
-            #             if responsive:
-            #                 Nresp += 1
-            #                 SIs.append(SI)
-            #         fig, AX = orientation_direction_selectivity.summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
-            #                                                                 label='Direction Select. Index')
-            #         pdf.savefig()  # saves the current figure into a pdf page
-            #         plt.close()
-
-            #     elif protocol_type in ['center-grating', 'drifting-center-grating']:
-            #         from analysis.surround_suppression import orientation_size_selectivity_analysis
-            #         from analysis.orientation_direction_selectivity import summary_fig
-            #         Nresp, SIs = 0, []
-            #         for i in range(data.iscell.sum())[:Nmax]:
-            #             fig, responsive = orientation_size_selectivity_analysis(data,
-            #                                                     roiIndex=i, verbose=False)
-            #             pdf.savefig()  # saves the current figure into a pdf page
-            #             plt.close()
-            #             if responsive:
-            #                 Nresp += 1
-            #                 SIs.append(0) # TO BE FILLED
-            #         fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
-            #                               label='none')
-            #         pdf.savefig()  # saves the current figure into a pdf page
-            #         plt.close()
-
-            #     elif 'noise' in protocol_type:
-            #         from receptive_field_mapping import RF_analysis
-            #         Nresp, SIs = 0, []
-            #         for i in range(data.iscell.sum())[:Nmax]:
-            #             fig, SI, responsive = RF_analysis(data, roiIndex=i, verbose=False)
-            #             pdf.savefig()  # saves the current figure into a pdf page
-            #             plt.close()
-            #             if responsive:
-            #                 Nresp += 1
-            #                 SIs.append(0) # TO BE FILLED
-            #         fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
-            #                               label='none')
-            #         pdf.savefig()  # saves the current figure into a pdf page
-            #         plt.close()
-
-            #     elif 'spatial-location' in protocol_type:
-            #         from surround_suppression import orientation_size_selectivity_analysis
-            #         Nresp, SIs = 0, []
-            #         for i in range(data.iscell.sum())[:Nmax]:
-            #             fig, responsive = orientation_size_selectivity_analysis(data, roiIndex=i, verbose=False)
-            #             pdf.savefig()  # saves the current figure into a pdf page
-            #             plt.close()
-            #             if responsive:
-            #                 Nresp += 1
-            #                 SIs.append(0) # TO BE FILLED
-            #         fig, AX = summary_fig(Nresp, data.iscell.sum(), np.array(SIs),
-            #                               label='none')
-            #         pdf.savefig()  # saves the current figure into a pdf page
-            #         plt.close()
-
-
     print('subprocesses to analyze "%s" were launched !' % filename)
-
+    
 
 if __name__=='__main__':
     
