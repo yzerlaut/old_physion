@@ -330,23 +330,25 @@ class MultimodalData(Data):
             ROW_CONDS = [np.ones(np.sum(Pcond), dtype=bool)]
             
         # colors
-        if COLOR_CONDS is None:
+        if color_key!='':
+            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[color_key].data[Pcond]))], [color_key], protocol_id)
+        elif color_keys!='':
+            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in color_keys],
+                                                       color_keys, protocol_id)
+        elif COLOR_CONDS is None:
             COLOR_CONDS = [np.ones(np.sum(Pcond), dtype=bool)]
 
+        if (len(COLOR_CONDS)>1):
+            COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
+        else:
+            COLORS = [color for ic in range(len(COLOR_CONDS))]
+            
         # single-value
         # condition = [...]
-            
-        # if (len(COLOR_CONDS)>1) and (self.color.text()!=''):
-        #     COLORS = [getattr(ge, self.color.text())((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
-        # elif (len(COLOR_CONDS)>1):
-        #     COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
-        # elif self.color.text()!='':
-        #     COLORS = [getattr(ge, self.color.text())]
-        # else:
-        COLORS = [color]
                 
         if (fig is None) and (AX is None):
-            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)), **dv_tools.FIGURE_PRESETS[fig_preset])
+            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
+                                **dv_tools.FIGURE_PRESETS[fig_preset])
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -382,19 +384,26 @@ class MultimodalData(Data):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==column_key) or (key in column_keys):
-                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
-                            ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom')
+                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+' ' # should have a unique value
+                            ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom', size='small')
                         # row label
                         if (len(ROW_CONDS)>1) and (icol==0) and (icolor==0):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==row_key) or (key in row_keys):
                                     s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
-                            ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90)
+                            ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
                         ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
                                     (.99,0), color=COLORS[icolor], size='xx-small',
                                     ha='left', va='bottom')
+                        # color label
+                        if (len(COLOR_CONDS)>1) and (irow==0) and (icol==0):
+                            s = ''
+                            for i, key in enumerate(EPISODES.varied_parameters.keys()):
+                                if (key==color_key) or (key in color_keys):
+                                    s+=20*' '+icolor*18*' '+format_key_value(key, getattr(EPISODES, key)[cond][0])
+                                    ge.annotate(fig, s, (0,0), color=COLORS[icolor], ha='left', va='bottom', size='small')
                     
         if with_stat_test:
             for irow, row_cond in enumerate(ROW_CONDS):
@@ -405,7 +414,7 @@ class MultimodalData(Data):
                         results = EPISODES.stat_test_for_evoked_responses(episode_cond=cond, **stat_test_props)
                         ps, size = results.pval_annot()
                         AX[irow][icol].annotate(ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
-                                                     self.ylim[0]), va='top', ha='center', size=size, xycoords='data')
+                                                     self.ylim[0]), va='top', ha='center', size=size, xycoords='data', color=COLORS[icolor])
                         AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                         AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                             

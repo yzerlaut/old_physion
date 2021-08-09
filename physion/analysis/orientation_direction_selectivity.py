@@ -136,7 +136,6 @@ def DS_ROI_analysis(FullData,
                                           fig_preset='raw-traces-preset+right-space',
                                           with_annotation=True,
                                           with_stat_test=True, stat_test_props=stat_test_props,
-                                          return_responsive_angles=False,
                                           verbose=verbose)
     
     ax = ge.inset(fig, (0.92,0.4,0.07,0.4))

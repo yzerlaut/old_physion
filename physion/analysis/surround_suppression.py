@@ -1,103 +1,177 @@
-# general modules
-import os, sys
+import sys, os, pathlib
+import numpy as np
+import itertools
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
-# custom modules
-sys.path.append('.')
-from physion.analysis.orientation_direction_selectivity import *
-from datavyz import ge
+from datavyz import graph_env_manuscript as ge
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from dataviz.show_data import MultimodalData, format_key_value
+from analysis.tools import summary_pdf_folder
+from analysis.process_NWB import EpisodeResponse
+from analysis import stat_tools
+
+def ROI_analysis(FullData,
+                 roiIndex=0,
+                 iprotocol=0,
+                 verbose=False,
+                 response_significance_threshold=0.01,
+                 radius_threshold_for_center=20.,
+                 with_responsive_angles = False,
+                 stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
+                                      test='wilcoxon'),
+                 Npanels=4):
+    """
+    direction selectivity ROI analysis
+    """
+
+    EPISODES = EpisodeResponse(FullData,
+                               protocol_id=iprotocol,
+                               quantity='CaImaging', subquantity='dF/F',
+                               roiIndex = roiIndex)
 
 
-SURROUND_SUPPRESSION_PROTOCOLS = ['surround-suppression-fast', 'surround-suppression-static', 'surround-suppression-drifting']
+    ROW_KEYS, ROW_VALUES, ROW_INDICES, Nfigs = [], [], [], 1
+    for key in ['x-center', 'y-center', 'contrast']:
+        if key in EPISODES.varied_parameters:
+            ROW_KEYS.append(key)
+            ROW_VALUES.append(EPISODES.varied_parameters[key])
+            ROW_INDICES.append(np.arange(len(EPISODES.varied_parameters[key])))
+            Nfigs *= len(EPISODES.varied_parameters[key])
+            
+    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
+                                          protocol_id=iprotocol,
+                                          quantity='CaImaging', subquantity='dF/F',
+                                          roiIndex = roiIndex,
+                                          column_key='radius', row_keys=ROW_KEYS, color_key='angle',
+                                          ybar=1., ybarlabel='1dF/F',
+                                          xbar=1., xbarlabel='1s',
+                                          fig_preset='raw-traces-preset',
+                                          with_annotation=True,
+                                          with_std=False,
+                                          with_stat_test=True, stat_test_props=stat_test_props,
+                                          verbose=verbose)
 
-def size_dependence_plot(sizes, responses, baselines, ax=None, figsize=(2.5,1.5), color='k'):
-    if ax is None:
-        fig, ax = plt.subplots(1, figsize=figsize)
-    ax.plot([0]+list(sizes), [np.mean(baselines)/1e3]+list(responses/1e3), 'o-', color=color, lw=2) # CHECK UNITS
-    ax.set_xticks([0]+list(sizes))
-    ax.set_xticklabels(['%.1f' % f for f in [0]+list(sizes)])
-    ax.set_ylabel('resp. integral ($\Delta$F/F.s)', fontsize=9)
-    ax.set_xlabel('angle ($^o$)', fontsize=9)
+    # now computing the size-response curve for all conditions
+    if 'angle' in EPISODES.varied_parameters:
+        ROW_KEYS.append('angle')
+        ROW_VALUES.append(EPISODES.varied_parameters['angle'])
+        ROW_INDICES.append(np.arange(len(EPISODES.varied_parameters['angle'])))
+        Nfigs *= len(EPISODES.varied_parameters['angle'])
 
+
+    fig2, AX = ge.figure(axes=(Npanels, int(Nfigs/Npanels)), hspace=1.5)
+
+    iax, ylims = 0, [10, -10]
+    max_response_level, max_response_curve, imax_response_curve = 0, None, -1
+    for indices in itertools.product(*ROW_INDICES):
+
+        title = ''
+        for key, index in zip(ROW_KEYS, indices):
+            title+=format_key_value(key, EPISODES.varied_parameters[key][index])+', ' # should have a unique value
+        ge.title(ge.flat(AX)[iax], title, size='small')
+        
+        resp, radii, significants = [0], [0], [False]
+        for ia, radius in enumerate(EPISODES.varied_parameters['radius']):
+            means_pre = EPISODES.compute_stats_over_repeated_trials(ROW_KEYS+['radius'], list(indices)+[ia],
+                                                                    interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_pre']),
+                                                                    quantity='mean')
+            means_post = EPISODES.compute_stats_over_repeated_trials(ROW_KEYS+['radius'], list(indices)+[ia],
+                                                                    interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_post']),
+                                                                    quantity='mean')
+            resp.append(np.mean(means_post)-np.mean(means_pre))
+            radii.append(radius)
+
+            stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond(ROW_KEYS+['radius'], list(indices)+[ia]),
+                                                            **stat_test_props)
+            ge.annotate(ge.flat(AX)[iax], '    '+stats.pval_annot()[0], (radius, resp[-1]), size='x-small', rotation=90, ha='center', xycoords='data')
+
+            significants.append(stats.significant(threshold=response_significance_threshold))
+
+        # check if max resp
+        center_cond = np.array(significants) & (np.array(radii)<radius_threshold_for_center)
+        if np.sum(center_cond) and (np.max(np.array(resp)[center_cond])>max_response_level):
+            max_response_level = np.max(np.array(resp)[center_cond])
+            max_response_curve = np.array(resp)
+            imax_response_curve = iax
+            
+        ylims = [np.min([np.min(resp), ylims[0]]), np.max([np.max(resp), ylims[1]])]
+        ge.flat(AX)[iax].plot(radii, resp, 'ko-', ms=4)
+        iax += 1
+        
+    for iax, ax in enumerate(ge.flat(AX)):
+        ge.set_plot(ax, ylim=[ylims[0]-.05*(ylims[1]-ylims[0]), ylims[1]+.05*(ylims[1]-ylims[0])],
+                    ylabel=('$\delta$ dF/F' if (iax%Npanels==0) else ''),
+                    xlabel=('size ($^{o}$)' if (int(iax/Npanels)==(int(Nfigs/Npanels)-1)) else ''))
+        ax.fill_between([0, radius_threshold_for_center], ylims[0]*np.ones(2), ylims[1]*np.ones(2), color='k', alpha=0.05, lw=0)
+        
+        if iax==imax_response_curve:
+            ax.fill_between(radii, ylims[0]*np.ones(len(radii)), ylims[1]*np.ones(len(radii)), color='k', alpha=0.1, lw=0)
+            
     
-def orientation_size_selectivity_analysis(FullData, roiIndex=0, with_std=True, verbose=True, subprotocol_id=0):
-    iprotocol = [i for (i,p) in enumerate(FullData.protocols) if (p in SURROUND_SUPPRESSION_PROTOCOLS)][subprotocol_id]
-    data = CellResponse(FullData, protocol_id=iprotocol, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex, verbose=verbose)
+    return fig, fig2, radii, max_response_curve, imax_response_curve
 
-    if 'x-center' not in data.varied_parameters:
-        data.varied_parameters['x-center'] = [data.metadata['x-center-1']]
-    if 'y-center' not in data.varied_parameters:
-        data.varied_parameters['y-center'] = [data.metadata['y-center-1']]
-    if 'contrast' not in data.varied_parameters:
-        data.varied_parameters['contrast'] = [data.metadata['contrast-1']]
 
-    Ny = len(data.varied_parameters['angle'])*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])
-    fig, AX = plt.subplots(Ny, len(data.varied_parameters['radius'])+1,
-                           figsize=(11.4,2.*Ny))
-    plt.subplots_adjust(left=0.03, top=1-0.1/Ny, bottom=0.2/Ny, right=.97)
+def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
-    for i, angle in enumerate(data.varied_parameters['angle']):
-        for j, size in enumerate(data.varied_parameters['radius']):
-            for ix, x in enumerate(data.varied_parameters['x-center']):
-                for iy, y in enumerate(data.varied_parameters['y-center']):
-                    iax = i*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])+\
-                        ix*len(data.varied_parameters['y-center'])+iy
-                    for ic, c in enumerate(data.varied_parameters['contrast']):
-                        data.plot(['angle', 'radius', 'contrast', 'x-center', 'y-center'], [i,j,ic,ix,iy],
-                                  ax=AX[iax,j], with_std=with_std,
-                                  color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.))
-                        AX[iax,j].set_title('r=%.0f$^o$, $\\theta=$%.0f$^o$, x=%.1f$^o$, y=%.1f$^o$' % (size,angle,x,y), fontsize=7)
-    for ic, c in enumerate(data.varied_parameters['contrast']):
-        AX[0,0].annotate('contrast=%.1f' % c + ic*'\n', (0.5,0), xycoords='figure fraction',
-                         color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.))
+    data = MultimodalData(datafile)
 
-    for i, angle in enumerate(data.varied_parameters['angle']):
-        for ix, x in enumerate(data.varied_parameters['x-center']):
-            for iy, y in enumerate(data.varied_parameters['y-center']):
-                iax = i*len(data.varied_parameters['x-center'])*len(data.varied_parameters['y-center'])+\
-                    ix*len(data.varied_parameters['y-center'])+iy
-                for ic, c in enumerate(data.varied_parameters['contrast']):
-                    size_dependence_plot(*data.compute_integral_responses('radius',
-                                                                          keys=['angle', 'contrast', 'x-center', 'y-center'],
-                                                                          indexes=[i, ic, ix, iy],
-                                                                          with_baseline=True),
-                                         color=plt.cm.gray(0.5-ic/len(data.varied_parameters['radius'])/2.),
-                                         ax=AX[iax,len(data.varied_parameters['radius'])])
-                    
-    responsive = responsiveness(data)
-    YLIM = (np.min([ax.get_ylim()[0] for ax in ge.flat(AX)]), np.max([ax.get_ylim()[1] for ax in ge.flat(AX[:,:-1])]))
-    for ax in ge.flat(AX[:,:-1]):
-        ax.set_ylim(YLIM)
-        data.add_stim(ax)
-        ax.axis('off')
-    YLIM = (np.min([ax.get_ylim()[0] for ax in ge.flat(AX)]), np.max([ax.get_ylim()[1] for ax in ge.flat(AX[:,-1:])]))
-    for ax in ge.flat(AX[:,-1:]):
-        ax.set_ylim(YLIM)
-    add_bar(AX[0, 0], Xbar=2, Ybar=1)
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-surround_suppression.pdf' % data.protocols[iprotocol])
     
-    AX[0,j+1].annotate(('responsive' if responsive else 'unresponsive'), (0.85, 0.97), ha='left', va='top',
-                       xycoords='figure fraction', weight='bold', fontsize=9, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
+    curves = []
+    with PdfPages(pdf_filename) as pdf:
+
+        for roi in np.arange(data.iscell.sum())[:Nmax]:
+            
+            print('   - surround-suppression analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
+            fig, fig2, radii, max_response_curve, imax_response_curve = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            pdf.savefig(fig)
+            pdf.savefig(fig2)
+            plt.close(fig)
+            plt.close(fig2)
+
+            if max_response_curve is not None:
+                curves.append(max_response_curve)
+
+        fig = summary_fig(radii, curves, data.iscell.sum())
+        pdf.savefig(fig)  # saves the current figure into a pdf page
+        plt.close(fig)
+
+    print('[ok] direction selectivity analysis saved as: "%s" ' % pdf_filename)
+
+def summary_fig(radii, curves, Ntot):
+
+    fig, ax = ge.figure(right=8, figsize=(1.5, 1.5))
+    ge.title(ax, 'n=%i ROIS' % len(curves))
+
+    axi = ge.inset(fig, [.7,.55,.3,.4])
+    axi.pie([100*len(curves)/Ntot, 100*(1-len(curves)/Ntot)], explode=(0, 0.1),
+            colors=[plt.cm.tab10(2), plt.cm.tab10(3)],
+            labels=['responsive', ''], autopct='%1.1f%%', shadow=True, startangle=90)
+    axi.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     
-    AX[0,0].annotate(' ROI#%i' % (roiIndex+1), (0, 0.02), xycoords='figure fraction', weight='bold', fontsize=9)
-    return fig, responsive
-
-
+    curves = np.array(curves)
+    ge.plot(radii, np.mean(curves, axis=0), sy=np.std(curves, axis=0), no_set=True, ms=4, ax=ax)
+    ge.set_plot(ax, xlabel='size ($^{o}$)', ylabel='$\delta$ dF/F')
+    return fig
 
 if __name__=='__main__':
     
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_28', '2021_04_28-15-05-26.nwb')
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6s', '2021_04_28', '2021_04_28-15-05-26.nwb')
-    # filename = sys.argv[-1]
+    import argparse
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument("datafile", type=str)
+    parser.add_argument("--iprotocol", type=int, default=0, help='index for the protocol in case of multiprotocol in datafile')
+    parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
+    parser.add_argument("-v", "--verbose", action="store_true")
+
+    args = parser.parse_args()
     
-    FullData= Data(filename)
-    print(FullData.protocols)
-    print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
-                                                                                          len(FullData.iscell)))
-    # # for i in [2, 6, 9, 10, 13, 15, 16, 17, 21, 38, 41, 136]: # for 2021_03_11-17-13-03.nwb
-    for i in range(np.sum(FullData.iscell))[:1]:
-        fig, responsive = orientation_size_selectivity_analysis(FullData, roiIndex=i)
-        if responsive:
-            print('cell %i -> responsive !' % (i+1))
-        plt.show()
+    if '.nwb' in args.datafile:
+        analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
+    else:
+        print('/!\ Need to provide a NWB datafile as argument ')
 
 
 
