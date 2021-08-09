@@ -15,13 +15,24 @@ def plot(args):
         cell_file = os.path.join(getattr(args, label+'_folder'), 'cells.npy')
         if os.path.isfile(cell_file):
             cells = np.load(cell_file, allow_pickle=True).item()
-            ax.scatter(cells['x'], cells['y'], cells['z'], marker='o', color='r', s=20)
-            ax.set_xlabel('x (um)')
-            ax.set_ylabel('y (um)')
-            ax.set_zlabel('z (um)')
-            ax.set_xlim([0, cells['dx']*cells['nxpix']])
-            ax.set_ylim([0, cells['dy']*cells['nypix']])
-            ax.set_zlim(cells['zlim'])
+            if label=='in_vitro':
+                zlim = cells['zlim']-np.min(cells['z']) # before we modify cells['z']
+                cells['z'] = cells['z']-np.min(cells['z'])
+                ax.scatter(cells['x'], cells['z'], cells['y'], marker='o', color='r', s=20)
+                ax.set_xlabel('x (um)')
+                ax.set_ylabel('z (um)')
+                ax.set_zlabel('y (um)')
+                ax.set_xlim([0, cells['dx']*cells['nxpix']])
+                ax.set_zlim([0, cells['dy']*cells['nypix']])
+                ax.set_ylim(zlim)
+            else:
+                ax.scatter(cells['x'], cells['y'], cells['z'], marker='o', color='r', s=20)
+                ax.set_xlabel('x (um)')
+                ax.set_ylabel('y (um)')
+                ax.set_zlabel('z (um)')
+                ax.set_xlim([0, cells['dx']*cells['nxpix']])
+                ax.set_ylim([0, cells['dy']*cells['nypix']])
+                ax.set_zlim(cells['zlim'])
 
     return fig
 
