@@ -19,33 +19,41 @@ class Data:
                  with_visual_stim=False,
                  verbose=False):
 
-        self.io = pynwb.NWBHDF5IO(filename, 'r')
-        self.nwbfile = self.io.read()
-
+        self.tlim, self.visual_stim, self.nwbfile = None, None, None
+        self.metadata, self.df_name = None, ''
+        
         if verbose:
             t0 = time.time()
 
-        self.read_metadata()
-        
-        if with_tlim:
-            self.read_tlim()
-        else:
-            self.tlim=None
+        try:
+            self.io = pynwb.NWBHDF5IO(filename, 'r')
+            self.nwbfile = self.io.read()
+
+            self.read_metadata()
+
+            if with_tlim:
+                self.read_tlim()
+
+            if not metadata_only:
+                self.read_data()
+
+            if with_visual_stim:
+                self.init_visual_stim()
             
-        if not metadata_only:
-            self.read_data()
-
-        if with_visual_stim:
-            self.init_visual_stim()
-        else:
-            self.visual_stim = None
-
+            if metadata_only:
+                self.close()
+            
+        except BaseException as be:
+            print('-----------------------------------------')
+            print(be)
+            print('-----------------------------------------')
+            print(' /!\ Pb with datafile: "%s"' % filename)
+            print('-----------------------------------------')
+            print('')
+            
         if verbose:
             print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
 
-        if metadata_only:
-            self.close()
-            
 
     def read_metadata(self):
         

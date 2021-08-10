@@ -44,6 +44,25 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
 
     self.cal.setSelectedDate(datetime.date.today())
     
+def reinit_calendar(self, min_date=(2020, 8, 1), max_date=None):
+    
+    day, i = datetime.date(*min_date), 0
+    while day!=datetime.date.today():
+        self.cal.setDateTextFormat(QtCore.QDate(day),
+                                   QtGui.QTextCharFormat())
+        day = day+datetime.timedelta(1)
+    day = day+datetime.timedelta(1)
+    self.cal.setDateTextFormat(QtCore.QDate(day),
+                               QtGui.QTextCharFormat())
+    self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
+    
+    if max_date is not None:
+        self.cal.setMaximumDate(QtCore.QDate(datetime.date(*max_date)+datetime.timedelta(1)))
+        self.cal.setSelectedDate(datetime.date(*max_date)+datetime.timedelta(1))
+    else:
+        self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
+        self.cal.setSelectedDate(datetime.date.today())
+        
     
 
 def add_buttons(self, Layout):
@@ -213,7 +232,7 @@ def load_config1(self,
 
     self.win1 = pg.GraphicsLayoutWidget()
     self.win1.setMaximumWidth(win1_Wmax)
-    self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+    self.win1.setMaximumHeight(int(win1_Hmax-1.5*selector_height))
     Layout12.addWidget(self.win1)
 
     self.win2 = pg.GraphicsLayoutWidget()
