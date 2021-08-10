@@ -522,7 +522,7 @@ def format_key_value(key, value):
     elif key=='protocol_id':
         return 'p.#%i' % (value+1)
     else:
-        return '%.2f' % value
+        return '%s=%.2f' % (key, value)
 
     
      

@@ -8,6 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import python_path
 from dataviz.show_data import MultimodalData
 from analysis.tools import *
+from assembling.saving import get_files_with_extension
 
 def metadata_fig(data):
     
@@ -95,8 +96,6 @@ def make_summary_pdf(filename, Nmax=1000000,
 
         print('* looping over protocols for analysis [...]')
 
-        print(data.metadata['protocol'])
-        
         # --- analysis of multi-protocols ---
         if data.metadata['protocol']=='mismatch-negativity':
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
@@ -106,6 +105,11 @@ def make_summary_pdf(filename, Nmax=1000000,
         elif 'surround-suppression' in data.metadata['protocol']:
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'surround_suppression.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif 'spatial-selectivity' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'spatial_selectivity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         else:
@@ -137,20 +141,32 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", type=str, nargs='*',
-                        default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
-                        # default=['protocols'],
+                        # default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
+                        default=['protocols'],
                         help='')
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     
     args = parser.parse_args()
 
-    make_summary_pdf(args.datafile,
-                     include=args.ops,
-                     Nmax=args.Nmax,
-                     verbose=args.verbose)
+    if os.path.isdir(args.datafile):
+        FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)
+        for f in FILES:
+            make_summary_pdf(f,
+                             include=args.ops,
+                             Nmax=args.Nmax,
+                             verbose=args.verbose)
+            
+    elif os.path.isfile(args.datafile):
+        make_summary_pdf(args.datafile,
+                         include=args.ops,
+                         Nmax=args.Nmax,
+                         verbose=args.verbose)
+    else:
+        print(' /!\ provide a valid folder or datafile /!\ ')
 
     
+
 
 
 

@@ -57,21 +57,21 @@ def OS_ROI_analysis(FullData,
     angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
-        means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
-                                                                interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_pre']),
-                                                                quantity='mean')
-        means_post = EPISODES.compute_stats_over_repeated_trials('angle', i,
-                                                                 interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_post']),
-                                                                 quantity='mean')
+        # means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
+        #                                                         interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_pre']),
+        #                                                         quantity='mean')
+        # means_post = EPISODES.compute_stats_over_repeated_trials('angle', i,
+        #                                                          interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_post']),
+        #                                                          quantity='mean')
 
         stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond('angle', i),
                                                         **stat_test_props)
 
         angles.append(angle)
-        y.append(np.mean(means_post))
-        sy.append(np.std(means_post))
+        y.append(np.mean(stats.y)) # means "post"
+        sy.append(np.std(stats.y)) # std "post"
         
-        if stats.significant(response_significance_threshold):
+        if stats.significant(threshold=response_significance_threshold, positive=True):
             responsive = True
             responsive_angles.append(angle)
             

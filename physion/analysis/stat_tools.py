@@ -12,35 +12,48 @@ class StatTest:
 
         self.x, self.y = x, y
         for key in ['pvalue', 'statistic']:
-            setattr(self, key, None)
-            
-        if test=='wilcoxon':
-            result = stats.wilcoxon(self.x, self.y)
-            for key in ['pvalue', 'statistic']:
-                setattr(self, key, getattr(result, key))
-            self.statistic = result.statistic
-        elif test=='anova':
-            result = stats.f_oneway(self.x, self.y)
-            for key in ['pvalue', 'statistic']:
-                setattr(self, key, getattr(result, key))
-        else:
-            print(' "%s" test not implemented ! ' % test)
+            setattr(self, key, 1)
 
-    def significant(self, threshold=0.01):
-        
+        try:
+            self.r = stats.pearsonr(x, y)[0] # Pearson's correlation coef
+
+            if test=='wilcoxon':
+                result = stats.wilcoxon(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
+                self.statistic = result.statistic
+            elif test=='anova':
+                result = stats.f_oneway(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
+            else:
+                print(' "%s" test not implemented ! ' % test)
+        except ValueError:
+            pass
+
+    def significant(self, threshold=0.01, positive=False):
+        """
+        here with 
+        """
+
         if (self.pvalue is not None) and (self.pvalue<threshold):
-            return True
+            if positive and self.r<=0:
+                return False
+            else:
+                return True
         elif (self.pvalue is not None):
             return False
         else:
             print(' /!\ no valid p-value for significance test !! /!\ ')
             return False
 
-    def pval_annot(self, size=5):
+    def pval_annot(self, positive=False, size=5):
         """
         uses the 
         """
-        if self.pvalue<1e-3:
+        if positive and self.r<=0:        
+            return 'n.s.', size
+        elif self.pvalue<1e-3:
             return '***', size+1
         elif self.pvalue<1e-2:
             return '**', size+1
