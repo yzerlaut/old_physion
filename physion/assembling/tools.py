@@ -4,7 +4,7 @@ import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from physion.assembling.IO.bruker_xml_parser import bruker_xml_parser
 from physion.assembling.saving import get_files_with_extension, get_TSeries_folders
-from physion.analysis.read_NWB import read as read_NWB
+from physion.analysis.read_NWB import Data
 
 def build_subsampling_from_freq(subsampled_freq=1.,
                                 original_freq=1.,
@@ -98,16 +98,16 @@ def find_matching_CaImaging_data(cls, filename, CaImaging_root_folder,
     success, folder = False, ''
     CA_FILES = build_Ca_filelist(CaImaging_root_folder)
 
-    read_NWB(cls, filename)
-    Tstart = cls.metadata['NIdaq_Tstart']
+    data = Data(filename, metadata_only=True, with_tlim=True)
+    Tstart = data.metadata['NIdaq_Tstart']
     st = datetime.datetime.fromtimestamp(Tstart).strftime('%H:%M:%S.%f')
     true_tstart = StartTime_to_day_seconds(st)
-    true_duration = cls.tlim[1]-cls.tlim[0]
+    true_duration = data.tlim[1]-data.tlim[0]
     true_tstop = true_tstart+true_duration
     times = np.arange(int(true_tstart), int(true_tstop))
     
     day = datetime.datetime.fromtimestamp(Tstart).strftime('%Y_%m_%d')
-    print(day)
+
     # first insuring the good day in the CA FOLDERS
     day_cond = (np.array(CA_FILES['date'])==day)
     if len(times)>min_protocol_duration and (np.sum(day_cond)>0):
@@ -122,7 +122,7 @@ def find_matching_CaImaging_data(cls, filename, CaImaging_root_folder,
                 print(' => matched to %s with %.1f %% overlap' % (folder,
                                                                   percent_overlap))
                 print(50*'-')
-    cls.io.close()
+    data.close()
     return success, folder
 
 class nothing:
@@ -133,8 +133,7 @@ if __name__=='__main__':
 
     fn = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
     CA_FOLDER = '/home/yann/DATA/'
-    cls = nothing()
-    success, folder = find_matching_CaImaging_data(cls, fn, CA_FOLDER)
+    success, folder = find_matching_CaImaging_data(fn, CA_FOLDER)
 
     # times, FILES, nframes, Lx, Ly = load_FaceCamera_data(folder+'FaceCamera-imgs')
     # Tstart = np.load(folder+'NIdaq.start.npy')[0]

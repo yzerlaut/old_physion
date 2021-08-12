@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
 from assembling.tools import find_matching_CaImaging_data
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -135,8 +135,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.filename!='':
             print('searching for a match [...]')
             self.imagingF.setText('searching [...]')
-            success, folder = find_matching_CaImaging_data(self, self.filename,
-                                                FOLDERS[self.folderI.currentText()])
+            success, folder = find_matching_CaImaging_data(self.filename,
+                                                           FOLDERS[self.folderI.currentText()])
             if success:
                 self.imagingF.setText('"%s"' % folder.split(os.path.sep)[-1])
                 self.Ifolder = folder
@@ -155,9 +155,10 @@ class MainWindow(QtWidgets.QMainWindow):
             
     
     def build_cmd(self):
-        return 'python %s --CaImaging_folder %s --nwb_file %s -v' % (self.process_script,
-                                                                     self.Ifolder,
-                                                                     self.filename)
+        return '%s %s --CaImaging_folder %s --nwb_file %s -v' % (python_path,
+                                                                 self.process_script,
+                                                                 self.Ifolder,
+                                                                 self.filename)
     def run(self):
         
         if self.filename!='' and self.Ifolder!='':

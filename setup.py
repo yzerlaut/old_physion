@@ -24,15 +24,15 @@ setup(
     ],
     keywords='vision physiology',
     packages=find_packages(),
-    install_requires=[
-        "pynwb",
-        "matplotlib",
-        "numpy",
-        "scipy",
-        "argparse",
-        "scikit-learn",
-        "pyqt5",
-        "pyqtgraph",
-        "xmltodict"
-    ]
+    # install_requires=[
+    #     "pynwb",
+    #     "matplotlib",
+    #     "numpy",
+    #     "scipy",
+    #     "argparse",
+    #     "scikit-learn",
+    #     "pyqt5",
+    #     "pyqtgraph",
+    #     "xmltodict"
+    # ]
 )

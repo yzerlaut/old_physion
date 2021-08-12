@@ -8,7 +8,7 @@ from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 
-class MainWindow(NewWindow):
+class RCGwindow(NewWindow):
     
     def __init__(self, app,
                  args=None,
@@ -18,7 +18,7 @@ class MainWindow(NewWindow):
         """
         self.app = app
         
-        super(MainWindow, self).__init__(i=3,
+        super(RCGwindow, self).__init__(i=3,
                                          title='red-cell gui')
 
 
@@ -73,10 +73,10 @@ class MainWindow(NewWindow):
 
     def open_file(self):
 
-        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
-        self.folder = '/home/yann/UNPROCESSED/2021_06_17/TSeries-06172021-1146-001'
+        self.folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        # self.folder = '/home/yann/UNPROCESSED/2021_06_17/TSeries-06172021-1146-001'
 
         if self.folder!='':
             self.draw_image()
@@ -89,30 +89,29 @@ class MainWindow(NewWindow):
         self.pimg.setImage(ops['meanImg_chan2']**.5)
 
 
-    def draw_rois(self, n=20, size=10):
+    def draw_rois(self, n=20, size=3):
 
         stat = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'stat.npy'), allow_pickle=True)
         redcell = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'redcell.npy'), allow_pickle=True)
+        iscell = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'iscell.npy'), allow_pickle=True)
 
         t = np.arange(n)
         x, y = [], []
         for i in range(len(stat)):
-            if redcell[i,0]:
+            if redcell[i,0] and iscell[i,0]:
                 xmean = np.mean(stat[i]['xpix'])
                 ymean = np.mean(stat[i]['ypix'])
-                # x.append(xmean)
-                # y.append(ymean)
                 x += list(xmean+size*np.cos(2*np.pi*t/n))
                 y += list(ymean+size*np.sin(2*np.pi*t/n))
         
-        self.rois.setData(x, y, size=1, brush=pg.mkBrush(255,0,0))
+        self.rois.setData(x, y, size=3, brush=pg.mkBrush(255,0,0))
         self.p0.addItem(self.rois)
     
 
 def run(app, args=None, parent=None):
-    return MainWindow(app,
-                      args=args,
-                      parent=parent)
+    return RCGwindow(app,
+                     args=args,
+                     parent=parent)
     
 if __name__=='__main__':
     from misc.colors import build_dark_palette
@@ -126,7 +125,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
-    main = MainWindow(app,
+    main = RCGwindow(app,
                       args=args)
     sys.exit(app.exec_())
 

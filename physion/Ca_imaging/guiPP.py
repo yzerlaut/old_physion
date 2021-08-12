@@ -4,10 +4,10 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import list_dayfolder, get_TSeries_folders
 from assembling.tools import find_matching_CaImaging_data
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path, python_path_suite2p_env
 from Ca_imaging.preprocessing import PREPROCESSING_SETTINGS
-
-python_path_suite2p_env = '$HOME/miniconda3/envs/suite2p/bin/python'
+from Ca_imaging.redcell_gui import run as RunRedCellGui
+from Ca_imaging.zstack.cellID_gui import run as RunZstackGui
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -18,8 +18,9 @@ class MainWindow(QtWidgets.QMainWindow):
         sampling in Hz
         """
         super(MainWindow, self).__init__()
-
-        self.setGeometry(350, 470, 300, 300)
+        self.app, self.args, self.CHILDREN_PROCESSES = app, args, []
+        
+        self.setGeometry(350, 470, 300, 350)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -30,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
                                            'Ca_imaging',  'preprocessing.py')
-
+        
         HEIGHT = 0
 
         HEIGHT += 10
@@ -83,6 +84,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.clicked.connect(self.red_cell_selection)
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
+
+        HEIGHT +=40 
+        self.gen = QtWidgets.QPushButton('Zstack cell selection GUI ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.zstack_selection)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
         
         self.CMDS = []
         self.show()
@@ -130,8 +138,11 @@ class MainWindow(QtWidgets.QMainWindow):
                              stderr=subprocess.STDOUT)
 
     def red_cell_selection(self):
-        print('WIP')
-            
+        self.CHILDREN_PROCESSES.append(RunRedCellGui(self.app, self.args))
+
+    def zstack_selection(self):
+        self.CHILDREN_PROCESSES.append(RunZstackGui(self.app, self.args))
+        
     def quit(self):
         QtWidgets.QApplication.quit()
         

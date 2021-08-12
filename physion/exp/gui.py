@@ -69,17 +69,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.VisualStimButton.move(30, 40)
         self.LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
         self.LocomotionButton.move(130, 40)
-        self.ElectrophyButton = QtWidgets.QPushButton("Electrophy", self)
-        self.ElectrophyButton.move(230, 40)
+        self.LFPButton = QtWidgets.QPushButton("LFP", self)
+        self.LFPButton.move(230, 40)
+        self.LFPButton.setFixedWidth(50)
+        self.VmButton = QtWidgets.QPushButton("Vm", self)
+        self.VmButton.move(280, 40)
+        self.VmButton.setFixedWidth(50)
         self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
         self.FaceCameraButton.clicked.connect(self.toggle_FaceCamera_process)
         self.FaceCameraButton.move(330, 40)
         self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
         self.CaImagingButton.move(430, 40)
-        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+        for button in [self.VisualStimButton, self.LocomotionButton, self.LFPButton, self.VmButton,
                        self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
-        for button in [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton]:
+        for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
             
         # screen choice
@@ -181,9 +185,9 @@ class MainWindow(QtWidgets.QMainWindow):
         settings = {'config':self.cbc.currentText(),
                     'protocol':self.cbp.currentText(),
                     'subject':self.cbs.currentText()}
-        for label, button in zip(['VisualStimButton', 'LocomotionButton', 'ElectrophyButton',
+        for label, button in zip(['VisualStimButton', 'LocomotionButton', 'LFPButton',
                                   'FaceCameraButton', 'CaImagingButton'],
-                                 [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                                 [self.VisualStimButton, self.LocomotionButton, self.LFPButton,
                                   self.FaceCameraButton, self.CaImagingButton]):
             settings[label] = button.isChecked()
         np.save(settings_filename, settings)
@@ -201,9 +205,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if settings['subject'] in self.subjects:
                 self.cbs.setCurrentText(settings['subject'])
                 self.update_subject()
-            for label, button in zip(['VisualStimButton', 'LocomotionButton', 'ElectrophyButton',
+            for label, button in zip(['VisualStimButton', 'LocomotionButton', 'LFPButton',
                                       'FaceCameraButton', 'CaImagingButton'],
-                                     [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+                                     [self.VisualStimButton, self.LocomotionButton, self.LFPButton,
                                       self.FaceCameraButton, self.CaImagingButton]):
                 button.setChecked(settings[label])
         if (self.config is None) or (self.protocol is None) or (self.subject is None):
@@ -280,8 +284,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.metadata[key] = d[key]
         
         # Setup configuration
-        for modality, button in zip(['VisualStim', 'Locomotion', 'Electrophy', 'FaceCamera', 'CaImaging'],
-                                    [self.VisualStimButton, self.LocomotionButton, self.ElectrophyButton,
+        for modality, button in zip(['VisualStim', 'Locomotion', 'LFP', 'Vm',
+                                     'FaceCamera', 'CaImaging'],
+                                    [self.VisualStimButton, self.LocomotionButton, self.LFPButton, self.VmButton,
                                      self.FaceCameraButton, self.CaImagingButton]):
             self.metadata[modality] = bool(button.isChecked())
 
@@ -324,13 +329,17 @@ class MainWindow(QtWidgets.QMainWindow):
         ### NI daq init ###   ## we override parameters based on the chosen modalities if needed
         # --------------- #
         if self.metadata['VisualStim'] and (self.metadata['NIdaq-analog-input-channels']<1):
-            self.metadata['NIdaq-analog-input-channels'] = 1 # at least one
-        if self.metadata['Electrophy'] and (self.metadata['NIdaq-analog-input-channels']<2):
-            self.metadata['NIdaq-analog-input-channels'] = 2
+            self.metadata['NIdaq-analog-input-channels'] = 1 # at least one (AI0), -> the photodiode
         if self.metadata['Locomotion'] and (self.metadata['NIdaq-digital-input-channels']<2):
             self.metadata['NIdaq-digital-input-channels'] = 2
+        if self.metadata['LFP'] and self.metadata['Vm']:
+            self.metadata['NIdaq-analog-input-channels'] = 3 # both channels, -> channel AI1 for Vm, AI2 for LFP 
+        elif self.metadata['LFP']:
+            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for LFP 
+        elif self.metadata['Vm']:
+            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
+            
         try:
-            print(max_time)
             self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                    Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
                                    Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],

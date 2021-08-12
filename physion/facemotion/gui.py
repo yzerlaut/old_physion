@@ -5,7 +5,7 @@ import pyqtgraph as pg
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 from assembling.tools import load_FaceCamera_data
@@ -394,7 +394,7 @@ class MainWindow(NewWindow):
     
 
     def build_cmd(self):
-        return 'python %s -df %s' % (self.process_script, self.datafolder)
+        return '%s %s -df %s' % (python_path, self.process_script, self.datafolder)
     
     def run_as_subprocess(self):
         self.save_data()

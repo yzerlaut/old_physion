@@ -88,34 +88,34 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
     ncells_all = 0
     for iplane, ops in enumerate(ops1):
         if iplane==0:
-            iscell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy'))
+            iscell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')).astype(bool)
             if ops['nchannels']>1:
-                redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))
+                redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))[iscell[:,0], :]
             for fstr in file_strs:
-                traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)))
+                traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr))[iscell[:,0], :])
         else:
             iscell = np.append(iscell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')), axis=0)
             if ops['nchannels']>1:
-                redcell = np.append(redcell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy')), axis=0)
+                redcell = np.append(redcell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))[iscell[:,0], :], axis=0)
             for i,fstr in enumerate(file_strs):
                 traces[i] = np.append(traces[i], 
-                                    np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr)), axis=0) 
+                                      np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr))[iscell[:,0], :], axis=0) 
 
         stat = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'stat.npy'), allow_pickle=True)
-        ncells = len(stat)
-        for n in range(ncells):
+        ncells = np.sum(iscell[:,0])
+        for n in np.arange(ncells):
             if multiplane:
-                pixel_mask = np.array([stat[n]['ypix'], stat[n]['xpix'], 
-                                    iplane*np.ones(stat[n]['npix']), 
-                                    stat[n]['lam']])
+                pixel_mask = np.array([stat[iscell[:,0]][n]['ypix'], stat[iscell[:,0]][n]['xpix'], 
+                                    iplane*np.ones(stat[iscell[:,0]][n]['npix']), 
+                                    stat[iscell[:,0]][n]['lam']])
                 ps.add_roi(voxel_mask=pixel_mask.T)
             else:
-                pixel_mask = np.array([stat[n]['ypix'], stat[n]['xpix'], 
-                                    stat[n]['lam']])
+                pixel_mask = np.array([stat[iscell[:,0]][n]['ypix'], stat[iscell[:,0]][n]['xpix'], 
+                                    stat[iscell[:,0]][n]['lam']])
                 ps.add_roi(pixel_mask=pixel_mask.T)
         ncells_all+=ncells
 
-    ps.add_column('iscell', 'two columns - iscell & probcell', iscell)
+    # ps.add_column('iscell', 'two columns - iscell & probcell', iscell)
     if ops['nchannels']>1:
         ps.add_column('redcell', 'two columns - redcell & probcell', redcell)
 

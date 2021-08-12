@@ -3,6 +3,16 @@ import numpy as np
 #########################
 #########################
 
+FIGURE_PRESETS = {
+    ' ':dict(reshape_axes=False, right=2.),
+    'raw-traces-preset': dict(reshape_axes=False,
+                              top=0.4, bottom=0.4, left=0.7, right=3.,
+                              wspace=0.5, hspace=0.5),
+    'raw-traces-preset+right-space': dict(reshape_axes=False,figsize=(1.1,1.1),
+                                          top=0.4, bottom=0.4, left=0.7, right=10.,
+                                          wspace=0.5, hspace=0.5)
+}
+
 def add_bar_annotations(ax,
                         Xbar=0, Xbar_label='',
                         Ybar=0, Ybar_label='',
@@ -92,5 +102,19 @@ def extract_from_times(t1, t2, nwb_quantity, axis=0):
     
 def convert_index_to_time(index, nwb_quantity):
     """ index can be an array """
-    return nwb_quantity.starting_time+index/nwb_quantity.rate
+    if nwb_quantity.timestamps is not None:
+        return nwb_quantity.timestamps[index]
+    else:
+        return nwb_quantity.starting_time+index/nwb_quantity.rate
+
+
+
+
+
+
+
+
+
+
+
 

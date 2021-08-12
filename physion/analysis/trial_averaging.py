@@ -2,12 +2,14 @@ import sys, time, tempfile, os, pathlib, json, datetime, string
 from PyQt5 import QtGui, QtWidgets, QtCore
 import numpy as np
 import pyqtgraph as pg
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from misc.guiparts import NewWindow, smallfont
 from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
+from analysis.process_NWB import EpisodeResponse
 
 NMAX_PARAMS = 8
 
@@ -21,9 +23,10 @@ class TrialAverageWindow(NewWindow):
         super(TrialAverageWindow, self).__init__(parent=parent.app,
                                                  title=title)
 
-        self.parent = parent
-        self.EPISODES, self.AX, self.l = None, None, None
-
+        self.data = parent.data
+        self.roiIndices, self.CaImaging_key = [0], parent.CaImaging_key
+        self.l = None
+        
         self.computeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+C'), self)
         self.computeSc.activated.connect(self.compute_episodes)
         self.nextSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+N'), self)
@@ -39,7 +42,7 @@ class TrialAverageWindow(NewWindow):
         Layout1.addLayout(self.Layout11)
 
         # description
-        self.notes = QtWidgets.QLabel(parent.description, self)
+        self.notes = QtWidgets.QLabel(self.data.description, self)
         noteBoxsize = (200, 100)
         self.notes.setMinimumHeight(noteBoxsize[1])
         self.notes.setMaximumHeight(noteBoxsize[1])
@@ -54,7 +57,7 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(QtWidgets.QLabel('Protocol', self))
         self.pbox = QtWidgets.QComboBox(self)
         self.pbox.addItem('')
-        self.pbox.addItems(self.parent.protocols)
+        self.pbox.addItems(self.data.protocols)
         self.pbox.activated.connect(self.update_protocol)
         self.Layout12.addWidget(self.pbox)
 
@@ -62,14 +65,19 @@ class TrialAverageWindow(NewWindow):
         self.Layout12.addWidget(QtWidgets.QLabel('Quantity', self))
         self.qbox = QtWidgets.QComboBox(self)
         self.qbox.addItem('')
-        if 'ophys' in self.parent.nwbfile.processing:
+        if 'ophys' in self.data.nwbfile.processing:
             self.qbox.addItem('CaImaging')
-        for key in parent.nwbfile.acquisition:
-            if len(parent.nwbfile.acquisition[key].data.shape)==1:
+        for key in self.data.nwbfile.acquisition:
+            if len(self.data.nwbfile.acquisition[key].data.shape)==1:
                 self.qbox.addItem(key) # only for scalar variables
         self.qbox.activated.connect(self.update_quantity)
         self.Layout12.addWidget(self.qbox)
 
+        self.Layout12.addWidget(QtWidgets.QLabel('sub-quantity', self))
+        self.sqbox = QtWidgets.QComboBox(self)
+        self.sqbox.addItem('')
+        self.Layout12.addWidget(self.sqbox)
+        
         self.guiKeywords = QtGui.QLineEdit()
         self.guiKeywords.setText('  [GUI keywords]  ')
         self.guiKeywords.setFixedWidth(250)
@@ -94,7 +102,8 @@ class TrialAverageWindow(NewWindow):
 
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         self.nextBtn = QtWidgets.QPushButton('[Ctrl+N]ext roi', self)
-        self.nextBtn.clicked.connect(self.compute_episodes_wsl)
+        # self.nextBtn.clicked.connect(self.compute_episodes_wsl)
+        self.nextBtn.clicked.connect(self.next_roi)
         self.Layout12.addWidget(self.nextBtn)
         self.Layout12.addWidget(QtWidgets.QLabel('', self))
         
@@ -138,12 +147,12 @@ class TrialAverageWindow(NewWindow):
         self.refresh()
 
     def next_roi(self):
-        if len(self.parent.roiIndices)==1:
-            self.parent.roiIndices = [self.parent.roiIndices[0]+1]
+        if len(self.roiIndices)==1:
+            self.roiIndices = [np.min([np.sum(self.data.iscell)-1, self.roiIndices[0]+1])]
         else:
-            self.parent.roiIndices = [0]
-            self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
-        self.roiPick.setText('%i' % self.parent.roiIndices[0])
+            self.roiIndices = [0]
+            self.statusBar.showMessage('ROIs set to %s' % self.roiIndices)
+        self.roiPick.setText('%i' % self.roiIndices[0])
         self.compute_episodes()
         self.refresh()
         
@@ -154,18 +163,22 @@ class TrialAverageWindow(NewWindow):
         self.plot_row_column_of_quantity()
         
     def update_quantity(self):
-        pass
+        self.sqbox.clear()
+        self.sqbox.addItems(self.data.list_subquantities(self.qbox.currentText()))
+        self.sqbox.setCurrentIndex(0)
 
     def compute_episodes(self):
+        self.select_ROI()
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
-            self.EPISODES = build_episodes(self,
-                                       parent=self.parent,
-                                       protocol_id=self.pbox.currentIndex()-1,
-                                       quantity=self.qbox.currentText(),
-                                       dt_sampling=self.samplingBox.value(), # ms
-                                       interpolation='linear',
-                                       baseline_substraction=self.baselineCB.isChecked(),
-                                       verbose=True)
+            self.EPISODES = EpisodeResponse(self.data,
+                                            protocol_id=self.pbox.currentIndex()-1,
+                                            quantity=self.qbox.currentText(),
+                                            subquantity=self.sqbox.currentText(),
+                                            dt_sampling=self.samplingBox.value(), # ms
+                                            roiIndices=self.roiIndices,
+                                            interpolation='linear',
+                                            baseline_substraction=self.baselineCB.isChecked(),
+                                            verbose=True)
         else:
             print(' /!\ Pick a protocol an a quantity')
 
@@ -176,24 +189,27 @@ class TrialAverageWindow(NewWindow):
     def update_selection(self):
         for i in range(NMAX_PARAMS):
             getattr(self, "box%i"%i).clear()
-        for i, key in enumerate(self.varied_parameters.keys()):
+        for i, key in enumerate(self.EPISODES.varied_parameters.keys()):
             for k in ['(merge)', '(color-code)', '(row)', '(column)']:
                 getattr(self, "box%i"%i).addItem(key+((30-len(k)-len(key))*' ')+k)
         
     def select_ROI(self):
         """ see dataviz/gui.py """
-        roiIndices = self.parent.select_ROI_from_pick(cls=self.parent)
-        if len(roiIndices)>0:
-            self.parent.roiIndices = roiIndices
-            self.parent.roiPick.setText(self.roiPick.text())
-        self.statusBar.showMessage('ROIs set to %s' % self.parent.roiIndices)
-
-
+        try:
+            self.roiIndices = [int(self.roiPick.text())]
+            self.statusBar.showMessage('ROIs set to %s' % self.roiIndices)
+        except BaseException:
+            self.roiIndices = [0]
+            self.roiPick.setText('0')
+            self.statusBar.showMessage('/!\ ROI string not recognized /!\ --> ROI set to [0]')
+            
+    
     def keyword_update2(self):
         self.keyword_update(string=self.guiKeywords.text(), parent=self.parent)
 
     def plot_row_column_of_quantity(self):
 
+        self.Pcond = self.data.get_protocol_cond(self.pbox.currentIndex()-1)
         COL_CONDS = self.build_column_conditions()
         ROW_CONDS = self.build_row_conditions()
         COLOR_CONDS = self.build_color_conditions()
@@ -216,23 +232,26 @@ class TrialAverageWindow(NewWindow):
             for icol, col_cond in enumerate(COL_CONDS):
                 self.AX[irow].append(self.l.addPlot())
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    cond = np.array(col_cond & row_cond & color_cond)[:self.EPISODES['resp'].shape[0]]
+                    cond = np.array(col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
                     pen = pg.mkPen(color=COLORS[icolor], width=2)
-                    if self.EPISODES['resp'][cond,:].shape[0]>0:
-                        my = self.EPISODES['resp'][cond,:].mean(axis=0)
+                    if self.EPISODES.resp[cond,:].shape[0]>0:
+                        my = self.EPISODES.resp[cond,:].mean(axis=0)
                         if np.sum(cond)>1:
                             spen = pg.mkPen(color=(0,0,0,0), width=0)
                             spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
-                            sy = self.EPISODES['resp'][cond,:].std(axis=0)
-                            phigh = pg.PlotCurveItem(self.EPISODES['t'], my+sy, pen = spen)
-                            plow = pg.PlotCurveItem(self.EPISODES['t'], my-sy, pen = spen)
+                            sy = self.EPISODES.resp[cond,:].std(axis=0)
+                            phigh = pg.PlotCurveItem(self.EPISODES.t, my+sy, pen = spen)
+                            plow = pg.PlotCurveItem(self.EPISODES.t, my-sy, pen = spen)
                             pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)
                             self.AX[irow][icol].addItem(phigh)
                             self.AX[irow][icol].addItem(plow)
                             self.AX[irow][icol].addItem(pfill)
                             ylim[0] = np.min([np.min(my-sy), ylim[0]])
                             ylim[1] = np.max([np.max(my+sy), ylim[1]])
-                        self.AX[irow][icol].plot(self.EPISODES['t'], my, pen = pen)
+                        else:
+                            ylim[0] = np.min([np.min(my), ylim[0]])
+                            ylim[1] = np.max([np.max(my), ylim[1]])
+                        self.AX[irow][icol].plot(self.EPISODES.t, my, pen = pen)
                     else:
                         print(' /!\ Problem with episode (%i, %i, %i)' % (irow, icol, icolor))
                 if icol>0:
@@ -242,171 +261,48 @@ class TrialAverageWindow(NewWindow):
                 self.AX[irow][icol].setYLink(self.AX[0][0]) # locking axis together
                 self.AX[irow][icol].setXLink(self.AX[0][0])
             self.l.nextRow()
-        self.AX[0][0].setRange(xRange=[self.EPISODES['t'][0], self.EPISODES['t'][-1]], yRange=ylim, padding=0.0)
+        self.AX[0][0].setRange(xRange=[self.EPISODES.t[0], self.EPISODES.t[-1]], yRange=ylim, padding=0.0)
             
         
-    def build_conditions(self, X, K):
-        if len(K)>0:
-            CONDS = []
-            XK = np.meshgrid(*X)
-            for i in range(len(XK[0].flatten())): # looping over joint conditions
-                cond = np.ones(np.sum(self.Pcond), dtype=bool)
-                for k, xk in zip(K, XK):
-                    cond = cond & (self.parent.nwbfile.stimulus[k].data[self.Pcond]==xk.flatten()[i])
-                CONDS.append(cond)
-            return CONDS
-        else:
-            return [np.ones(np.sum(self.Pcond), dtype=bool)]
-            
-    
     def build_column_conditions(self):
         X, K = [], []
-        for i, key in enumerate(self.varied_parameters.keys()):
+        for i, key in enumerate(self.EPISODES.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('column'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
-
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
     
     def build_row_conditions(self):
         X, K = [], []
-        for i, key in enumerate(self.varied_parameters.keys()):
+        for i, key in enumerate(self.EPISODES.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('row'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
+
 
     def build_color_conditions(self):
         X, K = [], []
-        for i, key in enumerate(self.varied_parameters.keys()):
+        for i, key in enumerate(self.EPISODES.varied_parameters.keys()):
             if len(getattr(self, 'box%i'%i).currentText().split('color'))>1:
-                X.append(np.sort(np.unique(self.parent.nwbfile.stimulus[key].data[self.Pcond])))
+                X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
-        return self.build_conditions(X, K)
-
-        
-def build_episodes(self,
-                   parent=None,
-                   protocol_id=0,
-                   quantity='Photodiode-Signal',
-                   prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
-                   dt_sampling=1, # ms
-                   interpolation='linear',
-                   baseline_substraction=False,
-                   verbose=True):
-
-    EPISODES = {'dt_sampling':dt_sampling,
-                'quantity':quantity,
-                'resp':[]}
-
-    parent = (parent if parent is not None else self)
-
-    # choosing protocol (if multiprotocol)
-    if ('protocol_id' in parent.nwbfile.stimulus) and (len(np.unique(parent.nwbfile.stimulus['protocol_id'].data[:]))>1):
-        Pcond = (parent.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
-    else:
-        Pcond = np.ones(parent.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
-    # limiting to available episodes
-    Pcond[np.arange(len(Pcond))>=parent.nwbfile.stimulus['time_start_realigned'].num_samples] = False
+        return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)
     
-    if verbose:
-        print('Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
-
-    # find the parameter(s) varied within that specific protocol
-    EPISODES['varied_parameters'] =  {}
-    for key in parent.nwbfile.stimulus.keys():
-        if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
-                       'time_start_realigned', 'time_stop', 'time_stop_realigned']:
-            unique = np.unique(parent.nwbfile.stimulus[key].data[Pcond])
-            if len(unique)>1:
-                EPISODES['varied_parameters'][key] = unique
-    # for the parent class
-    self.varied_parameters = EPISODES['varied_parameters'] # adding this as a shortcut
-    self.Pcond = Pcond # protocol condition
-    
-    # new sampling
-    if (prestim_duration is None) and ('interstim' in parent.nwbfile.stimulus):
-        prestim_duration = np.min(parent.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
-    elif prestim_duration is None:
-        prestim_duration = 1
-    ipre = int(prestim_duration/dt_sampling*1e3)
-        
-    duration = parent.nwbfile.stimulus['time_stop'].data[Pcond][0]-parent.nwbfile.stimulus['time_start'].data[Pcond][0]
-    idur = int(duration/dt_sampling/1e-3)
-    EPISODES['t'] = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
-    
-    if quantity=='CaImaging':
-        tfull = parent.Neuropil.timestamps[:]
-        valfull = compute_CaImaging_trace(parent,
-                    parent.CaImaging_key, parent.roiIndices).sum(axis=0) # valid ROI indices inside
-    else:
-        try:
-            tfull = np.arange(parent.nwbfile.acquisition[quantity].data.shape[0])/parent.nwbfile.acquisition[quantity].rate
-            valfull = parent.nwbfile.acquisition[quantity].data[:]
-        except BaseException as be:
-            print(be)
-            print(30*'-')
-            print(quantity, 'not recognized')
-            print(30*'-')
-        
-    # adding the parameters
-    for key in parent.nwbfile.stimulus.keys():
-        EPISODES[key] = []
-
-    for iEp in np.arange(parent.nwbfile.stimulus['time_start'].num_samples)[Pcond]:
-        tstart = parent.nwbfile.stimulus['time_start_realigned'].data[iEp]
-        tstop = parent.nwbfile.stimulus['time_stop_realigned'].data[iEp]
-
-        # compute time and interpolate
-        cond = (tfull>=(tstart-1.5*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
-        func = interp1d(tfull[cond]-tstart, valfull[cond],
-                        kind=interpolation)
-        try:
-            if baseline_substraction:
-                y = func(EPISODES['t'])
-                EPISODES['resp'].append(y-np.mean(y[EPISODES['t']<0]))
-            else:
-                EPISODES['resp'].append(func(EPISODES['t']))
-            for key in parent.nwbfile.stimulus.keys():
-                EPISODES[key].append(parent.nwbfile.stimulus[key].data[iEp])
-        except BaseException as be:
-            print('----')
-            print(be)
-            print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
-
-    EPISODES['index_from_start'] = np.arange(len(Pcond))[Pcond]
-    EPISODES['resp'] = np.array(EPISODES['resp'])
-    for key in parent.nwbfile.stimulus.keys():
-        EPISODES[key] = np.array(EPISODES[key])
-    
-    if verbose:
-        print('[ok] episodes ready !')
-        
-    return EPISODES
     
 if __name__=='__main__':
 
-    # folder = os.path.join(os.path.expanduser('~'),\
-    #                       'DATA', '2020_11_04', '01-02-03')
-    
-    # dataset = Dataset(folder,
-    #                   with_CaImaging_stat=False,
-    #                   modalities=['Screen', 'Locomotion', 'CaImaging'])
-    import sys
-    sys.path.append('/home/yann/work/physion')
-    from physion.analysis.read_NWB import read as read_NWB
-    
-    # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
+    from analysis.read_NWB import Data
     
     class Parent:
         def __init__(self, filename=''):
-            read_NWB(self, filename, verbose=False)
+            super().__init__()
             self.app = QtWidgets.QApplication(sys.argv)
-            self.description=''
-            self.roiIndices = [0]
+            self.data = Data(filename)
             self.CaImaging_key = 'Fluorescence'
-
-    
+            # self.description=''
+            # self.roiIndices = [0]
+                
     filename = sys.argv[-1]
 
     if '.nwb' in sys.argv[-1]:

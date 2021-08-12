@@ -1,4 +1,4 @@
-import sys, time, tempfile, os, pathlib, datetime, string, pynwb
+import sys, time, tempfile, os, pathlib, datetime, string, pynwb, subprocess
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
@@ -9,8 +9,9 @@ from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
 from analysis.behavioral_modulation import BehavioralModWindow
-from analysis.read_NWB import read as read_NWB
-from misc.folders import FOLDERS
+from analysis.read_NWB import Data
+from analysis.summary_pdf import summary_pdf_folder
+from misc.folders import FOLDERS, python_path
 from misc import guiparts
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
 
@@ -24,6 +25,8 @@ settings = {
               'FaceMotion':(255,0,255,255),#'purple',
               'Pupil':(255,0,0,255),#'red',
               'Electrophy':(100,100,255,255),#'blue',
+              'LFP':(100,100,255,255),#'blue',
+              'Vm':(100,100,100,255),#'blue',
               'CaImaging':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':500}
@@ -102,9 +105,10 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('[visualization/analysis]')
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
-        self.pbox.addItem('-> Behavioral-modulation')
-        self.pbox.addItem('-> Make-figures')
-        self.pbox.addItem('-> Open PDF summary')
+        # self.pbox.addItem('-> Behavioral-modulation')
+        self.pbox.addItem('-> draw figures')
+        self.pbox.addItem('-> produce PDF summary')
+        self.pbox.addItem('-> open PDF summary')
         self.pbox.setCurrentIndex(0)
 
         Layout11.addWidget(self.pbox)
@@ -126,7 +130,7 @@ class MainWindow(guiparts.NewWindow):
         Layout12.addWidget(self.dbox)
 
         self.win1 = pg.GraphicsLayoutWidget()
-        self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+        self.win1.setMaximumHeight(int(win1_Hmax-1.5*selector_height))
         Layout12.addWidget(self.win1)
 
         self.winTrace = pg.GraphicsLayoutWidget()
@@ -134,34 +138,8 @@ class MainWindow(guiparts.NewWindow):
 
         guiparts.build_slider(self, mainLayout)
 
-        # screen panel
-        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
-        self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pScreenimg.setLevels([0,255])
-        # FaceCamera panel
-        self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
-        self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pFaceimg.setLevels([0,255])
-        # Pupil panel
-        self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
-        self.pPupilimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pPupilimg.setLevels([0,255])
-        self.pupilContour = pg.ScatterPlotItem()
-        # Facemotion panel
-        self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
-        self.pFacemotionimg = pg.ImageItem(np.ones((10,12))*50)
-        self.pFacemotionimg.setLevels([0,255])
-        self.facemotionROI = pg.ScatterPlotItem()
-        # Ca-Imaging panel
-        self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
-        self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
-        self.pCaimg.setLevels([0,255])
-        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
-                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
-            x.setAspectLocked()
-            x.addItem(y)
-            x.show()
-
+        self.init_panels()
+        
         self.plot = self.winTrace.addPlot()
         self.plot.hideAxis('left')
         self.plot.setMouseEnabled(x=True,y=False)
@@ -175,6 +153,10 @@ class MainWindow(guiparts.NewWindow):
         Layout122 = QtWidgets.QHBoxLayout()
         Layout12.addLayout(Layout122)
 
+        self.stimSelect = QtGui.QCheckBox("show stim")
+        self.stimSelect.setFont(guiparts.smallfont)
+        self.stimSelect.clicked.connect(self.select_stim)
+        
         self.roiPick = QtGui.QLineEdit()
         self.roiPick.setText(' [...] ')
         self.roiPick.setMinimumWidth(150)
@@ -193,13 +175,13 @@ class MainWindow(guiparts.NewWindow):
         self.guiKeywords.returnPressed.connect(self.keyword_update)
         self.guiKeywords.setFont(guiparts.smallfont)
 
+        Layout122.addWidget(self.stimSelect)
         Layout122.addWidget(self.guiKeywords)
         Layout122.addWidget(self.ephysPick)
         Layout122.addWidget(self.roiPick)
 
         self.cwidget.setLayout(mainLayout)
         self.show()
-        
         
         self.fbox.addItems(FOLDERS.keys())
         self.windowTA, self.windowBM = None, None # sub-windows
@@ -209,27 +191,60 @@ class MainWindow(guiparts.NewWindow):
         else:
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
-        self.time, self.io, self.roiIndices, self.tzoom = 0, None, [], [0,50]
+        self.time, self.data, self.roiIndices, self.tzoom = 0, None, [], [0,50]
         self.CaImaging_bg_key = 'meanImg'
         self.CaImaging_key = 'Fluorescence'
 
         self.FILES_PER_DAY, self.FILES_PER_SUBJECT, self.SUBJECTS = {}, {}, {}
-        
+
         self.minView = False
         self.showwindow()
 
 
+    def init_panel_imgs(self):
         
+        self.pScreenimg.setImage(np.ones((10,12))*50)
+        self.pFaceimg.setImage(np.ones((10,12))*50)
+        self.pPupilimg.setImage(np.ones((10,12))*50)
+        self.pFacemotionimg.setImage(np.ones((10,12))*50)
+        self.pCaimg.setImage(np.ones((50,50))*100)
+        self.pupilContour.setData([0], [0], size=1, brush=pg.mkBrush(0,0,0))
+
+    def init_panels(self):
+
+        # screen panel
+        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
+        # FaceCamera panel
+        self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
+        # Pupil panel
+        self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.pupilContour = pg.ScatterPlotItem()
+        self.pPupilimg = pg.ImageItem(np.ones((10,12))*50)
+        # Facemotion panel
+        self.pFacemotion=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
+        self.facemotionROI = pg.ScatterPlotItem()
+        self.pFacemotionimg = pg.ImageItem(np.ones((10,12))*50)
+        # Ca-Imaging panel
+        self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
+        self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
+        
+        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
+                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
+            x.addItem(y)
+
     def open_file(self):
 
         filename, _ = QtGui.QFileDialog.getOpenFileName(self,
                      "Open Multimodal Experimental Recording (NWB file) ",
-                        (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                            filter="*.nwb")
+                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                                                        filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
+        # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
+        # filename = '/home/yann/DATA/CaImaging/Wild_Type_GCamp6s/2021_05_20/2021_05_20-13-59-57.nwb'
         
         if filename!='':
-            self.reset()
             self.datafile=filename
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
@@ -242,51 +257,61 @@ class MainWindow(guiparts.NewWindow):
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
         self.no_subsampling = False
-        self.plot.clear()
-        self.pScreenimg.clear()
-        self.pFaceimg.clear()
-        self.pCaimg.clear()
-        self.pPupilimg.clear()
+        self.init_panel_imgs()
+        # self.plot.clear()
+        # self.pScreenimg.clear()
+        # self.pFaceimg.clear()
+        # self.pCaimg.clear()
+        # self.pPupilimg.clear()
+        # self.win1.clear()
         self.roiIndices = None
 
+    def select_stim(self):
+        if self.stimSelect.isChecked():
+            if self.data.visual_stim is None:
+                self.load_VisualStim()
+            self.keyword_update(string='stim')
+        else:
+            self.keyword_update(string='no_stim')
+            self.data.visual_stim = None
         
     def select_ROI(self):
         """ see select ROI above """
-        self.roiIndices = self.select_ROI_from_pick()
+        self.roiIndices = self.select_ROI_from_pick(self.data)
         plots.raw_data_plot(self, self.tzoom, with_roi=True)
 
             
     def load_file(self, filename):
         """ should be a minimal processing so that the loading is fast"""
-        read_NWB(self, filename,
-                 verbose=True) # see ../analysis/read_NWB.py
+        self.reset()
 
-        self.tzoom = self.tlim
-        self.notes.setText(self.description)
+        self.data = Data(filename)
+            
+        self.tzoom = self.data.tlim
+        self.notes.setText(self.data.description)
 
-        self.cal.setSelectedDate(self.nwbfile.session_start_time.date())
+        self.cal.setSelectedDate(self.data.nwbfile.session_start_time.date())
         if self.dbox.currentIndex()<1:
             self.dbox.clear()
-            self.dbox.addItem(self.df_name)
+            self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
-        self.sbox.clear()
-        self.sbox.addItem(self.nwbfile.subject.description)
-        self.sbox.setCurrentIndex(0)
+            
+        if self.sbox.currentIndex()==0:
+            self.sbox.addItem(self.data.nwbfile.subject.description)
+            self.sbox.setCurrentIndex(1)
+            
         self.pbox.setCurrentIndex(1)
-        self.visual_stim = None
 
-        if 'ophys' in self.nwbfile.processing:
-            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.validROI_indices)-1))
+        if 'ophys' in self.data.nwbfile.processing:
+            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.data.validROI_indices)-1))
 
     def load_VisualStim(self):
 
         # load visual stimulation
-        if self.metadata['VisualStim']:
-            self.metadata['load_from_protocol_data'] = True
-            self.metadata['no-window'] = True
-            self.visual_stim = build_stim(self.metadata, no_psychopy=True)
+        if self.data.metadata['VisualStim']:
+            self.data.init_visual_stim()
         else:
-            self.visual_stim = None
+            self.data.visual_stim = None
             print(' /!\ No stimulation in this recording /!\  ')
 
 
@@ -319,32 +344,48 @@ class MainWindow(guiparts.NewWindow):
 
         FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
                                          extension='.nwb', recursive=True)
+        print(' looping over n=%i datafiles to fetch "subjects" metadata [...]' % len(FILES))
+        DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
 
-        SUBJECTS, DISPLAY_NAMES = [], []
-        for fn in FILES:
+        SUBJECTS, DISPLAY_NAMES, SDATES, NDATES = [], [], [], []
+        for fn, date in zip(FILES, DATES):
             infos = self.preload_datafolder(fn)
+            SDATES.append(date)
             SUBJECTS.append(infos['subject'])
             DISPLAY_NAMES.append(infos['display_name'])
+            NDATES.append(datetime.date(*[int(dd) for dd in date.split('_')]).toordinal())
 
         self.SUBJECTS = {}
         for s in np.unique(SUBJECTS):
             cond = (np.array(SUBJECTS)==s)
             self.SUBJECTS[s] = {'display_names':np.array(DISPLAY_NAMES)[cond],
-                                'datafiles':np.array(FILES)[cond]}
+                                'datafiles':np.array(FILES)[cond],
+                                'dates':np.array(SDATES)[cond],
+                                'dates_num':np.array(NDATES)[cond]}
 
         print(' -> found n=%i subjects ' % len(self.SUBJECTS.keys()))
         self.sbox.clear()
         self.sbox.addItems([self.subject_default_key]+\
                            list(self.SUBJECTS.keys()))
         self.sbox.setCurrentIndex(0)
+        
                                 
     def pick_subject(self):
         self.plot.clear()
         if self.sbox.currentText()==self.subject_default_key:
             self.compute_subjects()
         elif self.sbox.currentText() in self.SUBJECTS:
-            self.list_protocol = self.SUBJECTS[self.sbox.currentText()]['datafiles']
-            self.update_df_names()
+            self.FILES_PER_DAY = {} # re-init
+            date_min = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmin(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
+            date_max = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmax(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
+            print(date_min, date_max)
+            guiparts.reinit_calendar(self,
+                                     min_date= tuple(int(dd) for dd in date_min.split('_')),
+                                     max_date= tuple(int(dd) for dd in date_max.split('_')))
+            for d in np.unique(self.SUBJECTS[self.sbox.currentText()]['dates']):
+                self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
+                                           self.highlight_format)
+                self.FILES_PER_DAY[d] = [f for f in np.array(self.SUBJECTS[self.sbox.currentText()]['datafiles'])[self.SUBJECTS[self.sbox.currentText()]['dates']==d]]
         else:
             print(' /!\ subject not recognized /!\  ')
                                 
@@ -366,7 +407,7 @@ class MainWindow(guiparts.NewWindow):
             self.load_file(self.datafile)
             plots.raw_data_plot(self, self.tzoom)
         else:
-            self.metadata = None
+            # self.data.metadata = None
             self.notes.setText(20*'-'+5*'\n')
         
 
@@ -385,22 +426,23 @@ class MainWindow(guiparts.NewWindow):
                 self.dbox.addItem(self.preload_datafolder(fn)['display_name'])
                 
     def preload_datafolder(self, fn):
-        read_NWB(self, fn, metadata_only=True)
-        infos = {'display_name' : self.df_name,
-                 'subject': self.nwbfile.subject.description}
-        self.io.close()
-        return infos
+        data = Data(fn, metadata_only=True, with_tlim=False)
+        if data.nwbfile is not None:
+            return {'display_name' : data.df_name,
+                     'subject': data.nwbfile.subject.description}
+        else:
+            return {'display_name': '', 'subject':''}
 
     def add_datafolder_annotation(self):
         info = 20*'-'+'\n'
 
-        if self.metadata['protocol']=='None':
+        if self.data.metadata['protocol']=='None':
             self.notes.setText('\nNo visual stimulation')
         else:
-            for key in self.metadata:
-                if (key[:2]=='N-') and (key!='N-repeat') and (self.metadata[key]>1): # meaning it was varied
-                    info += '%s=%i (%.1f to %.1f)\n' % (key, self.metadata[key], self.metadata[key[2:]+'-1'], self.metadata[key[2:]+'-2'])
-            info += '%s=%i' % ('N-repeat', self.metadata['N-repeat'])
+            for key in self.data.metadata:
+                if (key[:2]=='N-') and (key!='N-repeat') and (self.data.metadata[key]>1): # meaning it was varied
+                    info += '%s=%i (%.1f to %.1f)\n' % (key, self.data.metadata[key], self.data.metadata[key[2:]+'-1'], self.data.metadata[key[2:]+'-2'])
+            info += '%s=%i' % ('N-repeat', self.data.metadata['N-repeat'])
             self.notes.setText(info)
 
     def display_quantities(self,
@@ -418,20 +460,25 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
             self.window3 = BehavioralModWindow(parent=self)
             self.window3.show()
-        elif self.pbox.currentText()=='-> Make-figures':
+        elif self.pbox.currentText()=='-> draw figures':
             self.windowFG = FiguresWindow(parent=self)
             self.windowFG.show()
-        elif self.pbox.currentText()=='-> Open PDF summary':
-            print('looking for pdf summary [...]')
-            PDFS = []
-            if os.path.isdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary')):
-                PDFS = os.listdir(os.path.join(self.datafile.replace('.pdf', ''), 'summary'))
-                print('set of pdf-files found:')
-                print(PDFS)
+        elif self.pbox.currentText()=='-> produce PDF summary':
+            cmd = '%s %s %s --verbose' % (python_path,
+                            os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
+                                     'analysis', 'summary_pdf.py'), self.datafile)
+            p = subprocess.Popen(cmd, shell=True)
+            print('"%s" launched as a subprocess' % cmd)
+        elif self.pbox.currentText()=='-> open PDF summary':
+            pdf_folder = summary_pdf_folder(self.datafile)
+            if os.path.isdir(pdf_folder):
+                PDFS = os.listdir(pdf_folder)
+                for pdf in PDFS:
+                    print(' - opening: "%s"' % pdf)
+                    os.system('$(basename $(xdg-mime query default application/pdf) .desktop) %s & ' % os.path.join(pdf_folder, pdf))
             else:
                 print('no PDF summary files found !')
-            pdf_filename = '~/Desktop/test.pdf'
-            os.system('$(basename $(xdg-mime query default application/pdf) .desktop) %s ' % pdf_filename)
+
         else:
             self.plot.clear()
             plots.raw_data_plot(self, self.tzoom,
@@ -528,15 +575,15 @@ class MainWindow(guiparts.NewWindow):
         return True
 
     def see_metadata(self):
-        for key, val in self.metadata.items():
+        for key, val in self.data.metadata.items():
             print('- %s : ' % key, val)
             
     def change_settings(self):
         pass
     
     def quit(self):
-        if self.io is not None:
-            self.io.close()
+        if self.data is not None:
+            self.data.io.close()
         sys.exit()
 
 
@@ -627,6 +674,7 @@ def run(app, args=None, parent=None,
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",

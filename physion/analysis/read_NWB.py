@@ -2,106 +2,88 @@ import pynwb, time, ast, sys, pathlib, os
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, list_dayfolder, get_files_with_extension
+from assembling.saving import get_files_with_extension
+from visual_stim.psychopy_code.stimuli import build_stim
 
-def init(self):
-
-    self.tlim = None
-    self.df_name = ''
-    self.description = ''
-    self.keys = []
 
 class Data:
+    
     """
-    a basic class to be the parent of specific applications
+    a basic class to read NWB
+    thought to be the parent for specific applications
     """
+    
     def __init__(self, filename,
-                 verbose=False, with_visual_stim=False):
-        read(self, filename,
-             with_visual_stim=with_visual_stim,
-             verbose=verbose)
+                 with_tlim=True,
+                 metadata_only=False,
+                 with_visual_stim=False,
+                 verbose=False):
+
+        self.tlim, self.visual_stim, self.nwbfile = None, None, None
+        self.metadata, self.df_name = None, ''
         
-    
-def read(self, filename, verbose=False, with_tlim=True,
-         metadata_only=False, with_visual_stim=False):
+        if verbose:
+            t0 = time.time()
 
-    self.io = pynwb.NWBHDF5IO(filename, 'r')
-    self.nwbfile = self.io.read()
-    self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+\
-        self.nwbfile.experiment_description
-    
-    if verbose:
-        t0 = time.time()
-    
-    data = {}
+        try:
+            self.io = pynwb.NWBHDF5IO(filename, 'r')
+            self.nwbfile = self.io.read()
 
-    self.metadata = ast.literal_eval(\
-                    self.nwbfile.session_description)
+            self.read_metadata()
 
-    if self.metadata['protocol']=='None':
-        self.description = 'Spont. Act.\n'
-    else:
-        self.description = 'Visual-Stim:\n'
+            if with_tlim:
+                self.read_tlim()
 
-    # deal with multi-protocols
-    if ('Presentation' in self.metadata) and (self.metadata['Presentation']=='multiprotocol'):
-        self.protocols, ii = [], 1
-        while ('Protocol-%i' % ii) in self.metadata:
-            self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
-            self.description += '- %s \n' % self.protocols[ii-1]
-            ii+=1
-    else:
-        self.protocols = [self.metadata['protocol']]
-        self.description += '- %s \n' % self.metadata['protocol']
-    self.protocols = np.array(self.protocols, dtype=str)
+            if not metadata_only:
+                self.read_data()
 
-    if not metadata_only or with_tlim:
-        self.tlim, safety_counter = None, 0
-        while (self.tlim is None) and (safety_counter<10):
-            for key in self.nwbfile.acquisition:
-                try:
-                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
-                                 self.nwbfile.acquisition[key].starting_time+\
-                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
-                except BaseException as be:
-                    pass
-        if self.tlim is None:
-            self.tlim = [0, 50] # bad for movies
-
-    if not metadata_only:
-        
-        if 'ophys' in self.nwbfile.processing:
-
-            self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
-            self.pixel_masks_index = self.Segmentation.columns[0].data[:]
-            self.pixel_masks = self.Segmentation.columns[1].data[:]
-            self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
-            self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
-            self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
-            self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
-            self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
-            self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
-        else:
-            self.Segmentation, self.Fluorescence, self.iscell,\
-                self.Neuropil, self.Deconvolved = None, None, None, None, None
-
-        if 'Pupil' in self.nwbfile.processing:
-            pd = str(self.nwbfile.processing['Pupil'].description)
-            if len(pd.split('pix_to_mm='))>1:
-                self.FaceCamera_mm_to_pix = int(1./float(pd.split('pix_to_mm=')[-1]))
-            else:
-                self.FaceCamera_mm_to_pix = 1
-
-
-        if 'FaceMotion' in self.nwbfile.processing:
-            fd = str(self.nwbfile.processing['FaceMotion'].description)
-            self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
-            print(self.FaceMotion_ROI)    
-                
-        #     self.t_pupil = self.nmbfile.processing['Pupil']
-        #     self.nwbfile.processing['Pupil'].data_interfaces['cx']
-
+            if with_visual_stim:
+                self.init_visual_stim()
             
+            if metadata_only:
+                self.close()
+            
+        except BaseException as be:
+            print('-----------------------------------------')
+            print(be)
+            print('-----------------------------------------')
+            print(' /!\ Pb with datafile: "%s"' % filename)
+            print('-----------------------------------------')
+            print('')
+            
+        if verbose:
+            print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
+
+
+    def read_metadata(self):
+        
+        self.df_name = self.nwbfile.session_start_time.strftime("%Y/%m/%d -- %H:%M:%S")+' ---- '+\
+            self.nwbfile.experiment_description
+        
+        self.metadata = ast.literal_eval(self.nwbfile.session_description)
+        
+        if self.metadata['protocol']=='None':
+            self.description = 'Spont. Act.\n'
+        else:
+            self.description = 'Visual-Stim:\n'
+
+        # deal with multi-protocols
+        if ('Presentation' in self.metadata) and (self.metadata['Presentation']=='multiprotocol'):
+            self.protocols, ii = [], 1
+            while ('Protocol-%i' % ii) in self.metadata:
+                self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
+                self.description += '- %s \n' % self.protocols[ii-1]
+                ii+=1
+        else:
+            self.protocols = [self.metadata['protocol']]
+            self.description += '- %s \n' % self.metadata['protocol']
+            
+        self.protocols = np.array(self.protocols, dtype=str)
+
+        if 'time_start_realigned' in self.nwbfile.stimulus.keys():
+            self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+                                                               self.nwbfile.stimulus['time_start'].data.shape[0])
+                
         # FIND A BETTER WAY TO DESCRIBE
         # if self.metadata['protocol']!='multiprotocols':
         #     self.keys = []
@@ -116,61 +98,181 @@ def read(self, filename, verbose=False, with_tlim=True,
         #             else:
         #                 self.description += '- %s=%.1f\n' % (key, np.unique(self.nwbfile.stimulus[key].data[:]))
                     
+        
+    def read_tlim(self):
+        
+        self.tlim, safety_counter = None, 0
+        
+        while (self.tlim is None) and (safety_counter<10):
+            for key in self.nwbfile.acquisition:
+                try:
+                    self.tlim = [self.nwbfile.acquisition[key].starting_time,
+                                 self.nwbfile.acquisition[key].starting_time+\
+                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                except BaseException as be:
+                    pass
+        if self.tlim is None:
+            self.tlim = [0, 50] # bad for movies
 
-        if 'time_start_realigned' in self.nwbfile.stimulus.keys():
-            self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
-                                                               self.nwbfile.stimulus['time_start'].data.shape[0])
+    def read_data(self):
 
-    if with_visual_stim:
-        sys.path.append('.')
-        from physion.visual_stim.psychopy_code.stimuli import build_stim
+        # ophys data
+        if 'ophys' in self.nwbfile.processing:
+            self.read_and_format_ophys_data()
+        else:
+            for key in ['Segmentation', 'Fluorescence', 'iscell', 'validROI_indices', 'Neuropil', 'Deconvolved']:
+                setattr(self, key, None)
+                
+        if 'Pupil' in self.nwbfile.processing:
+            self.read_pupil()
+            
+        if 'FaceMotion' in self.nwbfile.processing:
+            self.read_facemotion()
+            
+
+    def read_and_format_ophys_data(self):
+        
+        self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
+        self.pixel_masks_index = self.Segmentation.columns[0].data[:]
+        self.pixel_masks = self.Segmentation.columns[1].data[:]
+
+        self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
+        self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
+        self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
+        self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
+
+        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='iscell'): # DEPRECATED
+            self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
+            self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
+        else:
+            self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool)
+            self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
+
+        # red-labelling
+        if len(self.Segmentation.columns)>1 and (self.Segmentation.columns[2].name=='redcell'):
+            self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
+        else:
+            self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
+        
+            
+    def read_pupil(self):
+
+        pd = str(self.nwbfile.processing['Pupil'].description)
+        if len(pd.split('pix_to_mm='))>1:
+            self.FaceCamera_mm_to_pix = int(1./float(pd.split('pix_to_mm=')[-1]))
+        else:
+            self.FaceCamera_mm_to_pix = 1
+        #     self.t_pupil = self.nmbfile.processing['Pupil']
+        #     self.nwbfile.processing['Pupil'].data_interfaces['cx']
+
+        
+    def read_facemotion(self):
+        
+        fd = str(self.nwbfile.processing['FaceMotion'].description)
+        self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
+
+
+    def close(self):
+        self.io.close()
+        
+            
+    def init_visual_stim(self):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
         self.visual_stim = build_stim(self.metadata, no_psychopy=True)
 
-    if verbose:
-        print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
+        
+    def get_protocol_id(protocol_name):
+        # TO BE DONE
+        return 0
 
+    
+    def get_protocol_cond(self, protocol_id):
+        """
+        ## a recording can have multiple protocols inside
+        -> find the condition of a given protocol ID
 
-class DummyParent:
-    def __init__(self):
-        pass
+        'None' to have them all 
+        """
 
-def scan_folder_for_NWBfiles(folder, verbose=True):
+        if ('protocol_id' in self.nwbfile.stimulus) and (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1) and (protocol_id is not None):
+            Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
+        else:
+            Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+            
+        # limiting to available episodes
+        Pcond[np.arange(len(Pcond))>=self.nwbfile.stimulus['time_start_realigned'].num_samples] = False
+
+        return Pcond
+        
+    
+    def get_stimulus_conditions(self, X, K, protocol_id):
+        """
+        find the episodes where the keys "K" have the values "X"
+        """
+        Pcond = self.get_protocol_cond(protocol_id)
+        
+        if len(K)>0:
+            CONDS = []
+            XK = np.meshgrid(*X)
+            for i in range(len(XK[0].flatten())): # looping over joint conditions
+                cond = np.ones(np.sum(Pcond), dtype=bool)
+                for k, xk in zip(K, XK):
+                    cond = cond & (self.nwbfile.stimulus[k].data[Pcond]==xk.flatten()[i])
+                CONDS.append(cond)
+            return CONDS
+        else:
+            return [np.ones(np.sum(Pcond), dtype=bool)]
+
+    def list_subquantities(self, quantity):
+        if quantity=='CaImaging':
+            return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'F-0.7*Fneu', 'F-Fneu']
+        else:
+            return ['']
+        
+        
+def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
     if verbose:
         print('inspecting the folder "%s" [...]' % folder)
+        t0 = time.time()
 
-    parent = DummyParent()
-    
     FILES = get_files_with_extension(folder, extension='.nwb', recursive=True)
     DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
     SUBJECTS = []
     
-    for f in FILES:
+    for f in FILES[:Nmax]:
         try:
-            read(parent, f, metadata_only=True)
-            SUBJECTS.append(parent.metadata['subject_ID'])
+            data = Data(f, metadata_only=True)
+            SUBJECTS.append(data.metadata['subject_ID'])
         except BaseException as be:
             SUBJECTS.append('N/A')
             if verbose:
                 print(be)
                 print('\n /!\ Pb with "%s" \n' % f)
-        parent.io.close()
         
     if verbose:
-        print(' -> found n=%i datafiles ' % len(FILES))
+        print(' -> found n=%i datafiles (in %.1fs) ' % (len(FILES), (time.time()-t0)))
 
     return np.array(FILES), np.array(DATES), np.array(SUBJECTS)
 
 
 if __name__=='__main__':
 
-    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/')
-    print(np.unique(SUBJECTS))
-    
+    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
+    # print(np.unique(SUBJECTS))
 
+    # data = Data(sys.argv[-1])
+    # # print(data.nwbfile.processing['ophys'])
+    # print(data.iscell)
 
     
+
+
+
+
+
+
+
 

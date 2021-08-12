@@ -75,12 +75,14 @@ ops0 = {
     'use_builtin_classifier': False,
     'inner_neuropil_radius': 2,
     'min_neuropil_pixels': 350,
-    'allow_overlap': False,
-    'chan2_thres': 0.65,
+    'allow_overlap': True, # otherwise when we re-draw ROIS on top of detected ROIS -> 0 act.
+    'chan2_thres': 0.5,
     'baseline': 'maximin',
     'win_baseline': 60.0,
     'sig_baseline': 10.0,
     'prctile_baseline': 8.0,
     'neucoeff': 0.7
 }
+
+
 

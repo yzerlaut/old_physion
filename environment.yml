@@ -14,6 +14,7 @@ dependencies:
   - ruamel
   - ruamel.yaml
   - pathlib
+  - jupyter
   - pip:
     - pyqt5
     - pyqt5.sip
@@ -30,5 +31,7 @@ dependencies:
     - nidaqmx
     - psychopy==2021.1.1
     - scikit-video
+    - pygame
+    - opencv-python    
     - git+https://github.com/yzerlaut/datavyz
     - git+https://github.com/yzerlaut/physion

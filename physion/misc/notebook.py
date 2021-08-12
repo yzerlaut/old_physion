@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from misc.folders import FOLDERS
+from misc.folders import FOLDERS, python_path
 
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -57,8 +57,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.filename = ''
 
     def build_cmd(self):
-        return 'python %s %s' % (self.process_script,
-                                 self.filename)
+        return '%s %s %s' % (python_path,
+                             self.process_script,
+                             self.filename)
     
     def build_pdf(self):
         if self.filename!='':

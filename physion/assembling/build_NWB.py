@@ -18,7 +18,7 @@ from analysis.tools import resample_signal
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
-                  'VisualStim', 'Locomotion', 'Pupil', 'FaceMotion', 'Electrophy']
+                  'VisualStim', 'Locomotion', 'Pupil', 'FaceMotion', 'LFP', 'Vm']
 
 
 def build_NWB(args,
@@ -376,19 +376,36 @@ def build_NWB(args,
     #################################################
     ####    Electrophysiological Recording    #######
     #################################################
+
+    iElectrophy = 1 # start on channel 1
     
-    if metadata['Electrophy'] and ('Electrophy' in args.modalities):
+    if metadata['Vm'] and ('Vm' in args.modalities):
     
         if args.verbose:
-            print('=> Storing electrophysiological signal for "%s" [...]' % args.datafolder)
+            print('=> Storing Vm signal for "%s" [...]' % args.datafolder)
             
-        electrophy = pynwb.TimeSeries(name='Electrophysiological-Signal',
-                                      data = NIdaq_data['analog'][1],
-                                      starting_time=0.,
-                                      unit='[voltage]',
-                                      rate=float(metadata['NIdaq-acquisition-frequency']))
-        nwbfile.add_acquisition(electrophy)
+        vm = pynwb.TimeSeries(name='Vm-Signal',
+                              description='gain 1 on Multiclamp'
+                              data = NIdaq_data['analog'][iElectrophy],
+                              starting_time=0.,
+                              unit='mV',
+                              rate=float(metadata['NIdaq-acquisition-frequency']))
+        nwbfile.add_acquisition(vm)
+        iElectrophy += 1
 
+    if metadata['LFP'] and ('LFP' in args.modalities):
+    
+        if args.verbose:
+            print('=> Storing LFP signal for "%s" [...]' % args.datafolder)
+            
+        lfp = pynwb.TimeSeries(name='LFP-Signal',
+                               description='gain 100 on Multiclamp'
+                               data = NIdaq_data['analog'][iElectrophy],
+                               starting_time=0.,
+                               unit='mV',
+                               rate=float(metadata['NIdaq-acquisition-frequency']))
+        nwbfile.add_acquisition(lfp)
+        
     #################################################
     ####         Calcium Imaging              #######
     #################################################

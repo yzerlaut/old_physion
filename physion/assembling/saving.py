@@ -87,7 +87,7 @@ def get_files_with_given_exts(dir='./', EXTS=['npz','abf','bin']):
     return np.array(FILES)
 
 
-def get_TSeries_folders(folder, frame_limit=0, limit_to_subdirectories=False):
+def get_TSeries_folders(folder, frame_limit=-1, limit_to_subdirectories=False):
     
     """ get files of a given extension and sort them..."""
     FOLDERS = []

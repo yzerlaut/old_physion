@@ -44,6 +44,25 @@ def create_calendar(self, Layout, min_date=(2020, 8, 1)):
 
     self.cal.setSelectedDate(datetime.date.today())
     
+def reinit_calendar(self, min_date=(2020, 8, 1), max_date=None):
+    
+    day, i = datetime.date(*min_date), 0
+    while day!=datetime.date.today():
+        self.cal.setDateTextFormat(QtCore.QDate(day),
+                                   QtGui.QTextCharFormat())
+        day = day+datetime.timedelta(1)
+    day = day+datetime.timedelta(1)
+    self.cal.setDateTextFormat(QtCore.QDate(day),
+                               QtGui.QTextCharFormat())
+    self.cal.setMinimumDate(QtCore.QDate(datetime.date(*min_date)))
+    
+    if max_date is not None:
+        self.cal.setMaximumDate(QtCore.QDate(datetime.date(*max_date)+datetime.timedelta(1)))
+        self.cal.setSelectedDate(datetime.date(*max_date)+datetime.timedelta(1))
+    else:
+        self.cal.setMaximumDate(QtCore.QDate(datetime.date.today()+datetime.timedelta(1)))
+        self.cal.setSelectedDate(datetime.date.today())
+        
     
 
 def add_buttons(self, Layout):
@@ -213,7 +232,7 @@ def load_config1(self,
 
     self.win1 = pg.GraphicsLayoutWidget()
     self.win1.setMaximumWidth(win1_Wmax)
-    self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+    self.win1.setMaximumHeight(int(win1_Hmax-1.5*selector_height))
     Layout12.addWidget(self.win1)
 
     self.win2 = pg.GraphicsLayoutWidget()
@@ -354,13 +373,19 @@ class NewWindow(QtWidgets.QMainWindow):
     def quit(self):
         sys.exit()
 
+    def print_datafile(self):
+        if hasattr(self, 'datafile'):
+            print('current datafile:\n', self.datafile)
+            
     def process(self):
         print(' "process" function not implemented')
         print(' --> should be implemented in child class !')
+        self.print_datafile()
 
     def fit(self):
         print(' "fit" function not implemented')
         print(' --> should be implemented in child class !')
+        self.print_datafile()
         
     def add_to_bash_script(self):
         print(' "add_to_bash_script" function not implemented')
@@ -399,38 +424,36 @@ class NewWindow(QtWidgets.QMainWindow):
     def save(self):
         pass
 
-    def select_ROI_from_pick(self, cls=None):
+    def select_ROI_from_pick(self, data):
 
-        if cls is None:
-            cls = self # so that 
-
-        if cls.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(np.sum(cls.iscell))
-        elif len(cls.roiPick.text().split('-'))>1:
+        if self.roiPick.text() in ['sum', 'all']:
+            roiIndices = np.arange(np.sum(data.iscell))
+        elif len(self.roiPick.text().split('-'))>1:
             try:
-                roiIndices = np.arange(int(cls.roiPick.text().split('-')[0]), int(cls.roiPick.text().split('-')[1]))
+                roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
             except BaseException as be:
                 print(be)
                 roiIndices = None
-        elif len(cls.roiPick.text().split(','))>1:
+        elif len(self.roiPick.text().split(','))>1:
             try:
-                roiIndices = np.array([int(ii) for ii in cls.roiPick.text().split(',')])
+                roiIndices = np.array([int(ii) for ii in self.roiPick.text().split(',')])
             except BaseException as be:
                 print(be)
                 roiIndices = None
         else:
             try:
-                i0 = int(cls.roiPick.text())
-                if (i0<0) or (i0>=len(cls.validROI_indices)):
+                i0 = int(self.roiPick.text())
+                if (i0<0) or (i0>=np.sum(data.iscell)):
                     roiIndices = [0]
-                    self.statusBar.showMessage(' "%i" not a valid ROI index'  % i0)
+                    self.statusBar.showMessage(' "%i" not a valid ROI index, roiIndices set to [0]'  % i0)
                 else:
                     roiIndices = [i0]
 
             except BaseException as be:
                 print(be)
-                roiIndices = []
+                roiIndices = [0]
                 self.statusBar.showMessage(' /!\ Problem in setting indices /!\ ')
+                
         return roiIndices
 
     def keyword_update(self, string=None, parent=None):
@@ -446,7 +469,7 @@ class NewWindow(QtWidgets.QMainWindow):
             cls.visual_stim = None
         elif string in ['scan_folder', 'scanF', 'scan']:
             cls.scan_folder()
-        elif string in ['meanImg', 'meanImgE', 'Vcorr', 'max_proj']:
+        elif string in ['meanImg', 'meanImg_chan2', 'meanImgE', 'Vcorr', 'max_proj']:
             cls.CaImaging_bg_key = string
         elif string=='no_subsampling':
             cls.no_subsampling = True
