@@ -280,13 +280,13 @@ class MultimodalData(Data):
                            with_screen_inset=False,
                            with_stim=True,
                            with_axis=False,
-                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon'),
+                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
                            with_annotation=False,
                            color='k',
                            label='',
                            ylim=None, xlim=None,
                            fig=None, AX=None, verbose=False):
-        
+
         # ----- protocol cond ------
         Pcond = self.get_protocol_cond(protocol_id)
 

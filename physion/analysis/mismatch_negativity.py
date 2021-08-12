@@ -123,7 +123,7 @@ def analysis_pdf(datafile, Nmax=1000000):
                                                                          iprotocol=iprotocol_MS,
                                                                          stat_test_props=dict(interval_pre=interval_pre,
                                                                                               interval_post=interval_post,
-                                                                                              test='wilcoxon'),
+                                                                                              test='wilcoxon', positive=True),
                                                                          with_responsive_angles=True)
             pdf_OS.savefig()  # saves the current figure into a pdf page
             plt.close()

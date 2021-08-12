@@ -261,5 +261,15 @@ if __name__=='__main__':
             OS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
         elif args.analysis=='direction':
             DS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
+        else:
+            print('need to choose either "direction"/"orientation" as an analysis type')
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
+
+
+
+
+
+
+
+

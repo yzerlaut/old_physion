@@ -8,12 +8,14 @@ from analysis.read_NWB import Data
 class StatTest:
     
     def __init__(self, x, y,
-                 test='wilcoxon'):
+                 test='wilcoxon',
+                 positive=False):
 
         self.x, self.y = x, y
         for key in ['pvalue', 'statistic']:
             setattr(self, key, 1)
-
+        self.positive = positive # to evaluate positive only deflections
+        
         try:
             self.r = stats.pearsonr(x, y)[0] # Pearson's correlation coef
 
@@ -26,18 +28,22 @@ class StatTest:
                 result = stats.f_oneway(self.x, self.y)
                 for key in ['pvalue', 'statistic']:
                     setattr(self, key, getattr(result, key))
+            elif test=='ttest':
+                result = stats.ttest_rel(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
             else:
                 print(' "%s" test not implemented ! ' % test)
         except ValueError:
             pass
 
-    def significant(self, threshold=0.01, positive=False):
+    def significant(self, threshold=0.01):
         """
         here with 
         """
 
         if (self.pvalue is not None) and (self.pvalue<threshold):
-            if positive and self.r<=0:
+            if self.positive and self.r<=0:
                 return False
             else:
                 return True
@@ -47,11 +53,11 @@ class StatTest:
             print(' /!\ no valid p-value for significance test !! /!\ ')
             return False
 
-    def pval_annot(self, positive=False, size=5):
+    def pval_annot(self, size=5):
         """
         uses the 
         """
-        if positive and self.r<=0:        
+        if self.positive and self.r<=0:        
             return 'n.s.', size
         elif self.pvalue<1e-3:
             return '***', size+1

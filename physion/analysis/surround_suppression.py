@@ -21,7 +21,7 @@ def ROI_analysis(FullData,
                  radius_threshold_for_center=20.,
                  with_responsive_angles = False,
                  stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                      test='wilcoxon'),
+                                      test='wilcoxon', positive=True),
                  Npanels=4):
     """
     direction selectivity ROI analysis
@@ -92,17 +92,17 @@ def ROI_analysis(FullData,
             resp.append(np.mean(stats.y-stats.x)) # "post"-"pre"
             radii.append(radius)
             
-            ge.annotate(ge.flat(AX)[iax], '    '+stats.pval_annot(positive=True)[0], (radius, resp[-1]),
+            ge.annotate(ge.flat(AX)[iax], '    '+stats.pval_annot()[0], (radius, resp[-1]),
                         size='x-small', rotation=90, ha='center', xycoords='data')
 
-            significants.append(stats.significant(threshold=response_significance_threshold, positive=True))
+            significants.append(stats.significant(threshold=response_significance_threshold))
 
             # store all in full resp
             for key, index in zip(ROW_KEYS, indices):
                 full_resp[key].append(EPISODES.varied_parameters[key][index])
             full_resp['radius'].append(radius)
             full_resp['value'].append(np.mean(stats.y-stats.x))
-            full_resp['significant'].append(stats.significant(threshold=response_significance_threshold, positive=True))
+            full_resp['significant'].append(stats.significant(threshold=response_significance_threshold))
 
         # check if max resp
         center_cond = np.array(significants) & (np.array(radii)<radius_threshold_for_center)

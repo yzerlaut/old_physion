@@ -20,7 +20,7 @@ def ROI_analysis(FullData,
                  radius_threshold_for_center=20.,
                  with_responsive_angles = False,
                  stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                      test='wilcoxon'),
+                                      test='wilcoxon', positive=True),
                  Npanels=4):
     """
     direction selectivity ROI analysis
@@ -69,7 +69,7 @@ def ROI_analysis(FullData,
                                                         **stat_test_props)
 
         resp['value'].append(np.mean(stats.y-stats.x))
-        resp['significant'].append(stats.significant(threshold=response_significance_threshold, positive=True))
+        resp['significant'].append(stats.significant(threshold=response_significance_threshold))
 
     for key in resp:
         resp[key] = np.array(resp[key])
