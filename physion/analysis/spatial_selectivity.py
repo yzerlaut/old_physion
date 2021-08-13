@@ -81,6 +81,7 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     data = MultimodalData(datafile)
 
+    print(data.Fluorescence)
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-spatial_selectivity.pdf' % data.protocols[iprotocol])
     
     results = {'Ntot':data.iscell.sum()}

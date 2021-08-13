@@ -18,6 +18,7 @@ class StatTest:
         
         try:
             self.r = stats.pearsonr(x, y)[0] # Pearson's correlation coef
+            self.sign = np.mean(y-x)>0 # sign of the effect
 
             if test=='wilcoxon':
                 result = stats.wilcoxon(self.x, self.y)
@@ -43,7 +44,7 @@ class StatTest:
         """
 
         if (self.pvalue is not None) and (self.pvalue<threshold):
-            if self.positive and self.r<=0:
+            if self.positive and not self.sign:        
                 return False
             else:
                 return True
@@ -57,7 +58,7 @@ class StatTest:
         """
         uses the 
         """
-        if self.positive and self.r<=0:        
+        if self.positive and not self.sign:        
             return 'n.s.', size
         elif self.pvalue<1e-3:
             return '***', size+1

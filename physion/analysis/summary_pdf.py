@@ -112,6 +112,11 @@ def make_summary_pdf(filename, Nmax=1000000,
                                           'spatial_selectivity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
+        elif 'contrast-curve' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'contrast_curves.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+            
         else:
             # --- looping over protocols individually ---
             for ip, protocol in enumerate(data.protocols):
@@ -142,7 +147,8 @@ if __name__=='__main__':
     parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", type=str, nargs='*',
                         # default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
-                        default=['protocols'],
+                        default=['raw'],
+                        # default=['protocols'],
                         help='')
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")

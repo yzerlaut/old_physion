@@ -73,7 +73,7 @@ def analysis_pdf(datafile,
             
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
-            data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data), ax=ax)
+            data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data, Nroi=Nroi), ax=ax)
             axT = add_inset_with_time_sample(TLIM, data.tlim, plt)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()

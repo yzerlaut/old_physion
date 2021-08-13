@@ -130,7 +130,7 @@ class MultimodalData(Data):
             ge.bar_legend(ax,
                           # X=[0,1], bounds=[0,1],
                           continuous=False, colormap=cmap,
-                          inset=dict(rect=[-.04,
+                          colorbar_inset=dict(rect=[-.04,
                                            fig_fraction_start+.2*fig_fraction,
                                            .01,
                                            .6*fig_fraction], facecolor=None),

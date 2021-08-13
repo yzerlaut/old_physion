@@ -116,7 +116,6 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
         CURVES = []
         for roi in np.arange(data.iscell.sum())[:Nmax]:
-            
             print('   - contrast-curves analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
             fig, contrasts, max_response_curve = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig(fig)

@@ -20,8 +20,11 @@ def find_modalities(data):
         QUANTITIES.append(area)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
         UNITS.append('mm$^2$')
-    if 'Whisking' in data.nwbfile.processing:
-        MODALITIES.append('Whisking')
+    if 'FaceMotion' in data.nwbfile.processing:
+        MODALITIES.append('FaceMotion')
+        QUANTITIES.append(data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:])
+        TIMES.append(data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[:])
+        UNITS.append('a.u.')
         
     return MODALITIES, QUANTITIES, TIMES, UNITS
     
@@ -275,6 +278,52 @@ def crosshistogram_on_NWB_quantity(Q1=None, Q2=None,
                 var_q2.append(new_q2[cond].std())
 
     return mean_q1, var_q1, mean_q2, var_q2
+
+def hist2D_on_NWB_quantity(Q1=None, Q2=None,
+                                t_q1=None,
+                                q1=None,
+                                t_q2=None,
+                                q2=None,
+                                bins=50,
+                                Npoints=30,
+                                Nmin=20):
+
+    # Q1 signal
+    if (t_q1 is not None) and (q1 is not None):
+        pass
+    elif hasattr(Q1, 'timestamps') and (Q1.timestamps is not None):
+        t_q1 = Q1.timestamps[:]
+        q1 =Q1.data[:]
+    elif hasattr(Q1, 'rate'):
+        t_q1 = Q1.starting_time+np.arange(Q1.num_samples)/Q1.rate
+        q1 =Q1.data[:]
+    else:
+        print('first signal not recognized')
+        q1=None
+
+    # Q2 signal
+    if (t_q2 is not None) and (q2 is not None):
+        pass
+    elif hasattr(Q2, 'timestamps') and (Q2.timestamps is not None):
+        t_q2 = Q2.timestamps[:]
+        q2 =Q2.data[:]
+    elif hasattr(Q2, 'rate'):
+        t_q2 = Q2.starting_time+np.arange(Q2.num_samples)/Q2.rate
+        q2 =Q2.data[:]
+    else:
+        print('second signal not recognized')
+        q2=None
+
+    mean_q1, var_q1 = [], []
+    mean_q2, var_q2 = [], []
+    
+    if (q2 is not None) and (q1 is not None):
+        func=interp1d(t_q2, q2, fill_value='extrapolate')
+        new_q2 = func(t_q1)
+
+        hist, be1, be2 = np.histogram2d(new_q2, q1, bins=bins, density=True)
+        
+    return hist, be1, be2
 
 
 def add_inset_with_time_sample(TLIM, tlim, plt):
