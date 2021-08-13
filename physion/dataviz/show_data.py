@@ -70,7 +70,7 @@ class MultimodalData(Data):
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Electrophysiological-Signal'].data[i1:i2][::subsampling]
 
-        self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmV')        
+        self.plot_scaled_signal(ax, t, y, tlim, 0.2, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmV')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
     def add_Locomotion(self, tlim, ax,

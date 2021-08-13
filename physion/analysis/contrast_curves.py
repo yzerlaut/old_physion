@@ -78,6 +78,79 @@ def ROI_analysis(FullData,
     return fig, contrasts, max_response_curve
 
 
+def Ephys_analysis(FullData,
+                   iprotocol=0,
+                   verbose=False,
+                   response_significance_threshold=0.05,
+                   radius_threshold_for_center=20.,
+                   with_responsive_angles = False,
+                   stat_test_props=dict(interval_pre=[-.2,0], interval_post=[0.1,0.3],
+                                        test='ttest', positive=False),
+                   Npanels=4):
+    """
+    response plots
+    """
+
+    EPISODES = EpisodeResponse(FullData,
+                               protocol_id=iprotocol,
+                               quantity='Electrophysiological-Signal',
+                               prestim_duration=-stat_test_props['interval_pre'][0],
+                               baseline_substraction=True)
+
+    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
+                                          protocol_id=iprotocol,
+                                          column_key='contrast', row_key='angle',
+                                          fig_preset='raw-traces-preset+right-space',
+                                          with_annotation=True,
+                                          ybar=.1, ybarlabel='100uV',
+                                          xbar=.1, xbarlabel='100ms',
+                                          with_std=True,
+                                          with_stat_test=True, stat_test_props=stat_test_props,
+                                          verbose=verbose)
+
+    fig2, AX2 = FullData.plot_trial_average(EPISODES=EPISODES,
+                                          protocol_id=iprotocol,
+                                          column_key='contrast',
+                                          fig_preset='raw-traces-preset+right-space',
+                                          with_annotation=True,
+                                          ybar=.1, ybarlabel='100uV',
+                                          xbar=.1, xbarlabel='100ms',
+                                          with_std=False,
+                                          with_stat_test=True, stat_test_props=stat_test_props,
+                                          verbose=verbose)
+    
+    # AXI, ylims, CURVES = [], [10, -10], []
+    # max_response_curve, imax_response_curve = np.zeros(len(EPISODES.varied_parameters['contrast'])+1), -1
+    # for ia, angle in enumerate(EPISODES.varied_parameters['angle']):
+
+    #     resp, contrasts, significants = [0], [0], [False]
+    #     for ic, contrast in enumerate(EPISODES.varied_parameters['contrast']):
+
+    #         # stat test "pre" vs "post"
+    #         stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond(['angle', 'contrast'], [ia, ic]),
+    #                                                         **stat_test_props)
+            
+    #         resp.append(np.mean(stats.y-stats.x)) # "post"-"pre"
+    #         contrasts.append(contrast)
+    #         significants.append(stats.significant(threshold=response_significance_threshold))
+
+    #     AXI.append(AX[ia][-1].inset_axes([1.8, .2, .7, .6]))
+    #     ge.plot(contrasts, resp, ax=AXI[-1], no_set=True, ms=3, m='o')
+    #     ylims = [np.min([np.min(resp), ylims[0]]), np.max([np.max(resp), ylims[1]])]
+
+    #     if (np.sum(significants)>0) and np.max(resp)>np.max(max_response_curve):
+    #         imax_response_curve = ia
+    #         max_response_curve = np.array(resp)
+
+    # for ia ,axi in enumerate(AXI):
+    #     ge.set_plot(axi, xlabel='contrast', ylabel='$\delta$ dF/F',
+    #                 ylim=[ylims[0]-.05*(ylims[1]-ylims[0]),ylims[1]+.05*(ylims[1]-ylims[0])])
+    #     if ia==imax_response_curve:
+    #         axi.fill_between(contrasts, ylims[0]*np.ones(len(contrasts)), ylims[1]*np.ones(len(contrasts)), color='k', alpha=0.1)
+
+    # return fig, contrasts, max_response_curve
+    return fig, fig2
+
 def summary_fig(contrasts, CURVES, Ntot):
 
     fig, AX = ge.figure(axes=(4,1), figsize=(1., 1.))
@@ -110,22 +183,33 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-contrast_curves.pdf' % data.protocols[iprotocol])
     
-    results = {'Ntot':data.iscell.sum()}
+    if data.metadata['CaImaging']:
+        
+        results = {'Ntot':data.iscell.sum()}
     
-    with PdfPages(pdf_filename) as pdf:
+        with PdfPages(pdf_filename) as pdf:
 
-        CURVES = []
-        for roi in np.arange(data.iscell.sum())[:Nmax]:
-            print('   - contrast-curves analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
-            fig, contrasts, max_response_curve = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            CURVES = []
+            for roi in np.arange(data.iscell.sum())[:Nmax]:
+                print('   - contrast-curves analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
+                fig, contrasts, max_response_curve = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+                pdf.savefig(fig)
+                plt.close(fig)
+                if np.max(max_response_curve)>0:
+                    CURVES.append(max_response_curve)
+            #
+            fig = summary_fig(contrasts, CURVES, data.iscell.sum())
             pdf.savefig(fig)
             plt.close(fig)
-            if np.max(max_response_curve)>0:
-                CURVES.append(max_response_curve)
-        #
-        fig = summary_fig(contrasts, CURVES, data.iscell.sum())
-        pdf.savefig(fig)
-        plt.close(fig)
+
+    elif data.metadata['Electrophy']:
+        with PdfPages(pdf_filename) as pdf:
+            fig, fig2 = Ephys_analysis(data, iprotocol=iprotocol)
+            pdf.savefig(fig)
+            plt.close(fig)
+            pdf.savefig(fig2)
+            plt.close(fig2)
+            
 
     print('[ok] contrast-curves analysis saved as: "%s" ' % pdf_filename)
 
