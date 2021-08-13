@@ -51,11 +51,11 @@ def analysis_fig(data,
             inset = AX[i][0].inset_axes([0.2,0.2,0.6,0.6])
             frac_running = np.sum(quantity>running_speed_threshold)/len(quantity)
             D = np.array([100*frac_running, 100*(1-frac_running)])
-            ge.pie(D,
+            ge.pie([100*frac_running, 100*(1-frac_running)],
                    ax=inset,
-                   pie_labels = ['%.1f%%\n' % (100*d/D.sum()) for d in D],
+                   # pie_labels = ['%.1f%%\n' % (100*d/D.sum()) for d in D],
                    COLORS=[color, 'lightgrey'],
-                   ext_labels=['run ', ' rest'])
+                   ext_labels=['run \n%.1f%% ' % (100*frac_running), ' rest \n%.1f%% ' % (100*(1-frac_running))])
             ge.annotate(AX[0][0], 'thresh=%.1fcm/s' % running_speed_threshold, (0.5, 0), ha='center', va='top')
         
         AX[i][1].hist(quantity, bins=10,
@@ -161,7 +161,7 @@ def analysis_pdf(datafile,
         print('* plotting behavioral data as "behavior.pdf" [...]')
 
         print('   - raw behavior plot ')
-        fig, ax = plt.subplots(1, figsize=(11.4, 5))
+        fig, ax = plt.subplots(1, figsize=(11.4, 3.5))
         fig.subplots_adjust(top=0.8, bottom=0.05)
         
         subsampling = max([int((data.tlim[1]-data.tlim[0])/data.CaImaging_dt/1000), 1])

@@ -79,7 +79,7 @@ def make_summary_pdf(filename, Nmax=1000000,
 
     if 'behavior' in include:
         
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'spont_behavior.py')
+        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'behavior_modulation.py')
         p = subprocess.Popen('%s %s %s' % (python_path, process_script, filename), shell=True)
 
     if 'raw' in include:
@@ -115,6 +115,11 @@ def make_summary_pdf(filename, Nmax=1000000,
         elif 'contrast-curve' in data.metadata['protocol']:
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'contrast_curves.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif ('secondary' in data.metadata['protocol']):
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'secondary_RF.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
             
         else:

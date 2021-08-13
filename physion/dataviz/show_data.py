@@ -349,6 +349,9 @@ class MultimodalData(Data):
         if (fig is None) and (AX is None):
             fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
                                 **dv_tools.FIGURE_PRESETS[fig_preset])
+            no_set=False
+        else:
+            no_set=True
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -429,18 +432,19 @@ class MultimodalData(Data):
             
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
-                ge.set_plot(AX[irow][icol],
-                            spines=(['left', 'bottom'] if with_axis else []),
-                            # xlabel=(self.xbarlabel.text() if with_axis else ''),
-                            # ylabel=(self.ybarlabel.text() if with_axis else ''),
-                            ylim=self.ylim, xlim=self.xlim)
+                if not no_set:
+                    ge.set_plot(AX[irow][icol],
+                                spines=(['left', 'bottom'] if with_axis else []),
+                                # xlabel=(self.xbarlabel.text() if with_axis else ''),
+                                # ylabel=(self.ybarlabel.text() if with_axis else ''),
+                                ylim=self.ylim, xlim=self.xlim)
 
                 if with_stim:
                     AX[irow][icol].fill_between([0, np.mean(EPISODES.time_duration)],
                                         self.ylim[0]*np.ones(2), self.ylim[1]*np.ones(2),
                                         color='grey', alpha=.2, lw=0)
 
-        if not with_axis:
+        if not with_axis and not no_set:
             ge.draw_bar_scales(AX[0][0],
                                Xbar=xbar, Xbar_label=xbarlabel,
                                Ybar=ybar,  Ybar_label=ybarlabel,

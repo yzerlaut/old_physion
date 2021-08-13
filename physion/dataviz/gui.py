@@ -8,7 +8,6 @@ from assembling.dataset import Dataset, MODALITIES
 from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
-from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
@@ -105,7 +104,6 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('[visualization/analysis]')
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
-        # self.pbox.addItem('-> Behavioral-modulation')
         self.pbox.addItem('-> draw figures')
         self.pbox.addItem('-> produce PDF summary')
         self.pbox.addItem('-> open PDF summary')
@@ -323,9 +321,13 @@ class MainWindow(guiparts.NewWindow):
                                          extension='.nwb', recursive=True)
 
         DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
+        NDATES = np.array([datetime.date(*[int(dd) for dd in date.split('_')]).toordinal() for date in DATES])
 
         self.FILES_PER_DAY = {}
         
+        guiparts.reinit_calendar(self,
+                                 min_date= tuple(int(dd) for dd in DATES[np.argmin(NDATES)].split('_')),
+                                 max_date= tuple(int(dd) for dd in DATES[np.argmax(NDATES)].split('_')))
         for d in np.unique(DATES):
             try:
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
@@ -378,7 +380,6 @@ class MainWindow(guiparts.NewWindow):
             self.FILES_PER_DAY = {} # re-init
             date_min = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmin(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
             date_max = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmax(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
-            print(date_min, date_max)
             guiparts.reinit_calendar(self,
                                      min_date= tuple(int(dd) for dd in date_min.split('_')),
                                      max_date= tuple(int(dd) for dd in date_max.split('_')))
@@ -457,9 +458,6 @@ class MainWindow(guiparts.NewWindow):
         if self.pbox.currentText()=='-> Trial-average':
             self.windowTA = TrialAverageWindow(parent=self)
             self.windowTA.show()
-        elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
-            self.window3 = BehavioralModWindow(parent=self)
-            self.window3.show()
         elif self.pbox.currentText()=='-> draw figures':
             self.windowFG = FiguresWindow(parent=self)
             self.windowFG.show()
