@@ -42,7 +42,7 @@ class FiguresWindow(NewWindow):
         self.modalities = []
         for key1, key2 in zip(['Photodiode-Signal', 'Electrophysiological-Signal', 'Running-Speed', 'FaceMotion', 'Pupil',
                                'CaImaging-TimeSeries', 'CaImaging-TimeSeries', 'Photodiode-Signal'],
-                              ['Photodiode', 'Electrophy', 'Locomotion', 'FaceMotion', 'Pupil', 'CaImagingSum', 'CaImaging', 'VisualStim']):
+                              ['Photodiode', 'Electrophy', 'Locomotion', 'FaceMotion', 'Pupil', 'CaImagingRaster', 'CaImaging', 'VisualStim']):
             if key1 in self.data.nwbfile.acquisition:
                 self.modalities.append(key2)
 
@@ -134,7 +134,6 @@ class FiguresWindow(NewWindow):
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR
         Layouts[-1].addWidget(QtWidgets.QLabel('  -* CORRELATIONS *-', self))
 
-        
         
         Layouts.append(QtWidgets.QHBoxLayout())
         Layouts[-1].addWidget(QtWidgets.QLabel(50*'<->', self)) # SEPARATOR

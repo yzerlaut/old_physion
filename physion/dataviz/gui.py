@@ -459,7 +459,7 @@ class MainWindow(guiparts.NewWindow):
             self.windowTA = TrialAverageWindow(parent=self)
             self.windowTA.show()
         elif self.pbox.currentText()=='-> draw figures':
-            self.windowFG = FiguresWindow(parent=self)
+            self.windowFG = FiguresWindow(self.datafile, parent=self)
             self.windowFG.show()
         elif self.pbox.currentText()=='-> produce PDF summary':
             cmd = '%s %s %s --verbose' % (python_path,

@@ -394,7 +394,10 @@ class MultimodalData(Data):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==row_key) or (key in row_keys):
-                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
+                                    try:
+                                        s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
+                                    except IndexError:
+                                        pass
                             ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
                         ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
@@ -516,6 +519,8 @@ def format_key_value(key, value):
         return '$c$=%.1f' % value
     elif key=='repeat':
         return 'trial #%i' % (value+1)
+    elif key=='center-time':
+        return '$t_0$:%.1fs' % value
     elif key=='light-level':
         if value==0:
             return 'grey'
