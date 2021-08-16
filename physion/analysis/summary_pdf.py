@@ -75,11 +75,10 @@ def make_summary_pdf(filename, Nmax=1000000,
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
         print('[ok] notes saved as: "%s" ' % os.path.join(folder, 'exp.pdf'))
-        
 
     if 'behavior' in include:
         
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'behavior_modulation.py')
+        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'behavior.py')
         p = subprocess.Popen('%s %s %s' % (python_path, process_script, filename), shell=True)
 
     if 'raw' in include:
