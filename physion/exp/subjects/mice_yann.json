@@ -75,5 +75,16 @@
 		 "virus":"GCamp6s",
 		 "surgery":"headplate+cranial-window",
 		 "surgery_date":"2021_05_13",
-		 "date_of_birth":"2021_04_07"}
+		 "date_of_birth":"2021_04_07"},
+    "Mouse1_CB1TdTomatoJo":{"description":"Mouse1_CB1TdTomatoJo",
+		 "sex":"Male",
+		 "strain":"C57B6/J",
+		 "genotype":"CB1-Cre",
+		 "species":"Mouse",
+		 "subject_id":"Mouse1_CB1TdTomatoJo",
+		 "weight":"",
+		 "virus":"GCamp6f",
+		 "surgery":"headplate+cranial-window",
+		 "surgery_date":"2021_06_15",
+		 "date_of_birth":"2021_05_07"}
 }
