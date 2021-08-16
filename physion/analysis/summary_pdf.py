@@ -145,6 +145,10 @@ def make_summary_pdf(filename, Nmax=1000000,
                                                   'gaussian_blobs.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
 
+                if 'noise' in protocol:
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'receptive_field_mapping.py')
+                    p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
                     
     print('subprocesses to analyze "%s" were launched !' % filename)
     
@@ -160,19 +164,23 @@ if __name__=='__main__':
                         # default=['raw'],
                         # default=['protocols'],
                         help='')
+    parser.add_argument("--remove_all_pdfs", help="remove all pdfs of previous analysis in folder", action="store_true")
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-    
+
     args = parser.parse_args()
 
-    if os.path.isdir(args.datafile):
+    if args.remove_all_pdfs and os.path.isdir(args.datafile):
+        FILES = get_files_with_extension(args.datafile, extension='.pdf', recursive=True)
+        for f in FILES:
+            os.remove(f)
+    elif os.path.isdir(args.datafile):
         FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)
         for f in FILES:
             make_summary_pdf(f,
                              include=args.ops,
                              Nmax=args.Nmax,
                              verbose=args.verbose)
-            
     elif os.path.isfile(args.datafile):
         make_summary_pdf(args.datafile,
                          include=args.ops,

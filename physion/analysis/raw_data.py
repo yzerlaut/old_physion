@@ -14,7 +14,7 @@ def raw_data_plot_settings(data,
                            Nroi=10,
                            subsampling_factor=1):
     settings = {}
-    print(data.nwbfile)
+
     if 'Photodiode-Signal' in data.nwbfile.acquisition:
         settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100*subsampling_factor, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:

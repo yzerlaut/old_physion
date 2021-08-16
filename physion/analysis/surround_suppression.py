@@ -58,6 +58,7 @@ def ROI_analysis(FullData,
 
     # now computing the size-response curve for all conditions
     if 'angle' in EPISODES.varied_parameters:
+        
         ROW_KEYS.append('angle')
         ROW_VALUES.append(EPISODES.varied_parameters['angle'])
         ROW_INDICES.append(np.arange(len(EPISODES.varied_parameters['angle'])))

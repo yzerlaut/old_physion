@@ -32,7 +32,7 @@ def OS_ROI_analysis(FullData,
                     response_significance_threshold=0.01,
                     with_responsive_angles = False,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                         test='wilcoxon')):
+                                         test='wilcoxon', positive=True)):
     """
     orientation selectivity ROI analysis
     """
@@ -56,13 +56,8 @@ def OS_ROI_analysis(FullData,
     ax = ge.inset(fig, (0.88,0.4,0.1,0.4))
     angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
+    
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
-        # means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
-        #                                                         interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_pre']),
-        #                                                         quantity='mean')
-        # means_post = EPISODES.compute_stats_over_repeated_trials('angle', i,
-        #                                                          interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_post']),
-        #                                                          quantity='mean')
 
         stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond('angle', i),
                                                         **stat_test_props)
@@ -71,7 +66,7 @@ def OS_ROI_analysis(FullData,
         y.append(np.mean(stats.y)) # means "post"
         sy.append(np.std(stats.y)) # std "post"
         
-        if stats.significant(threshold=response_significance_threshold, positive=True):
+        if stats.significant(threshold=response_significance_threshold):
             responsive = True
             responsive_angles.append(angle)
             
