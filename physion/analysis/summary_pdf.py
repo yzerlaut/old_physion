@@ -173,6 +173,7 @@ if __name__=='__main__':
     if args.remove_all_pdfs and os.path.isdir(args.datafile):
         FILES = get_files_with_extension(args.datafile, extension='.pdf', recursive=True)
         for f in FILES:
+            print('removing', f)
             os.remove(f)
     elif os.path.isdir(args.datafile):
         FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)

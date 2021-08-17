@@ -1,18 +1,20 @@
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
+from datavyz import ge
 
 def summary_pdf_folder(filename):
     return filename.replace('.nwb', '')
 
 def find_modalities(data):
 
-    MODALITIES, QUANTITIES, TIMES, UNITS = [], [], [], []
+    MODALITIES, QUANTITIES, TIMES, UNITS, COLORS = [], [], [], [], []
     if 'Running-Speed' in data.nwbfile.acquisition:
         MODALITIES.append('Running-Speed')
         QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
         TIMES.append(None)
         UNITS.append('cm/s')
+        COLORS.append(ge.blue)
     if 'Pupil' in data.nwbfile.processing:
         MODALITIES.append('Pupil')
         area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
@@ -20,13 +22,24 @@ def find_modalities(data):
         QUANTITIES.append(area)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
         UNITS.append('mm$^2$')
+        COLORS.append(ge.red)
+    if 'Pupil' in data.nwbfile.processing:
+        MODALITIES.append('GazeMovement')
+        cx = data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]
+        cy = data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:]
+        distance = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        QUANTITIES.append(distance)
+        TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[:])
+        UNITS.append('mm$^2$')
+        COLORS.append(ge.orange)
     if 'FaceMotion' in data.nwbfile.processing:
         MODALITIES.append('FaceMotion')
         QUANTITIES.append(data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:])
         TIMES.append(data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[:])
         UNITS.append('a.u.')
+        COLORS.append(ge.purple)
         
-    return MODALITIES, QUANTITIES, TIMES, UNITS
+    return MODALITIES, QUANTITIES, TIMES, UNITS, COLORS
     
 
 

@@ -107,6 +107,21 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
+    def add_GazeMovement(self, tlim, ax,
+                         fig_fraction_start=0., fig_fraction=1., subsampling=2,
+                         gaze_scale_bar = 0.2, # scale bar in mm
+                         color=ge.orange, name='gaze mov.'):
+        i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+        t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
+        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[i1:i2]
+        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[i1:i2]
+        mov = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        
+        x, y = t[::subsampling], mov[::subsampling]
+
+        self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
+        self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
+        
 
     def add_CaImagingRaster(self, tlim, ax,
                             fig_fraction_start=0., fig_fraction=1., color='green',
@@ -560,7 +575,8 @@ if __name__=='__main__':
     data.plot_raw_data([10, 200], 
               # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
               settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
-                        # 'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
+                        'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                        'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
                         'CaImaging':dict(fig_fraction=7, subsampling=2, 
                                          # quantity='CaImaging', subquantity='dF/F', color=ge.green,
                                          quantity='CaImaging', subquantity='Fluorescence', color=ge.green,

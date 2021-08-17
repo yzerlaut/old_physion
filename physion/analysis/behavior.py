@@ -20,6 +20,8 @@ def raw_data_plot_settings(data,
         settings['Locomotion'] = dict(fig_fraction=2, subsampling=subsampling_factor)
     if 'Pupil' in data.nwbfile.processing:
         settings['Pupil'] = dict(fig_fraction=2, subsampling=subsampling_factor)
+    if 'Pupil' in data.nwbfile.processing:
+        settings['GazeMovement'] = dict(fig_fraction=1, subsampling=subsampling_factor)
     if 'FaceMotion' in data.nwbfile.processing:
         settings['FaceMotion'] = dict(fig_fraction=2, subsampling=subsampling_factor)
     if not (subsampling_factor>1):
@@ -30,7 +32,7 @@ def raw_data_plot_settings(data,
 def analysis_fig(data,
                  running_speed_threshold=0.1):
 
-    MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
+    MODALITIES, QUANTITIES, TIMES, UNITS, COLORS = find_modalities(data)
     n = len(MODALITIES)+int(len(MODALITIES)*(len(MODALITIES)-1)/2)
 
     plt.style.use('ggplot')
@@ -40,13 +42,22 @@ def analysis_fig(data,
         AX=[AX]
     plt.subplots_adjust(left=0.06, right=0.98, bottom=0.3/n, top=0.9, wspace=.5, hspace=.6)
 
-    for i, mod, quant, times, unit in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS):
-        color = plt.cm.tab10(i)
+    for i, mod, quant, times, unit, color in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS, COLORS):
         AX[i][0].set_title(mod, fontsize=10, color=color)
 
         quantity = (quant.data[:] if times is None else quant)
         
-        AX[i][0].axis('off')
+        if mod=='GazeMovement':
+            nsamples = data.nwbfile.processing['Pupil'].data_interfaces['cx'].num_samples
+            subsampling = np.max([1, int(nsamples/1000)])
+            cx = data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:][::subsampling]
+            cy = data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:][::subsampling]
+            ge.scatter(cx-np.mean(cx), cy-np.mean(cy), ax=AX[i][0], color=color, ms=1, lw=0.05)
+            ge.set_plot(AX[i][0], xlabel='x (mm)', ylabel='y (mm)')
+            AX[i][0].axis('equal')
+        else:
+            AX[i][0].axis('off')
+            
         if mod=='Running-Speed':
             inset = AX[i][0].inset_axes([0.2,0.2,0.6,0.6])
             frac_running = np.sum(quantity>running_speed_threshold)/len(quantity)
@@ -57,7 +68,8 @@ def analysis_fig(data,
                    COLORS=[color, 'lightgrey'],
                    ext_labels=['run \n%.1f%% ' % (100*frac_running), ' rest \n%.1f%% ' % (100*(1-frac_running))])
             ge.annotate(AX[0][0], 'thresh=%.1fcm/s' % running_speed_threshold, (0.5, 0), ha='center', va='top')
-        
+            
+
         AX[i][1].hist(quantity, bins=10,
                       weights=100*np.ones(len(quantity))/len(quantity), color=color)
         AX[i][1].set_xlabel(unit, fontsize=10)
@@ -182,7 +194,8 @@ def analysis_pdf(datafile,
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
             data.plot_raw_data(TLIM,
-                               settings=raw_data_plot_settings(data, subsampling_factor=int((data.tlim[1]-data.tlim[0])/60.+1)), ax=ax)
+                               settings=raw_data_plot_settings(data,
+                                                               subsampling_factor=1), ax=ax)
             axT = add_inset_with_time_sample(TLIM, data.tlim, plt)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
@@ -202,6 +215,7 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
+    parser.add_argument("-d", "--debug", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
@@ -210,3 +224,18 @@ if __name__=='__main__':
         analysis_pdf(args.datafile)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
+                               
+    if args.debug:
+        os.system('xdg-open %s' % os.path.join(summary_pdf_folder(args.datafile), 'behavior.pdf'))
+                               
+                               
+
+
+
+
+
+
+
+
+
+

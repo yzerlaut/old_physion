@@ -14,7 +14,7 @@ from analysis.tools import *
 
 def raw_fluo_fig(data, roiIndex=0, t_zoom=[0,30]):
 
-    MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
+    MODALITIES, QUANTITIES, TIMES, UNITS, COLORS = find_modalities(data)
 
     plt.style.use('ggplot')
     fig, AX = plt.subplots(8, 1, figsize=(11.4, 7))
@@ -63,7 +63,7 @@ def raw_fluo_fig(data, roiIndex=0, t_zoom=[0,30]):
 def analysis_fig(data, roiIndex=0):
     
 
-    MODALITIES, QUANTITIES, TIMES, UNITS = find_modalities(data)
+    MODALITIES, QUANTITIES, TIMES, UNITS, COLORS = find_modalities(data)
     
     plt.style.use('ggplot')
     
@@ -113,9 +113,9 @@ def analysis_fig(data, roiIndex=0):
     AX[1][4].set_xlabel('time (s)', fontsize=10)
     AX[1][4].set_ylabel('auto correl.', fontsize=10)
 
-    for i, mod, quant, times, unit in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS):
+    for i, mod, quant, times, unit, color in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS, COLORS):
         
-        AX[2+i][0].set_title(mod, fontsize=10, color=plt.cm.tab10(i))
+        AX[2+i][0].set_title(mod, fontsize=10, color=color)
         
         if times is None:
             Q, qq = quant, None
@@ -134,26 +134,26 @@ def analysis_fig(data, roiIndex=0):
         mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q1=Q, Q2=None,
                                 q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], Npoints=30)
         
-        AX[2+i][1].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=plt.cm.tab10(i))
+        AX[2+i][1].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
         AX[2+i][1].set_xlabel(unit, fontsize=10)
         AX[2+i][1].set_ylabel('dF/F', fontsize=10)
 
         mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q2=Q, Q1=None,
                                 q2=qq, t_q2=times, q1=dFoF, t_q1=data.Neuropil.timestamps[:], Npoints=30)
         
-        AX[2+i][2].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=plt.cm.tab10(i))
+        AX[2+i][2].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
         AX[2+i][2].set_ylabel(unit, fontsize=10)
         AX[2+i][2].set_xlabel('dF/F', fontsize=10)
         
         CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
                                 q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=180)
-        AX[2+i][3].plot(tshift/60, CCF, '-', color=plt.cm.tab10(i))
+        AX[2+i][3].plot(tshift/60, CCF, '-', color=color)
         AX[2+i][3].set_xlabel('time (min)', fontsize=10)
         AX[2+i][3].set_ylabel('cross correl.', fontsize=10)
 
         CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
                          q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=20)
-        AX[2+i][4].plot(tshift, CCF, '-', color=plt.cm.tab10(i))
+        AX[2+i][4].plot(tshift, CCF, '-', color=color)
         AX[2+i][4].set_xlabel('time (s)', fontsize=10)
         AX[2+i][4].set_ylabel('cross correl.', fontsize=10)
         
