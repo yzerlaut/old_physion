@@ -6,7 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from datavyz import graph_env_manuscript as ge
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from dataviz.show_data import MultimodalData
+from dataviz.show_data import Data, MultimodalData
 from dataviz import tools
 
 from analysis.tools import *
@@ -209,12 +209,50 @@ def analysis_pdf(datafile,
     print('[ok] behavioral data saved as: "%s" ' % pdf_filename)
 
 
+def population_analysis(FILES,
+                        min_time_minutes=2,
+                        exclude_subjects=[],
+                        running_speed_threshold=0.1):
+
+    times, fracs_running, subjects = [], [], []
+    for f in FILES:
+
+        data = Data(f)
+        if (data.nwbfile is not None) and ('Running-Speed' in data.nwbfile.acquisition):
+            speed = data.nwbfile.acquisition['Running-Speed'].data[:]
+            max_time = len(speed)/data.nwbfile.acquisition['Running-Speed'].rate
+            if (max_time>60*min_time_minutes) and (data.metadata['subject_ID'] not in exclude_subjects):
+                times.append(max_time)
+                fracs_running.append(100*np.sum(speed>running_speed_threshold)/len(speed))
+                subjects.append(data.metadata['subject_ID'])
+            
+    i=-1
+    fig, ax = ge.figure(figsize=(5,1), top=5)
+    for c, s in enumerate(np.unique(subjects)):
+        s_cond = np.array(subjects)==s
+        ax.bar(np.arange(1+i, i+1+np.sum(s_cond)),
+               np.array(fracs_running)[s_cond]+1,
+               width=.75, color=plt.cm.tab10(c%10))
+        i+=np.sum(s_cond)+1
+    ax.bar([i+2], [np.mean(fracs_running)], yerr=[np.std(fracs_running)],
+           width=1.5, color='grey')
+    ge.annotate(ax, 'frac. running:\n%.1f+/-%.1f %%' % (np.mean(fracs_running), np.std(fracs_running)),
+                (i+3, np.mean(fracs_running)), xycoords='data')
+    ge.set_plot(ax, xticks=[], xlabel='\nrecording', ylabel='       frac. running (%)')
+    ymax, i = ax.get_ylim()[1], -1
+    for c, s in enumerate(np.unique(subjects)):
+        s_cond = np.array(subjects)==s
+        ge.annotate(ax, s, (1+i, ymax), rotation=90, color=plt.cm.tab10(c%10), xycoords='data', size='x-small')
+        i+=np.sum(s_cond)+1
+    ge.show()
+    
 if __name__=='__main__':
 
     import argparse
 
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
+    parser.add_argument("--running_speed_threshold", help='in cm/s', type=float, default=0.1)
     parser.add_argument("-d", "--debug", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -222,6 +260,11 @@ if __name__=='__main__':
     
     if '.nwb' in args.datafile:
         analysis_pdf(args.datafile)
+    elif os.path.isdir(args.datafile):
+        from assembling.saving import get_files_with_extension
+        FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)
+        population_analysis(FILES,
+                            exclude_subjects=['Mouse1_NDNF', 'Mouse1_WT', 'Mouse1_VIP-Cre', 'Mouse2_WT', 'Mouse4_WT', 'Mouse5_WT', 'Mouse1_CB1_TdTomato'])
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
                                
