@@ -264,7 +264,8 @@ class MultimodalData(Data):
         if Tbar==0.:
             Tbar = np.max([int((tlim[1]-tlim[0])/30.), 1])
         ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=1, color='k')
-        ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
+        ax.annotate((' %is' % Tbar if Tbar>1 else  '%.1fs' % Tbar) ,
+                    [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         ax.axis('off')
         ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
@@ -572,21 +573,22 @@ if __name__=='__main__':
     #                         fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
     
     # RAW DATA EXAMPLE
-    data.plot_raw_data([10, 200], 
-              # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
-              settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
-                        'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
-                        'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
-                        'CaImaging':dict(fig_fraction=7, subsampling=2, 
-                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
-                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
-                                         # roiIndices=np.arange(np.sum(data.iscell))),
-                                         roiIndices=np.arange(5,7)),
-                        'CaImagingRaster':dict(fig_fraction=7, subsampling=1,
+    data.plot_raw_data([10, 35], 
+              # settings={
+              settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                roiIndices='all',
                                                normalization='per-line',
                                                quantity='CaImaging', subquantity='Fluorescence'),
-                        'VisualStim':dict(fig_fraction=.5, color='black')})
+                        'CaImaging':dict(fig_fraction=3, subsampling=1, 
+                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
+                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+                                         # roiIndices=np.arange(np.sum(data.iscell))),
+                                         roiIndices=[0, 10, 22, 34, 45, 56]),
+                        'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
+                        'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
+                        'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                        'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
+                        'VisualStim':dict(fig_fraction=.5, color='black')}, Tbar=1)
     ge.show()
 
 

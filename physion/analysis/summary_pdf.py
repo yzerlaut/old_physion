@@ -178,10 +178,16 @@ if __name__=='__main__':
     elif os.path.isdir(args.datafile):
         FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)
         for f in FILES:
-            make_summary_pdf(f,
-                             include=args.ops,
-                             Nmax=args.Nmax,
-                             verbose=args.verbose)
+            try:
+                make_summary_pdf(f,
+                                 include=args.ops,
+                                 Nmax=args.Nmax,
+                                 verbose=args.verbose)
+            except BaseException as be:
+                print('')
+                print('Pb with', f)
+                print(be)
+                print('')
     elif os.path.isfile(args.datafile):
         make_summary_pdf(args.datafile,
                          include=args.ops,
