@@ -81,8 +81,8 @@ def analysis_fig(data, roiIndex=0):
     data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0][1], roiIndex=roiIndex)
     data.show_CaImaging_FOV(key='meanImgE', cmap='viridis', ax=AX[0][2], roiIndex=roiIndex, with_roi_zoom=True)
     try:
-        data.show_CaImaging_FOV(key='meanImg_chan2', cmap='viridis', ax=AX[0][3], roiIndex=roiIndex, with_roi_zoom=True)
-        AX[0][3].annotate('red cell: %s' % ('yes' if data.redcell[index] else 'no'), (0.5, 0.), xycoords='axes fraction', fontsize=8, va='top', ha='center')
+        data.show_CaImaging_FOV(key='meanImg_chan2', cmap='viridis', ax=AX[0][3], roiIndex=roiIndex, NL=3, with_roi_zoom=True)
+        AX[0][3].annotate('red cell: %s' % ('yes' if bool(data.redcell[index]) else 'no'), (0.5, 0.), xycoords='axes fraction', fontsize=8, va='top', ha='center')
     except KeyError:
         AX[0][3].axis('off')
         AX[0][3].annotate('no red channel', (0.5, 0.5), xycoords='axes fraction', fontsize=9, va='center', ha='center')

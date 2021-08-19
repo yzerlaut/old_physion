@@ -14,8 +14,6 @@ from analysis.tools import *
 def raw_data_plot_settings(data,
                            subsampling_factor=1):
     settings = {}
-    if 'Photodiode-Signal' in data.nwbfile.acquisition:
-        settings['Photodiode'] = dict(fig_fraction=0.5, subsampling=subsampling_factor, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:
         settings['Locomotion'] = dict(fig_fraction=2, subsampling=subsampling_factor)
     if 'Pupil' in data.nwbfile.processing:
