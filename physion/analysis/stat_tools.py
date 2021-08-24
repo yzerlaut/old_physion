@@ -11,7 +11,7 @@ class StatTest:
                  test='wilcoxon',
                  positive=False):
 
-        self.x, self.y = x, y
+        self.x, self.y = np.array(x), np.array(y)
         for key in ['pvalue', 'statistic']:
             setattr(self, key, 1)
         self.positive = positive # to evaluate positive only deflections

@@ -341,7 +341,7 @@ if __name__=='__main__':
     build_dark_palette(app)
     main = MainWindow(app,
                       args=args)
-p    sys.exit(app.exec_())
+    sys.exit(app.exec_())
 
 
 

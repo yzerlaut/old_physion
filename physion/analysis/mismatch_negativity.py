@@ -26,7 +26,7 @@ def modulation_summary_panel(t, data,
                    100*(1-np.sum(valid_cells)/len(valid_cells))],
                   explode=(0, 0.1),
                   colors=[plt.cm.tab10(2), plt.cm.tab10(3)],
-                  labels=['responsive', 'unresponsive'],
+                  labels=['resp.  ', '  unresp.'],
                   autopct='%1.1f%%', shadow=True, startangle=90)
         
         iax = 1
@@ -73,7 +73,8 @@ def modulation_summary_panel(t, data,
         ge.set_plot(AX[iax], xlabel='time (s)', ylabel='dF/F')
         ge.set_plot(AX[iax+1], xlabel='time (s)', ylabel='$\Delta$ dF/F')
         ge.title(AX[iax+1], 'baseline corrected', size='x-small')
-        ge.set_plot(AX[iax+2], xlabel='', ylabel='evoked $\Delta$ dF/F')
+        ge.set_plot(AX[iax+2], xlabel='', ylabel='evoked $\Delta$ dF/F',
+                    xticks=[0,1,2], xticks_labels=['red.', 'ctrl', 'dev.'], xticks_rotation=70)
 
     return fig, AX
         
