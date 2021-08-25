@@ -223,6 +223,24 @@ class Data:
         else:
             return [np.ones(np.sum(Pcond), dtype=bool)]
 
+    def find_episode_from_time(self, time):
+        """
+        returns episode number
+                -1 if prestim, interstim, or poststim
+        """
+        if 'time_start_realigned' in self.nwbfile.stimulus:
+            start_key, stop_key = 'time_start_realigned', 'time_stop_realigned'
+        else:
+            start_key, stop_key = 'time_start', 'time_stop'
+
+        cond = (time>=self.nwbfile.stimulus[start_key].data[:]) & (time<=self.nwbfile.stimulus[stop_key].data[:])
+
+        if np.sum(cond)>0:
+            return np.arange(self.nwbfile.stimulus[start_key].num_samples)[cond][0]
+        else:
+            return -1
+
+        
     def list_subquantities(self, quantity):
         if quantity=='CaImaging':
             return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'F-0.7*Fneu', 'F-Fneu']

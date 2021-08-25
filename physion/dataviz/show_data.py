@@ -200,7 +200,7 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color,
                                 scale_unit_string=('%.0dF/F' if subquantity in ['dF/F', 'dFoF'] else ''))
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
-            
+
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=0.05, size=0.1,
                        color='k', name='visual stim.'):
@@ -215,21 +215,52 @@ class MultimodalData(Data):
             tstart = self.nwbfile.stimulus['time_start_realigned'].data[i]
             tstop = self.nwbfile.stimulus['time_stop_realigned'].data[i]
             # ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
-            ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel, lw=0, alpha=0.05, color=color)
+            ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel,
+                            lw=0, alpha=0.05, color=color)
             axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
             axi.axis('equal')
-            # add arrow if drifting stim
-            if (self.nwbfile.stimulus['frame_run_type'].data[i]=='drifting'):
-                arrow={'direction':self.nwbfile.stimulus['angle'].data[i],
-                       'center':(0,0), 'length':25, 'width_factor':0.1, 'color':'red'}
-            else:
-                arrow = None
-            # add VSE if in stim (TO BE DONE)
-            if True:
-                vse = None
-            self.visual_stim.show_frame(i, ax=axi, label=None, arrow=arrow, enhance=True)
+            arrow = self.visual_stim.get_arrow(i, self,
+                                               arrow_props={'length':25, 'width_factor':0.1})
+            vse = self.visual_stim.get_vse(i, self)
+
+            self.visual_stim.show_frame(i, ax=axi,
+                                        label=None,
+                                        arrow=arrow,
+                                        enhance=True)
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
-    
+
+    def show_VisualStim(self, tlim,
+                        Npanels=8):
+        
+        if self.visual_stim is None:
+            self.init_visual_stim()
+            
+        fig, AX = ge.figure(axes=(Npanels,1),
+                            figsize=(1.6/2., 0.9/2.), top=3, bottom=2, wspace=.2)
+
+        label={'degree':20,
+               'shift_factor':0.03,
+               'lw':0.5, 'fontsize':7}
+        
+        for i, ti in enumerate(np.linspace(*tlim, Npanels)):
+            iEp = self.find_episode_from_time(ti)
+            tEp = self.nwbfile.stimulus['time_start_realigned'].data[iEp]
+            if iEp>=0:
+                arrow = self.visual_stim.get_arrow(iEp, self,
+                            arrow_props={'length':25, 'width_factor':0.1})
+                self.visual_stim.show_frame(iEp, ax=AX[i],
+                                            time_from_episode_start=ti-tEp,
+                                            label=label,
+                                            arrow=arrow,
+                                            enhance=True)
+            else:
+                self.visual_stim.show_interstim(AX[i])
+            AX[i].set_title('%.1fs' % ti, fontsize=6)
+            AX[i].axis('off')
+            label=None
+            
+        return fig, AX
+        
     def plot_raw_data(self, 
                       tlim=[0,100],
                       settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
@@ -552,50 +583,57 @@ def format_key_value(key, value):
     
      
 if __name__=='__main__':
-    
-    # filename = os.path.join(os.path.expanduser('~'), 'DATA', '2021_03_11-17-32-34.nwb')
-    filename = sys.argv[-1]
-    data = MultimodalData(filename)
 
-    # TRIAL AVERAGING EXAMPLE
-    # fig, AX = data.plot_trial_average(roiIndex=3,
-    #                                   protocol_id=0,
-    #                                   quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
-    #                                   xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-    #                                   with_stat_test=True,
-    #                                   with_annot=True,
-    #                                   fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
-    # data.plot_trial_average(roiIndex=3,
-    #                         protocol_id=0,
-    #                         quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
-    #                         xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-    #                         ylim=AX[0][0].get_ylim(),
-    #                         fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
+    import argparse
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument("datafile", type=str)
+    parser.add_argument('-o', "--ops", default='raw', help='')
+    parser.add_argument("--tlim", type=float, nargs='*', default=[10, 50], help='')
+    parser.add_argument('-nmax', "--Nmax", type=int, default=20)
+    parser.add_argument("--Npanels", type=int, default=8)
+    parser.add_argument('-roi', "--roiIndex", type=int, default=0)
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+
+    args = parser.parse_args()
     
-    # RAW DATA EXAMPLE
-    data.plot_raw_data([10, 35], 
-              # settings={
-              settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
-                                               roiIndices='all',
-                                               normalization='per-line',
-                                               quantity='CaImaging', subquantity='Fluorescence'),
-                        'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
-                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
-                                         # roiIndices=np.arange(np.sum(data.iscell))),
-                                         roiIndices=[0, 10, 22, 34, 45, 56]),
-                        'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
-                        'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
-                        'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
-                        'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
-                        'VisualStim':dict(fig_fraction=.5, color='black')}, Tbar=1)
+    data = MultimodalData(args.datafile)
+
+    if args.ops=='raw':
+        data.plot_raw_data(args.tlim, 
+                  settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
+                                                   roiIndices='all',
+                                                   normalization='per-line',
+                                                   quantity='CaImaging', subquantity='Fluorescence'),
+                            'CaImaging':dict(fig_fraction=3, subsampling=1, 
+                                             # quantity='CaImaging', subquantity='dF/F', color=ge.green,
+                                             quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+                                             roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), args.Nmax, replace=False))),
+                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
+                            # 'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
+                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                            'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
+                            'VisualStim':dict(fig_fraction=.5, color='black')}, Tbar=1)
+        
+    elif args.ops=='trial-average':
+        fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
+                                          protocol_id=0,
+                                          quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
+                                          xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+                                          with_stat_test=True,
+                                          with_annotation=True,
+                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+        
+    elif args.ops=='visual-stim':
+        fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
+        
+    elif args.ops=='FOV':
+        fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
+    else:
+        print(' option not recognized !')
+        
     ge.show()
 
-
-    # from datavyz import ge
-    # fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
-    # ge.save_on_desktop(fig, 'fig.png')
-    # plt.show()
 
 
 

@@ -444,6 +444,50 @@ class visual_stim:
         return (1+self.protocol['presentation-interstim-screen'])/2.+0*self.x
     def get_poststim_image(self):
         return (1+self.protocol['presentation-poststim-screen'])/2.+0*self.x
+    def show_interstim(self, ax):
+        ax.imshow(self.get_interstim_image(),
+                  cmap='gray', vmin=0, vmax=1,
+                  aspect='equal', origin='lower')
+    
+    
+    def get_arrow(self, episode, parent,
+                  arrow_props={}):
+        """
+        # ARROW FOR DRIFTING GRATINGS
+        """
+        if 'protocol_id' in parent.nwbfile.stimulus:
+            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+\
+                    parent.nwbfile.stimulus['protocol_id'].data[episode])]
+        else:
+            Pname = parent.metadata['protocol']
+            
+        
+        if 'drifting' in Pname:
+            arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
+                     'center':[0,0], 'length':40, 'width_factor':0.1, 'color':'red'}
+            
+            # override by arguments
+            for key in arrow_props:
+                arrow[key] = arrow_props[key]
+                
+            if ('off-center' in Pname):
+                arrow['center'] = [0,0]
+            else:
+                if 'x-center' in parent.nwbfile.stimulus:
+                    arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
+                if 'y-center' in parent.nwbfile.stimulus:
+                    arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+        else:
+            arrow = None
+
+        return arrow
+
+    def get_vse(self, episode, parent):
+        """
+        # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
+        TO BE DONE
+        """
+        return None
 
     def show_frame(self, episode, 
                    time_from_episode_start=0,
@@ -488,25 +532,13 @@ class visual_stim:
         
         ax.axis('off')
 
-        if parent is not None:
-            
-            # ARROW FOR DRIFTING GRATINGS
-            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]
-            if 'drifting' in Pname:
-                arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
-                         'length':40, 'width_factor':0.1, 'color':'red', 'center':[0,0]}
-                if ('off-center' in Pname):
-                    arrow['center'] = (0,0)
-                else:
-                    if 'x-center' in parent.nwbfile.stimulus.keys():
-                        arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
-                    if 'y-center' in parent.nwbfile.stimulus.keys():
-                        arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+        # arrow for driting stimuli
+        if parent is not None and arrow is None:
+            arrow = self.get_arrow(episode, parent)
 
-            # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
-            """
-            TO BE DONE
-            """
+        # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
+        if parent is not None and vse is None:
+            vse = self.get_vse(episode, parent)
                                               
             
         if label is not None:
@@ -525,6 +557,11 @@ class visual_stim:
                      -np.sin(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
                      width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
                      color=arrow['color'])
+
+        if vse is not None:
+            """
+            TO BE DONE
+            """
         return ax
             
 #####################################################
