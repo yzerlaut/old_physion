@@ -358,7 +358,6 @@ class NewWindow(QtWidgets.QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
         
         self.setWindowTitle(title)
-        
         self.minView = False
 
         self.cwidget = QtGui.QWidget(self)
@@ -1030,11 +1029,10 @@ class RangeSlider(QtGui.QSlider):
                                              pos-slider_min, slider_max-slider_min,
                                              opt.upsideDown)
     
-if __name__=='__main__':
+# if __name__=='__main__':
 
-    pass
-    # app = QtWidgets.QApplication(sys.argv)
-    # # build_dark_palette(app)
-    # # window = TrialAverageWindow(app)
-    # # window.show()
-    # sys.exit(app.exec_())
+#     # app = QtWidgets.QApplication(sys.argv)
+#     # # build_dark_palette(app)
+#     # # window = TrialAverageWindow(app)
+#     # # window.show()
+#     # sys.exit(app.exec_())
