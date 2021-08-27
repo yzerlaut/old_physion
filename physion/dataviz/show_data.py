@@ -180,7 +180,7 @@ class MultimodalData(Data):
             y = dF[n, np.arange(i1,i2)][::subsampling]
 
             self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
-                                    scale_unit_string=('%.0dF/F' if ((n==0) and subquantity in ['dF/F', 'dFoF']) else ''))
+                                    scale_unit_string=('%.0fdF/F' if ((n==0) and subquantity in ['dF/F', 'dFoF']) else ''))
             
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
@@ -198,7 +198,7 @@ class MultimodalData(Data):
         y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)][::subsampling]
 
         self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color,
-                                scale_unit_string=('%.0dF/F' if subquantity in ['dF/F', 'dFoF'] else ''))
+                                scale_unit_string=('%.0fdF/F' if subquantity in ['dF/F', 'dFoF'] else ''))
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
     def add_VisualStim(self, tlim, ax,
