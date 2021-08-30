@@ -70,9 +70,18 @@ def ROI_analysis(FullData,
         ge.annotate(fig, ' surround', (0.5, 0), color=ge.red)
         ge.annotate(fig, format_key_value('angle', angle)+'  ', (1., 0), ha='right')
 
-        ylims = [0,2]
-        for ax in ge.flat(AX):
-            ylims = [np.min([ylims[0], ax.get_ylim()[0]]), np.max([ylims[1], ax.get_ylim()[1]])]
+        # just for the axis extent
+        _, AX2 = FullData.plot_trial_average(EPISODES=EPISODES_SURROUND,
+                                    condition=EPISODES_SURROUND.find_episode_cond('angle', iangle),
+                                    protocol_id=iprotocol_surround,
+                                    quantity='CaImaging', subquantity='dF/F',
+                                    roiIndex = roiIndex,
+                                    column_key='x-center', row_key='y-center')
+        
+        ylims = [0,1]
+        for ax, ax2 in zip(ge.flat(AX), ge.flat(AX2)):
+            ylims = [np.min([ylims[0], ax.get_ylim()[0], ax2.get_ylim()[0]]),
+                     np.max([ylims[1], ax.get_ylim()[1], ax2.get_ylim()[1]])]
         for ax in ge.flat(AX):
             ax.set_ylim(ylims)
 

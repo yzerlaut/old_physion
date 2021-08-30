@@ -81,7 +81,6 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     data = MultimodalData(datafile)
 
-    print(data.Fluorescence)
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-spatial_selectivity.pdf' % data.protocols[iprotocol])
     
     results = {'Ntot':data.iscell.sum()}
@@ -170,12 +169,6 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    results = {'Ntot':100, 'responsive':np.ones(5, dtype=bool),
-               'x-center':np.array([-1,0,1]), 'y-center':np.random.randn(5),
-               'angle':np.random.randn(5)}
-    # summary_fig(results)
-    # ge.show()
-    
     if '.nwb' in args.datafile:
         analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
     else:

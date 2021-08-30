@@ -516,6 +516,113 @@ class MultimodalData(Data):
             
         return fig, AX
     
+    ###-------------------------------------------
+    ### ----- Single Trial population response  --
+    ###-------------------------------------------
+
+    def single_trial_rasters(self,
+                             protocol_id=0,
+                             quantity='Photodiode-Signal', subquantity='dF/F',
+                             Nmax=10000000,
+                             condition=None,
+                             dt_sampling=10, # ms
+                             interpolation='linear',
+                             baseline_substraction=False,
+                             with_screen_inset=False,
+                             Tsubsampling=1,
+                             fig_preset='raster-preset',
+                             fig=None, AX=None, verbose=False, Tbar=2):
+
+        # ----- protocol cond ------
+        Pcond = self.get_protocol_cond(protocol_id)
+
+        ALL_ROIS = []
+        for roi in np.arange(Nmax):
+            # ----- building episodes of single cell response ------
+            print('roi #', roi)
+            ALL_ROIS.append(process_NWB.EpisodeResponse(self,
+                                                        protocol_id=protocol_id,
+                                                        quantity=quantity,
+                                                        subquantity=subquantity,
+                                                        roiIndex=roi,
+                                                        dt_sampling=dt_sampling,
+                                                        prestim_duration=2,
+                                                        verbose=verbose))
+        
+
+        # build column and row conditions
+        column_keys = [k for k in ALL_ROIS[0].varied_parameters.keys() if k!='repeat']
+        COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in column_keys], column_keys, protocol_id)
+
+        row_key = 'repeat'
+        ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[Pcond]))], [row_key], protocol_id)
+
+
+        if with_screen_inset and (self.visual_stim is None):
+            print('initializing stim [...]')
+            self.init_visual_stim()
+        
+        if condition is None:
+            condition = np.ones(np.sum(Pcond), dtype=bool)
+        elif len(condition)==len(Pcond):
+            condition = condition[Pcond]
+
+            
+        if (fig is None) and (AX is None):
+            fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
+                                **dv_tools.FIGURE_PRESETS[fig_preset])
+            no_set=False
+        else:
+            no_set=True
+        
+        
+        for irow, row_cond in enumerate(ROW_CONDS):
+            for icol, col_cond in enumerate(COL_CONDS):
+                
+                cond = np.array(condition & col_cond & row_cond)[:ALL_ROIS[0].resp.shape[0]]
+
+                if np.sum(cond)==1:
+                    resp = np.zeros((len(ALL_ROIS), ALL_ROIS[0].resp.shape[1]))
+                    for roi in range(len(ALL_ROIS)):
+                        norm = (ALL_ROIS[roi].resp[cond,:].max()-ALL_ROIS[roi].resp[cond,:].min())
+                        if norm>0:
+                            resp[roi,:] = (ALL_ROIS[roi].resp[cond,:]-ALL_ROIS[roi].resp[cond,:].min())/norm
+                        AX[irow][icol].imshow(resp[:,::Tsubsampling],
+                                              cmap=plt.cm.binary,
+                                              aspect='auto', interpolation='none',
+                                              vmin=0, vmax=1, origin='lower',
+                                              extent = (ALL_ROIS[0].t[0], ALL_ROIS[0].t[-1],
+                                                        0, len(ALL_ROIS)-1))
+                    # column label
+                    if (irow==0):
+                        s = ''
+                        for i, key in enumerate(column_keys):
+                            s+=format_key_value(key, getattr(ALL_ROIS[0], key)[cond][0])+', '
+                        ge.annotate(AX[irow][icol], s[:-2], (1, 1), ha='right', va='bottom', size='small')
+                    # row label
+                    if (icol==0):
+                        ge.annotate(AX[irow][icol],
+                                    format_key_value('repeat', getattr(ALL_ROIS[0], 'repeat')[cond][0]),
+                                    (0, 0), ha='right', va='bottom', rotation=90, size='small')
+                AX[irow][icol].axis('off')
+
+
+        ge.bar_legend(AX[0][0],
+                      continuous=False, colormap=plt.cm.binary,
+                      colorbar_inset=dict(rect=[-.8, -.2, 0.1, 1.], facecolor=None),
+                      color_discretization=100, no_ticks=True, labelpad=4.,
+                      label='norm F', fontsize='small')
+
+        ax_top = ge.inset(AX[0][0], [0., 1.2, 1., 0.1])
+        ax_top.plot([ALL_ROIS[0].t[0],ALL_ROIS[0].t[0]+Tbar], [0,0], 'k-', lw=1)
+        ge.annotate(ax_top, '%is' % Tbar, (ALL_ROIS[0].t[0],0), xycoords='data')
+        ax_top.set_xlim((ALL_ROIS[0].t[0],ALL_ROIS[0].t[-1]))
+        ax_top.axis('off')
+
+        ge.annotate(AX[0][0],'%i ROIs ' % len(ALL_ROIS), (0,1), ha='right', va='top')
+
+        return fig, AX
+    
     ###-------------------------------------
     ### ----- IMAGING PLOT components -----
     ###-------------------------------------
@@ -613,7 +720,8 @@ if __name__=='__main__':
                             # 'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
                             # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
                             'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
-                            'VisualStim':dict(fig_fraction=.5, color='black')}, Tbar=1)
+                            'VisualStim':dict(fig_fraction=.5, color='black')},
+                            Tbar=5)
         
     elif args.ops=='trial-average':
         fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,

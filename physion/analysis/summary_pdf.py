@@ -106,7 +106,7 @@ def make_summary_pdf(filename, Nmax=1000000,
                                           'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
-        elif 'spatial-selectivity' in data.metadata['protocol']:
+        elif 'spatial-location' in data.metadata['protocol']:
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'spatial_selectivity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)

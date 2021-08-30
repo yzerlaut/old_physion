@@ -32,8 +32,6 @@ def Ephys_analysis(FullData,
                                prestim_duration=-stat_test_props['interval_pre'][0],
                                baseline_substraction=True)
 
-    print(EPISODES.varied_parameters)
-    
     fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
                                           protocol_id=iprotocol,
                                           row_key='repeat',
@@ -60,20 +58,41 @@ def Ephys_analysis(FullData,
     return fig, fig2
 
 
-def analysis_pdf(datafile, iprotocol=-1):
+def Ophys_analysis(FullData,
+                   iprotocol=0,
+                   roiIndices=[0,1],
+                   verbose=False):
+    """
+    response plots
+    """
+
+    fig, AX = FullData.single_trial_rasters(protocol_id=iprotocol,
+                                            # quantity='Photodiode-Signal',
+                                            quantity='CaImaging', subquantity='dF/F',
+                                            Nmax=3, dt_sampling=10)
+
+    fig = None
+    return fig
+
+
+def analysis_pdf(datafile,
+                 iprotocol=-1,
+                 Nmax=2):
 
     data = MultimodalData(datafile)
 
     if iprotocol<0:
         iprotocol = np.argwhere([('gaussian-blobs' in p) for p in data.protocols])[0][0]
-        print('gaussian-blob analysis for', data.protocols[iprotocol])
+        print('gaussian-blob analysis for protocol #', iprotocol)
     
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-contrast_curves.pdf' % data.protocols[iprotocol])
     
     
     if data.metadata['CaImaging']:
 
-        pass
+        fig = Ophys_analysis(data,
+                             roiIndices=np.arange(np.sum(data.iscell))[:Nmax])
+        ge.show()
         # results = {'Ntot':data.iscell.sum()}
     
         # with PdfPages(pdf_filename) as pdf:

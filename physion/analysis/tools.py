@@ -11,26 +11,34 @@ def find_modalities(data):
     MODALITIES, QUANTITIES, TIMES, UNITS, COLORS = [], [], [], [], []
     if 'Running-Speed' in data.nwbfile.acquisition:
         MODALITIES.append('Running-Speed')
-        QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
-        TIMES.append(None)
-        UNITS.append('cm/s')
+        # QUANTITIES.append(data.nwbfile.acquisition['Running-Speed'])
+        # TIMES.append(None)
+        QUANTITIES.append(np.abs(data.nwbfile.acquisition['Running-Speed'].data[:]))
+        TIMES.append(np.arange(data.nwbfile.acquisition['Running-Speed'].num_samples)/data.nwbfile.acquisition['Running-Speed'].rate+data.nwbfile.acquisition['Running-Speed'].starting_time)
+        UNITS.append('|cm/s|')
         COLORS.append(ge.blue)
     if 'Pupil' in data.nwbfile.processing:
         MODALITIES.append('Pupil')
-        area=np.pi*data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]*\
-            data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]
-        QUANTITIES.append(area)
+        finite_cond = np.isfinite(data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:]) & np.isfinite(data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:])
+        diameter = np.zeros(len(finite_cond))
+        diameter[finite_cond] = np.max([data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:][finite_cond],
+                                        data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:][finite_cond]], axis=0)
+        diameter[~finite_cond] = np.mean(diameter[finite_cond])
+        QUANTITIES.append(diameter)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['sy'].timestamps[:])
-        UNITS.append('mm$^2$')
+        UNITS.append('mm')
         COLORS.append(ge.red)
     if 'Pupil' in data.nwbfile.processing:
         MODALITIES.append('GazeMovement')
-        cx = data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]
-        cy = data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:]
-        distance = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        finite_cond = np.isfinite(data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]) & np.isfinite(data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:])
+        distance = np.zeros(len(finite_cond))
+        cx = data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:][finite_cond]
+        cy = data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:][finite_cond]
+        distance[finite_cond] = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        distance[~finite_cond] = np.mean(distance[finite_cond])
         QUANTITIES.append(distance)
         TIMES.append(data.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[:])
-        UNITS.append('mm$^2$')
+        UNITS.append('mm')
         COLORS.append(ge.orange)
     if 'FaceMotion' in data.nwbfile.processing:
         MODALITIES.append('FaceMotion')

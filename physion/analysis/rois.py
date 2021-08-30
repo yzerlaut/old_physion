@@ -113,8 +113,9 @@ def analysis_fig(data, roiIndex=0):
     AX[1][4].set_xlabel('time (s)', fontsize=10)
     AX[1][4].set_ylabel('auto correl.', fontsize=10)
 
+
     for i, mod, quant, times, unit, color in zip(range(len(TIMES)), MODALITIES, QUANTITIES, TIMES, UNITS, COLORS):
-        
+
         AX[2+i][0].set_title(mod, fontsize=10, color=color)
         
         if times is None:
@@ -122,42 +123,44 @@ def analysis_fig(data, roiIndex=0):
         else:
             Q, qq = None, quant
 
-        hist, be1, be2 = hist2D_on_NWB_quantity(Q1=Q, Q2=None,
-                    q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], bins=50)
-        hist = np.log(np.clip(hist, np.min(hist[hist>0]), np.max(hist)))
-        ge.matrix(hist, x=be1, y=be2, colormap=plt.cm.binary, ax=AX[2+i][0], aspect='auto')
-        AX[2+i][0].grid(False)
-        AX[2+i][0].set_ylabel(unit, fontsize=8)
-        AX[2+i][0].set_xlabel('dF/F', fontsize=8)
-        ge.annotate(AX[2+i][0], '  log distrib.', (0,1), va='top', size='x-small')
-            
-        mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q1=Q, Q2=None,
-                                q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], Npoints=30)
-        
-        AX[2+i][1].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
-        AX[2+i][1].set_xlabel(unit, fontsize=10)
-        AX[2+i][1].set_ylabel('dF/F', fontsize=10)
+        try:
+            hist, be1, be2 = hist2D_on_NWB_quantity(Q1=Q, Q2=None,
+                        q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], bins=(np.linspace(dFoF.min(), dFoF.max(), 50), 50))
+            hist = np.log(np.clip(hist, np.min(hist[hist>0]), np.max(hist)))
+            ge.matrix(hist, x=be1, y=be2, colormap=plt.cm.binary, ax=AX[2+i][0], aspect='auto')
+            AX[2+i][0].grid(False)
+            AX[2+i][0].set_ylabel(unit, fontsize=8)
+            AX[2+i][0].set_xlabel('dF/F', fontsize=8)
+            ge.annotate(AX[2+i][0], '  log distrib.', (0,1), va='top', size='x-small')
 
-        mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q2=Q, Q1=None,
-                                q2=qq, t_q2=times, q1=dFoF, t_q1=data.Neuropil.timestamps[:], Npoints=30)
-        
-        AX[2+i][2].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
-        AX[2+i][2].set_ylabel(unit, fontsize=10)
-        AX[2+i][2].set_xlabel('dF/F', fontsize=10)
-        
-        CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
-                                q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=180)
-        AX[2+i][3].plot(tshift/60, CCF, '-', color=color)
-        AX[2+i][3].set_xlabel('time (min)', fontsize=10)
-        AX[2+i][3].set_ylabel('cross correl.', fontsize=10)
+            mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q1=Q, Q2=None,
+                                    q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], Npoints=30)
 
-        CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
-                         q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=20)
-        AX[2+i][4].plot(tshift, CCF, '-', color=color)
-        AX[2+i][4].set_xlabel('time (s)', fontsize=10)
-        AX[2+i][4].set_ylabel('cross correl.', fontsize=10)
-        
+            AX[2+i][1].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
+            AX[2+i][1].set_xlabel(unit, fontsize=10)
+            AX[2+i][1].set_ylabel('dF/F', fontsize=10)
 
+            mean_q1, var_q1, mean_q2, var_q2 = crosshistogram_on_NWB_quantity(Q2=Q, Q1=None,
+                                    q2=qq, t_q2=times, q1=dFoF, t_q1=data.Neuropil.timestamps[:], Npoints=30)
+
+            AX[2+i][2].errorbar(mean_q1, mean_q2, xerr=var_q1, yerr=var_q2, color=color)
+            AX[2+i][2].set_ylabel(unit, fontsize=10)
+            AX[2+i][2].set_xlabel('dF/F', fontsize=10)
+
+            CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
+                                    q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=180)
+            AX[2+i][3].plot(tshift/60, CCF, '-', color=color)
+            AX[2+i][3].set_xlabel('time (min)', fontsize=10)
+            AX[2+i][3].set_ylabel('cross correl.', fontsize=10)
+
+            CCF, tshift = crosscorrel_on_NWB_quantity(Q1=Q, Q2=None,
+                             q1=qq, t_q1=times, q2=dFoF, t_q2=data.Neuropil.timestamps[:], tmax=20)
+            AX[2+i][4].plot(tshift, CCF, '-', color=color)
+            AX[2+i][4].set_xlabel('time (s)', fontsize=10)
+            AX[2+i][4].set_ylabel('cross correl.', fontsize=10)
+        except BaseException as be:
+            print(mod, ' -->', be)
+        
     return fig
 
 
@@ -188,12 +191,13 @@ def analysis_pdf(datafile, Nmax=1000000):
             print('   - plotting analysis of ROI #%i' % (i+1))
             try:
                 fig = raw_fluo_fig(data, roiIndex=i)
-                pdf.savefig()  # saves the current figure into a pdf page
-                plt.close()
+                pdf.savefig(fig)  # saves the current figure into a pdf page
+                plt.close(fig)
                 fig = analysis_fig(data, roiIndex=i)
-                pdf.savefig()  # saves the current figure into a pdf page
-                plt.close()
-            except ValueError:
+                pdf.savefig(fig)  # saves the current figure into a pdf page
+                plt.close(fig)
+            except BaseException as be:
+                print(be)
                 print('  /!\ Pb with ROI #%i /!\ ' % (i+1))
 
     print('[ok] roi analysis saved as: "%s" ' % pdf_filename)

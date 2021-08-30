@@ -5,6 +5,9 @@ import numpy as np
 
 FIGURE_PRESETS = {
     ' ':dict(reshape_axes=False, right=2.),
+    'raster-preset': dict(reshape_axes=False,
+                          top=3., bottom=0.4, left=3., right=1.,
+                          wspace=0.3, hspace=0.3),
     'raw-traces-preset': dict(reshape_axes=False,
                               top=0.4, bottom=0.4, left=0.7, right=3.,
                               wspace=0.5, hspace=0.5),
