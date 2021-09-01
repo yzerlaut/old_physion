@@ -99,10 +99,9 @@ class MultimodalData(Data):
                   pupil_scale_bar = 0.5, # scale bar in mm
                   color='red', name='pupil diam.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
-        t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        diameter = 2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
-                           self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0)
-        x, y = t[::subsampling], diameter[::subsampling]
+        if not hasattr(self, 't_pupil'):
+            self.build_pupil_diameter()
+        x, y = self.t_pupil[::subsampling], self.pupil_diameter[::subsampling]
 
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
@@ -119,7 +118,7 @@ class MultimodalData(Data):
         
         x, y = t[::subsampling], mov[::subsampling]
 
-        self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
+        self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
 

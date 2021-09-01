@@ -59,6 +59,10 @@ class EpisodeResponse:
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
                                                                self.roiIndices).sum(axis=0) # valid ROI indices inside
+        elif quantity=='Pupil':
+            if not hasattr(full_data, 'pupil_diameter'):
+                full_data.build_pupil_diameter()
+            tfull, valfull = full_data.t_pupil, full_data.pupil_diameter
         else:
             if quantity in full_data.nwbfile.acquisition:
                 tfull = np.arange(full_data.nwbfile.acquisition[quantity].data.shape[0])/full_data.nwbfile.acquisition[quantity].rate
@@ -80,13 +84,13 @@ class EpisodeResponse:
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
             # compute time and interpolate
-            cond = (tfull>=(tstart-1.5*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
+            cond = (tfull>=(tstart-2.*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
             func = interp1d(tfull[cond]-tstart, valfull[cond],
                             kind=interpolation)
             try:
                 if baseline_substraction:
                     y = func(self.t)
-                    resp.append(y-np.mean(y[self.t<0]))
+                    resp.append(y-np.mean(y[self.t<0])) # we remove the level before stim
                 else:
                     resp.append(func(self.t))
                 for key in full_data.nwbfile.stimulus.keys():
@@ -94,6 +98,7 @@ class EpisodeResponse:
             except BaseException as be:
                 print('----')
                 print(be)
+                print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, tstop-tstart)
                 print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
         self.index_from_start = np.arange(len(Pcond))[Pcond]
@@ -109,6 +114,7 @@ class EpisodeResponse:
     def compute_interval_cond(self, interval):
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
+    
     def find_episode_cond(self, key, index):
         if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]) :
             cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
@@ -118,6 +124,7 @@ class EpisodeResponse:
             cond = (getattr(self, key)==self.varied_parameters[key][index])
         return cond
 
+    
     def stat_test_for_evoked_responses(self,
                                        episode_cond=None,
                                        interval_pre=[-2,0],
@@ -163,8 +170,9 @@ if __name__=='__main__':
     
     if '.nwb' in sys.argv[-1]:
         data = Data(filename)
-        cell_resp = EpisodeResponse(data, roiIndex=0)
-        print(cell_resp.t)
+        # cell_resp = EpisodeResponse(data, roiIndex=0)
+        pupil_eps = EpisodeResponse(data, quantity='Pupil')
+        print(pupil_eps.t)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             

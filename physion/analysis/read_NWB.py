@@ -162,8 +162,14 @@ class Data:
             self.FaceCamera_mm_to_pix = int(1./float(pd.split('pix_to_mm=')[-1]))
         else:
             self.FaceCamera_mm_to_pix = 1
-        #     self.t_pupil = self.nmbfile.processing['Pupil']
-        #     self.nwbfile.processing['Pupil'].data_interfaces['cx']
+
+    def build_pupil_diameter(self):
+        """
+        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
+        """
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
+        self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
+                                         self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
         
     def read_facemotion(self):
