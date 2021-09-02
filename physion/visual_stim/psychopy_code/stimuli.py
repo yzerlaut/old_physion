@@ -232,13 +232,18 @@ class visual_stim:
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
 
-            # SHUFFLING IF NECESSARY
+            Nrepeats = max([1,protocol['N-repeat']])
+            
             if (protocol['Presentation']=='Randomized-Sequence'):
+                # SHUFFLING IF NECESSARY
                 np.random.seed(protocol['shuffling-seed'])
                 np.random.shuffle(index_no_repeat)
-                
-            Nrepeats = max([1,protocol['N-repeat']])
-            index = np.concatenate([index_no_repeat for r in range(Nrepeats)])
+                index = index_no_repeat
+                for r in range(Nrepeats-1):
+                    np.random.shuffle(index_no_repeat)
+                    index = np.concatenate([index, index_no_repeat])
+            else:
+                index = np.concatenate([index_no_repeat for r in range(Nrepeats)])
             repeat = np.concatenate([r+0*index_no_repeat for r in range(Nrepeats)])
 
             for n, i in enumerate(index[protocol['starting-index']:]):
