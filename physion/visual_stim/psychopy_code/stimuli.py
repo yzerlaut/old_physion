@@ -482,12 +482,41 @@ class visual_stim:
 
         return arrow
 
-    def get_vse(self, episode, parent):
+    def get_vse(self, episode, parent,
+                vse_props={}):
         """
         # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
-        TO BE DONE
         """
-        return None
+        if 'protocol_id' in parent.nwbfile.stimulus:
+            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+\
+                    parent.nwbfile.stimulus['protocol_id'].data[episode])]
+        else:
+            Pname = parent.metadata['protocol']
+            
+        
+        if ('natural-image' in Pname) and ('NI' in Pname):
+
+            vse = {}
+            # arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
+            #          'center':[0,0], 'length':40, 'width_factor':0.1, 'color':'red'}
+            
+            # # override by arguments
+            # for key in arrow_props:
+            #     arrow[key] = arrow_props[key]
+                
+            # if ('off-center' in Pname):
+            #     arrow['center'] = [0,0]
+            # else:
+            #     if 'x-center' in parent.nwbfile.stimulus:
+            #         arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
+            #     if 'y-center' in parent.nwbfile.stimulus:
+            #         arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
+        else:
+            vse = None
+
+        return vse
+        
+
 
     def show_frame(self, episode, 
                    time_from_episode_start=0,
@@ -1243,16 +1272,22 @@ class natural_image_vse(visual_stim):
             return int(cls.experiment['VSE-seed'][index])
 
         
+        
+        
+        
     def get_frames_sequence(self, index, parent=None):
-        cls = (parent if parent is not None else self)
-        seed = self.get_seed(index, parent=cls)
 
+        cls = (parent if parent is not None else self)
+        
+        seed = self.get_seed(index, parent=cls)
+        
         vse = generate_VSE(duration=cls.experiment['time_duration'][index],
                            mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
                            std_saccade_duration=cls.experiment['std-saccade-duration'][index],
                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
                            seed=seed)
 
+        cls = (parent if parent is not None else self)
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
@@ -1265,6 +1300,7 @@ class natural_image_vse(visual_stim):
             
         return times, FRAMES
 
+    
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.

@@ -60,24 +60,25 @@ def Ephys_analysis(FullData,
 
 def Ophys_analysis(FullData,
                    iprotocol=0,
-                   roiIndices=[0,1],
+                   Nmax=1000000,
                    verbose=False):
     """
     response plots
     """
 
     fig, AX = FullData.single_trial_rasters(protocol_id=iprotocol,
-                                            # quantity='Photodiode-Signal',
                                             quantity='CaImaging', subquantity='dF/F',
-                                            Nmax=3, dt_sampling=10)
+                                            with_screen_inset=True,
+                                            Nmax=Nmax, dt_sampling=10, Tsubsampling=10,
+                                            verbose=True)
 
-    fig = None
     return fig
 
 
 def analysis_pdf(datafile,
                  iprotocol=-1,
-                 Nmax=2):
+                 Nmax=2,
+                 verbose=False):
 
     data = MultimodalData(datafile)
 
@@ -85,31 +86,23 @@ def analysis_pdf(datafile,
         iprotocol = np.argwhere([('gaussian-blobs' in p) for p in data.protocols])[0][0]
         print('gaussian-blob analysis for protocol #', iprotocol)
     
-    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-contrast_curves.pdf' % data.protocols[iprotocol])
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-flashes.pdf' % data.protocols[iprotocol])
     
     
     if data.metadata['CaImaging']:
 
-        fig = Ophys_analysis(data,
-                             roiIndices=np.arange(np.sum(data.iscell))[:Nmax])
-        ge.show()
         # results = {'Ntot':data.iscell.sum()}
     
-        # with PdfPages(pdf_filename) as pdf:
+        with PdfPages(pdf_filename) as pdf:
+            
+            fig = Ophys_analysis(data,
+                                 Nmax=Nmax,
+                                 verbose=verbose)
+            
+            pdf.savefig(fig)
+            plt.close(fig)
 
-        #     CURVES = []
-        #     for roi in np.arange(data.iscell.sum())[:Nmax]:
-        #         print('   - gaussian-blob analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
-        #         fig, contrasts, max_response_curve = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
-        #         pdf.savefig(fig)
-        #         plt.close(fig)
-        #         if np.max(max_response_curve)>0:
-        #             CURVES.append(max_response_curve)
-        #     #
-        #     fig = summary_fig(contrasts, CURVES, data.iscell.sum())
-        #     pdf.savefig(fig)
-        #     plt.close(fig)
-
+            
     elif data.metadata['Electrophy']:
         with PdfPages(pdf_filename) as pdf:
             fig, fig2 = Ephys_analysis(data, iprotocol=iprotocol)
@@ -129,11 +122,19 @@ if __name__=='__main__':
     parser.add_argument("datafile", type=str)
     parser.add_argument("--iprotocol", type=int, default=-1, help='index for the protocol in case of multiprotocol in datafile')
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-nmax", "--Nmax", type=int, default=100000)
 
     args = parser.parse_args()
 
     if '.nwb' in args.datafile:
-        analysis_pdf(args.datafile, iprotocol=args.iprotocol)
+        analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax, verbose=args.verbose)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
         
+
+
+
+
+
+
+

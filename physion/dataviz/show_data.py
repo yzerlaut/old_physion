@@ -106,6 +106,7 @@ class MultimodalData(Data):
 
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
+
         
     def add_GazeMovement(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., subsampling=2,
@@ -121,8 +122,8 @@ class MultimodalData(Data):
 
         self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
-        
 
+        
     def add_CaImagingRaster(self, tlim, ax,
                             fig_fraction_start=0., fig_fraction=1., color='green',
                             quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
@@ -201,6 +202,7 @@ class MultimodalData(Data):
                                 scale_unit_string=('%.0fdF/F' if subquantity in ['dF/F', 'dFoF'] else ''))
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
+        
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=0.05, size=0.1,
                        color='k', name='visual stim.'):
@@ -229,6 +231,7 @@ class MultimodalData(Data):
                                         enhance=True)
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
 
+        
     def show_VisualStim(self, tlim,
                         Npanels=8):
         
@@ -260,7 +263,8 @@ class MultimodalData(Data):
             label=None
             
         return fig, AX
-        
+
+    
     def plot_raw_data(self, 
                       tlim=[0,100],
                       settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
@@ -303,7 +307,8 @@ class MultimodalData(Data):
         ax.set_ylim([-0.05,1.05])
         
         return fig, ax
-        
+
+    
     ###------------------------------------------
     ### ----- Trial Average plot components -----
     ###------------------------------------------
@@ -525,6 +530,8 @@ class MultimodalData(Data):
                              quantity='Photodiode-Signal', subquantity='dF/F',
                              Nmax=10000000,
                              condition=None,
+                             row_key = 'repeat',
+                             column_key=None, column_keys=None, 
                              dt_sampling=10, # ms
                              interpolation='linear',
                              baseline_substraction=False,
@@ -537,9 +544,10 @@ class MultimodalData(Data):
         Pcond = self.get_protocol_cond(protocol_id)
 
         ALL_ROIS = []
-        for roi in np.arange(Nmax):
+        for roi in np.arange(np.min([Nmax, np.sum(self.iscell)])):
             # ----- building episodes of single cell response ------
-            print('roi #', roi)
+            if verbose:
+                print('computing roi #', roi, ' for single trial raster plot')
             ALL_ROIS.append(process_NWB.EpisodeResponse(self,
                                                         protocol_id=protocol_id,
                                                         quantity=quantity,
@@ -550,13 +558,17 @@ class MultimodalData(Data):
                                                         verbose=verbose))
         
 
-        # build column and row conditions
-        column_keys = [k for k in ALL_ROIS[0].varied_parameters.keys() if k!='repeat']
-        COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in column_keys], column_keys, protocol_id)
+        # build column conditions
+        if column_key is not None:
+            column_keys = [column_key]
+        if column_keys is None:
+            column_keys = [k for k in ALL_ROIS[0].varied_parameters.keys() if k!='repeat']
+        COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in column_keys],
+                                                 column_keys, protocol_id)
 
-        row_key = 'repeat'
-        ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[Pcond]))], [row_key], protocol_id)
-
+        # build row conditions
+        ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[Pcond]))],
+                                                 [row_key], protocol_id)
 
         if with_screen_inset and (self.visual_stim is None):
             print('initializing stim [...]')
@@ -575,7 +587,6 @@ class MultimodalData(Data):
         else:
             no_set=True
         
-        
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 
@@ -593,31 +604,45 @@ class MultimodalData(Data):
                                               vmin=0, vmax=1, origin='lower',
                                               extent = (ALL_ROIS[0].t[0], ALL_ROIS[0].t[-1],
                                                         0, len(ALL_ROIS)-1))
+                        
+                    # row label
+                    if (icol==0):
+                        ge.annotate(AX[irow][icol],
+                                    format_key_value('repeat', getattr(ALL_ROIS[0], 'repeat')[cond][0]),
+                                    (0, 0), ha='right', va='bottom', rotation=90, size='small')
                     # column label
                     if (irow==0):
                         s = ''
                         for i, key in enumerate(column_keys):
                             s+=format_key_value(key, getattr(ALL_ROIS[0], key)[cond][0])+', '
                         ge.annotate(AX[irow][icol], s[:-2], (1, 1), ha='right', va='bottom', size='small')
-                    # row label
-                    if (icol==0):
-                        ge.annotate(AX[irow][icol],
-                                    format_key_value('repeat', getattr(ALL_ROIS[0], 'repeat')[cond][0]),
-                                    (0, 0), ha='right', va='bottom', rotation=90, size='small')
+                        if with_screen_inset:
+                            inset = ge.inset(AX[0][icol], [0.2, 1.2, .8, .8])
+                            if 'center-time' in self.nwbfile.stimulus:
+                                t0 = self.nwbfile.stimulus['center-time'].data[np.argwhere(cond)[0][0]]
+                            else:
+                                t0 = 0
+                            self.visual_stim.show_frame(ALL_ROIS[0].index_from_start[np.argwhere(cond)[0][0]],
+                                                        time_from_episode_start=t0,
+                                                        ax=inset,
+                                                        label=({'degree':15,
+                                                               'shift_factor':0.03,
+                                                               'lw':0.5, 'fontsize':7} if (icol==1) else None),
+                                                        enhance=True)
                 AX[irow][icol].axis('off')
 
-
+        # dF/F bar legend
         ge.bar_legend(AX[0][0],
                       continuous=False, colormap=plt.cm.binary,
                       colorbar_inset=dict(rect=[-.8, -.2, 0.1, 1.], facecolor=None),
                       color_discretization=100, no_ticks=True, labelpad=4.,
                       label='norm F', fontsize='small')
 
-        ax_top = ge.inset(AX[0][0], [0., 1.2, 1., 0.1])
-        ax_top.plot([ALL_ROIS[0].t[0],ALL_ROIS[0].t[0]+Tbar], [0,0], 'k-', lw=1)
-        ge.annotate(ax_top, '%is' % Tbar, (ALL_ROIS[0].t[0],0), xycoords='data')
-        ax_top.set_xlim((ALL_ROIS[0].t[0],ALL_ROIS[0].t[-1]))
-        ax_top.axis('off')
+        ax_time = ge.inset(AX[0][0], [0., 1.1, 1., 0.1])
+        ax_time.plot([ALL_ROIS[0].t[0],ALL_ROIS[0].t[0]+Tbar], [0,0], 'k-', lw=1)
+        ge.annotate(ax_time, '%is' % Tbar, (ALL_ROIS[0].t[0],0), xycoords='data')
+        ax_time.set_xlim((ALL_ROIS[0].t[0],ALL_ROIS[0].t[-1]))
+        ax_time.axis('off')
 
         ge.annotate(AX[0][0],'%i ROIs ' % len(ALL_ROIS), (0,1), ha='right', va='top')
 
@@ -675,6 +700,10 @@ def format_key_value(key, value):
         return 'trial #%i' % (value+1)
     elif key=='center-time':
         return '$t_0$:%.1fs' % value
+    elif key=='Image-ID':
+        return 'im#%i' % value
+    elif key=='VSE-seed':
+        return 'vse#%i' % value
     elif key=='light-level':
         if value==0:
             return 'grey'
