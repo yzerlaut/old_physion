@@ -34,15 +34,16 @@ class EpisodeResponse:
             print('  building episodes [...]')
 
         # find the parameter(s) varied within that specific protocol
-        self.varied_parameters =  {}
+        self.varied_parameters, self.fixed_parameters =  {}, {}
         for key in full_data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
                            'time_start_realigned', 'time_stop', 'time_stop_realigned']:
                 unique = np.unique(full_data.nwbfile.stimulus[key].data[Pcond])
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
+                elif len(unique)==1:
+                    self.fixed_parameters[key] = unique
 
-                
         # new sampling
         if (prestim_duration is None) and ('interstim' in full_data.nwbfile.stimulus):
             prestim_duration = np.min(full_data.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
