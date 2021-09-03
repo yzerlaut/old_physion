@@ -12,8 +12,8 @@
   "N-repeat": 10,
   "starting-index": 0,
   "angle-1": 0.0,
-  "angle-2": 90.0,
-  "N-angle": 2,
+  "angle-2": 135.0,
+  "N-angle": 4,
   "spatial-freq-1": 0.03,
   "spatial-freq-2": 0.03,
   "N-spatial-freq": 0,
@@ -35,7 +35,5 @@
   "bg-color-1": 0.0,
   "bg-color-2": 0.0,
   "N-bg-color": 0,
-  "shuffling-seed": 2,
-  "data-folder": "/tmp/2021_03_22/21-44-35",
-  "protocol-folder": "/home/yann/work/physion/physion/exp/protocols"
+  "shuffling-seed": 2
 }
