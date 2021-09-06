@@ -1,0 +1,17 @@
+{
+  "Presentation": "Single-Stimulus",
+  "Stimulus": "sparse-noise",
+  "Screen": "Dell-2020",
+  "presentation-duration": 1800.0,
+  "presentation-prestim-period": 3.0,
+  "presentation-poststim-period": 3.0,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "square-size (deg)": 16.0,
+  "sparseness (%)": 10.0,
+  "mean-refresh-time (s)": 3.0,
+  "jitter-refresh-time (s)": 0.5,
+  "noise-seed (#)": 1.0,
+  "contrast (norm.)": 1.0,
+  "bg-color (lum.)": 0.0
+}

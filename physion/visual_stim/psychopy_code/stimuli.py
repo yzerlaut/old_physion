@@ -1355,8 +1355,6 @@ class dense_noise(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol,
-                                ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'], run_type='image')
 
         self.noise_gen = dense_noise_generator(duration=protocol['presentation-duration'],
                                                 screen=self.screen,
@@ -1367,7 +1365,7 @@ class dense_noise(visual_stim):
                                                 seed=protocol['noise-seed (#)'])
 
         self.experiment = {}
-        self.experiment['index'] = np.arange(len(self.noise_gen.events))
+        self.experiment['index'] = np.arange(len(self.noise_gen.events)-1) 
         self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
         self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
