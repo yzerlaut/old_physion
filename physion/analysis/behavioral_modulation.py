@@ -33,21 +33,24 @@ def compute_population_resp(filename,
     data = Data(filename)
 
     full_resp = {'roi':[], 'angle_from_pref':[],
-                 'post_level':[], 'evoked_level':[]}
+                 'post_level':[], 'evoked_level':[],
+                 'pupil_level':[], 'running_level':[]}
 
     # get levels of pupil and running-speed in the episodes (i.e. after realignement)
     if 'Pupil' in data.nwbfile.acquisition:    
-        Pupil_episodes = EpisodeResponse(data, 
+        Pupil_episodes = EpisodeResponse(data,
                                          protocol_id=protocol_id,
                                          quantity='Pupil')
-        full_resp['pupil_level'] = []
+    else:
+        Pupil_episodes = None
         
     if 'Running-Speed' in data.nwbfile.acquisition:
-        Running_episodes = EpisodeResponse(data, 
-                                       protocol_id=protocol_id,
-                                       quantity='Running-Speed')
-        full_resp['speed_level'] = []
-
+        Running_episodes = EpisodeResponse(data,
+                                           protocol_id=protocol_id,
+                                           quantity='Running-Speed')
+    else:
+        Running_episodes = None
+        
 
     ### FIND OUT WHETHER IT WAS STATIC OR DRIFTING GRATINGS
     if ('speed' in Running_episodes.fixed_parameters) and (Running_episodes.fixed_parameters['speed']==[0.]):
@@ -61,7 +64,7 @@ def compute_population_resp(filename,
                          interval_post=interval_post,
                          test='wilcoxon', positive=True)
 
-    for key in Pupil_episodes.varied_parameters.keys():
+    for key in Running_episodes.varied_parameters.keys():
         full_resp[key] = []
 
     for roi in np.arange(data.iscell.sum())[:Nmax]:
@@ -94,8 +97,12 @@ def compute_population_resp(filename,
                 # adding running and speed level in the "post" interval:
                 if 'Pupil' in data.nwbfile.acquisition:
                     full_resp['pupil_level'].append(Pupil_episodes.resp[iep, post_interval_cond].mean())
+                else:
+                    full_resp['pupil_level'].append(0)
                 if 'Running-Speed' in data.nwbfile.acquisition:
                     full_resp['speed_level'].append(Running_episodes.resp[iep, post_interval_cond].mean())
+                else:
+                    full_resp['speed_level'].append(0)
 
     # transform to numpy array for convenience
     for key in full_resp:
