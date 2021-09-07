@@ -256,8 +256,8 @@ def build_NWB(args,
                 dataP = np.load(os.path.join(args.datafolder, 'pupil.npy'),
                                 allow_pickle=True).item()
 
-                if 'cm_to_pix' in dataP: # SCALE FROM THE PUPIL GUI
-                    pix_to_mm = 10./float(dataP['cm_to_pix']) # IN MILLIMETERS FROM HERE
+                if 'FaceCamera-1cm-in-pix' in metadata:
+                    pix_to_mm = 10./float(metadata['FaceCamera-1cm-in-pix']) # IN MILLIMETERS FROM HERE
                 else:
                     pix_to_mm = 1
                     
