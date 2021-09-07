@@ -16,7 +16,6 @@ class MainWindow(NewWindow):
                  args=None,
                  parent=None,
                  gaussian_smoothing=1,
-                 cm_scale_px=570,
                  subsampling=1000):
         """
         Pupil Tracking GUI
@@ -46,7 +45,6 @@ class MainWindow(NewWindow):
 
         self.gaussian_smoothing = gaussian_smoothing
         self.subsampling = subsampling
-        self.cm_scale_px = cm_scale_px
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                            'process.py')
         self.saturation = 255
@@ -206,12 +204,6 @@ class MainWindow(NewWindow):
         self.smoothBox.setText(str(self.gaussian_smoothing))
         self.smoothBox.setFixedWidth(30)
 
-        scaleLabel = QtGui.QLabel("1cm = (px)")
-        scaleLabel.setStyleSheet("color: gray;")
-        self.scaleBox = QtGui.QLineEdit()
-        self.scaleBox.setText(str(self.cm_scale_px))
-        self.scaleBox.setFixedWidth(30)
-
         self.addROI = QtGui.QPushButton("add Pupil-ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
@@ -258,8 +250,6 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
         self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
         self.l0.addWidget(self.smoothBox, 9, 2, 1, 3)
-        self.l0.addWidget(scaleLabel, 10, 0, 1, 3)
-        self.l0.addWidget(self.scaleBox, 10, 2, 1, 3)
         self.l0.addWidget(self.addROI,14,0,1,3)
         self.l0.addWidget(self.process, 16, 0, 1, 3)
         self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
@@ -555,7 +545,6 @@ class MainWindow(NewWindow):
         """ """
         if self.data is not None:
             self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-            self.data['cm_to_pix'] = int(self.scaleBox.text())
             self.data = process.clip_to_finite_values(self.data)
 
             np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
