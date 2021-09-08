@@ -19,8 +19,7 @@ class RCGwindow(NewWindow):
         self.app = app
         
         super(RCGwindow, self).__init__(i=3,
-                                         title='red-cell gui')
-
+                                        title='red-cell gui')
 
         ########################
         ##### building GUI #####
