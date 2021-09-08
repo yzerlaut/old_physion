@@ -112,6 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.cbp.currentText()!='multiprotocol' and self.cbsc.currentText()!='':
             self.statusBar.showMessage('[...] preparing stimulation')
             self.protocol = extract_params_from_window(self)
+            print(self.protocol)
             self.protocol['demo'] = True
             self.stim = build_stim(self.protocol)
             self.statusBar.showMessage('stimulation ready !')

@@ -11,6 +11,7 @@ except ModuleNotFoundError:
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
 from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
+# from psychopy_code.dots_stim import moving_dots as moving_dots_init
 from psychopy_code.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 def build_stim(protocol, no_psychopy=False):
@@ -45,6 +46,10 @@ def build_stim(protocol, no_psychopy=False):
         return natural_image(protocol)
     elif (protocol['Stimulus']=='Natural-Image+VSE'):
         return natural_image_vse(protocol)
+    elif (protocol['Stimulus']=='line-moving-dots'):
+        return line_moving_dots(protocol)
+    elif (protocol['Stimulus']=='looming-stim'):
+        return looming_stim(protocol)
     elif (protocol['Stimulus']=='sparse-noise'):
         if protocol['Presentation']=='Single-Stimulus':
             return sparse_noise(protocol)
@@ -1277,8 +1282,6 @@ class dense_noise(visual_stim):
     def __init__(self, protocol):
 
         super().__init__(protocol)
-        super().init_experiment(protocol,
-                                ['square-size', 'sparseness', 'mean-refresh-time', 'jitter-refresh-time'], run_type='image')
 
         self.noise_gen = dense_noise_generator(duration=protocol['presentation-duration'],
                                                 screen=self.screen,
@@ -1290,8 +1293,8 @@ class dense_noise(visual_stim):
 
         self.experiment = {}
         self.experiment['index'] = np.arange(len(self.noise_gen.events))
-        self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1) 
-        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1) 
+        self.experiment['interstim'] = np.zeros(len(self.noise_gen.events)-1)
+        self.experiment['interstim-screen'] = np.zeros(len(self.noise_gen.events)-1)
         self.experiment['time_start'] = self.noise_gen.events[:-1]+protocol['presentation-prestim-period']
         self.experiment['time_stop'] = self.noise_gen.events[1:]+protocol['presentation-prestim-period']
         self.experiment['frame_run_type'] = ['image' for i in self.experiment['index']]
@@ -1306,12 +1309,218 @@ class dense_noise(visual_stim):
         return (1+self.noise_gen.get_frame(index).T)/2.
             
 
+#####################################################
+##  ----    PRESENTING MOVING DOTS          --- #####
+#####################################################
+
+class line_moving_dots(visual_stim):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 30.
+        self.frame_refresh = protocol['movie_refresh_freq']
+        
+        super().init_experiment(protocol,
+                                ['speed', 'bg-color', 'ndots', 'spacing',
+                                 'direction', 'size', 'dotcolor'],
+                                run_type='images_sequence')
+
+    def add_dot(self, image, pos, size, color, type='square'):
+        """
+        add dot
+        """
+        if type=='square':
+            cond = (self.x>(pos[0]-size/2)) & (self.x<(pos[0]+size/2)) & (self.z>(pos[1]-size/2)) & (self.z<(pos[1]+size/2))
+        else:
+            cond = (self.x-pos[0])**2+(self.z-pos[1])**2<size
+        image[cond] = color
+
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+
+        line = np.arange(int(cls.experiment['ndots'][index]))*cls.experiment['spacing'][index]
+        X0, Y0 = [], []
+        if cls.experiment['direction'][index]==0:
+            # right -> left
+            dx_per_time, dy_per_time = -cls.experiment['speed'][index], 0
+            X0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dx_per_time/2.
+            Y0 = line-line.mean()
+        elif cls.experiment['direction'][index]==180:
+            # left -> right
+            dx_per_time, dy_per_time = cls.experiment['speed'][index], 0
+            X0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dx_per_time/2.
+            Y0 = line-line.mean()
+        elif cls.experiment['direction'][index]==90:
+            # top -> bottom
+            dx_per_time, dy_per_time = 0, -cls.experiment['speed'][index]
+            Y0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dy_per_time/2.
+            X0 = line-line.mean()
+        elif cls.experiment['direction'][index]==270:
+            # top -> bottom
+            dx_per_time, dy_per_time = 0, cls.experiment['speed'][index]
+            Y0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dy_per_time/2.
+            X0 = line-line.mean()
+            
+        else:
+            print('direction no implemented')
+
+        bg_color = cls.experiment['bg-color'][index]
+        
+        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+
+        times, FRAMES = [], []
+        for iframe, it in enumerate(np.arange(itend)):
+            time = it/cls.protocol['movie_refresh_freq']
+            img = 2*bg_color-1.+0.*self.x
+            for x0, y0 in zip(X0, Y0):
+                # adding the dots one by one
+                new_position = (x0+dx_per_time*time, y0+dy_per_time*time)
+                self.add_dot(img, new_position,
+                             cls.experiment['size'][index],
+                             cls.experiment['dotcolor'][index])
+            FRAMES.append(img)
+            times.append(iframe)
+            
+        return times, FRAMES
+
+
+    
+        
+class random_dots(visual_stim):
+    """
+    draft, to be improved
+    """
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+        super().init_experiment(protocol,
+                                ['speed'],
+                                run_type='static')
+
+    def get_patterns(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        return [visual.DotStim(win=cls.win,
+                               dotSize=cls.angle_to_pix(10),
+                               fieldPos=(0, 0),#cls.angle_to_pix(70)),
+                               fieldSize=cls.win.size,
+                               speed=3.,
+                               dotLife=-1,
+                               units='pix',
+                               nDots=10,
+                               color=-1,
+                               signalDots='same',
+                               noiseDots='walk',
+                               dir=0,
+                               coherence=1.)]
+    
+    def get_frame(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        return self.noise_gen.get_frame(index).T
+
+    def get_image(self, index, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return (1+self.noise_gen.get_frame(index).T)/2.
+
+#####################################################
+##  ----    PRESENTING LOOMING STIM         --- #####
+#####################################################
+
+class looming_stim(visual_stim):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 30.
+        self.frame_refresh = protocol['movie_refresh_freq']
+        
+        super().init_experiment(protocol,
+                                ['radius-start', 'radius-end',
+                                 'x-center', 'y-center',
+                                 'color', 'size-to-speed',
+                                 'bg-color'],
+                                run_type='images_sequence')
+
+    def add_dot(self, image, pos, size, color):
+        """
+        add dot
+        """
+        cond = (self.x-pos[0])**2+(self.z-pos[1])**2<size
+        image[cond] = color
+
+    def compute_looming_trajectory(self, size_to_speed_ratio, dt=30e-3, start_size=0.5, end_size=100):
+        """
+        from:
+
+        Computation of Object Approach by a Wide-Field, Motion-Sensitive Neuron
+        Fabrizio Gabbiani, Holger G. Krapp and Gilles Laurent
+        Journal of Neuroscience 1 February 1999, 19 (3) 1122-1141; DOI: https://doi.org/10.1523/JNEUROSCI.19-03-01122.1999         
+        """
+
+        times, angles = [0], [end_size*np.pi/180.]
+
+        i=0
+        while angles[-1]>(start_size*np.pi/180.) and i<200:
+            times.append(times[-1]-dt)
+            angles.append(angles[-1]-2*dt*size_to_speed_ratio/(times[-1]**2+size_to_speed_ratio**2))
+            i+=1
+
+        return np.array(times)-times[-1], np.array(angles)[::-1]*180/np.pi
+    
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+
+        # background frame:
+        bg = 2*cls.experiment['bg-color'][index]-1.+0.*self.x
+
+        t, angles = self.compute_looming_trajectory(cls.experiment['size-to-speed'][index],
+                                                    dt=self.frame_refresh,
+                                                    start_size=cls.experiment['radius-start'][index],
+                                                    end_size=cls.experiment['radius-end'][index])
+        
+        itend = int(1.2*interval*cls.protocol['movie_refresh_freq'])
+
+        times, FRAMES = [0], [bg.copy()]
+        for it in range(len(t))[1:]:
+            img = bg.copy()
+            self.add_dot(img, (cls.experiment['x-center'][index], cls.experiment['y-center'][index]),
+                         angles[it],
+                         cls.experiment['color'][index])
+            FRAMES.append(img)
+            times.append(it)
+        it = len(t)-1
+        while it<len(t)+int(cls.experiment['y-center'][index]/cls.protocol['movie_refresh_freq']):
+            times.append(len(FRAMES)-1) # the last one
+            it+=1
+        while it<itend:
+            times.append(0) # the first one (bg)
+            it+=1
+            
+        return times, FRAMES
+    
+    
 if __name__=='__main__':
 
     import json, tempfile
     from pathlib import Path
     
-    with open('physion/exp/protocols/multiprotocols-demo.json', 'r') as fp:
+    with open('physion/exp/protocols/looming-stim.json', 'r') as fp:
         protocol = json.load(fp)
 
     class df:
@@ -1328,5 +1537,5 @@ if __name__=='__main__':
 
     stim = build_stim(protocol)
     parent = dummy_parent()
-    # stim.run(parent)
+    stim.run(parent)
     stim.close()

@@ -88,7 +88,7 @@ class dense_noise_generator:
         self.pix = screen['resolution'] # monitor.getSizePix()
         self.square_size = square_size
         self.contrast=contrast
-        
+
         width_deg = 2*np.arctan(screen['width']/2./screen['distance_from_eye'])*180./np.pi
         height_deg = 2*np.arctan(screen['width']*self.pix[1]/self.pix[0]/2./screen['distance_from_eye'])*180./np.pi
 
