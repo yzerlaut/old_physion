@@ -32,7 +32,7 @@ def OS_ROI_analysis(FullData,
                     response_significance_threshold=0.01,
                     with_responsive_angles = False,
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                         test='wilcoxon')):
+                                         test='wilcoxon', positive=True)):
     """
     orientation selectivity ROI analysis
     """
@@ -56,22 +56,17 @@ def OS_ROI_analysis(FullData,
     ax = ge.inset(fig, (0.88,0.4,0.1,0.4))
     angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
+    
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
-        means_pre = EPISODES.compute_stats_over_repeated_trials('angle', i,
-                                                                interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_pre']),
-                                                                quantity='mean')
-        means_post = EPISODES.compute_stats_over_repeated_trials('angle', i,
-                                                                 interval_cond=EPISODES.compute_interval_cond(stat_test_props['interval_post']),
-                                                                 quantity='mean')
 
         stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond('angle', i),
                                                         **stat_test_props)
 
         angles.append(angle)
-        y.append(np.mean(means_post))
-        sy.append(np.std(means_post))
+        y.append(np.mean(stats.y)) # means "post"
+        sy.append(np.std(stats.y)) # std "post"
         
-        if stats.significant(response_significance_threshold):
+        if stats.significant(threshold=response_significance_threshold):
             responsive = True
             responsive_angles.append(angle)
             
@@ -261,5 +256,15 @@ if __name__=='__main__':
             OS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
         elif args.analysis=='direction':
             DS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
+        else:
+            print('need to choose either "direction"/"orientation" as an analysis type')
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
+
+
+
+
+
+
+
+

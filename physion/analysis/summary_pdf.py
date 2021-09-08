@@ -8,6 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import python_path
 from dataviz.show_data import MultimodalData
 from analysis.tools import *
+from assembling.saving import get_files_with_extension
 
 def metadata_fig(data):
     
@@ -74,11 +75,10 @@ def make_summary_pdf(filename, Nmax=1000000,
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
         print('[ok] notes saved as: "%s" ' % os.path.join(folder, 'exp.pdf'))
-        
 
     if 'behavior' in include:
         
-        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'spont_behavior.py')
+        process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'behavior.py')
         p = subprocess.Popen('%s %s %s' % (python_path, process_script, filename), shell=True)
 
     if 'raw' in include:
@@ -95,8 +95,6 @@ def make_summary_pdf(filename, Nmax=1000000,
 
         print('* looping over protocols for analysis [...]')
 
-        print(data.metadata['protocol'])
-        
         # --- analysis of multi-protocols ---
         if data.metadata['protocol']=='mismatch-negativity':
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
@@ -108,6 +106,21 @@ def make_summary_pdf(filename, Nmax=1000000,
                                           'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
+        elif 'spatial-selectivity' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'spatial_selectivity.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif 'contrast-curve' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'contrast_curves.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif ('secondary' in data.metadata['protocol']):
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'secondary_RF.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+            
         else:
             # --- looping over protocols individually ---
             for ip, protocol in enumerate(data.protocols):
@@ -126,7 +139,17 @@ def make_summary_pdf(filename, Nmax=1000000,
                     process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s direction --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
-                
+
+                if 'gaussian-blobs' in protocol:
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'gaussian_blobs.py')
+                    p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
+
+                if 'noise' in protocol:
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'receptive_field_mapping.py')
+                    p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
+                    
     print('subprocesses to analyze "%s" were launched !' % filename)
     
 
@@ -138,19 +161,43 @@ if __name__=='__main__':
     parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", type=str, nargs='*',
                         default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
+                        # default=['raw'],
                         # default=['protocols'],
                         help='')
+    parser.add_argument("--remove_all_pdfs", help="remove all pdfs of previous analysis in folder", action="store_true")
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
-    
+
     args = parser.parse_args()
 
-    make_summary_pdf(args.datafile,
-                     include=args.ops,
-                     Nmax=args.Nmax,
-                     verbose=args.verbose)
+    if args.remove_all_pdfs and os.path.isdir(args.datafile):
+        FILES = get_files_with_extension(args.datafile, extension='.pdf', recursive=True)
+        for f in FILES:
+            print('removing', f)
+            os.remove(f)
+    elif os.path.isdir(args.datafile):
+        FILES = get_files_with_extension(args.datafile, extension='.nwb', recursive=True)
+        for f in FILES:
+            try:
+                make_summary_pdf(f,
+                                 include=args.ops,
+                                 Nmax=args.Nmax,
+                                 verbose=args.verbose)
+            except BaseException as be:
+                print('')
+                print('Pb with', f)
+                print(be)
+                print('')
+    elif os.path.isfile(args.datafile):
+        make_summary_pdf(args.datafile,
+                         include=args.ops,
+                         Nmax=args.Nmax,
+                         verbose=args.verbose)
+    else:
+        print(' /!\ provide a valid folder or datafile /!\ ')
 
     
+
 
 
 

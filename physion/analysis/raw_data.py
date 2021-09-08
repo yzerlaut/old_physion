@@ -14,6 +14,7 @@ def raw_data_plot_settings(data,
                            Nroi=10,
                            subsampling_factor=1):
     settings = {}
+
     if 'Photodiode-Signal' in data.nwbfile.acquisition:
         settings['Photodiode'] = dict(fig_fraction=0.1, subsampling=100*subsampling_factor, color='grey')
     if 'Running-Speed' in data.nwbfile.acquisition:
@@ -31,13 +32,17 @@ def raw_data_plot_settings(data,
                                            roiIndices='all',
                                            quantity='CaImaging', subquantity='Fluorescence', normalization='per-cell',
                                            subsampling=5*subsampling_factor)
+    for signal in ['Electrophysiological-Signal', 'LFP', 'Vm']:
+        if signal in data.nwbfile.acquisition:
+            settings['Electrophy'] = dict(fig_fraction=1,
+                                          color='blue', subsampling=10*subsampling_factor)
+        
     if not (subsampling_factor>1):
         settings['VisualStim'] = dict(fig_fraction=0.01, color='black')
     return settings
 
 
 def analysis_pdf(datafile,
-                 Tzoom=60,
                  NzoomPlot=5,
                  Nroi=10):
 
@@ -45,6 +50,10 @@ def analysis_pdf(datafile,
 
     data = MultimodalData(datafile)
 
+    if data.metadata['CaImaging']:
+        Tzoom=60
+    else:
+        Tzoom=20
 
     with PdfPages(pdf_filename) as pdf:
         
@@ -54,8 +63,11 @@ def analysis_pdf(datafile,
         fig.subplots_adjust(top=0.8, bottom=0.05)
         
         print('   - plotting full data view')
-        
-        subsampling = max([int((data.tlim[1]-data.tlim[0])/data.CaImaging_dt/1000), 1])
+        if data.metadata['CaImaging']:
+            subsampling = max([int((data.tlim[1]-data.tlim[0])/data.CaImaging_dt/1000), 1])
+        else:
+            subsampling = 1
+            
         data.plot_raw_data(data.tlim,
                            settings=raw_data_plot_settings(data,
                                                            Nroi=Nroi,
@@ -73,7 +85,7 @@ def analysis_pdf(datafile,
             
             fig, ax = plt.subplots(1, figsize=(11.4, 5))
             fig.subplots_adjust(top=0.8, bottom=0.05)
-            data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data), ax=ax)
+            data.plot_raw_data(TLIM, settings=raw_data_plot_settings(data, Nroi=Nroi), ax=ax)
             axT = add_inset_with_time_sample(TLIM, data.tlim, plt)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
@@ -86,7 +98,7 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
-    parser.add_argument("--Tzoom", type=float, default=60.)
+    # parser.add_argument("--Tzoom", type=float, default=60.)
     parser.add_argument("--NzoomPlot", type=int, default=5)
     parser.add_argument("--Nroi", type=int, default=10)
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -95,7 +107,7 @@ if __name__=='__main__':
     
     if '.nwb' in args.datafile:
         analysis_pdf(args.datafile,
-                     Tzoom=args.Tzoom,
+                     # Tzoom=args.Tzoom,
                      NzoomPlot=args.NzoomPlot,
                      Nroi=args.Nroi)
     else:

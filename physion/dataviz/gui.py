@@ -8,7 +8,6 @@ from assembling.dataset import Dataset, MODALITIES
 from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.make_figures import FiguresWindow
-from analysis.behavioral_modulation import BehavioralModWindow
 from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
@@ -105,7 +104,6 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('[visualization/analysis]')
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
-        self.pbox.addItem('-> Behavioral-modulation')
         self.pbox.addItem('-> draw figures')
         self.pbox.addItem('-> produce PDF summary')
         self.pbox.addItem('-> open PDF summary')
@@ -130,7 +128,7 @@ class MainWindow(guiparts.NewWindow):
         Layout12.addWidget(self.dbox)
 
         self.win1 = pg.GraphicsLayoutWidget()
-        self.win1.setMaximumHeight(win1_Hmax-1.5*selector_height)
+        self.win1.setMaximumHeight(int(win1_Hmax-1.5*selector_height))
         Layout12.addWidget(self.win1)
 
         self.winTrace = pg.GraphicsLayoutWidget()
@@ -196,7 +194,7 @@ class MainWindow(guiparts.NewWindow):
         self.CaImaging_key = 'Fluorescence'
 
         self.FILES_PER_DAY, self.FILES_PER_SUBJECT, self.SUBJECTS = {}, {}, {}
-        
+
         self.minView = False
         self.showwindow()
 
@@ -295,9 +293,11 @@ class MainWindow(guiparts.NewWindow):
             self.dbox.clear()
             self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
-        self.sbox.clear()
-        self.sbox.addItem(self.data.nwbfile.subject.description)
-        self.sbox.setCurrentIndex(0)
+            
+        if self.sbox.currentIndex()==0:
+            self.sbox.addItem(self.data.nwbfile.subject.description)
+            self.sbox.setCurrentIndex(1)
+            
         self.pbox.setCurrentIndex(1)
 
         if 'ophys' in self.data.nwbfile.processing:
@@ -321,9 +321,13 @@ class MainWindow(guiparts.NewWindow):
                                          extension='.nwb', recursive=True)
 
         DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
+        NDATES = np.array([datetime.date(*[int(dd) for dd in date.split('_')]).toordinal() for date in DATES])
 
         self.FILES_PER_DAY = {}
         
+        guiparts.reinit_calendar(self,
+                                 min_date= tuple(int(dd) for dd in DATES[np.argmin(NDATES)].split('_')),
+                                 max_date= tuple(int(dd) for dd in DATES[np.argmax(NDATES)].split('_')))
         for d in np.unique(DATES):
             try:
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
@@ -342,32 +346,47 @@ class MainWindow(guiparts.NewWindow):
 
         FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
                                          extension='.nwb', recursive=True)
+        print(' looping over n=%i datafiles to fetch "subjects" metadata [...]' % len(FILES))
+        DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
 
-        SUBJECTS, DISPLAY_NAMES = [], []
-        for fn in FILES:
+        SUBJECTS, DISPLAY_NAMES, SDATES, NDATES = [], [], [], []
+        for fn, date in zip(FILES, DATES):
             infos = self.preload_datafolder(fn)
+            SDATES.append(date)
             SUBJECTS.append(infos['subject'])
             DISPLAY_NAMES.append(infos['display_name'])
+            NDATES.append(datetime.date(*[int(dd) for dd in date.split('_')]).toordinal())
 
         self.SUBJECTS = {}
         for s in np.unique(SUBJECTS):
             cond = (np.array(SUBJECTS)==s)
             self.SUBJECTS[s] = {'display_names':np.array(DISPLAY_NAMES)[cond],
-                                'datafiles':np.array(FILES)[cond]}
+                                'datafiles':np.array(FILES)[cond],
+                                'dates':np.array(SDATES)[cond],
+                                'dates_num':np.array(NDATES)[cond]}
 
         print(' -> found n=%i subjects ' % len(self.SUBJECTS.keys()))
         self.sbox.clear()
         self.sbox.addItems([self.subject_default_key]+\
                            list(self.SUBJECTS.keys()))
         self.sbox.setCurrentIndex(0)
+        
                                 
     def pick_subject(self):
         self.plot.clear()
         if self.sbox.currentText()==self.subject_default_key:
             self.compute_subjects()
         elif self.sbox.currentText() in self.SUBJECTS:
-            self.list_protocol = self.SUBJECTS[self.sbox.currentText()]['datafiles']
-            self.update_df_names()
+            self.FILES_PER_DAY = {} # re-init
+            date_min = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmin(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
+            date_max = self.SUBJECTS[self.sbox.currentText()]['dates'][np.argmax(self.SUBJECTS[self.sbox.currentText()]['dates_num'])]
+            guiparts.reinit_calendar(self,
+                                     min_date= tuple(int(dd) for dd in date_min.split('_')),
+                                     max_date= tuple(int(dd) for dd in date_max.split('_')))
+            for d in np.unique(self.SUBJECTS[self.sbox.currentText()]['dates']):
+                self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
+                                           self.highlight_format)
+                self.FILES_PER_DAY[d] = [f for f in np.array(self.SUBJECTS[self.sbox.currentText()]['datafiles'])[self.SUBJECTS[self.sbox.currentText()]['dates']==d]]
         else:
             print(' /!\ subject not recognized /!\  ')
                                 
@@ -409,10 +428,11 @@ class MainWindow(guiparts.NewWindow):
                 
     def preload_datafolder(self, fn):
         data = Data(fn, metadata_only=True, with_tlim=False)
-        infos = {'display_name' : data.df_name,
-                 'subject': data.nwbfile.subject.description}
-        data.io.close()
-        return infos
+        if data.nwbfile is not None:
+            return {'display_name' : data.df_name,
+                     'subject': data.nwbfile.subject.description}
+        else:
+            return {'display_name': '', 'subject':''}
 
     def add_datafolder_annotation(self):
         info = 20*'-'+'\n'
@@ -438,11 +458,8 @@ class MainWindow(guiparts.NewWindow):
         if self.pbox.currentText()=='-> Trial-average':
             self.windowTA = TrialAverageWindow(parent=self)
             self.windowTA.show()
-        elif self.pbox.currentText()=='-> Behavioral-modulation' and (self.windowBM is None):
-            self.window3 = BehavioralModWindow(parent=self)
-            self.window3.show()
         elif self.pbox.currentText()=='-> draw figures':
-            self.windowFG = FiguresWindow(parent=self)
+            self.windowFG = FiguresWindow(self.datafile, parent=self)
             self.windowFG.show()
         elif self.pbox.currentText()=='-> produce PDF summary':
             cmd = '%s %s %s --verbose' % (python_path,

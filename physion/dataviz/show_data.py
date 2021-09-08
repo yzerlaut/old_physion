@@ -70,7 +70,7 @@ class MultimodalData(Data):
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Electrophysiological-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Electrophysiological-Signal'].data[i1:i2][::subsampling]
 
-        self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmV')        
+        self.plot_scaled_signal(ax, t, y, tlim, 0.2, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmV')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
     def add_Locomotion(self, tlim, ax,
@@ -107,6 +107,21 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
+    def add_GazeMovement(self, tlim, ax,
+                         fig_fraction_start=0., fig_fraction=1., subsampling=2,
+                         gaze_scale_bar = 0.2, # scale bar in mm
+                         color=ge.orange, name='gaze mov.'):
+        i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
+        t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
+        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[i1:i2]
+        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[i1:i2]
+        mov = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        
+        x, y = t[::subsampling], mov[::subsampling]
+
+        self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
+        self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
+        
 
     def add_CaImagingRaster(self, tlim, ax,
                             fig_fraction_start=0., fig_fraction=1., color='green',
@@ -130,7 +145,7 @@ class MultimodalData(Data):
             ge.bar_legend(ax,
                           # X=[0,1], bounds=[0,1],
                           continuous=False, colormap=cmap,
-                          inset=dict(rect=[-.04,
+                          colorbar_inset=dict(rect=[-.04,
                                            fig_fraction_start+.2*fig_fraction,
                                            .01,
                                            .6*fig_fraction], facecolor=None),
@@ -249,7 +264,8 @@ class MultimodalData(Data):
         if Tbar==0.:
             Tbar = np.max([int((tlim[1]-tlim[0])/30.), 1])
         ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=1, color='k')
-        ax.annotate(' %is' % Tbar, [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
+        ax.annotate((' %is' % Tbar if Tbar>1 else  '%.1fs' % Tbar) ,
+                    [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         ax.axis('off')
         ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
@@ -280,13 +296,13 @@ class MultimodalData(Data):
                            with_screen_inset=False,
                            with_stim=True,
                            with_axis=False,
-                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon'),
+                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
                            with_annotation=False,
                            color='k',
                            label='',
                            ylim=None, xlim=None,
                            fig=None, AX=None, verbose=False):
-        
+
         # ----- protocol cond ------
         Pcond = self.get_protocol_cond(protocol_id)
 
@@ -349,6 +365,9 @@ class MultimodalData(Data):
         if (fig is None) and (AX is None):
             fig, AX = ge.figure(axes=(len(COL_CONDS), len(ROW_CONDS)),
                                 **dv_tools.FIGURE_PRESETS[fig_preset])
+            no_set=False
+        else:
+            no_set=True
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -391,7 +410,10 @@ class MultimodalData(Data):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==row_key) or (key in row_keys):
-                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
+                                    try:
+                                        s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
+                                    except IndexError:
+                                        pass
                             ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
                         ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
@@ -429,18 +451,19 @@ class MultimodalData(Data):
             
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
-                ge.set_plot(AX[irow][icol],
-                            spines=(['left', 'bottom'] if with_axis else []),
-                            # xlabel=(self.xbarlabel.text() if with_axis else ''),
-                            # ylabel=(self.ybarlabel.text() if with_axis else ''),
-                            ylim=self.ylim, xlim=self.xlim)
+                if not no_set:
+                    ge.set_plot(AX[irow][icol],
+                                spines=(['left', 'bottom'] if with_axis else []),
+                                # xlabel=(self.xbarlabel.text() if with_axis else ''),
+                                # ylabel=(self.ybarlabel.text() if with_axis else ''),
+                                ylim=self.ylim, xlim=self.xlim)
 
                 if with_stim:
                     AX[irow][icol].fill_between([0, np.mean(EPISODES.time_duration)],
                                         self.ylim[0]*np.ones(2), self.ylim[1]*np.ones(2),
                                         color='grey', alpha=.2, lw=0)
 
-        if not with_axis:
+        if not with_axis and not no_set:
             ge.draw_bar_scales(AX[0][0],
                                Xbar=xbar, Xbar_label=xbarlabel,
                                Ybar=ybar,  Ybar_label=ybarlabel,
@@ -512,6 +535,8 @@ def format_key_value(key, value):
         return '$c$=%.1f' % value
     elif key=='repeat':
         return 'trial #%i' % (value+1)
+    elif key=='center-time':
+        return '$t_0$:%.1fs' % value
     elif key=='light-level':
         if value==0:
             return 'grey'
@@ -522,7 +547,7 @@ def format_key_value(key, value):
     elif key=='protocol_id':
         return 'p.#%i' % (value+1)
     else:
-        return '%.2f' % value
+        return '%s=%.2f' % (key, value)
 
     
      
@@ -548,20 +573,22 @@ if __name__=='__main__':
     #                         fig_preset='raw-traces-preset', color=ge.red, label='test 2\n\n', fig=fig, AX=AX)
     
     # RAW DATA EXAMPLE
-    data.plot_raw_data([10, 200], 
-              # settings={'Photodiode':dict(fig_fraction=.1, subsampling=1, color='grey'),
-              settings={'Locomotion':dict(fig_fraction=1, subsampling=5, color=ge.blue),
-                        # 'Pupil':dict(fig_fraction=1, subsampling=1, color=ge.red),
-                        'CaImaging':dict(fig_fraction=7, subsampling=2, 
-                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
-                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
-                                         # roiIndices=np.arange(np.sum(data.iscell))),
-                                         roiIndices=np.arange(5,7)),
-                        'CaImagingRaster':dict(fig_fraction=7, subsampling=1,
+    data.plot_raw_data([10, 35], 
+              # settings={
+              settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                roiIndices='all',
                                                normalization='per-line',
                                                quantity='CaImaging', subquantity='Fluorescence'),
-                        'VisualStim':dict(fig_fraction=.5, color='black')})
+                        'CaImaging':dict(fig_fraction=3, subsampling=1, 
+                                         # quantity='CaImaging', subquantity='dF/F', color=ge.green,
+                                         quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+                                         # roiIndices=np.arange(np.sum(data.iscell))),
+                                         roiIndices=[0, 10, 22, 34, 45, 56]),
+                        'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
+                        'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
+                        'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                        'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
+                        'VisualStim':dict(fig_fraction=.5, color='black')}, Tbar=1)
     ge.show()
 
 

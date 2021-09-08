@@ -122,7 +122,8 @@ class EpisodeResponse:
                                        episode_cond=None,
                                        interval_pre=[-2,0],
                                        interval_post=[1,3],
-                                       test='wilcoxon'):
+                                       test='wilcoxon',
+                                       positive=True):
 
         if episode_cond is None:
             episode_cond = np.ones(self.resp.shape[0], dtype=bool)
@@ -131,7 +132,8 @@ class EpisodeResponse:
         post_cond  = self.compute_interval_cond(interval_post)
 
         return stat_tools.StatTest(self.resp[episode_cond,:][:,pre_cond].mean(axis=1),
-                                   self.resp[episode_cond,:][:,post_cond].mean(axis=1))
+                                   self.resp[episode_cond,:][:,post_cond].mean(axis=1),
+                                   test=test, positive=positive)
 
     def compute_stats_over_repeated_trials(self, key, index,
                                            interval_cond=None,

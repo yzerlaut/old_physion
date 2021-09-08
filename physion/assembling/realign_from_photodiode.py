@@ -6,6 +6,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
+                            smoothing_time=20e-3,
                             debug=False, verbose=True, n_vis=5):
 
     if verbose:
@@ -45,6 +46,7 @@ def realign_from_photodiode(signal,
         cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i])
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
+                                                          smoothing_time=smoothing_time,
                                                           baseline=baseline, high_level=high_level)
             if debug and ((i<n_vis) or (i>Nepisodes-n_vis)):
                 fig, ax = plt.subplots()
@@ -83,22 +85,26 @@ def realign_from_photodiode(signal,
             metadata['time_duration'][:len(metadata['time_start_realigned'])]
     else:
         metadata['time_start_realigned'] = np.array([])
-        metadata['time_stop_realigned'] = np.array([])
+         metadata['time_stop_realigned'] = np.array([])
     return success, metadata
 
 
 def find_onset_time(t, photodiode_signal,
                     smoothing_time = 20e-3,
-                    advance_time = 15e-3,
+                    # advance_time = 15e-3,
                     baseline=0, high_level=1):
     """
-    the threshold of integral increase corresponds to spending X-ms at half the maximum
+    we smooth the photodiode signal, with a gaussian filter of extent Tsmoothing
+    Tonset = Tcrossing-3./4.*Tsmoothing
+    Tcrossing is the time of crossing of half the max-min level (of the smoothed signal)
     """
+    advance_time = 3./4.*smoothing_time
     smoothed = gaussian_filter1d(photodiode_signal, int(smoothing_time/(t[1]-t[0])))
     smoothed = (smoothed-smoothed.min())/(smoothed.max()-smoothed.min())
     cond = (smoothed[1:]>=0.5) & (smoothed[:-1]<=0.5)
     t0 = t[:-1][cond][0]
     return t0-advance_time, smoothed, smoothed.min()+0.5*(smoothed.max()-smoothed.min())
+
 
 def normalize_signal(x):
     # just to plot above
@@ -115,6 +121,7 @@ if __name__=='__main__':
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-df', "--datafolder", type=str, default='')
     parser.add_argument('-n', "--n_vis", type=int, default=5)
+    parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
     args = parser.parse_args()
 
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]

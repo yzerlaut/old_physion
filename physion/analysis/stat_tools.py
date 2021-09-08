@@ -8,28 +8,46 @@ from analysis.read_NWB import Data
 class StatTest:
     
     def __init__(self, x, y,
-                 test='wilcoxon'):
+                 test='wilcoxon',
+                 positive=False):
 
         self.x, self.y = x, y
         for key in ['pvalue', 'statistic']:
-            setattr(self, key, None)
-            
-        if test=='wilcoxon':
-            result = stats.wilcoxon(self.x, self.y)
-            for key in ['pvalue', 'statistic']:
-                setattr(self, key, getattr(result, key))
-            self.statistic = result.statistic
-        elif test=='anova':
-            result = stats.f_oneway(self.x, self.y)
-            for key in ['pvalue', 'statistic']:
-                setattr(self, key, getattr(result, key))
-        else:
-            print(' "%s" test not implemented ! ' % test)
+            setattr(self, key, 1)
+        self.positive = positive # to evaluate positive only deflections
+        
+        try:
+            self.r = stats.pearsonr(x, y)[0] # Pearson's correlation coef
+            self.sign = np.mean(y-x)>0 # sign of the effect
+
+            if test=='wilcoxon':
+                result = stats.wilcoxon(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
+                self.statistic = result.statistic
+            elif test=='anova':
+                result = stats.f_oneway(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
+            elif test=='ttest':
+                result = stats.ttest_rel(self.x, self.y)
+                for key in ['pvalue', 'statistic']:
+                    setattr(self, key, getattr(result, key))
+            else:
+                print(' "%s" test not implemented ! ' % test)
+        except ValueError:
+            pass
 
     def significant(self, threshold=0.01):
-        
+        """
+        here with 
+        """
+
         if (self.pvalue is not None) and (self.pvalue<threshold):
-            return True
+            if self.positive and not self.sign:        
+                return False
+            else:
+                return True
         elif (self.pvalue is not None):
             return False
         else:
@@ -40,7 +58,9 @@ class StatTest:
         """
         uses the 
         """
-        if self.pvalue<1e-3:
+        if self.positive and not self.sign:        
+            return 'n.s.', size
+        elif self.pvalue<1e-3:
             return '***', size+1
         elif self.pvalue<1e-2:
             return '**', size+1
