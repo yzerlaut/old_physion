@@ -93,10 +93,10 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
                 if os.path.isfile(os.path.join(save_folder, 'plane%i' % iplane, 'redcell_manual.npy')):
                     redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell_manual.npy'))[iscell[:,0], :]
                 else:
-                    print('\n'+30'--')
+                    print('\n'+30*'--')
                     print(' /!\ no file found for the manual labelling of red cells (generate it with the red-cell labelling GUI) /!\ ')
                     print(' /!\ taking the raw suit2p output with the classifier settings /!\ ')
-                    print('\n'+30'--')
+                    print('\n'+30*'--')
                     redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))[iscell[:,0], :]
             for fstr in file_strs:
                 traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr))[iscell[:,0], :])

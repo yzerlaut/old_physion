@@ -85,7 +85,7 @@ def realign_from_photodiode(signal,
             metadata['time_duration'][:len(metadata['time_start_realigned'])]
     else:
         metadata['time_start_realigned'] = np.array([])
-         metadata['time_stop_realigned'] = np.array([])
+        metadata['time_stop_realigned'] = np.array([])
     return success, metadata
 
 

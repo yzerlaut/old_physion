@@ -385,7 +385,7 @@ def build_NWB(args,
             print('=> Storing Vm signal for "%s" [...]' % args.datafolder)
             
         vm = pynwb.TimeSeries(name='Vm-Signal',
-                              description='gain 1 on Multiclamp'
+                              description='gain 1 on Multiclamp',
                               data = NIdaq_data['analog'][iElectrophy],
                               starting_time=0.,
                               unit='mV',
@@ -399,7 +399,7 @@ def build_NWB(args,
             print('=> Storing LFP signal for "%s" [...]' % args.datafolder)
             
         lfp = pynwb.TimeSeries(name='LFP-Signal',
-                               description='gain 100 on Multiclamp'
+                               description='gain 100 on Multiclamp',
                                data = NIdaq_data['analog'][iElectrophy],
                                starting_time=0.,
                                unit='mV',
