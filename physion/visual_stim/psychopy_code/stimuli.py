@@ -1335,7 +1335,7 @@ class line_moving_dots(visual_stim):
         if type=='square':
             cond = (self.x>(pos[0]-size/2)) & (self.x<(pos[0]+size/2)) & (self.z>(pos[1]-size/2)) & (self.z<(pos[1]+size/2))
         else:
-            cond = (self.x-pos[0])**2+(self.z-pos[1])**2<size
+            cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
         image[cond] = color
 
         
@@ -1447,35 +1447,39 @@ class looming_stim(visual_stim):
         super().init_experiment(protocol,
                                 ['radius-start', 'radius-end',
                                  'x-center', 'y-center',
-                                 'color', 'size-to-speed',
-                                 'bg-color'],
+                                 'color', 'looming-nonlinearity', 'looming-duration',
+                                 'end-duration', 'bg-color'],
                                 run_type='images_sequence')
 
     def add_dot(self, image, pos, size, color):
         """
         add dot
         """
-        cond = (self.x-pos[0])**2+(self.z-pos[1])**2<size
+        cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
         image[cond] = color
 
-    def compute_looming_trajectory(self, size_to_speed_ratio, dt=30e-3, start_size=0.5, end_size=100):
-        """
-        from:
-
-        Computation of Object Approach by a Wide-Field, Motion-Sensitive Neuron
-        Fabrizio Gabbiani, Holger G. Krapp and Gilles Laurent
-        Journal of Neuroscience 1 February 1999, 19 (3) 1122-1141; DOI: https://doi.org/10.1523/JNEUROSCI.19-03-01122.1999         
-        """
-
-        times, angles = [0], [end_size*np.pi/180.]
-
-        i=0
-        while angles[-1]>(start_size*np.pi/180.) and i<200:
-            times.append(times[-1]-dt)
-            angles.append(angles[-1]-2*dt*size_to_speed_ratio/(times[-1]**2+size_to_speed_ratio**2))
-            i+=1
-
-        return np.array(times)-times[-1], np.array(angles)[::-1]*180/np.pi
+    # def compute_looming_trajectory(self, size_to_speed_ratio, dt=30e-3, start_size=0.5, end_size=100):
+    #     """
+    #     from:
+    #     Computation of Object Approach by a Wide-Field, Motion-Sensitive Neuron
+    #     Fabrizio Gabbiani, Holger G. Krapp and Gilles Laurent
+    #     Journal of Neuroscience 1 February 1999, 19 (3) 1122-1141; DOI: https://doi.org/10.1523/JNEUROSCI.19-03-01122.1999
+    #
+    #     TO BE FIXED     
+    #     """
+    #     times, angles = [0], [end_size*np.pi/180.]
+    #     i=0
+    #     while angles[-1]>(start_size*np.pi/180.) and i<200:
+    #         times.append(times[-1]-dt)
+    #         angles.append(angles[-1]-2*dt*size_to_speed_ratio/(times[-1]**2+size_to_speed_ratio**2))
+    #         i+=1
+    #     return np.array(times)-times[-1], np.array(angles)[::-1]*180/np.pi
+    
+    def compute_looming_trajectory(self, duration=1., nonlinearity=2, dt=30e-3, start_size=0.5, end_size=100):
+        """ SIMPLE """
+        times = np.arange(int(duration/dt))*dt
+        angles = np.linspace(0, 1, len(times))**nonlinearity
+        return times, angles*(end_size-start_size)+start_size
     
         
     def get_frames_sequence(self, index, parent=None):
@@ -1489,30 +1493,31 @@ class looming_stim(visual_stim):
         # background frame:
         bg = 2*cls.experiment['bg-color'][index]-1.+0.*self.x
 
-        t, angles = self.compute_looming_trajectory(cls.experiment['size-to-speed'][index],
-                                                    dt=self.frame_refresh,
+        t, angles = self.compute_looming_trajectory(duration=cls.experiment['looming-duration'][index],
+                                                    nonlinearity=cls.experiment['looming-nonlinearity'][index],
+                                                    dt=1./self.frame_refresh,
                                                     start_size=cls.experiment['radius-start'][index],
                                                     end_size=cls.experiment['radius-end'][index])
-        
+
         itend = int(1.2*interval*cls.protocol['movie_refresh_freq'])
 
-        times, FRAMES = [0], [bg.copy()]
+        times_index_to_frames, FRAMES = [0], [bg.copy()]
         for it in range(len(t))[1:]:
             img = bg.copy()
             self.add_dot(img, (cls.experiment['x-center'][index], cls.experiment['y-center'][index]),
                          angles[it],
                          cls.experiment['color'][index])
             FRAMES.append(img)
-            times.append(it)
+            times_index_to_frames.append(it)
         it = len(t)-1
-        while it<len(t)+int(cls.experiment['y-center'][index]/cls.protocol['movie_refresh_freq']):
-            times.append(len(FRAMES)-1) # the last one
+        while it<len(t)+int(cls.experiment['end-duration'][index]*cls.protocol['movie_refresh_freq']):
+            times_index_to_frames.append(len(FRAMES)-1) # the last one
             it+=1
         while it<itend:
-            times.append(0) # the first one (bg)
+            times_index_to_frames.append(0) # the first one (bg)
             it+=1
-            
-        return times, FRAMES
+
+        return times_index_to_frames, FRAMES
     
     
 if __name__=='__main__':
