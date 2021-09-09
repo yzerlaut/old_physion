@@ -421,7 +421,8 @@ class NewWindow(QtWidgets.QMainWindow):
         return True
 
     def save(self):
-        pass
+        print(' "save" function not implemented')
+        print(' --> should be implemented in child class !')
 
     def select_ROI_from_pick(self, data):
 
