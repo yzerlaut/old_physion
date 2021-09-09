@@ -91,7 +91,7 @@ def build_Ca_filelist(folder):
 
     return CA_FILES
 
-def find_matching_CaImaging_data(cls, filename, CaImaging_root_folder,
+def find_matching_CaImaging_data(filename, CaImaging_root_folder,
                                  min_protocol_duration=10, # seconds
                                  verbose=True):
 
