@@ -79,7 +79,7 @@ def add_buttons(self, Layout):
 
     iconSize = QtCore.QSize(20, 20)
 
-    self.playButton = QtGui.QToolButton()
+    self.playButton = QtWidgets.QToolButton()
     self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
     self.playButton.setIconSize(iconSize)
     self.playButton.setToolTip("Play   -> [Space]")
@@ -87,14 +87,14 @@ def add_buttons(self, Layout):
     self.playButton.setEnabled(True)
     self.playButton.clicked.connect(self.play)
 
-    self.pauseButton = QtGui.QToolButton()
+    self.pauseButton = QtWidgets.QToolButton()
     self.pauseButton.setCheckable(True)
     self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
     self.pauseButton.setIconSize(iconSize)
     self.pauseButton.setToolTip("Pause   -> [Space]")
     self.pauseButton.clicked.connect(self.pause)
 
-    btns = QtGui.QButtonGroup(self)
+    btns = QtWidgets.QButtonGroup(self)
     btns.addButton(self.playButton,0)
     btns.addButton(self.pauseButton,1)
     btns.setExclusive(True)
@@ -104,28 +104,28 @@ def add_buttons(self, Layout):
     self.pauseButton.setChecked(True)
 
     
-    self.refreshButton = QtGui.QToolButton()
+    self.refreshButton = QtWidgets.QToolButton()
     self.refreshButton.setCheckable(True)
     self.refreshButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
     self.refreshButton.setIconSize(iconSize)
     self.refreshButton.setToolTip("Refresh   -> [r]")
     self.refreshButton.clicked.connect(self.refresh)
 
-    self.quitButton = QtGui.QToolButton()
+    self.quitButton = QtWidgets.QToolButton()
     # self.quitButton.setCheckable(True)
     self.quitButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DialogCloseButton))
     self.quitButton.setIconSize(iconSize)
     self.quitButton.setToolTip("Quit")
     self.quitButton.clicked.connect(self.quit)
     
-    self.backButton = QtGui.QToolButton()
+    self.backButton = QtWidgets.QToolButton()
     # self.backButton.setCheckable(True)
     self.backButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogBack))
     self.backButton.setIconSize(iconSize)
     self.backButton.setToolTip("Back to initial view   -> [i]")
     self.backButton.clicked.connect(self.back_to_initial_view)
 
-    self.settingsButton = QtGui.QToolButton()
+    self.settingsButton = QtWidgets.QToolButton()
     # self.settingsButton.setCheckable(True)
     self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
     self.settingsButton.setIconSize(iconSize)
@@ -159,7 +159,7 @@ def load_config1(self,
                  win1_Wmax=1200, win1_Wmin=300,
                  win1_Hmax=500, win2_Wmax=500):
 
-    self.cwidget = QtGui.QWidget(self)
+    self.cwidget = QtWidgets.QWidget(self)
     self.setCentralWidget(self.cwidget)
 
     self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
@@ -277,19 +277,19 @@ def load_config1(self,
     Layout122 = QtWidgets.QHBoxLayout()
     Layout12.addLayout(Layout122)
     
-    self.roiPick = QtGui.QLineEdit()
+    self.roiPick = QtWidgets.QLineEdit()
     self.roiPick.setText(' [...] ')
     self.roiPick.setMinimumWidth(150)
     self.roiPick.setMaximumWidth(350)
     self.roiPick.returnPressed.connect(self.select_ROI)
     self.roiPick.setFont(smallfont)
 
-    self.ephysPick = QtGui.QLineEdit()
+    self.ephysPick = QtWidgets.QLineEdit()
     self.ephysPick.setText(' ')
     # self.ephysPick.returnPressed.connect(self.select_ROI)
     self.ephysPick.setFont(smallfont)
 
-    self.guiKeywords = QtGui.QLineEdit()
+    self.guiKeywords = QtWidgets.QLineEdit()
     self.guiKeywords.setText('     [GUI keywords] ')
     self.guiKeywords.setFixedWidth(200)
     self.guiKeywords.returnPressed.connect(self.keyword_update)
@@ -360,7 +360,7 @@ class NewWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(title)
         self.minView = False
 
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
         
         self.statusBar = QtWidgets.QStatusBar()
@@ -543,17 +543,17 @@ class Slider(QtWidgets.QSlider):
         parent.win.show()
 
 ### custom QDialog which makes a list of items you can include/exclude
-class ListChooser(QtGui.QDialog):
+class ListChooser(QtWidgets.QDialog):
     def __init__(self, title, parent):
         super(ListChooser, self).__init__(parent)
         self.setGeometry(300,300,320,200)
         self.setWindowTitle(title)
-        self.win = QtGui.QWidget(self)
-        layout = QtGui.QGridLayout()
+        self.win = QtWidgets.QWidget(self)
+        layout = QtWidgets.QGridLayout()
         self.win.setLayout(layout)
         #self.setCentralWidget(self.win)
-        layout.addWidget(QtGui.QLabel('click to select videos (none selected => all used)'),0,0,1,1)
-        self.list = QtGui.QListWidget(parent)
+        layout.addWidget(QtWidgets.QLabel('click to select videos (none selected => all used)'),0,0,1,1)
+        self.list = QtWidgets.QListWidget(parent)
         for f in parent.filelist:
             self.list.addItem(f)
         layout.addWidget(self.list,1,0,7,4)
