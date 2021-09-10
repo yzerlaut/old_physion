@@ -3,6 +3,7 @@ import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from Ca_imaging.process_xml import build_suite2p_options
+from misc.folders import python_path_suite2p_env
 
 PREPROCESSING_SETTINGS = {
     'GCamp6f_1plane':{'cell_diameter':20, # in um
@@ -37,13 +38,11 @@ PREPROCESSING_SETTINGS = {
                     'neucoeff': 1.0},
 }
 
-suite2p_path = '$HOME/miniconda3/envs/suite2p/bin/suite2p'
-
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):
         shutil.rmtree(os.path.join(args.CaImaging_folder, 'suite2p'))
     build_suite2p_options(args.CaImaging_folder, PREPROCESSING_SETTINGS[args.setting_key])
-    cmd = '%s --db %s --ops %s &' % (suite2p_path,
+    cmd = '%s --db %s --ops %s &' % (python_path_suite2p_env,
                                      os.path.join(args.CaImaging_folder,'db.npy'),
                                      os.path.join(args.CaImaging_folder,'ops.npy'))
     subprocess.run(cmd, shell=True)
