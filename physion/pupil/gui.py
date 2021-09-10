@@ -206,16 +206,16 @@ class MainWindow(NewWindow):
         self.saverois = QtWidgets.QPushButton('save data [Ctrl+S]')
         self.saverois.clicked.connect(self.save)
 
-        self.excludeOutliers = QtGui.QPushButton('exclude outlier [Ctrl+E]')
+        self.excludeOutliers = QtWidgets.QPushButton('exclude outlier [Ctrl+E]')
         self.excludeOutliers.clicked.connect(self.find_outliers)
 
-        self.interpBtn = QtGui.QPushButton('interpolate')
+        self.interpBtn = QtWidgets.QPushButton('interpolate')
         self.interpBtn.clicked.connect(self.interpolate)
 
-        self.processOutliers = QtGui.QPushButton('Set blinking interval')
+        self.processOutliers = QtWidgets.QPushButton('Set blinking interval')
         self.processOutliers.clicked.connect(self.process_outliers)
         
-        self.printSize = QtGui.QPushButton('print ROI size')
+        self.printSize = QtWidgets.QPushButton('print ROI size')
         self.printSize.clicked.connect(self.print_size)
 
         for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
@@ -225,18 +225,18 @@ class MainWindow(NewWindow):
         
         
         iconSize = QtCore.QSize(30, 30)
-        self.playButton = QtGui.QToolButton()
-        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+        self.playButton = QtWidgets.QToolButton()
+        self.playButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         self.playButton.setIconSize(iconSize)
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
-        self.pauseButton = QtGui.QToolButton()
+        self.pauseButton = QtWidgets.QToolButton()
         self.pauseButton.setCheckable(True)
-        self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+        self.pauseButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
 
-        btns = QtGui.QButtonGroup(self)
+        btns = QtWidgets.QButtonGroup(self)
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
 
@@ -256,13 +256,13 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.processOutliers, 26, 0, 1, 3)
         self.l0.addWidget(self.printSize, 27, 0, 1, 3)
 
-        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.addWidget(QtWidgets.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
         self.l0.addWidget(self.timeLabel, istretch+13,0,1,3)
         self.l0.addWidget(self.currentTime, istretch+14,0,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
-        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
+        self.l0.addWidget(QtWidgets.QLabel(''),17,2,1,1)
         self.l0.setRowStretch(16,2)
         # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.updateFrameSlider()
@@ -326,8 +326,7 @@ class MainWindow(NewWindow):
                 self.timeLabel.setEnabled(True)
                 self.frameSlider.setEnabled(True)
                 self.updateFrameSlider()
-                self.currentTime.setValidator(\
-                                              QtGui.QDoubleValidator(0, self.nframes, 2))
+                self.currentTime.setValidator(QtGui.QDoubleValidator(0, self.nframes, 2))
                 self.movieLabel.setText(folder)
 
 
