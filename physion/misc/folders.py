@@ -11,9 +11,15 @@ if os.path.isdir(os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'su
 elif os.path.isdir(os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'suite2p')):
     python_path_suite2p_env = os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'suite2p', 'bin', 'python')
 
+if os.name=='nt':
+    python_path += '.exe'
+    python_path_suite2p_env += '.exe'
+
+    
 FOLDERS = {
     '~/DATA':os.path.join(os.path.expanduser('~'), 'DATA'),
-    '~/UNPROCESSED':os.path.join(os.path.expanduser('~'), 'UNPROCESSED')
+    '~/UNPROCESSED':os.path.join(os.path.expanduser('~'), 'UNPROCESSED'),
+    '~/CURATED':os.path.join(os.path.expanduser('~'), 'CURATED')
 }
 
 if os.name=='nt':
@@ -22,7 +28,7 @@ if os.name=='nt':
     FOLDERS['F-drive'] = 'F:\\'
     FOLDERS['G-drive'] = 'G:\\'
 else:
-    FOLDERS['curated'] = '/media/yann/DATADRIVE1/CURATED'
+    FOLDERS['curated-storage'] = '/media/yann/DATADRIVE1/CURATED'
     FOLDERS['usb (YANN)'] = '/media/yann/YANN/'
     FOLDERS['usb (Yann)'] = '/media/yann/Yann/'
     FOLDERS['desktop-storage'] = '/media/yann/DATADRIVE1/DATA/'
