@@ -11,7 +11,6 @@ except ModuleNotFoundError:
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from screens import SCREENS
 from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
-# from psychopy_code.dots_stim import moving_dots as moving_dots_init
 from psychopy_code.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 def build_stim(protocol, no_psychopy=False):
@@ -617,6 +616,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
+    # def show_interstim(self):
+        
 
 
 #####################################################
@@ -1338,15 +1339,11 @@ class line_moving_dots(visual_stim):
             cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
         image[cond] = color
 
-        
-    def get_frames_sequence(self, index, parent=None):
-        """
-        
-        """
-        cls = (parent if parent is not None else self)
-        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
-        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
 
+    def get_starting_point_and_direction(self, index, cls):
+        
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        
         line = np.arange(int(cls.experiment['ndots'][index]))*cls.experiment['spacing'][index]
         X0, Y0 = [], []
         if cls.experiment['direction'][index]==0:
@@ -1369,9 +1366,20 @@ class line_moving_dots(visual_stim):
             dx_per_time, dy_per_time = 0, cls.experiment['speed'][index]
             Y0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dy_per_time/2.
             X0 = line-line.mean()
-            
         else:
-            print('direction no implemented')
+            print('direction "%i" not implemented !' % cls.experiment['direction'][index])
+
+        return X0, Y0, dx_per_time, dy_per_time
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
+
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
 
         bg_color = cls.experiment['bg-color'][index]
         
@@ -1393,6 +1401,18 @@ class line_moving_dots(visual_stim):
         return times, FRAMES
 
 
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = 0*cls.x+cls.experiment['bg-color'][episode]
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
+        for x0, y0 in zip(X0, Y0):
+            new_position = (x0+dx_per_time*time_from_episode_start,
+                            y0+dy_per_time*time_from_episode_start)
+            self.add_dot(img, new_position,
+                         cls.experiment['size'][index],
+                         cls.experiment['dotcolor'][index])
+        return img
+    
     
         
 class random_dots(visual_stim):

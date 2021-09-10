@@ -143,7 +143,7 @@ def add_buttons(self, Layout):
     
 
 def build_slider(self, Layout):
-    self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+    self.frameSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
     self.frameSlider.setMinimum(0)
     self.frameSlider.setMaximum(self.settings['Npoints'])
     self.frameSlider.setTickInterval(1)
@@ -524,7 +524,7 @@ class NewWindow(QtWidgets.QMainWindow):
 #     def close(self):
 #         pass
 
-class Slider(QtGui.QSlider):
+class Slider(QtWidgets.QSlider):
     def __init__(self, bid, parent=None):
         super(self.__class__, self).__init__()
         self.bid = bid
@@ -833,7 +833,7 @@ class ImageDraw(pg.ImageItem):
         self.greenmask = np.concatenate((onmask,offmask,onmask,opamask), axis=-1)
 
 
-class RangeSlider(QtGui.QSlider):
+class RangeSlider(QtWidgets.QSlider):
     """ A slider for ranges.
 
         This class provides a dual-slider for ranges, where there is a defined
@@ -857,7 +857,7 @@ class RangeSlider(QtGui.QSlider):
         self.click_offset = 0
 
         self.setOrientation(QtCore.Qt.Vertical)
-        self.setTickPosition(QtGui.QSlider.TicksRight)
+        self.setTickPosition(QtWidgets.QSlider.TicksRight)
         self.setStyleSheet(\
                 "QSlider::handle:horizontal {\
                 background-color: white;\
