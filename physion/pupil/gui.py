@@ -57,9 +57,9 @@ class MainWindow(NewWindow):
         ##### building GUI #####
         ########################
         
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
-        self.l0 = QtGui.QGridLayout()
+        self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
@@ -94,39 +94,39 @@ class MainWindow(NewWindow):
         # saturation sliders
         self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
-        qlabel= QtGui.QLabel('saturation')
+        qlabel= QtWidgets.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # adding blanks (eye borders, ...)
-        self.blankBtn = QtGui.QPushButton('add blanks')
+        self.blankBtn = QtWidgets.QPushButton('add blanks')
         self.l0.addWidget(self.blankBtn, 1, 8+6, 1, 1)
         self.blankBtn.setEnabled(True)
         self.blankBtn.clicked.connect(self.add_blankROI)
         
         # adding reflections ("corneal reflections, ...")
-        self.reflectorBtn = QtGui.QPushButton('add reflect.')
+        self.reflectorBtn = QtWidgets.QPushButton('add reflect.')
         self.l0.addWidget(self.reflectorBtn, 2, 8+6, 1, 1)
         self.reflectorBtn.setEnabled(True)
         self.reflectorBtn.clicked.connect(self.add_reflectROI)
         
         # fit pupil
-        self.fit_pupil = QtGui.QPushButton('fit Pupil [Ctrl+F]')
+        self.fit_pupil = QtWidgets.QPushButton('fit Pupil [Ctrl+F]')
         self.l0.addWidget(self.fit_pupil, 1, 9+6, 1, 1)
         # self.fit_pupil.setEnabled(True)
         self.fit_pupil.clicked.connect(self.fit_pupil_size)
         # choose pupil shape
-        self.pupil_shape = QtGui.QComboBox(self)
+        self.pupil_shape = QtWidgets.QComboBox(self)
         self.pupil_shape.addItem("Ellipse fit")
         self.pupil_shape.addItem("Circle fit")
         self.l0.addWidget(self.pupil_shape, 1, 10+6, 1, 1)
         # reset
-        self.reset_btn = QtGui.QPushButton('reset')
+        self.reset_btn = QtWidgets.QPushButton('reset')
         self.l0.addWidget(self.reset_btn, 1, 11+6, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         # self.reset_btn.setEnabled(True)
         # draw pupil
-        self.refresh_pupil = QtGui.QPushButton('Refresh [Ctrl+R]')
+        self.refresh_pupil = QtWidgets.QPushButton('Refresh [Ctrl+R]')
         self.l0.addWidget(self.refresh_pupil, 2, 11+6, 1, 1)
         self.refresh_pupil.setEnabled(True)
         self.refresh_pupil.clicked.connect(self.jump_to_frame)
@@ -143,21 +143,21 @@ class MainWindow(NewWindow):
         self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No datafile chosen")
+        self.movieLabel = QtWidgets.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
 
 
         # create frame slider
-        self.timeLabel = QtGui.QLabel("Current time (seconds):")
+        self.timeLabel = QtWidgets.QLabel("Current time (seconds):")
         self.timeLabel.setStyleSheet("color: white;")
-        self.currentTime = QtGui.QLineEdit()
+        self.currentTime = QtWidgets.QLineEdit()
         self.currentTime.setText('0')
         self.currentTime.setValidator(QtGui.QDoubleValidator(0, 100000, 2))
         self.currentTime.setFixedWidth(50)
         self.currentTime.returnPressed.connect(self.set_precise_time)
         
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.frameSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(200)
         self.frameSlider.setTickInterval(1)
@@ -172,61 +172,57 @@ class MainWindow(NewWindow):
         self.folderB.setMinimumWidth(150)
         self.folderB.addItems(FOLDERS.keys())
 
-        self.process = QtGui.QPushButton('process data [Ctrl+P]')
-        self.process.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.process = QtWidgets.QPushButton('process data [Ctrl+P]')
         self.process.clicked.connect(self.process_ROIs)
 
-        self.cursor1 = QtGui.QPushButton('Set Cursor 1 [Ctrl+1]')
-        self.cursor1.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.cursor1 = QtWidgets.QPushButton('Set Cursor 1 [Ctrl+1]')
         self.cursor1.clicked.connect(self.set_cursor_1)
 
-        self.cursor2 = QtGui.QPushButton('Set Cursor 2 [Ctrl+2]')
-        self.cursor2.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.cursor2 = QtWidgets.QPushButton('Set Cursor 2 [Ctrl+2]')
         self.cursor2.clicked.connect(self.set_cursor_2)
         
-        self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
-        self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.runAsSubprocess = QtWidgets.QPushButton('run as subprocess')
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
 
-        self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
-        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load = QtWidgets.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.clicked.connect(self.load_data)
 
-        sampLabel = QtGui.QLabel("Subsampling (frame)")
+        sampLabel = QtWidgets.QLabel("Subsampling (frame)")
         sampLabel.setStyleSheet("color: gray;")
-        self.samplingBox = QtGui.QLineEdit()
+        self.samplingBox = QtWidgets.QLineEdit()
         self.samplingBox.setText(str(self.subsampling))
         self.samplingBox.setFixedWidth(50)
 
-        smoothLabel = QtGui.QLabel("Smoothing (px)")
+        smoothLabel = QtWidgets.QLabel("Smoothing (px)")
         smoothLabel.setStyleSheet("color: gray;")
-        self.smoothBox = QtGui.QLineEdit()
+        self.smoothBox = QtWidgets.QLineEdit()
         self.smoothBox.setText(str(self.gaussian_smoothing))
         self.smoothBox.setFixedWidth(30)
 
-        self.addROI = QtGui.QPushButton("add Pupil-ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI = QtWidgets.QPushButton("add Pupil-ROI")
+        
         self.addROI.clicked.connect(self.add_ROI)
 
-        self.saverois = QtGui.QPushButton('save data [Ctrl+S]')
-        self.saverois.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.saverois = QtWidgets.QPushButton('save data [Ctrl+S]')
         self.saverois.clicked.connect(self.save)
 
-        # self.addOutlier = QtGui.QPushButton('exclude outlier [Ctrl+E]')
-        # self.addOutlier.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.addOutlier.clicked.connect(self.exclude_outlier)
+        self.excludeOutliers = QtGui.QPushButton('exclude outlier [Ctrl+E]')
+        self.excludeOutliers.clicked.connect(self.find_outliers)
 
         self.interpBtn = QtGui.QPushButton('interpolate')
-        self.interpBtn.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.interpBtn.clicked.connect(self.interpolate)
 
         self.processOutliers = QtGui.QPushButton('Set blinking interval')
-        self.processOutliers.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.processOutliers.clicked.connect(self.process_outliers)
         
         self.printSize = QtGui.QPushButton('print ROI size')
-        self.printSize.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.printSize.clicked.connect(self.print_size)
+
+        for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
+                  self.saverois, self.addROI, self.interpBtn, self.processOutliers,
+                  self.excludeOutliers, self.printSize]:
+            x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        
         
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
@@ -409,6 +405,9 @@ class MainWindow(NewWindow):
 
     def process_outliers(self):
         self.interpolate(with_blinking_flag=True)
+
+    def find_outliers(self):
+        print('to be implemented')
         
     def debug(self):
         print('No debug function')
