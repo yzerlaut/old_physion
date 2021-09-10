@@ -59,10 +59,10 @@ class MainWindow(NewWindow):
         self.showwindow()
 
         # central widget
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
         # layout
-        self.l0 = QtGui.QGridLayout()
+        self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
@@ -91,18 +91,18 @@ class MainWindow(NewWindow):
         # saturation sliders
         self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
-        qlabel= QtGui.QLabel('saturation')
+        qlabel= QtWidgets.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # reset
-        self.reset_btn = QtGui.QPushButton('reset')
+        self.reset_btn = QtWidgets.QPushButton('reset')
         self.l0.addWidget(self.reset_btn, 1, 11+6, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
 
         # debug
-        self.debugBtn = QtGui.QPushButton('- Debug -')
+        self.debugBtn = QtWidgets.QPushButton('- Debug -')
         self.l0.addWidget(self.debugBtn, 2, 11+6, 1, 1)
         self.debugBtn.setEnabled(True)
         self.debugBtn.clicked.connect(self.debug)
@@ -120,21 +120,21 @@ class MainWindow(NewWindow):
         self.p1.autoRange(padding=0.01)
         
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No datafile chosen")
+        self.movieLabel = QtWidgets.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
 
 
         # create frame slider
-        self.timeLabel = QtGui.QLabel("time : ")
+        self.timeLabel = QtWidgets.QLabel("time : ")
         self.timeLabel.setStyleSheet("color: white;")
         # self.timeLabel.setFixedWidth(300)
-        self.currentTime = QtGui.QLineEdit()
+        self.currentTime = QtWidgets.QLineEdit()
         self.currentTime.setText('0 s')
         self.currentTime.setFixedWidth(70)
         # self.currentTime.returnPressed.connect(self.set_precise_time)
         
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.frameSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(200)
         self.frameSlider.setTickInterval(1)
@@ -149,61 +149,60 @@ class MainWindow(NewWindow):
         self.folderB.setMinimumWidth(150)
         self.folderB.addItems(FOLDERS.keys())
         
-        self.processBtn = QtGui.QPushButton('process data')
-        self.processBtn.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.processBtn = QtWidgets.QPushButton('process data')
         self.processBtn.clicked.connect(self.process)
 
         # self.interpolate = QtGui.QPushButton('interpolate')
         # self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         # self.interpolate.clicked.connect(self.interpolate_data)
 
-        self.motionCheckBox = QtGui.QCheckBox("display motion frames")
+        self.motionCheckBox = QtWidgets.QCheckBox("display motion frames")
         self.motionCheckBox.setStyleSheet("color: gray;")
         
-        self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
-        self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.runAsSubprocess = QtWidgets.QPushButton('run as subprocess')
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
         # self.runAsSubprocess.setEnabled(True)
 
-        self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
-        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load = QtWidgets.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.clicked.connect(self.open_file)
 
-        sampLabel1 = QtGui.QLabel("spatial subsampling")
+        sampLabel1 = QtWidgets.QLabel("spatial subsampling")
         sampLabel1.setStyleSheet("color: gray;")
         sampLabel1.setFixedWidth(220)
-        self.SsamplingBox = QtGui.QLineEdit()
+        self.SsamplingBox = QtWidgets.QLineEdit()
         self.SsamplingBox.setText(str(self.spatial_subsampling))
         self.SsamplingBox.setFixedWidth(30)
 
-        sampLabel2 = QtGui.QLabel("temporal subsampling")
+        sampLabel2 = QtWidgets.QLabel("temporal subsampling")
         sampLabel2.setStyleSheet("color: gray;")
         sampLabel2.setFixedWidth(220)
-        self.TsamplingBox = QtGui.QLineEdit()
+        self.TsamplingBox = QtWidgets.QLineEdit()
         self.TsamplingBox.setText(str(self.time_subsampling))
         self.TsamplingBox.setFixedWidth(30)
         
-        self.addROI = QtGui.QPushButton("set ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI = QtWidgets.QPushButton("set ROI")
         self.addROI.clicked.connect(self.add_ROI)
 
-        self.saveData = QtGui.QPushButton('save data')
-        self.saveData.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.saveData = QtWidgets.QPushButton('save data')
         self.saveData.clicked.connect(self.save_data)
 
+        for x in [self.processBtn, self.motionCheckBox, self.runAsSubprocess,
+                  self.load, self.addROI, self.saveData]:
+            x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        
         iconSize = QtCore.QSize(30, 30)
-        self.playButton = QtGui.QToolButton()
+        self.playButton = QtWidgets.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
         self.playButton.setIconSize(iconSize)
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
-        self.pauseButton = QtGui.QToolButton()
+        self.pauseButton = QtWidgets.QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
 
-        btns = QtGui.QButtonGroup(self)
+        btns = QtWidgets.QButtonGroup(self)
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
 
@@ -220,13 +219,13 @@ class MainWindow(NewWindow):
         self.l0.addWidget(sampLabel2, 9, 0, 1, 3)
         self.l0.addWidget(self.TsamplingBox, 9, 2, 1, 3)
 
-        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.addWidget(QtWidgets.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
         self.l0.addWidget(self.timeLabel, istretch+10,0,1,3)
         self.l0.addWidget(self.currentTime, istretch+10,1,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
-        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
+        self.l0.addWidget(QtWidgets.QLabel(''),17,2,1,1)
         self.l0.setRowStretch(16,2)
         # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.timeLabel.setEnabled(True)
