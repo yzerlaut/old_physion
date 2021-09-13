@@ -190,7 +190,7 @@ def raw_data_plot(self, tzoom,
     
     # if (self.time==0) and ('ophys' in self.data.nwbfile.processing):
     if ('ophys' in self.data.nwbfile.processing):
-        self.pCaimg.setImage(self.data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]) # plotting the mean image
+        self.pCaimg.setImage(self.data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]**.25) # plotting the mean image
         
     if 'CaImaging-TimeSeries' in self.data.nwbfile.acquisition:
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['CaImaging-TimeSeries'])

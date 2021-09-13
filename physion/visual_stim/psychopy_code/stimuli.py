@@ -1404,13 +1404,13 @@ class line_moving_dots(visual_stim):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         img = 0*cls.x+cls.experiment['bg-color'][episode]
-        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
                             y0+dy_per_time*time_from_episode_start)
             self.add_dot(img, new_position,
-                         cls.experiment['size'][index],
-                         cls.experiment['dotcolor'][index])
+                         cls.experiment['size'][episode],
+                         cls.experiment['dotcolor'][episode])
         return img
     
     
@@ -1538,6 +1538,15 @@ class looming_stim(visual_stim):
             it+=1
 
         return times_index_to_frames, FRAMES
+
+    def get_image(self, index, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = cls.experiment['bg-color'][index]+0.*self.x
+        self.add_dot(img, (cls.experiment['x-center'][index], cls.experiment['y-center'][index]),
+                     (cls.experiment['radius-start'][index]+cls.experiment['radius-end'][index])/4.,
+                     cls.experiment['color'][index])
+        return img
+
     
     
 if __name__=='__main__':
