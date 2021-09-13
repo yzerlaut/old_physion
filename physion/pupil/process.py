@@ -242,7 +242,6 @@ def clip_to_finite_values(data, keys):
         cond = np.isfinite(data[key]) # clipping to finite values
         data[key] = np.clip(data[key],
                             np.min(data[key][cond]), np.max(data[key][cond]))
-        print(np.min(data[key][cond]), np.max(data[key][cond]))
     return data
 
 

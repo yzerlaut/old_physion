@@ -259,10 +259,10 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
-        folder = '/home/yann/DATA/14-10-48/'
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        # folder = '/home/yann/DATA/14-10-48/'
 
         if folder!='':
             

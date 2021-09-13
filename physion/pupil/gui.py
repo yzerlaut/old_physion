@@ -432,6 +432,7 @@ class MainWindow(NewWindow):
             # we revert to before
             for key in self.data_before_outliers:
                 self.data[key] = self.data_before_outliers[key]
+            self.data['blinking'] = 0*self.data['frame']
             self.data_before_outliers = None
         self.plot_pupil_trace()
         
@@ -622,6 +623,13 @@ class MainWindow(NewWindow):
                              yRange=(self.data['sx'][cond].min()-.1,
                                      self.data['sx'][cond].max()+.1),
                              padding=0.0)
+            if ('blinking' in self.data) and (np.sum(self.data['blinking'])>0):
+                cond = self.data['blinking']>0
+                self.p1.plot(self.data['frame'][cond],
+                             0*self.data['frame'][cond]+self.data['sx'][cond].min(),
+                             symbolPen=pg.mkPen(color=(0, 0, 255, 255), width=0),                                      
+                             symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7,
+                             pen=None, symbol='o')
             self.p1.show()
 
             

@@ -88,7 +88,7 @@ def raw_data_plot(self, tzoom,
             if np.sum(cond):
                 self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
                                symbolPen=pg.mkPen(color=self.settings['colors']['FaceMotion'], width=0),                                      
-                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+                               symbolBrush=pg.mkBrush(0, 255, 0, 255), symbolSize=7)
                 
         iplot+=1
         
