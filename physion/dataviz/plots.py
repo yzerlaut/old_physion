@@ -133,7 +133,7 @@ def raw_data_plot(self, tzoom,
         if t_pupil_frame is not None:
             i0 = convert_time_to_index(t_pupil_frame, self.data.nwbfile.processing['Pupil'].data_interfaces['sx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.data.FaceCamera_mm_to_pix)
+                coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
             if 'angle' in self.data.nwbfile.processing['Pupil'].data_interfaces:
                 coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces['angle'].data[i0])
             else:
