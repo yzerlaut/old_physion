@@ -208,6 +208,12 @@ class MainWindow(NewWindow):
         self.saverois = QtWidgets.QPushButton('save data [Ctrl+S]')
         self.saverois.clicked.connect(self.save)
 
+        stdLabel = QtWidgets.QLabel("std excl. factor: ")
+        stdLabel.setStyleSheet("color: gray;")
+        self.stdBox = QtWidgets.QLineEdit()
+        self.stdBox.setText('1.5')
+        self.stdBox.setFixedWidth(50)
+        
         self.excludeOutliers = QtWidgets.QPushButton('exclude outlier [Ctrl+E]')
         self.excludeOutliers.clicked.connect(self.find_outliers)
 
@@ -225,7 +231,8 @@ class MainWindow(NewWindow):
 
         for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
                   self.saverois, self.addROI, self.interpBtn, self.processOutliers,
-                  self.excludeOutliers, self.printSize, cursorLabel]:
+                  self.stdBox, self.excludeOutliers, self.printSize, cursorLabel,
+                  sampLabel, smoothLabel, stdLabel, self.smoothBox, self.samplingBox]:
             x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         
         
@@ -255,6 +262,9 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.process, 16, 0, 1, 3)
         self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
         self.l0.addWidget(self.saverois, 19, 0, 1, 3)
+
+        self.l0.addWidget(stdLabel, 21, 0, 1, 3)
+        self.l0.addWidget(self.stdBox, 21, 2, 1, 3)
         self.l0.addWidget(self.excludeOutliers, 22, 0, 1, 3)
         self.l0.addWidget(cursorLabel, 24, 0, 1, 3)
         self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
@@ -287,10 +297,10 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
-        folder = '/home/yann/DATA/14-10-48/'
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        # folder = '/home/yann/UNPROCESSED/2021_09_10/13-39-44/'
 
         if folder!='':
             
@@ -411,11 +421,18 @@ class MainWindow(NewWindow):
         self.interpolate(with_blinking_flag=True)
 
     def find_outliers(self):
-        if not hasattr(self, 'data_before_outliers'):
+        if not hasattr(self, 'data_before_outliers') or (self.data_before_outliers==None):
+
+            self.data['std_exclusion_factor'] = float(self.stdBox.text())
             self.data_before_outliers = {}
             for key in self.data:
                 self.data_before_outliers[key] = self.data[key]
-        process.remove_outliers(self.data, std_criteria=0.1)
+            process.remove_outliers(self.data, std_criteria=self.data['std_exclusion_factor'])
+        else:
+            # we revert to before
+            for key in self.data_before_outliers:
+                self.data[key] = self.data_before_outliers[key]
+            self.data_before_outliers = None
         self.plot_pupil_trace()
         
         
@@ -554,7 +571,7 @@ class MainWindow(NewWindow):
         """ """
         if self.data is not None:
             self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-            self.data = process.clip_to_finite_values(self.data)
+            self.data = process.clip_to_finite_values(self.data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
 
             np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
             print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))

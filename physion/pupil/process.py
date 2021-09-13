@@ -240,7 +240,6 @@ def clip_to_finite_values(data, keys):
     
     for key in keys:
         cond = np.isfinite(data[key]) # clipping to finite values
-        print(key, type(data[key]))
         data[key] = np.clip(data[key],
                             np.min(data[key][cond]), np.max(data[key][cond]))
         print(np.min(data[key][cond]), np.max(data[key][cond]))
@@ -303,20 +302,19 @@ def load_ROI(cls, with_plot=True):
                                                  moveable=True, parent=cls))
 
             
-def remove_outliers(data, std_criteria=1.):
+def remove_outliers(data, std_criteria=1.5):
     """
     linear interpolation of pupil properties
     """
-    data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual'])
+    data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
     times = np.arange(len(data['cx']))
     product = np.ones(len(times))
     std = 1
     for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
         product *= np.abs(data[key]-data[key].mean())
         std *= std_criteria*data[key].std()
-    print(std)
+
     accept_cond =  (product<std)
-    print(np.sum(accept_cond))
     
     dt = times[1]-times[0]
     for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
@@ -326,6 +324,10 @@ def remove_outliers(data, std_criteria=1.):
                             data[key][accept_cond], [data[key][accept_cond][-1]]])
         func = interp1d(x, y, kind='linear', assume_sorted=True)
         data[key] = func(times)
+        
+    # mark the exclusions as blinking:
+    data['blinking'][~accept_cond] = 1
+    print('\n --> fraction blinking: %.1f %% \n' % (100*np.sum(data['blinking'])/len(data['blinking'])) )
         
     return data
             
