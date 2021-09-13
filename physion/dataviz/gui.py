@@ -151,9 +151,30 @@ class MainWindow(guiparts.NewWindow):
         Layout122 = QtWidgets.QHBoxLayout()
         Layout12.addLayout(Layout122)
 
-        self.stimSelect = QtGui.QCheckBox("show stim")
-        self.stimSelect.setFont(guiparts.smallfont)
+        self.stimSelect = QtGui.QCheckBox("vis. stim")
         self.stimSelect.clicked.connect(self.select_stim)
+        self.stimSelect.setStyleSheet('color: grey;')
+
+        self.pupilSelect = QtGui.QCheckBox("pupil")
+        self.pupilSelect.setStyleSheet('color: red;')
+
+        self.gazeSelect = QtGui.QCheckBox("gaze")
+        self.gazeSelect.setStyleSheet('color: orange;')
+
+        self.faceMtnSelect = QtGui.QCheckBox("faceMot.")
+        self.faceMtnSelect.setStyleSheet('color: purple;')
+
+        self.runSelect = QtGui.QCheckBox("run")
+        
+        self.photodiodeSelect = QtGui.QCheckBox("photodiode")
+        self.photodiodeSelect.setStyleSheet('color: grey;')
+        
+        for x in [self.stimSelect, self.pupilSelect,
+                  self.gazeSelect, self.faceMtnSelect,
+                  self.runSelect,self.photodiodeSelect]:
+            x.setFont(guiparts.smallfont)
+            Layout122.addWidget(x)
+        
         
         self.roiPick = QtGui.QLineEdit()
         self.roiPick.setText(' [...] ')
@@ -173,7 +194,6 @@ class MainWindow(guiparts.NewWindow):
         self.guiKeywords.returnPressed.connect(self.keyword_update)
         self.guiKeywords.setFont(guiparts.smallfont)
 
-        Layout122.addWidget(self.stimSelect)
         Layout122.addWidget(self.guiKeywords)
         Layout122.addWidget(self.ephysPick)
         Layout122.addWidget(self.roiPick)

@@ -211,7 +211,7 @@ class MainWindow(NewWindow):
         stdLabel = QtWidgets.QLabel("std excl. factor: ")
         stdLabel.setStyleSheet("color: gray;")
         self.stdBox = QtWidgets.QLineEdit()
-        self.stdBox.setText('1.5')
+        self.stdBox.setText('2.0')
         self.stdBox.setFixedWidth(50)
         
         self.excludeOutliers = QtWidgets.QPushButton('exclude outlier [Ctrl+E]')
@@ -297,10 +297,10 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-                                    "Choose datafolder",
-                                    FOLDERS[self.folderB.currentText()])
-        # folder = '/home/yann/UNPROCESSED/2021_09_10/13-39-44/'
+        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+        #                             "Choose datafolder",
+        #                             FOLDERS[self.folderB.currentText()])
+        folder = '/home/yann/UNPROCESSED/2021_09_10/13-52-49/'
 
         if folder!='':
             
@@ -572,8 +572,7 @@ class MainWindow(NewWindow):
         """ """
         if self.data is not None:
             self.data['gaussian_smoothing'] = int(self.smoothBox.text())
-            self.data = process.clip_to_finite_values(self.data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
-
+            # self.data = process.clip_to_finite_values(self.data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
             np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
             print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
         else:

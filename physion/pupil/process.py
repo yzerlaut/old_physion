@@ -242,7 +242,9 @@ def clip_to_finite_values(data, keys):
         cond = np.isfinite(data[key]) # clipping to finite values
         data[key] = np.clip(data[key],
                             np.min(data[key][cond]), np.max(data[key][cond]))
-    return data
+        data[key][~cond] = np.mean(data[key][cond])
+
+    return data.copy()
 
 
 
@@ -305,15 +307,21 @@ def remove_outliers(data, std_criteria=1.5):
     """
     linear interpolation of pupil properties
     """
-    data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
+    # data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
     times = np.arange(len(data['cx']))
     product = np.ones(len(times))
     std = 1
-    for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
-        product *= np.abs(data[key]-data[key].mean())
-        std *= std_criteria*data[key].std()
 
-    accept_cond =  (product<std)
+    accept_cond =  np.ones(len(data['cx']), dtype=bool)
+    
+    for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
+        accept_cond = (accept_cond & np.isfinite(data[key]))
+        # then using only finite values 
+        product[accept_cond] *= (data[key][accept_cond]-data[key][accept_cond].mean())**2
+        std *= std_criteria**2 * data[key][accept_cond].std()**2
+
+    # finally, we apply the std criteria
+    accept_cond = accept_cond & (product<std)
     
     dt = times[1]-times[0]
     for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
