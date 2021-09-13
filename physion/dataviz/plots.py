@@ -7,7 +7,6 @@ from pupil import roi, process
 from Ca_imaging.tools import compute_CaImaging_trace
 from dataviz.tools import *
 
-
 t = np.linspace(0, 2*np.pi)
 
 def raw_data_plot(self, tzoom,
@@ -20,9 +19,10 @@ def raw_data_plot(self, tzoom,
     scatter = []
     self.plot.clear()
     
+    y = np.zeros(2)
     ## -------- Screen --------- ##
 
-    if 'Photodiode-Signal' in self.data.nwbfile.acquisition:
+    if 'Photodiode-Signal' in self.data.nwbfile.acquisition and self.photodiodeSelect.isChecked():
         
         i1, i2 = convert_times_to_indices(*tzoom, self.data.nwbfile.acquisition['Photodiode-Signal'])
         if self.no_subsampling:
@@ -36,7 +36,7 @@ def raw_data_plot(self, tzoom,
 
     ## -------- Locomotion --------- ##
     
-    if 'Running-Speed' in self.data.nwbfile.acquisition:
+    if 'Running-Speed' in self.data.nwbfile.acquisition and self.runSelect.isChecked():
         
         i1, i2 = convert_times_to_indices(*tzoom, self.data.nwbfile.acquisition['Running-Speed'])
         if self.no_subsampling:
@@ -51,7 +51,7 @@ def raw_data_plot(self, tzoom,
 
     ## -------- FaceCamera, Face motion and Pupil-Size --------- ##
     
-    if 'FaceCamera' in self.data.nwbfile.acquisition:
+    if 'FaceCamera' in self.data.nwbfile.acquisition and self.faceMtnSelect.isChecked():
         
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.data.nwbfile.acquisition['FaceCamera'].data[i0])
@@ -61,7 +61,7 @@ def raw_data_plot(self, tzoom,
         self.FaceCameraFrameLevel = self.plot.plot(self.data.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
                                                    [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
 
-    if 'FaceMotion' in self.data.nwbfile.acquisition:
+    if 'FaceMotion' in self.data.nwbfile.acquisition and self.faceMtnSelect.isChecked():
         
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['FaceMotion'])
         self.pFacemotionimg.setImage(self.data.nwbfile.acquisition['FaceMotion'].data[i0])
@@ -74,7 +74,7 @@ def raw_data_plot(self, tzoom,
     else:
         t_facemotion_frame = None
         
-    if 'FaceMotion' in self.data.nwbfile.processing:
+    if 'FaceMotion' in self.data.nwbfile.processing and self.faceMtnSelect.isChecked():
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
         t = self.data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
@@ -108,25 +108,40 @@ def raw_data_plot(self, tzoom,
     else:
         t_pupil_frame = None
         
+            
     if 'Pupil' in self.data.nwbfile.processing:
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.data.nwbfile.processing['Pupil'].data_interfaces['cx'])
         t = self.data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        y = scale_and_position(self,
-                               np.max([self.data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
-                                       self.data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0),
-                               i=iplot)
-        self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
-        # adding blinking flag (dots at the bottom)
-        if 'blinking' in self.data.nwbfile.processing['Pupil'].data_interfaces:
-            cond = (self.data.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
-            if np.sum(cond):
-                self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
-                               symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
-                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
-                
-        iplot+=1
+        
+        if self.gazeSelect.isChecked():
+
+            y = scale_and_position(self,
+                                   np.sqrt((self.data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[i1:i2]-self.gaze_center[0])**2+\
+                                           (self.data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[i1:i2]-self.gaze_center[1])**2),
+                                   i=iplot)
+            self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Gaze']))
+            
+            iplot+=1
+            
+        if self.pupilSelect.isChecked():
+            
+            y = scale_and_position(self,
+                                   np.max([self.data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
+                                           self.data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0),
+                                   i=iplot)
+            self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
+
+            # adding blinking flag (dots at the bottom)
+            if 'blinking' in self.data.nwbfile.processing['Pupil'].data_interfaces:
+                cond = (self.data.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
+                if np.sum(cond):
+                    self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
+                                   symbolPen=pg.mkPen(color=self.settings['colors']['Pupil'], width=0),                                      
+                                   symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+
+            iplot+=1
 
         # plotting a circle for the pupil fit
         coords = []

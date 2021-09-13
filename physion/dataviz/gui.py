@@ -23,6 +23,7 @@ settings = {
               'Locomotion':(255,255,255,255),#'white',
               'FaceMotion':(255,0,255,255),#'purple',
               'Pupil':(255,0,0,255),#'red',
+              'Gaze':(200,100,0,255),#'orange',
               'Electrophy':(100,100,255,255),#'blue',
               'LFP':(100,100,255,255),#'blue',
               'Vm':(100,100,100,255),#'blue',
@@ -161,25 +162,32 @@ class MainWindow(guiparts.NewWindow):
         self.gazeSelect = QtGui.QCheckBox("gaze")
         self.gazeSelect.setStyleSheet('color: orange;')
 
-        self.faceMtnSelect = QtGui.QCheckBox("faceMot.")
+        self.faceMtnSelect = QtGui.QCheckBox("whisk.")
         self.faceMtnSelect.setStyleSheet('color: purple;')
 
         self.runSelect = QtGui.QCheckBox("run")
         
         self.photodiodeSelect = QtGui.QCheckBox("photodiode")
         self.photodiodeSelect.setStyleSheet('color: grey;')
+
+        self.ephysSelect = QtGui.QCheckBox("ephys")
+        self.ephysSelect.setStyleSheet('color: grey;')
         
+        self.ophysSelect = QtGui.QCheckBox("ophys")
+        self.ophysSelect.setStyleSheet('color: grey;')
+
         for x in [self.stimSelect, self.pupilSelect,
                   self.gazeSelect, self.faceMtnSelect,
-                  self.runSelect,self.photodiodeSelect]:
+                  self.runSelect,self.photodiodeSelect,
+                  self.ephysSelect, self.ophysSelect]:
             x.setFont(guiparts.smallfont)
             Layout122.addWidget(x)
         
         
         self.roiPick = QtGui.QLineEdit()
         self.roiPick.setText(' [...] ')
-        self.roiPick.setMinimumWidth(150)
-        self.roiPick.setMaximumWidth(350)
+        self.roiPick.setMinimumWidth(50)
+        self.roiPick.setMaximumWidth(250)
         self.roiPick.returnPressed.connect(self.select_ROI)
         self.roiPick.setFont(guiparts.smallfont)
 
@@ -190,14 +198,19 @@ class MainWindow(guiparts.NewWindow):
 
         self.guiKeywords = QtGui.QLineEdit()
         self.guiKeywords.setText('     [GUI keywords] ')
-        self.guiKeywords.setFixedWidth(200)
+        # self.guiKeywords.setFixedWidth(200)
         self.guiKeywords.returnPressed.connect(self.keyword_update)
         self.guiKeywords.setFont(guiparts.smallfont)
 
         Layout122.addWidget(self.guiKeywords)
-        Layout122.addWidget(self.ephysPick)
+        # Layout122.addWidget(self.ephysPick)
         Layout122.addWidget(self.roiPick)
 
+        self.subsamplingSelect = QtGui.QCheckBox("subsampl.")
+        self.subsamplingSelect.setStyleSheet('color: grey;')
+        self.subsamplingSelect.setFont(guiparts.smallfont)
+        Layout122.addWidget(self.subsamplingSelect)
+        
         self.cwidget.setLayout(mainLayout)
         self.show()
         
@@ -254,13 +267,12 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                                                        filter="*.nwb")
-        # filename = '/home/yann/UNPROCESSED/2021_06_10-13-26-53.nwb'
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #             (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                                                        # filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
-        # filename = '/home/yann/DATA/CaImaging/Wild_Type_GCamp6s/2021_05_20/2021_05_20-13-59-57.nwb'
+        filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/2021_07_01/2021_07_01-16-27-22.nwb'
         
         if filename!='':
             self.datafile=filename
@@ -321,8 +333,27 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.setCurrentIndex(1)
 
         if 'ophys' in self.data.nwbfile.processing:
-            self.roiPick.setText(' [select ROI] (%i-%i)' % (0, len(self.data.validROI_indices)-1))
+            self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.validROI_indices)-1))
 
+        if 'Photodiode-Signal' in self.data.nwbfile.acquisition:
+            self.photodiodeSelect.setChecked(True)
+
+        if 'Running-Speed' in self.data.nwbfile.acquisition:
+            self.runSelect.setChecked(True)
+            self.runSelect.isChecked()
+
+        if 'FaceMotion' in self.data.nwbfile.processing:
+            self.faceMtnSelect.setChecked(True)
+            
+        if 'Pupil' in self.data.nwbfile.processing:
+            self.pupilSelect.setChecked(True)
+
+        if 'Pupil' in self.data.nwbfile.processing:
+            self.gaze_center = [np.mean(self.data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]),
+                                np.mean(self.data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:])]
+            self.gazeSelect.setChecked(True)
+            
+            
     def load_VisualStim(self):
 
         # load visual stimulation

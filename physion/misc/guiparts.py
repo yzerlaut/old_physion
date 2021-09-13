@@ -157,7 +157,7 @@ def load_config1(self,
                  df_width = 600,
                  selector_height = 30,
                  win1_Wmax=1200, win1_Wmin=300,
-                 win1_Hmax=500, win2_Wmax=500):
+                 win1_Hmax=10, win2_Hmax=200, win2_Wmax=500):
 
     self.cwidget = QtWidgets.QWidget(self)
     self.setCentralWidget(self.cwidget)
@@ -237,7 +237,7 @@ def load_config1(self,
 
     self.win2 = pg.GraphicsLayoutWidget()
     self.win2.setMaximumWidth(win2_Wmax)
-    self.win2.setMaximumHeight(win1_Hmax)
+    self.win2.setMaximumHeight(win2_Hmax)
     Layout1.addWidget(self.win2)
 
     self.winTrace = pg.GraphicsLayoutWidget()
