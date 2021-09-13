@@ -38,6 +38,8 @@ class MainWindow(NewWindow):
         self.refc3.activated.connect(self.process_outliers)
         self.refc4 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+4'), self)
         self.refc4.activated.connect(self.interpolate)
+        self.refc5 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
+        self.refc5.activated.connect(self.find_outliers)
         
         #############################
         ##### module quantities #####
@@ -209,10 +211,13 @@ class MainWindow(NewWindow):
         self.excludeOutliers = QtWidgets.QPushButton('exclude outlier [Ctrl+E]')
         self.excludeOutliers.clicked.connect(self.find_outliers)
 
-        self.interpBtn = QtWidgets.QPushButton('interpolate')
+        cursorLabel = QtWidgets.QLabel("set cursor 1 [Ctrl+1], cursor 2 [Ctrl+2]")
+        cursorLabel.setStyleSheet("color: gray;")
+        
+        self.interpBtn = QtWidgets.QPushButton('interpolate only [Ctrl+4]')
         self.interpBtn.clicked.connect(self.interpolate)
 
-        self.processOutliers = QtWidgets.QPushButton('Set blinking interval')
+        self.processOutliers = QtWidgets.QPushButton('Set blinking interval [Ctrl+3]')
         self.processOutliers.clicked.connect(self.process_outliers)
         
         self.printSize = QtWidgets.QPushButton('print ROI size')
@@ -220,7 +225,7 @@ class MainWindow(NewWindow):
 
         for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
                   self.saverois, self.addROI, self.interpBtn, self.processOutliers,
-                  self.excludeOutliers, self.printSize]:
+                  self.excludeOutliers, self.printSize, cursorLabel]:
             x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         
         
@@ -250,11 +255,11 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.process, 16, 0, 1, 3)
         self.l0.addWidget(self.runAsSubprocess, 17, 0, 1, 3)
         self.l0.addWidget(self.saverois, 19, 0, 1, 3)
-        self.l0.addWidget(self.cursor1, 23, 0, 1, 3)
-        self.l0.addWidget(self.cursor2, 24, 0, 1, 3)
-        self.l0.addWidget(self.interpBtn, 25, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 26, 0, 1, 3)
-        self.l0.addWidget(self.printSize, 27, 0, 1, 3)
+        self.l0.addWidget(self.excludeOutliers, 22, 0, 1, 3)
+        self.l0.addWidget(cursorLabel, 24, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
+        self.l0.addWidget(self.interpBtn, 26, 0, 1, 3)
+        self.l0.addWidget(self.printSize, 29, 0, 1, 3)
 
         self.l0.addWidget(QtWidgets.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
@@ -282,10 +287,10 @@ class MainWindow(NewWindow):
 
         self.cframe = 0
         
-        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-                                    "Choose datafolder",
-                                    FOLDERS[self.folderB.currentText()])
-        # folder = '/home/yann/UNPROCESSED/13-26-53/'
+        # folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+        #                             "Choose datafolder",
+        #                             FOLDERS[self.folderB.currentText()])
+        folder = '/home/yann/DATA/14-10-48/'
 
         if folder!='':
             
@@ -406,7 +411,13 @@ class MainWindow(NewWindow):
         self.interpolate(with_blinking_flag=True)
 
     def find_outliers(self):
-        print('to be implemented')
+        if not hasattr(self, 'data_before_outliers'):
+            self.data_before_outliers = {}
+            for key in self.data:
+                self.data_before_outliers[key] = self.data[key]
+        process.remove_outliers(self.data, std_criteria=0.1)
+        self.plot_pupil_trace()
+        
         
     def debug(self):
         print('No debug function')

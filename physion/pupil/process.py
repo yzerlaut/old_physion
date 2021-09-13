@@ -236,12 +236,14 @@ def init_fit_area(cls,
         for r in blanks:
             cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
-def clip_to_finite_values(data):
-    for key in data:
-        if type(key) in [np.ndarray, list]:
-            cond = np.isfinite(data[key]) # clipping to finite values
-            data[key] = np.clip(data[key],
-                                np.min(data[key]), np.max(data[key]))
+def clip_to_finite_values(data, keys):
+    
+    for key in keys:
+        cond = np.isfinite(data[key]) # clipping to finite values
+        print(key, type(data[key]))
+        data[key] = np.clip(data[key],
+                            np.min(data[key][cond]), np.max(data[key][cond]))
+        print(np.min(data[key][cond]), np.max(data[key][cond]))
     return data
 
 
@@ -303,15 +305,16 @@ def load_ROI(cls, with_plot=True):
             
 def remove_outliers(data, std_criteria=1.):
     """
-    Nearest-neighbor interpolation of pupil properties
+    linear interpolation of pupil properties
     """
-    data = clip_to_finite_values(data)
+    data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual'])
     times = np.arange(len(data['cx']))
     product = np.ones(len(times))
     std = 1
     for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
         product *= np.abs(data[key]-data[key].mean())
         std *= std_criteria*data[key].std()
+    print(std)
     accept_cond =  (product<std)
     print(np.sum(accept_cond))
     
@@ -321,7 +324,7 @@ def remove_outliers(data, std_criteria=1.):
         x = np.concatenate([[times[0]-dt], times[accept_cond], [times[-1]+dt]])
         y = np.concatenate([[data[key][accept_cond][0]],
                             data[key][accept_cond], [data[key][accept_cond][-1]]])
-        func = interp1d(x, y, kind='nearest', assume_sorted=True)
+        func = interp1d(x, y, kind='linear', assume_sorted=True)
         data[key] = func(times)
         
     return data

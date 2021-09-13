@@ -77,15 +77,21 @@ def raw_data_plot(self, tzoom,
     if 'FaceMotion' in self.data.nwbfile.processing:
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
-
         t = self.data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
-        
         y = scale_and_position(self, self.data.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2],
                                i=iplot)
         self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['FaceMotion']))
-            
-        iplot+=1
 
+        # adding grooming flag (dots at the bottom)
+        if 'grooming' in self.data.nwbfile.processing['FaceMotion'].data_interfaces:
+            cond = (self.data.nwbfile.processing['FaceMotion'].data_interfaces['grooming'].data[i1:i2]==1) & np.isfinite(y)
+            if np.sum(cond):
+                self.plot.plot(t[cond],y[cond].min()+0*t[cond], pen=None, symbol='o',
+                               symbolPen=pg.mkPen(color=self.settings['colors']['FaceMotion'], width=0),                                      
+                               symbolBrush=pg.mkBrush(0, 0, 255, 255), symbolSize=7)
+                
+        iplot+=1
+        
         # self.facemotionROI        
         
     if 'Pupil' in self.data.nwbfile.acquisition:
@@ -105,17 +111,14 @@ def raw_data_plot(self, tzoom,
     if 'Pupil' in self.data.nwbfile.processing:
 
         i1, i2 = convert_times_to_indices(*self.tzoom, self.data.nwbfile.processing['Pupil'].data_interfaces['cx'])
-
         t = self.data.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        
         y = scale_and_position(self,
                                np.max([self.data.nwbfile.processing['Pupil'].data_interfaces['sx'].data[i1:i2],
                                        self.data.nwbfile.processing['Pupil'].data_interfaces['sy'].data[i1:i2]], axis=0),
                                i=iplot)
-
         self.plot.plot(t, y, pen=pg.mkPen(color=self.settings['colors']['Pupil']))
 
-        # adding blinking flag (a thick line at the bottom)
+        # adding blinking flag (dots at the bottom)
         if 'blinking' in self.data.nwbfile.processing['Pupil'].data_interfaces:
             cond = (self.data.nwbfile.processing['Pupil'].data_interfaces['blinking'].data[i1:i2]==1) & np.isfinite(y)
             if np.sum(cond):
