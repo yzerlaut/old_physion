@@ -604,11 +604,11 @@ class multiprotocol(visual_stim):
         # we rebuild time
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
-        self.experiment['interstim'][0] = self.experiment['interstim'][0]
+        self.experiment['interstim'] = np.concatenate([self.experiment['interstim'][1:], [self.experiment['interstim'][0]]])
         for i in range(1, len(self.experiment['index'])):
-            self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i-1]
+            self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
-        
+            
     # functions implemented in child class
     def get_frame(self, index):
         return self.STIM[self.experiment['protocol_id'][index]].get_frame(index, parent=self)
