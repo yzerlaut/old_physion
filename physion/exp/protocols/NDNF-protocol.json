@@ -5,11 +5,11 @@
   "Protocol-1": "dg-for-ndnf.json",
   "Protocol-2": "dot-stim-beltramo.json",
   "Protocol-3": "looming-stim.json",
-  "presentation-prestim-period": 4.0,
-  "presentation-poststim-period": 4.0,
+  "presentation-prestim-period": 3.0,
+  "presentation-poststim-period": 3.0,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
-  "presentation-interstim-period": 4,
+  "presentation-interstim-period": 3,
   "presentation-interstim-screen": 0,
   "Screen": "Dell-2020"
 }

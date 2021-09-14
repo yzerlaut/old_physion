@@ -595,6 +595,7 @@ class multiprotocol(visual_stim):
         # SHUFFLING IF NECESSARY
         indices = np.arange(len(self.experiment['index']))
         if (protocol['shuffling']=='full'):
+            print('shuffling')
             np.random.seed(protocol['shuffling-seed'])
             np.random.shuffle(indices)
         for key in self.experiment:

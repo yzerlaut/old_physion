@@ -1,7 +1,12 @@
 import os
 
-python_path = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'physion', 'bin', 'python')
-python_path_suite2p_env = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p', 'bin', 'python')
+python_path, python_path_suite2p_env = "python", "python" # default pytohn commands
+
+# replace by env if present:
+if os.path.isdir(os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'physion')):
+    python_path = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'physion', 'bin', 'python')
+if os.path.isdir(os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p')):
+   python_path_suite2p_env = os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p', 'bin', 'python')
 
 FOLDERS = {
     '~/DATA':os.path.join(os.path.expanduser('~'), 'DATA'),
