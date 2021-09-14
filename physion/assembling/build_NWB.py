@@ -263,7 +263,7 @@ def build_NWB(args,
                     
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                                                                 description='processed quantities of Pupil dynamics,\n'+\
-                                                                ' pupil ROI: (xmin,xmax,ymin,ymax)=(%i,%i,%i%i)\n' % (dataP['xmin'], dataP['xmax'], dataP['ymin'], dataP['ymax'])+\
+                                                                ' pupil ROI: (xmin,xmax,ymin,ymax)=(%i,%i,%i,%i)\n' % (dataP['xmin'], dataP['xmax'], dataP['ymin'], dataP['ymax'])+\
                                                                 ' pix_to_mm=%.3f' % pix_to_mm)
                 
                     
@@ -352,7 +352,7 @@ def build_NWB(args,
                     condF = (x>=dataF['ROI'][0]) & (x<=(dataF['ROI'][0]+dataF['ROI'][2])) &\
                         (y>=dataF['ROI'][1]) & (y<=(dataF['ROI'][1]+dataF['ROI'][3]))
 
-                    new_shapeF = dataF['ROI'][2]+1, dataF['ROI'][3]+1
+                    new_shapeF = x[condF].shape[0], x[condF].shape[1] # dataF['ROI'][2]+1, dataF['ROI'][3]+1
                     
                     def FaceMotion_frame_generator():
                         for i in FACEMOTION_SUBSAMPLING:

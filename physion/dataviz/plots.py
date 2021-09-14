@@ -25,7 +25,7 @@ def raw_data_plot(self, tzoom,
     if 'Photodiode-Signal' in self.data.nwbfile.acquisition and self.photodiodeSelect.isChecked():
         
         i1, i2 = convert_times_to_indices(*tzoom, self.data.nwbfile.acquisition['Photodiode-Signal'])
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
@@ -39,7 +39,7 @@ def raw_data_plot(self, tzoom,
     if 'Running-Speed' in self.data.nwbfile.acquisition and self.runSelect.isChecked():
         
         i1, i2 = convert_times_to_indices(*tzoom, self.data.nwbfile.acquisition['Running-Speed'])
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1+1, i2-1)
         else:
             isampling = np.unique(np.linspace(i1+1, i2-1, self.settings['Npoints'], dtype=int))
@@ -51,7 +51,7 @@ def raw_data_plot(self, tzoom,
 
     ## -------- FaceCamera, Face motion and Pupil-Size --------- ##
     
-    if 'FaceCamera' in self.data.nwbfile.acquisition and self.faceMtnSelect.isChecked():
+    if 'FaceCamera' in self.data.nwbfile.acquisition and self.imgSelect.isChecked():
         
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['FaceCamera'])
         self.pFaceimg.setImage(self.data.nwbfile.acquisition['FaceCamera'].data[i0])
@@ -61,7 +61,8 @@ def raw_data_plot(self, tzoom,
         self.FaceCameraFrameLevel = self.plot.plot(self.data.nwbfile.acquisition['FaceCamera'].timestamps[i0]*np.ones(2),
                                                    [0, y.max()], pen=pg.mkPen(color=self.settings['colors']['FaceMotion']), linewidth=0.5)
 
-    if 'FaceMotion' in self.data.nwbfile.acquisition and self.faceMtnSelect.isChecked():
+
+    if 'FaceMotion' in self.data.nwbfile.acquisition and self.imgSelect.isChecked():
         
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['FaceMotion'])
         self.pFacemotionimg.setImage(self.data.nwbfile.acquisition['FaceMotion'].data[i0])
@@ -94,7 +95,7 @@ def raw_data_plot(self, tzoom,
         
         # self.facemotionROI        
         
-    if 'Pupil' in self.data.nwbfile.acquisition:
+    if 'Pupil' in self.data.nwbfile.acquisition and self.imgSelect.isChecked():
         
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['Pupil'])
         img = self.data.nwbfile.acquisition['Pupil'].data[i0]
@@ -148,7 +149,7 @@ def raw_data_plot(self, tzoom,
         if t_pupil_frame is not None:
             i0 = convert_time_to_index(t_pupil_frame, self.data.nwbfile.processing['Pupil'].data_interfaces['sx'])
             for key in ['cx', 'cy', 'sx', 'sy']:
-                coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces[key].data[i0])
+                coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces[key].data[i0]*self.pupil_mm_to_pix)
             if 'angle' in self.data.nwbfile.processing['Pupil'].data_interfaces:
                 coords.append(self.data.nwbfile.processing['Pupil'].data_interfaces['angle'].data[i0])
             else:
@@ -159,12 +160,12 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Electrophy --------- ##
     
-    if ('Electrophysiological-Signal' in self.data.nwbfile.acquisition):
+    if ('Electrophysiological-Signal' in self.data.nwbfile.acquisition) and self.ephysSelect.isChecked():
         # deprecated
         
         i1 = convert_time_to_index(tzoom[0], self.data.nwbfile.acquisition['Electrophysiological-Signal'])+1
         i2 = convert_time_to_index(tzoom[1], self.data.nwbfile.acquisition['Electrophysiological-Signal'])-1
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
@@ -173,11 +174,11 @@ def raw_data_plot(self, tzoom,
         self.plot.plot(convert_index_to_time(isampling, self.data.nwbfile.acquisition['Electrophysiological-Signal']), y,
                        pen=pg.mkPen(color=self.settings['colors']['Electrophy']))
 
-    if ('LFP' in self.data.nwbfile.acquisition):
+    if ('LFP' in self.data.nwbfile.acquisition) and self.ephysSelect.isChecked():
         
         i1 = convert_time_to_index(tzoom[0], self.data.nwbfile.acquisition['LFP'])+1
         i2 = convert_time_to_index(tzoom[1], self.data.nwbfile.acquisition['LFP'])-1
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
@@ -187,11 +188,11 @@ def raw_data_plot(self, tzoom,
                        pen=pg.mkPen(color=self.settings['colors']['LFP']))
 
 
-    if ('Vm' in self.data.nwbfile.acquisition):
+    if ('Vm' in self.data.nwbfile.acquisition) and self.ephysSelect.isChecked():
         
         i1 = convert_time_to_index(tzoom[0], self.data.nwbfile.acquisition['Vm'])+1
         i2 = convert_time_to_index(tzoom[1], self.data.nwbfile.acquisition['Vm'])-1
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
@@ -207,7 +208,7 @@ def raw_data_plot(self, tzoom,
     if ('ophys' in self.data.nwbfile.processing):
         self.pCaimg.setImage(self.data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[self.CaImaging_bg_key][:]**.25) # plotting the mean image
         
-    if 'CaImaging-TimeSeries' in self.data.nwbfile.acquisition:
+    if 'CaImaging-TimeSeries' in self.data.nwbfile.acquisition and self.ophysSelect.isChecked():
         i0 = convert_time_to_index(self.time, self.data.nwbfile.acquisition['CaImaging-TimeSeries'])
         # self.pCaimg.setImage(self.data.nwbfile.acquisition['CaImaging-TimeSeries'].data[i0,:,:]) # REMOVE NOW, MAYBE REINTRODUCE
         if hasattr(self, 'CaFrameLevel'):
@@ -232,10 +233,10 @@ def raw_data_plot(self, tzoom,
         self.ROIscatter.setData(X, Y, size=1, brush=pg.mkBrush(0,255,0))
         self.pCa.addItem(self.ROIscatter)
 
-    if ('ophys' in self.data.nwbfile.processing) and (self.roiIndices is not None):
+    if ('ophys' in self.data.nwbfile.processing) and (self.roiIndices is not None) and self.ophysSelect.isChecked():
         i1 = convert_time_to_index(self.tzoom[0], self.data.Neuropil, axis=1)
         i2 = convert_time_to_index(self.tzoom[1], self.data.Neuropil, axis=1)
-        if self.no_subsampling:
+        if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))

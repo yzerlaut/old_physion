@@ -442,6 +442,15 @@ class visual_stim:
     #############    DRAWING STIMULI (offline)  ##############
     ##########################################################
     
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        print('to be implemented in child class')
+        return 0*self.x
+    
+    def plot_stim_picture(self, episode, ax, parent=None):
+        print('to be implemented in child class, here ')
+        ax.imshow(self.get_image(episode, parent=parent),
+                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+
     def get_prestim_image(self):
         return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
     def get_interstim_image(self):
@@ -616,6 +625,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
+    def get_picture(self, episodeparent=None):
+        return self.STIM[self.experiment['protocol_id'][episode]].get_picture(episode, parent=self)
     # def show_interstim(self):
         
 
@@ -643,6 +654,10 @@ class light_level_single_stim(visual_stim):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return 0*self.x+(1+cls.experiment['light-level'][episode])/2.
+
+    def plot_stim_picture(self, episode, ax, parent=None):
+        ax.imshow(self.get_image(episode, parent=parent),
+                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
     
 
 

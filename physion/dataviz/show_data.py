@@ -764,6 +764,9 @@ if __name__=='__main__':
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
+
+        fig, ax = ge.figure(figsize=(1.3,1.))
+        data.visual_stim.plot_stim_picture(1, ax)
         
     elif args.ops=='FOV':
         fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
