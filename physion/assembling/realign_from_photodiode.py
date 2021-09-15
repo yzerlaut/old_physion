@@ -7,7 +7,8 @@ def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
                             smoothing_time=20e-3,
-                            debug=False, verbose=True, n_vis=5):
+                            debug=False, istart_debug=0,
+                            verbose=True, n_vis=5):
 
     if verbose:
         print('---> Realigning data with respect to photodiode signal [...] ')
@@ -48,7 +49,7 @@ def realign_from_photodiode(signal,
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
                                                           baseline=baseline, high_level=high_level)
-            if debug and ((i<n_vis) or (i>Nepisodes-n_vis)):
+            if debug and ((i>=istart_debug) or (i<istart_debug+n_vis)):
                 fig, ax = plt.subplots()
                 ax.plot(t[cond], integral, label='smoothed')
                 ax.plot(t[cond], integral*0+threshold, label='threshold')
@@ -121,6 +122,7 @@ if __name__=='__main__':
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-df', "--datafolder", type=str, default='')
     parser.add_argument('-n', "--n_vis", type=int, default=5)
+    parser.add_argument('-id', "--istart_debug", type=int, default=0)
     parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
     args = parser.parse_args()
 
@@ -136,7 +138,10 @@ if __name__=='__main__':
     plt.title('photodiode-signal (subsampled/100)')
     plt.show()
     
-    realign_from_photodiode(data, metadata, debug=True, n_vis=args.n_vis, verbose=True)
+    realign_from_photodiode(data, metadata,
+                            debug=True,
+                            istart_debug=args.istart_debug,
+                            n_vis=args.n_vis, verbose=True)
     
 
 
