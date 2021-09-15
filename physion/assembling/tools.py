@@ -44,7 +44,7 @@ def load_FaceCamera_data(imgfolder, t0=0,
         fn = os.path.join(imgfolder, '..', 'FaceCamera-summary.npy')
         data = {'times':times, 'nframes':nframes, 'Lx':Lx, 'Ly':Ly, 'sample_frames':[], 'sample_frames_index':[]}
         for i in np.linspace(0, nframes-1, N_summary, dtype=int):
-            data['sample_frames'].append(np.load(FILES[i]))
+            data['sample_frames'].append(np.load(os.path.join(imgfolder, FILES[i])))
             data['sample_frames_index'].append(times[i])
         np.save(fn, data)
         
