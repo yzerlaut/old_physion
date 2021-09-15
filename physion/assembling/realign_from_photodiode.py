@@ -43,7 +43,7 @@ def realign_from_photodiode(signal,
     # looping over episodes
     i=0
     while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i])
+        cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i]+10) # 10s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,

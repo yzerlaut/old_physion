@@ -332,9 +332,14 @@ def build_NWB(args,
                                                   data = dataF['motion'],
                                                   unit='seconds',
                                                   timestamps=FC_times[dataF['frame']])
-                
                 faceMotion_module.add(FaceMotionProp)
-                
+
+                if 'grooming' in dataF:
+                    GroomingProp = pynwb.TimeSeries(name='grooming',
+                                                    data = dataF['grooming'],
+                                                    unit='seconds',
+                                                    timestamps=FC_times[dataF['frame']])
+                    faceMotion_module.add(GroomingProp)
 
                 # then add the motion frames subsampled
                 if FC_FILES is not None:
