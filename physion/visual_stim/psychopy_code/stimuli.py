@@ -446,10 +446,16 @@ class visual_stim:
         print('to be implemented in child class')
         return 0*self.x
     
-    def plot_stim_picture(self, episode, ax, parent=None):
-        print('to be implemented in child class, here ')
-        ax.imshow(self.get_image(episode, parent=parent),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    def plot_stim_picture(self, episode, ax=None,
+                          label={'degree':10,
+                                 'shift_factor':0.02,
+                                 'lw':0.5, 'fontsize':8},
+                          enhance=True,
+                          parent=None):
+        self.show_frame(episode, label=label, ax=ax)
+        # print('to be implemented in child class, here ')
+        # ax.imshow(self.get_image(episode, parent=parent),
+        #           cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
 
     def get_prestim_image(self):
         return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
@@ -625,8 +631,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
-    def get_picture(self, episodeparent=None):
-        return self.STIM[self.experiment['protocol_id'][episode]].get_picture(episode, parent=self)
+    def plot_stim_picture(self, episode, ax=None, parent=None):
+        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self)
     # def show_interstim(self):
         
 
@@ -643,10 +649,7 @@ class light_level_single_stim(visual_stim):
         super().init_experiment(protocol, ['light-level'], run_type='static')
             
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['light-level'][index]))]
@@ -655,9 +658,9 @@ class light_level_single_stim(visual_stim):
         cls = (parent if parent is not None else self)
         return 0*self.x+(1+cls.experiment['light-level'][episode])/2.
 
-    def plot_stim_picture(self, episode, ax, parent=None):
-        ax.imshow(self.get_image(episode, parent=parent),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    # def plot_stim_picture(self, episode, ax=None, parent=None):
+    #     ax.imshow(self.get_image(episode, parent=parent),
+    #               cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
     
 
 
@@ -1427,7 +1430,30 @@ class line_moving_dots(visual_stim):
                          cls.experiment['size'][episode],
                          cls.experiment['dotcolor'][episode])
         return img
-    
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = super().show_frame(episode, ax=ax, label=label, enhance=enhance,
+                                time_from_episode_start=tcenter_minus)
+
+        direction = cls.experiment['direction'][episode]
+        nz, nx = self.x.shape
+        for i in [-1,0,1]:
+            ax.arrow(nx/2+np.cos(np.pi/180.*direction)*i*nx/4,
+                     nz/2+np.sin(np.pi/180.*direction)*i*nz/4,
+                     np.cos(np.pi/180.*direction+np.pi/2)*self.angle_to_pix(arrow['length']),
+                     -np.sin(np.pi/180.*direction+np.pi/2)*self.angle_to_pix(arrow['length']),
+                     width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
+                     color=arrow['color'])
+
+        return ax
     
         
 class random_dots(visual_stim):
@@ -1562,6 +1588,29 @@ class looming_stim(visual_stim):
                      cls.experiment['color'][index])
         return img
 
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = super().show_frame(episode, ax=ax, label=label, enhance=enhance,
+                                time_from_episode_start=tcenter_minus)
+
+        direction = cls.experiment['direction'][episode]
+        nz, nx = self.x.shape
+        for i in [-1,0,1]:
+            ax.arrow(nx/2+np.cos(np.pi/180.*direction)*i*nx/4,
+                     nz/2+np.sin(np.pi/180.*direction)*i*nz/4,
+                     np.cos(np.pi/180.*direction+np.pi/2)*self.angle_to_pix(arrow['length']),
+                     -np.sin(np.pi/180.*direction+np.pi/2)*self.angle_to_pix(arrow['length']),
+                     width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
+                     color=arrow['color'])
+
+        return ax
     
     
 if __name__=='__main__':

@@ -206,7 +206,7 @@ def build_NWB(args,
 
             
         try:
-            
+
             FC_times, FC_FILES, _, _, _ = load_FaceCamera_data(os.path.join(args.datafolder, 'FaceCamera-imgs'),
                                                             t0=NIdaq_Tstart,
                                                             verbose=True)

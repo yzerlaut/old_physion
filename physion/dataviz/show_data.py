@@ -237,8 +237,6 @@ class MultimodalData(Data):
         if self.visual_stim is None:
             self.init_visual_stim()
 
-        print(self.visual_stim.experiment)
-        
         fig, AX = ge.figure(axes=(Npanels,1),
                             figsize=(1.6/2., 0.9/2.), top=3, bottom=2, wspace=.2)
 
@@ -764,9 +762,12 @@ if __name__=='__main__':
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
-
-        fig, ax = ge.figure(figsize=(1.3,1.))
-        data.visual_stim.plot_stim_picture(1, ax)
+        # data.visual_stim.plot_stim_picture(1)
+        for i in range(10, 26):
+            fig, ax = ge.figure()
+            print(i)
+            data.visual_stim.plot_stim_picture(i, ax=ax)
+            ax.set_title('ep %i' % i)
         
     elif args.ops=='FOV':
         fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
