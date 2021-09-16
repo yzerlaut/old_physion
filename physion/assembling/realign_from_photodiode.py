@@ -44,7 +44,7 @@ def realign_from_photodiode(signal,
     # looping over episodes
     i=0
     while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart-0.1) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
+        cond = (t>=tstart) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
@@ -68,13 +68,7 @@ def realign_from_photodiode(signal,
             # print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
-        tstart=tstart+tshift+metadata['time_duration'][i]#+(metadata['time_start'][i+1]-metadata['time_stop'][i])
-        # try:
-        #     tstart=tstart+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
-        # except IndexError:
-        #     tstart=tstart+tshift+metadata['time_duration'][i]
-        #     print('should be the last index, t=%.0f' % tstart)
-        # tend_previous=tstart+metadata['time_duration'][i]
+        tstart=tstart+tshift+metadata['time_duration'][i] # update tstart by tshift_observed+duration
         i+=1
         
     if verbose:
