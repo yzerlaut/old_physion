@@ -24,17 +24,8 @@ def realign_from_photodiode(signal,
     
     tlim, tnew = [0, t[-1]], 0
 
-    #######################################################################
-    # TEMPORARY CAN BE REMOVED BECAUSE THE BUG HAS BEEN FIXED (sparse noise wasn't started after presentation time)
-    if metadata['time_start'][0]==0:
-        metadata['time_start'] += metadata['presentation-prestim-period']
-        metadata['time_stop'] += metadata['presentation-prestim-period']
-    # to be removed
-    #######################################################################
-        
-    tstart, tshift = metadata['time_start'][0], 0
+    tstart, tshift = metadata['time_start'][0]-.5, 0
     metadata['time_start_realigned'] = []
-    Nepisodes = np.sum(metadata['time_start']<tlim[1])
     
     # compute signal boundaries to evaluate threshold crossing of photodiode signal
     H, bins = np.histogram(signal, bins=50)
@@ -43,12 +34,13 @@ def realign_from_photodiode(signal,
 
     # looping over episodes
     i=0
-    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
+    while (tstart<(t[-1]-metadata['time_duration'][i])):
         cond = (t>=tstart) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
                                                           baseline=baseline, high_level=high_level)
+            print('ep.#%i, tshift=%.1f, prtcl_id=%i' % (i, tshift, metadata['protocol_id'][i]))
             if debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
                 fig, ax = plt.subplots()
                 ax.plot(t[cond], integral, label='smoothed')
@@ -74,6 +66,7 @@ def realign_from_photodiode(signal,
     if verbose:
         if success:
             print('[ok]          --> succesfully realigned')
+            print('                  found n=%i episodes over the %i of the protocol ' % (len(metadata['time_start_realigned']), len(metadata['time_start'])))
         else:
             print('[X]          --> realignement failed')
     if success:
@@ -127,7 +120,7 @@ if __name__=='__main__':
     VisualStim = np.load(os.path.join(args.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
     if 'time_duration' not in VisualStim:
         VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
-    for key in ['time_start', 'time_stop', 'time_duration']:
+    for key in VisualStim:
         metadata[key] = VisualStim[key]
 
     plt.plot(data[::1000][:1000])

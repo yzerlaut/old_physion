@@ -297,8 +297,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.filename = generate_filename_path(self.root_datafolder,
                                                filename='metadata', extension='.npy',
-                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
-                                               with_screen_frames_folder=self.metadata['VisualStim'])
+                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'])
         self.datafolder.set(os.path.dirname(self.filename))
             
         if self.metadata['protocol']!='None':
@@ -314,7 +313,7 @@ class MainWindow(QtWidgets.QMainWindow):
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
-                max_time = int(1.5*self.stim.experiment['time_stop'][-1]) # for security
+                max_time = int(2.5*self.stim.experiment['time_stop'][-1]) # for security (three times because building stim times can be large, 1x running time)
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
