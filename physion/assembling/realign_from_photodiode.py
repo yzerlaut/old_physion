@@ -40,7 +40,7 @@ def realign_from_photodiode(signal,
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
                                                           baseline=baseline, high_level=high_level)
-            print('ep.#%i, tshift=%.1f, prtcl_id=%i' % (i, tshift, metadata['protocol_id'][i]))
+            # print('ep.#%i, tshift=%.1f, prtcl_id=%i' % (i, tshift, metadata['protocol_id'][i]))
             if debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
                 fig, ax = plt.subplots()
                 ax.plot(t[cond], integral, label='smoothed')
