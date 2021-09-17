@@ -1,4 +1,4 @@
-import sys, time, tempfile, os, pathlib, json, datetime, string
+import sys, time, tempfile, os, pathlib, json, datetime, string, itertools
 import numpy as np
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from Ca_imaging import tools as Ca_imaging_tools
@@ -37,7 +37,7 @@ class EpisodeResponse:
         self.varied_parameters, self.fixed_parameters =  {}, {}
         for key in full_data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
-                           'time_start_realigned', 'time_stop', 'time_stop_realigned']:
+                           'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim']:
                 unique = np.unique(full_data.nwbfile.stimulus[key].data[Pcond])
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
@@ -47,8 +47,8 @@ class EpisodeResponse:
         # new sampling
         if (prestim_duration is None) and ('interstim' in full_data.nwbfile.stimulus):
             prestim_duration = np.min(full_data.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
-        elif prestim_duration is None:
-            prestim_duration = 1
+        if (prestim_duration is None) or (prestim_duration<1):
+            prestim_duration = 1 # still 1s is a minimum
         ipre = int(prestim_duration/dt_sampling*1e3)
 
         duration = full_data.nwbfile.stimulus['time_stop'].data[Pcond][0]-full_data.nwbfile.stimulus['time_start'].data[Pcond][0]
@@ -159,9 +159,42 @@ class EpisodeResponse:
             elif quantity=='integral':
                 quantities.append(np.trapz(self.resp[i, interval_cond]))
         return np.array(quantities)
+
+
+    def compute_summary_data(self, stat_test_props,
+                             exclude_keys=['repeat'],
+                             response_significance_threshold=0.01):
+
+        VARIED_KEYS, VARIED_VALUES, VARIED_INDICES, Nfigs, VARIED_BINS = [], [], [], 1, []
+        for key in self.varied_parameters:
+            if key not in exclude_keys:
+                VARIED_KEYS.append(key)
+                VARIED_VALUES.append(self.varied_parameters[key])
+                VARIED_INDICES.append(np.arange(len(self.varied_parameters[key])))
+                x = np.unique(self.varied_parameters[key])
+                VARIED_BINS.append(np.concatenate([[x[0]-.5*(x[1]-x[0])],
+                                                   .5*(x[1:]+x[:-1]),
+                                                   [x[-1]+.5*(x[-1]-x[-2])]]))
+
+        summary_data = {'value':[], 'significant':[]}
+        for key, bins in zip(VARIED_KEYS, VARIED_BINS):
+            summary_data[key] = []
+            summary_data[key+'-bins'] = bins
+
+        for indices in itertools.product(*VARIED_INDICES):
+            stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
+                                                                                                    list(indices)),
+                                                            **stat_test_props)
+
+            for key, index in zip(VARIED_KEYS, indices):
+                summary_data[key].append(self.varied_parameters[key][index])
+            summary_data['value'].append(np.mean(stats.y-stats.x))
+            summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+
+        for key in summary_data:
+            summary_data[key] = np.array(summary_data[key])
     
-
-
+        return summary_data
     
 if __name__=='__main__':
 

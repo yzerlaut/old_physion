@@ -149,7 +149,7 @@ class Data:
             self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
 
         # red-labelling
-        if len(self.Segmentation.columns)>1 and (self.Segmentation.columns[2].name=='redcell'):
+        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='redcell'):
             self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
         else:
             self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
