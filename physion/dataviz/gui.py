@@ -210,6 +210,11 @@ class MainWindow(guiparts.NewWindow):
         self.subsamplingSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.subsamplingSelect)
 
+        self.annotSelect = QtGui.QCheckBox("annot.")
+        self.annotSelect.setStyleSheet('color: grey;')
+        self.annotSelect.setFont(guiparts.smallfont)
+        Layout122.addWidget(self.annotSelect)
+        
         self.imgSelect = QtGui.QCheckBox("img")
         self.imgSelect.setStyleSheet('color: grey;')
         self.imgSelect.setFont(guiparts.smallfont)

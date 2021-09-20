@@ -32,9 +32,10 @@ def realign_from_photodiode(signal,
     baseline = bins[np.argmax(H)+1]
     high_level = np.max(signal)
 
+    print(np.unique(metadata['time_duration']))
     # looping over episodes
     i=0
-    while (tstart<(t[-1]-metadata['time_duration'][i])):
+    while (i<len(metadata['time_start'])) and (tstart<(t[-1]-metadata['time_duration'][i])):
         cond = (t>=tstart) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
@@ -57,7 +58,7 @@ def realign_from_photodiode(signal,
         except BaseException as be:
             print('\n', be)
             print('\n'+' /!\ REALIGNEMENT FAILED (@ i=%i ) /!\ \n' % i)
-            # print(i, Nepisodes, metadata['time_duration'][i])
+            print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
         tstart=tstart+tshift+metadata['time_duration'][i] # update tstart by tshift_observed+duration
