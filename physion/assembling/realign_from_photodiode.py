@@ -32,7 +32,8 @@ def realign_from_photodiode(signal,
     baseline = bins[np.argmax(H)+1]
     high_level = np.max(signal)
 
-    print(np.unique(metadata['time_duration']))
+    time_duration = metadata['time_stop']-metadata['time_start']
+    print(np.unique(time_duration))
     # looping over episodes
     i=0
     while (i<len(metadata['time_start'])) and (tstart<(t[-1]-metadata['time_duration'][i])):
@@ -119,6 +120,7 @@ if __name__=='__main__':
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
     VisualStim = np.load(os.path.join(args.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
+    print(metadata.keys())
     if 'time_duration' not in VisualStim:
         VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
     for key in VisualStim:
@@ -128,10 +130,10 @@ if __name__=='__main__':
     plt.title('photodiode-signal (subsampled/100)')
     plt.show()
     
-    realign_from_photodiode(data, metadata,
-                            debug=True,
-                            istart_debug=args.istart_debug,
-                            n_vis=args.n_vis, verbose=True)
+    # realign_from_photodiode(data, metadata,
+    #                         debug=True,
+    #                         istart_debug=args.istart_debug,
+    #                         n_vis=args.n_vis, verbose=True)
     
 
 
