@@ -7,7 +7,7 @@ def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
                             smoothing_time=20e-3,
-                            shift_time=0.3,
+                            shift_time=0., # MODIFY IT HERE IN CASE NEEDED
                             debug=False, istart_debug=0,
                             verbose=True, n_vis=5):
 
@@ -114,7 +114,7 @@ if __name__=='__main__':
     parser.add_argument('-n', "--n_vis", type=int, default=5)
     parser.add_argument('-id', "--istart_debug", type=int, default=0)
     parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
-    parser.add_argument("--shift_time", type=float, help='in s', default=0e-3)
+    parser.add_argument('-st', "--shift_time", type=float, help='in s', default=0e-3)
     args = parser.parse_args()
 
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]

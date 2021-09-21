@@ -177,12 +177,12 @@ def build_NWB(args,
                 nwbfile.add_stimulus(VisualStimProp)
         else:
             print(' /!\ No VisualStim metadata found /!\ ')
-            # print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
-            # TEMPORARY FOR TROUBLESHOOTING !!
-            metadata['time_start_realigned'] = metadata['time_start']
-            metadata['time_stop_realigned'] = metadata['time_stop']
-            print(' /!\ Realignement unsuccessful /!\ ')
-            print('       --> using the default time_start / time_stop values ')
+        #     # print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)
+        #     # TEMPORARY FOR TROUBLESHOOTING !!
+        #     metadata['time_start_realigned'] = metadata['time_start']
+        #     metadata['time_stop_realigned'] = metadata['time_stop']
+        #     print(' /!\ Realignement unsuccessful /!\ ')
+        #     print('       --> using the default time_start / time_stop values ')
     
         if args.verbose:
             print('=> Storing the photodiode signal for "%s" [...]' % args.datafolder)
