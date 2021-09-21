@@ -220,11 +220,6 @@ class MultimodalData(Data):
                             lw=0, alpha=0.05, color=color)
             axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
             axi.axis('equal')
-            arrow = self.visual_stim.get_arrow(i, self,
-                                               arrow_props={'length':25, 'width_factor':0.1})
-            vse = self.visual_stim.get_vse(i, self)
-
-            # self.visual_stim.show_frame(i, ax=axi,
             self.visual_stim.plot_stim_picture(i, ax=axi)
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
 
