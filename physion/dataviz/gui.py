@@ -210,6 +210,11 @@ class MainWindow(guiparts.NewWindow):
         self.subsamplingSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.subsamplingSelect)
 
+        self.annotSelect = QtGui.QCheckBox("annot.")
+        self.annotSelect.setStyleSheet('color: grey;')
+        self.annotSelect.setFont(guiparts.smallfont)
+        Layout122.addWidget(self.annotSelect)
+        
         self.imgSelect = QtGui.QCheckBox("img")
         self.imgSelect.setStyleSheet('color: grey;')
         self.imgSelect.setFont(guiparts.smallfont)
@@ -284,12 +289,12 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-                     "Open Multimodal Experimental Recording (NWB file) ",
-                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                                                        filter="*.nwb")
+        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        #              "Open Multimodal Experimental Recording (NWB file) ",
+        #             (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+        #                                                 filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
-        # filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-14-55-23.nwb'
+        filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-14-55-23.nwb'
         
         if filename!='':
             self.datafile=filename
@@ -304,6 +309,7 @@ class MainWindow(guiparts.NewWindow):
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
         self.subsamplingSelect.setChecked(True)
+        self.annotSelect.setChecked(False)
         self.stimSelect.setChecked(False)
         self.init_panel_imgs()
         self.roiIndices = None

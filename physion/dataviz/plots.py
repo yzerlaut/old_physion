@@ -281,13 +281,16 @@ def raw_data_plot(self, tzoom,
         icond = np.argwhere((self.data.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
                             (self.data.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()
 
-        if hasattr(self, 'StimFill') and self.StimFill is not None:
+        if hasattr(self, 'StimFill') and (self.StimFill is not None):
             for x in self.StimFill:
+                self.plot.removeItem(x)
+        if hasattr(self, 'StimAnnots') and (self.StimAnnots is not None):
+            for x in self.StimAnnots:
                 self.plot.removeItem(x)
 
         X, Y = [], []
         if len(icond)>0:
-            self.StimFill = []
+            self.StimFill, self.StimAnnots = [], []
             # for i in icond:
             for i in range(max([0,icond[0]-1]),
                            min([icond[-1]+1,self.data.nwbfile.stimulus['time_stop_realigned'].data.shape[0]-1])):
@@ -295,6 +298,18 @@ def raw_data_plot(self, tzoom,
                 t1 = self.data.nwbfile.stimulus['time_stop_realigned'].data[i]
                 self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
                                 fillLevel=y.max(), brush=(150,150,150,80)))
+                if self.annotSelect.isChecked():
+                    self.StimAnnots.append(pg.TextItem())
+                    text = 'stim.#%i\n\n' % i
+                    for key in self.data.nwbfile.stimulus.keys():
+                        print(key, self.data.nwbfile.stimulus[key].data[i])
+                        if (self.data.nwbfile.stimulus[key].data[i]!='None') and\
+                           (key not in ['time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned']):
+                            text+='%s : %s\n' % (key, str(self.data.nwbfile.stimulus[key].data[i]))
+                    self.StimAnnots[-1].setPlainText(text)                    
+                    self.StimAnnots[-1].setPos(t0, 0.9*y.max())
+                    self.plot.addItem(self.StimAnnots[-1])
+                    
 
     self.plot.setRange(xRange=tzoom, yRange=[0,y.max()], padding=0.0)
     self.frameSlider.setValue(int(self.settings['Npoints']*(self.time-tzoom[0])/(tzoom[1]-tzoom[0])))

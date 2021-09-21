@@ -7,6 +7,7 @@ def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
                             smoothing_time=20e-3,
+                            shift_time=0.3,
                             debug=False, istart_debug=0,
                             verbose=True, n_vis=5):
 
@@ -34,8 +35,8 @@ def realign_from_photodiode(signal,
 
     # looping over episodes
     i=0
-    while (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
+    while (i<len(metadata['time_duration'])) and (tstart<(t[-1]-metadata['time_duration'][i])):
+        cond = (t>=tstart+shift_time) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
@@ -113,11 +114,13 @@ if __name__=='__main__':
     parser.add_argument('-n', "--n_vis", type=int, default=5)
     parser.add_argument('-id', "--istart_debug", type=int, default=0)
     parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
+    parser.add_argument("--shift_time", type=float, help='in s', default=0e-3)
     args = parser.parse_args()
 
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
     VisualStim = np.load(os.path.join(args.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
+
     if 'time_duration' not in VisualStim:
         VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
     for key in VisualStim:
@@ -130,6 +133,7 @@ if __name__=='__main__':
     realign_from_photodiode(data, metadata,
                             debug=True,
                             istart_debug=args.istart_debug,
+                            shift_time=args.shift_time,
                             n_vis=args.n_vis, verbose=True)
     
 
