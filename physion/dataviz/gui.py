@@ -309,6 +309,7 @@ class MainWindow(guiparts.NewWindow):
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
         self.subsamplingSelect.setChecked(True)
+        self.annotSelect.setChecked(False)
         self.stimSelect.setChecked(False)
         self.init_panel_imgs()
         self.roiIndices = None

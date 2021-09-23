@@ -22,22 +22,22 @@ def ROI_analysis(FullData,
                  stat_test_props=dict(interval_pre=[-2,0], interval_post=[2,4],
                                       test='ttest', positive=True)):
     """
-    orientation selectivity ROI analysis
+    looming stim analysis
     """
 
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
                                quantity='CaImaging', subquantity='dF/F',
-                               prestim_duration=2.,
+                               prestim_duration=3.,
                                roiIndex = roiIndex)
 
     fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
                                           protocol_id=iprotocol,
                                           quantity='CaImaging', subquantity='dF/F',
                                           roiIndex = roiIndex,
-                                          column_key='direction',
-                                          row_keys=['speed', 'size'],
-                                          color_key='dotcolor',
+                                          column_keys=['x-center', 'y-center'],
+                                          row_keys=['color'],
+                                          # color_key='dotcolor',
                                           ybar=1., ybarlabel='1dF/F',
                                           xbar=1., xbarlabel='1s',
                                           fig_preset='raw-traces-preset',
