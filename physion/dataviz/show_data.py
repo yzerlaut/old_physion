@@ -766,7 +766,9 @@ if __name__=='__main__':
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
-        data.visual_stim.plot_stim_picture(args.episode, enhance=True)
+        fig2 = data.visual_stim.plot_stim_picture(args.episode, enhance=True)
+        print('interval [%.1f, %.1f] ' % (data.nwbfile.stimulus['time_start_realigned'].data[args.episode],
+                                          data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
     elif args.ops=='FOV':
         fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))

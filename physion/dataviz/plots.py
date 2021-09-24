@@ -309,7 +309,6 @@ def raw_data_plot(self, tzoom,
                     self.StimAnnots.append(pg.TextItem())
                     text = 'stim.#%i\n\n' % (i+1)
                     for key in self.data.nwbfile.stimulus.keys():
-                        print(key, self.data.nwbfile.stimulus[key].data[i])
                         if (self.data.nwbfile.stimulus[key].data[i]!='None') and\
                            (key not in ['time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned']):
                             text+='%s : %s\n' % (key, str(self.data.nwbfile.stimulus[key].data[i]))

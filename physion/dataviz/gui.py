@@ -422,11 +422,10 @@ class MainWindow(guiparts.NewWindow):
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
                                            self.highlight_format)
                 self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
-                                         for f in np.array(FILES)[DATES==d]]
+                                         for f in np.array(FILES)[DATES==d]][::-1]
             except BaseException as be:
                 print(be)
-            # except ValueError:
-            #     pass
+                print('error for date %s' % d)
             
         print(' -> found n=%i datafiles ' % len(FILES))
         
