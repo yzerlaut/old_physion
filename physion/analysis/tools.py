@@ -1,9 +1,12 @@
+import os
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
 from datavyz import ge
 
 def summary_pdf_folder(filename):
+    if not os.path.isdir(filename.replace('.nwb', '')):
+        os.mkdir(filename.replace('.nwb', ''))
     return filename.replace('.nwb', '')
 
 def find_modalities(data):

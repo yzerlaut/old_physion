@@ -184,7 +184,7 @@ class EpisodeResponse:
         for indices in itertools.product(*VARIED_INDICES):
             stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
                                                                                                     list(indices)),
-                                                            **stat_test_props)
+                                                        **stat_test_props)
 
             for key, index in zip(VARIED_KEYS, indices):
                 summary_data[key].append(self.varied_parameters[key][index])

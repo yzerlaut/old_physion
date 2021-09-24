@@ -47,18 +47,15 @@ def ROI_analysis(FullData,
                                           verbose=verbose)
 
     cell_resp = EPISODES.compute_summary_data(stat_test_props,
-                                              response_significance_threshold=0.01)
+                                              response_significance_threshold=response_significance_threshold)
     
     return fig, cell_resp
 
 
-def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
+def analysis_pdf(datafile, iprotocol=0, Nmax=1000000, response_significance_threshold=0.01):
 
     data = MultimodalData(datafile)
 
-    if not os.path.isdir(summary_pdf_folder(datafile)):
-        os.mkdir(summary_pdf_folder(datafile))
-    
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-moving-dots_selectivity.pdf' % data.protocols[iprotocol])
     
     CELL_RESPS = []
@@ -66,7 +63,10 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
 
-            fig, cell_resp = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            fig, cell_resp = ROI_analysis(data,
+                                          roiIndex=roi,
+                                          iprotocol=iprotocol,
+                                          response_significance_threshold=response_significance_threshold)
             CELL_RESPS.append(cell_resp)
             
             pdf.savefig(fig)  # saves the current figure into a pdf page

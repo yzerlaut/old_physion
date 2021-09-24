@@ -94,12 +94,6 @@ def make_summary_pdf(filename, Nmax=1000000,
     
     folder = summary_pdf_folder(filename)
     
-    if not os.path.isdir(folder):
-        os.mkdir(folder)
-        print('-> created summary PDF folder !')
-    else:
-        print('summary PDF folder "%s" already exists !' % folder)
-        
     if 'exp' in include:
         
         with PdfPages(os.path.join(folder, 'exp.pdf')) as pdf:
