@@ -711,6 +711,15 @@ def format_key_value(key, value):
             return 'white dot'
         else:
             return 'dot=%.1f' % value
+    elif key=='color':
+        if value==-1:
+            return 'black'
+        elif value==0:
+            return 'grey'
+        elif value==1:
+            return 'white'
+        else:
+            return 'color=%.1f' % value
     elif key=='speed':
         return 'v=%.0f$^{o}$/s' % value
     elif key=='protocol_id':

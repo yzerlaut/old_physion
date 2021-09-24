@@ -243,7 +243,7 @@ def C_ROI_analysis(FullData,
                  iprotocol = 0,
                  subprotocol_id=0,
                  verbose=False,
-                 response_significance_threshold=0.01,
+                 response_significance_threshold=0.05,
                  with_responsive_angles = False,
                  stat_test_props=dict(interval_pre=[-2,0], interval_post=[2,4],
                                       test='ttest', positive=True)):
@@ -273,7 +273,7 @@ def C_ROI_analysis(FullData,
                                           verbose=verbose)
 
     cell_resp = EPISODES.compute_summary_data(stat_test_props,
-                                              response_significance_threshold=0.01)
+                                              response_significance_threshold=response_significance_threshold)
     
     return fig, cell_resp
 
@@ -292,7 +292,6 @@ def C_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
         for roi in np.arange(data.iscell.sum())[:Nmax]:
 
-            print('roi #%i' % roi)
             fig, cell_resp = C_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             CELL_RESPS.append(cell_resp)
             
