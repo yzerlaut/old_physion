@@ -59,10 +59,10 @@ class MainWindow(NewWindow):
         self.showwindow()
 
         # central widget
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
         # layout
-        self.l0 = QtGui.QGridLayout()
+        self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
@@ -83,7 +83,6 @@ class MainWindow(NewWindow):
         self.pFace = self.win.addViewBox(lockAspect=False,row=0,col=1,invertY=True,
                                          border=[100,100,100])
         self.pFace.setAspectLocked()
-        #self.p0.setMouseEnabled(x=False,y=False)
         self.pFace.setMenuEnabled(False)
         self.pFaceimg = pg.ImageItem(None)
         self.pFace.addItem(self.pFaceimg)
@@ -91,18 +90,18 @@ class MainWindow(NewWindow):
         # saturation sliders
         self.sl = Slider(0, self)
         self.l0.addWidget(self.sl,1,6,1,7)
-        qlabel= QtGui.QLabel('saturation')
+        qlabel= QtWidgets.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
         self.l0.addWidget(qlabel, 0,8,1,3)
 
         # reset
-        self.reset_btn = QtGui.QPushButton('reset')
+        self.reset_btn = QtWidgets.QPushButton('reset')
         self.l0.addWidget(self.reset_btn, 1, 11+6, 1, 1)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_btn.setEnabled(True)
 
         # debug
-        self.debugBtn = QtGui.QPushButton('- Debug -')
+        self.debugBtn = QtWidgets.QPushButton('- Debug -')
         self.l0.addWidget(self.debugBtn, 2, 11+6, 1, 1)
         self.debugBtn.setEnabled(True)
         self.debugBtn.clicked.connect(self.debug)
@@ -118,23 +117,22 @@ class MainWindow(NewWindow):
         self.p1.setLabel('bottom', 'time (frame #)')
         self.xaxis = self.p1.getAxis('bottom')
         self.p1.autoRange(padding=0.01)
-        
+
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No datafile chosen")
+        self.movieLabel = QtWidgets.QLabel("No datafile chosen")
         self.movieLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.movieLabel,0,1,1,5)
 
-
         # create frame slider
-        self.timeLabel = QtGui.QLabel("time : ")
+        self.timeLabel = QtWidgets.QLabel("time : ")
         self.timeLabel.setStyleSheet("color: white;")
         # self.timeLabel.setFixedWidth(300)
-        self.currentTime = QtGui.QLineEdit()
+        self.currentTime = QtWidgets.QLineEdit()
         self.currentTime.setText('0 s')
         self.currentTime.setFixedWidth(70)
         # self.currentTime.returnPressed.connect(self.set_precise_time)
         
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.frameSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.frameSlider.setMinimum(0)
         self.frameSlider.setMaximum(200)
         self.frameSlider.setTickInterval(1)
@@ -149,91 +147,107 @@ class MainWindow(NewWindow):
         self.folderB.setMinimumWidth(150)
         self.folderB.addItems(FOLDERS.keys())
         
-        self.processBtn = QtGui.QPushButton('process data')
-        self.processBtn.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.processBtn = QtWidgets.QPushButton('process data')
         self.processBtn.clicked.connect(self.process)
 
-        # self.interpolate = QtGui.QPushButton('interpolate')
-        # self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        # self.interpolate.clicked.connect(self.interpolate_data)
+        self.interpolate = QtGui.QPushButton('interpolate')
+        self.interpolate.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.interpolate.clicked.connect(self.interpolate_data)
 
-        self.motionCheckBox = QtGui.QCheckBox("display motion frames")
+        self.motionCheckBox = QtWidgets.QCheckBox("display motion frames")
         self.motionCheckBox.setStyleSheet("color: gray;")
         
-        self.runAsSubprocess = QtGui.QPushButton('run as subprocess')
-        self.runAsSubprocess.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.runAsSubprocess = QtWidgets.QPushButton('run as subprocess')
         self.runAsSubprocess.clicked.connect(self.run_as_subprocess)
-        # self.runAsSubprocess.setEnabled(True)
 
-        self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
-        self.load.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.load = QtWidgets.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.clicked.connect(self.open_file)
 
-        sampLabel1 = QtGui.QLabel("spatial subsampling")
+        sampLabel1 = QtWidgets.QLabel("spatial subsampling")
         sampLabel1.setStyleSheet("color: gray;")
         sampLabel1.setFixedWidth(220)
-        self.SsamplingBox = QtGui.QLineEdit()
+        self.SsamplingBox = QtWidgets.QLineEdit()
         self.SsamplingBox.setText(str(self.spatial_subsampling))
         self.SsamplingBox.setFixedWidth(30)
 
-        sampLabel2 = QtGui.QLabel("temporal subsampling")
+        sampLabel2 = QtWidgets.QLabel("temporal subsampling")
         sampLabel2.setStyleSheet("color: gray;")
         sampLabel2.setFixedWidth(220)
-        self.TsamplingBox = QtGui.QLineEdit()
+        self.TsamplingBox = QtWidgets.QLineEdit()
         self.TsamplingBox.setText(str(self.time_subsampling))
         self.TsamplingBox.setFixedWidth(30)
         
-        self.addROI = QtGui.QPushButton("set ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI = QtWidgets.QPushButton("set ROI")
         self.addROI.clicked.connect(self.add_ROI)
 
-        self.saveData = QtGui.QPushButton('save data')
-        self.saveData.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.saveData = QtWidgets.QPushButton('save data')
         self.saveData.clicked.connect(self.save_data)
 
+        sampLabel3 = QtWidgets.QLabel("grooming threshold")
+        sampLabel3.setStyleSheet("color: gray;")
+        sampLabel3.setFixedWidth(220)
+        self.groomingBox = QtWidgets.QLineEdit()
+        self.groomingBox.setText('-1')
+        self.groomingBox.setFixedWidth(40)
+        self.groomingBox.returnPressed.connect(self.update_grooming_threshold)
+
+        self.processGrooming = QtWidgets.QPushButton("process grooming")
+        self.processGrooming.clicked.connect(self.process_grooming)
+        
+        for x in [self.processBtn, self.motionCheckBox, self.runAsSubprocess,
+                  self.load, self.addROI, self.saveData, self.TsamplingBox,
+                  self.SsamplingBox, self.groomingBox, self.processGrooming]:
+            x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        
         iconSize = QtCore.QSize(30, 30)
-        self.playButton = QtGui.QToolButton()
-        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+        self.playButton = QtWidgets.QToolButton()
+        self.playButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         self.playButton.setIconSize(iconSize)
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
-        self.pauseButton = QtGui.QToolButton()
+        self.pauseButton = QtWidgets.QToolButton()
         self.pauseButton.setCheckable(True)
-        self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+        self.pauseButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
 
-        btns = QtGui.QButtonGroup(self)
+        btns = QtWidgets.QButtonGroup(self)
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
 
-        self.l0.addWidget(self.folderB,1,0,1,3)
-        self.l0.addWidget(self.load,2,0,1,3)
-        self.l0.addWidget(self.addROI,14,0,1,3)
-        self.l0.addWidget(self.saveData, 16, 0, 1, 3)
-        self.l0.addWidget(self.processBtn, 20, 0, 1, 3)
-        self.l0.addWidget(self.runAsSubprocess, 21, 0, 1, 3)
-        self.l0.addWidget(self.motionCheckBox, 18, 0, 1, 3)
-        
-        self.l0.addWidget(sampLabel1, 8, 0, 1, 3)
+        for wdg, loc in zip([self.load,self.folderB,
+                             sampLabel1, sampLabel2,
+                             self.addROI, self.saveData,
+                             sampLabel3, self.processGrooming,
+                             self.motionCheckBox, self.processBtn, self.runAsSubprocess,
+                             self.timeLabel],
+                            [1,2,
+                             8,9,
+                             12,14,
+                             19,20,
+                             23,24,26,
+                             istretch+13]):
+            
+            self.l0.addWidget(wdg,loc,0,1,3)
+
         self.l0.addWidget(self.SsamplingBox, 8, 2, 1, 3)
-        self.l0.addWidget(sampLabel2, 9, 0, 1, 3)
         self.l0.addWidget(self.TsamplingBox, 9, 2, 1, 3)
-
-        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.addWidget(self.groomingBox, 19, 2, 1, 3)
+        
+        self.l0.addWidget(QtWidgets.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.timeLabel, istretch+10,0,1,3)
-        self.l0.addWidget(self.currentTime, istretch+10,1,1,3)
-        self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
+        self.l0.addWidget(self.currentTime, istretch+13,1,1,3)
+        self.l0.addWidget(self.frameSlider, istretch+17,3,1,15)
 
-        self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
-        self.l0.setRowStretch(16,2)
-        # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
+        # self.l0.addWidget(QtWidgets.QLabel(''),17,2,1,1)
+        # self.l0.setRowStretch(16,2)
+        # # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.timeLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
         
         self.nframes = 0
         self.cframe = 0
+        self.grooming_threshold = -1
 
         self.show()
 
@@ -248,7 +262,7 @@ class MainWindow(NewWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderB.currentText()])
-        # folder = '/home/yann/UNPROCESSED/13-26-53/'
+        # folder = '/home/yann/DATA/14-10-48/'
 
         if folder!='':
             
@@ -279,6 +293,13 @@ class MainWindow(NewWindow):
 
                 if 'ROIsaturation' in self.data:
                     self.sl.setValue(int(self.data['ROIsaturation']))
+
+                if 'grooming_threshold' in self.data:
+                    self.grooming_threshold = self.data['grooming_threshold']
+                else:
+                    self.grooming_threshold = int(self.data['motion'].max())+1
+                    
+                self.groomingBox.setText(str(self.grooming_threshold))
                     
                 if 'frame' in self.data:
                     self.plot_motion_trace()
@@ -309,6 +330,8 @@ class MainWindow(NewWindow):
         if self.ROI is not None:
             self.data['ROI'] = self.ROI.position(self)
 
+        self.data['grooming_threshold'] = self.grooming_threshold
+        
         np.save(os.path.join(self.datafolder, 'facemotion.npy'), self.data)
         
         print('data saved as: "%s"' % os.path.join(self.datafolder, 'facemotion.npy'))
@@ -374,10 +397,14 @@ class MainWindow(NewWindow):
         frames, motion = process.compute_motion(self,
                                         time_subsampling=int(self.TsamplingBox.text()),
                                         with_ProgressBar=True)
-        self.data = {'frame':frames, 't':self.times[frames], 'motion':motion}
+        self.data = {'frame':frames, 't':self.times[frames],
+                     'motion':motion, 'grooming':0*frames}
+        if self.grooming_threshold==-1:
+            self.grooming_threshold = int(self.data['motion'].max())+1
+            
         self.plot_motion_trace()
-        
-        
+
+
     def plot_motion_trace(self, xrange=None):
         self.p1.clear()
         self.p1.plot(self.data['frame'],
@@ -385,10 +412,13 @@ class MainWindow(NewWindow):
 
         if xrange is None:
             xrange = (0, self.nframes)
+
+        self.line = pg.InfiniteLine(pos=self.grooming_threshold, angle=0, movable=True)
+        self.p1.addItem(self.line)
         
         self.p1.setRange(xRange=xrange,
                          yRange=(self.data['motion'].min()-.1,
-                                 self.data['motion'].max()+.1),
+                                 np.max([self.grooming_threshold, self.data['motion'].max()])),
                          padding=0.0)
         self.p1.show()
     
@@ -419,6 +449,30 @@ class MainWindow(NewWindow):
         self.cframe2 = self.cframe
         print('cursor 2 set to: %i' % self.cframe2)
 
+    def process_grooming(self):
+        
+        if not 'motion_before_grooming' in self.data:
+            self.data['motion_before_grooming'] = self.data['motion'].copy()
+
+        self.grooming_threshold = int(self.line.value())
+        up_cond = self.data['motion_before_grooming']>self.grooming_threshold
+        self.data['motion'][up_cond] = self.grooming_threshold
+        self.data['motion'][~up_cond] = self.data['motion_before_grooming'][~up_cond]
+
+        if 'grooming' not in self.data:
+            self.data['grooming'] = 0*self.data['motion']
+            
+        self.data['grooming'][up_cond] = 1
+        self.data['grooming'][~up_cond] = 0
+
+        self.plot_motion_trace()
+
+    def update_line(self):
+        self.groomingBox.setText('%i' % self.line.value())
+        
+    def update_grooming_threshold(self):
+        self.grooming_threshold = int(self.groomingBox.text())
+        self.plot_motion_trace()
         
     def interpolate_data(self, with_blinking_flag=False):
         
@@ -438,13 +492,13 @@ class MainWindow(NewWindow):
 
             for key in ['motion']:
                 I = np.arange(i1, i2)
-                self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][new_i2]-self.data[key][new_i1])
+                self.data[key][i1:i2] = self.data[key][new_i1]+(I-i1)/(i2-i1)*(self.data[key][
+                    new_i2]-self.data[key][new_i1])
 
             self.plot_motion_trace(xrange=self.xaxis.range)
             self.cframe1, self.cframe2 = 0, 0
         else:
             print('cursors at: ', self.cframe1, self.cframe2)
-            print('blinking/outlier labelling failed')
         
         
     def debug(self):

@@ -263,7 +263,7 @@ def build_NWB(args,
                     
                 pupil_module = nwbfile.create_processing_module(name='Pupil', 
                                                                 description='processed quantities of Pupil dynamics,\n'+\
-                                                                ' pupil ROI: (xmin,xmax,ymin,ymax)=(%i,%i,%i%i)\n' % (dataP['xmin'], dataP['xmax'], dataP['ymin'], dataP['ymax'])+\
+                                                                ' pupil ROI: (xmin,xmax,ymin,ymax)=(%i,%i,%i,%i)\n' % (dataP['xmin'], dataP['xmax'], dataP['ymin'], dataP['ymax'])+\
                                                                 ' pix_to_mm=%.3f' % pix_to_mm)
                 
                     
@@ -332,9 +332,14 @@ def build_NWB(args,
                                                   data = dataF['motion'],
                                                   unit='seconds',
                                                   timestamps=FC_times[dataF['frame']])
-                
                 faceMotion_module.add(FaceMotionProp)
-                
+
+                if 'grooming' in dataF:
+                    GroomingProp = pynwb.TimeSeries(name='grooming',
+                                                    data = dataF['grooming'],
+                                                    unit='seconds',
+                                                    timestamps=FC_times[dataF['frame']])
+                    faceMotion_module.add(GroomingProp)
 
                 # then add the motion frames subsampled
                 if FC_FILES is not None:
@@ -347,7 +352,7 @@ def build_NWB(args,
                     condF = (x>=dataF['ROI'][0]) & (x<=(dataF['ROI'][0]+dataF['ROI'][2])) &\
                         (y>=dataF['ROI'][1]) & (y<=(dataF['ROI'][1]+dataF['ROI'][3]))
 
-                    new_shapeF = dataF['ROI'][2]+1, dataF['ROI'][3]+1
+                    new_shapeF = len(np.unique(x[condF])), len(np.unique(y[condF]))
                     
                     def FaceMotion_frame_generator():
                         for i in FACEMOTION_SUBSAMPLING:
@@ -461,13 +466,15 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="""
     Building NWB file from mutlimodal experimental recordings
     """,formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', "--compression", type=int, default=0, help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
+    parser.add_argument('-c', "--compression", type=int, default=0,
+                        help='compression level, from 0 (no compression) to 9 (large compression, SLOW)')
     parser.add_argument('-df', "--datafolder", type=str, default='')
     parser.add_argument('-rf', "--root_datafolder", type=str, default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-m', "--modalities", nargs='*', type=str, default=ALL_MODALITIES)
     parser.add_argument('-d', "--day", type=str, default=datetime.datetime.today().strftime('%Y_%m_%d'))
     parser.add_argument('-t', "--time", type=str, default='')
-    parser.add_argument('-e', "--export", type=str, default='FROM_VISUALSTIM_SETUP', help='export option [FULL / LIGHTWEIGHT / FROM_VISUALSTIM_SETUP]')
+    parser.add_argument('-e', "--export", type=str, default='FROM_VISUALSTIM_SETUP',
+                        help='export option [FULL / LIGHTWEIGHT / FROM_VISUALSTIM_SETUP]')
     parser.add_argument('-r', "--recursive", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     parser.add_argument('-rs', "--running_sampling", default=50., type=float)

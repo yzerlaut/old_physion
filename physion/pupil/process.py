@@ -236,13 +236,15 @@ def init_fit_area(cls,
         for r in blanks:
             cls.fit_area = cls.fit_area & ~inside_ellipse_cond(cls.x, cls.y, *r)
 
-def clip_to_finite_values(data):
-    for key in data:
-        if type(key) in [np.ndarray, list]:
-            cond = np.isfinite(data[key]) # clipping to finite values
-            data[key] = np.clip(data[key],
-                                np.min(data[key]), np.max(data[key]))
-    return data
+def clip_to_finite_values(data, keys):
+    
+    for key in keys:
+        cond = np.isfinite(data[key]) # clipping to finite values
+        data[key] = np.clip(data[key],
+                            np.min(data[key][cond]), np.max(data[key][cond]))
+        data[key][~cond] = np.mean(data[key][cond])
+
+    return data.copy()
 
 
 
@@ -301,19 +303,25 @@ def load_ROI(cls, with_plot=True):
                                                  moveable=True, parent=cls))
 
             
-def remove_outliers(data, std_criteria=1.):
+def remove_outliers(data, std_criteria=1.5):
     """
-    Nearest-neighbor interpolation of pupil properties
+    linear interpolation of pupil properties
     """
-    data = clip_to_finite_values(data)
+    # data = clip_to_finite_values(data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
     times = np.arange(len(data['cx']))
     product = np.ones(len(times))
     std = 1
+
+    accept_cond =  np.ones(len(data['cx']), dtype=bool)
+    
     for key in ['cx', 'cy', 'sx', 'sy', 'residual']:
-        product *= np.abs(data[key]-data[key].mean())
-        std *= std_criteria*data[key].std()
-    accept_cond =  (product<std)
-    print(np.sum(accept_cond))
+        accept_cond = (accept_cond & np.isfinite(data[key]))
+        # then using only finite values 
+        product[accept_cond] *= (data[key][accept_cond]-data[key][accept_cond].mean())**2
+        std *= std_criteria**2 * data[key][accept_cond].std()**2
+
+    # finally, we apply the std criteria
+    accept_cond = accept_cond & (product<std)
     
     dt = times[1]-times[0]
     for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
@@ -321,8 +329,12 @@ def remove_outliers(data, std_criteria=1.):
         x = np.concatenate([[times[0]-dt], times[accept_cond], [times[-1]+dt]])
         y = np.concatenate([[data[key][accept_cond][0]],
                             data[key][accept_cond], [data[key][accept_cond][-1]]])
-        func = interp1d(x, y, kind='nearest', assume_sorted=True)
+        func = interp1d(x, y, kind='linear', assume_sorted=True)
         data[key] = func(times)
+        
+    # mark the exclusions as blinking:
+    data['blinking'][~accept_cond] = 1
+    print('\n --> fraction blinking: %.1f %% \n' % (100*np.sum(data['blinking'])/len(data['blinking'])) )
         
     return data
             

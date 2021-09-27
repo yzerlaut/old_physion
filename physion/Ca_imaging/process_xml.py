@@ -20,7 +20,7 @@ def build_ops(folder):
 def build_suite2p_options(folder,
                           settings_dict):
 
-    xml_file = os.path.join(folder, os.path.join(folder.split('/')[-1]+'.xml'))
+    xml_file = os.path.join(folder, os.path.join(folder.split(os.path.sep)[-1]+'.xml'))
     
     bruker_data = bruker_xml_parser(xml_file)
     ops = ops0.copy()
