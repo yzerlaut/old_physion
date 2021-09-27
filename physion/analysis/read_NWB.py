@@ -61,7 +61,7 @@ class Data:
             self.nwbfile.experiment_description
         
         self.metadata = ast.literal_eval(self.nwbfile.session_description)
-        
+
         if self.metadata['protocol']=='None':
             self.description = 'Spont. Act.\n'
         else:
@@ -72,8 +72,10 @@ class Data:
             self.protocols, ii = [], 1
             while ('Protocol-%i' % ii) in self.metadata:
                 self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
-                self.description += '- %s \n' % self.protocols[ii-1]
+                # self.description += '- %s \n' % self.protocols[ii-1]
+                self.description += '%s / ' % self.protocols[ii-1]
                 ii+=1
+            self.description = self.description[:-2]+'\n'
         else:
             self.protocols = [self.metadata['protocol']]
             self.description += '- %s \n' % self.metadata['protocol']
@@ -81,9 +83,11 @@ class Data:
         self.protocols = np.array(self.protocols, dtype=str)
 
         if 'time_start_realigned' in self.nwbfile.stimulus.keys():
-            self.description += ' =>  completed N=%i/%i episodes  <=' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+            self.description += ' =>  completed N=%i/%i episodes  \n' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                                self.nwbfile.stimulus['time_start'].data.shape[0])
                 
+        self.description += self.metadata['notes']+'\n'
+        
         # FIND A BETTER WAY TO DESCRIBE
         # if self.metadata['protocol']!='multiprotocols':
         #     self.keys = []

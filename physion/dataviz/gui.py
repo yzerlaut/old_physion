@@ -308,6 +308,7 @@ class MainWindow(guiparts.NewWindow):
 
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
+        self.notes.clear()
         self.subsamplingSelect.setChecked(True)
         self.annotSelect.setChecked(False)
         self.stimSelect.setChecked(False)
@@ -344,7 +345,9 @@ class MainWindow(guiparts.NewWindow):
             self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
             
-        if self.sbox.currentIndex()==0:
+        if len(self.SUBJECTS.keys())==0:
+            self.sbox.clear()
+            self.sbox.addItem(self.subject_default_key)
             self.sbox.addItem(self.data.nwbfile.subject.description)
             self.sbox.setCurrentIndex(1)
             

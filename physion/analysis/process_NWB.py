@@ -102,8 +102,8 @@ class EpisodeResponse:
                 print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, tstop-tstart)
                 print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
-        self.index_from_start = np.arange(len(Pcond))[Pcond]
         self.resp = np.array(resp)
+        self.index_from_start = np.arange(len(Pcond))[Pcond][:self.resp.shape[0]]
         
         for key in full_data.nwbfile.stimulus.keys():
             setattr(self, key, np.array(getattr(self, key)))
