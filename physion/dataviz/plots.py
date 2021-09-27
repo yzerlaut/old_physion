@@ -308,8 +308,8 @@ def raw_data_plot(self, tzoom,
                 if self.annotSelect.isChecked():
                     self.StimAnnots.append(pg.TextItem())
                     text = 'stim.#%i\n\n' % (i+1)
-                    for key in self.data.nwbfile.stimulus.keys():
-                        if (self.data.nwbfile.stimulus[key].data[i]!='None') and\
+                    for key in self.data.nwbfile.stimulus.keys(): # 666 means None
+                        if (self.data.nwbfile.stimulus[key].data[i]!=666) and\
                            (key not in ['time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned']):
                             text+='%s : %s\n' % (key, str(self.data.nwbfile.stimulus[key].data[i]))
                     self.StimAnnots[-1].setPlainText(text)                    

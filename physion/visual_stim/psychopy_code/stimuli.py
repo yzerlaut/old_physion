@@ -604,6 +604,7 @@ class multiprotocol(visual_stim):
                 self.experiment['protocol_id'].append(IS)
                 
         # # SHUFFLING IF NECESSARY
+        
         if (protocol['shuffling']=='full'):
             print('full shuffling of multi-protocol sequence !')
             np.random.seed(protocol['shuffling-seed']) # initializing random seed
@@ -613,16 +614,29 @@ class multiprotocol(visual_stim):
             for key in self.experiment:
                 self.experiment[key] = np.array(self.experiment[key])[indices]
 
+        if (protocol['shuffling']=='per-repeat'):
+            # TO BE TESTED
+            indices = np.arange(len(self.experiment['index']))
+            new_indices = []
+            for r in np.unique(self.experiment['repeat']):
+                repeat_cond = np.argwhere(self.experiment['repeat']==r).flatten()
+                r_indices = indices[repeat_cond]
+                np.random.shuffle(r_indices)
+                new_indices = np.concatenate([new_indices, r_indices])
+                
+            for key in self.experiment:
+                self.experiment[key] = np.array(self.experiment[key])[new_indices]
+                
         # we rebuild time
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
+        self.experiment['interstim'] = np.concatenate([self.experiment['interstim'][1:],[self.experiment['interstim'][0]]])
         for i in range(1, len(self.experiment['index'])):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
-        print(self.experiment)
-        # for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
-        #     print(self.experiment[key], key)
+        for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
+            print(self.experiment[key], key)
             
     # functions implemented in child class
     def get_frame(self, index):
