@@ -132,6 +132,7 @@ def build_NWB(args,
     # #################################################
     # ####         Visual Stimulation           #######
     # #################################################
+    
     if (metadata['VisualStim'] and ('VisualStim' in args.modalities)) and os.path.isfile(os.path.join(args.datafolder, 'visual-stim.npy')):
 
         # preprocessing photodiode signal
@@ -149,6 +150,7 @@ def build_NWB(args,
             VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
         for key in ['time_start', 'time_stop', 'time_duration']:
             metadata[key] = VisualStim[key]
+            
         success, metadata = realign_from_photodiode(Psignal, metadata,
                                                     sampling_rate=(args.photodiode_sampling if args.photodiode_sampling>0 else None),
                                                     verbose=args.verbose)
@@ -161,13 +163,14 @@ def build_NWB(args,
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
             for key in VisualStim:
-                None_cond = (VisualStim[key]==None)
+                None_cond = np.array([isinstance(e, type(None)) for e in VisualStim[key]]) # just checks for 'None' values
                 if key in ['protocol_id', 'index']:
                     array = np.array(VisualStim[key])
-                elif (type(VisualStim[key]) in [list, np.ndarray, np.array]) and np.sum(None_cond)>0:
+                elif (type(VisualStim[key]) in [list, np.ndarray, np.array]) and (np.sum(None_cond)>0):
                     # need to remove the None elements
-                    VisualStim[key][None_cond] = 0*VisualStim[key][~None_cond][0]
-                    array = np.array(VisualStim[key], dtype=type(VisualStim[key][~None_cond][0]))
+                    for i in np.arange(len(VisualStim[key]))[None_cond]:
+                        VisualStim[key][i] = 666 # 666 means None !!
+                    array = np.array(VisualStim[key], dtype=type(np.array(VisualStim[key])[~None_cond][0]))
                 else:
                     array = VisualStim[key]
                 VisualStimProp = pynwb.TimeSeries(name=key,
