@@ -7,7 +7,9 @@ def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
                             smoothing_time=20e-3,
-                            debug=False, verbose=True, n_vis=5):
+                            shift_time=0.3, # MODIFY IT HERE IN CASE NEEDED
+                            debug=False, istart_debug=0,
+                            verbose=True, n_vis=5):
 
     if verbose:
         print('---> Realigning data with respect to photodiode signal [...] ')
@@ -23,17 +25,8 @@ def realign_from_photodiode(signal,
     
     tlim, tnew = [0, t[-1]], 0
 
-    #######################################################################
-    # TEMPORARY CAN BE REMOVED BECAUSE THE BUG HAS BEEN FIXED (sparse noise wasn't started after presentation time)
-    if metadata['time_start'][0]==0:
-        metadata['time_start'] += metadata['presentation-prestim-period']
-        metadata['time_stop'] += metadata['presentation-prestim-period']
-    # to be removed
-    #######################################################################
-        
-    tstart, tend_previous, tshift = metadata['time_start'][0], metadata['time_start'][0]+2, 0
+    tstart, tshift = metadata['time_start'][0]-.5, 0
     metadata['time_start_realigned'] = []
-    Nepisodes = np.sum(metadata['time_start']<tlim[1])
     
     # compute signal boundaries to evaluate threshold crossing of photodiode signal
     H, bins = np.histogram(signal, bins=50)
@@ -42,13 +35,14 @@ def realign_from_photodiode(signal,
 
     # looping over episodes
     i=0
-    while (i<Nepisodes) and (tstart<(t[-1]-metadata['time_duration'][i])):
-        cond = (t>=tstart-1) & (t<=tstart+metadata['time_duration'][i]+10) # 10s max time delay (the time to build up the next stim can be quite large)
+    while (i<len(metadata['time_duration'])) and (tstart<(t[-1]-metadata['time_duration'][i])):
+        cond = (t>=tstart+shift_time) & (t<=tstart+metadata['time_duration'][i]+15) # 15s max time delay (the time to build up the next stim can be quite large)
         try:
             tshift, integral, threshold = find_onset_time(t[cond]-tstart, signal[cond],
                                                           smoothing_time=smoothing_time,
                                                           baseline=baseline, high_level=high_level)
-            if debug and ((i<n_vis) or (i>Nepisodes-n_vis)):
+            # print('ep.#%i, tshift=%.1f, prtcl_id=%i' % (i, tshift, metadata['protocol_id'][i]))
+            if debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
                 fig, ax = plt.subplots()
                 ax.plot(t[cond], integral, label='smoothed')
                 ax.plot(t[cond], integral*0+threshold, label='threshold')
@@ -58,6 +52,7 @@ def realign_from_photodiode(signal,
                         label='photodiode-signal', lw=0.5, alpha=.3)
                 plt.xlabel('time (s)')
                 plt.ylabel('norm. signals')
+                ax.set_title('ep. #%i' % i)
                 ax.legend(frameon=False)
                 plt.show()
         except BaseException as be:
@@ -66,17 +61,13 @@ def realign_from_photodiode(signal,
             # print(i, Nepisodes, metadata['time_duration'][i])
             success = False # one exception is enough to make it fail
         metadata['time_start_realigned'].append(tstart+tshift)
-        try:
-            tstart=tstart+tshift+metadata['time_duration'][i]+(metadata['time_start'][i+1]-metadata['time_stop'][i])
-        except IndexError:
-            tstart=tstart+tshift+metadata['time_duration'][i]
-            print('should be the last index, t=%.0f' % tstart)
-        tend_previous=tstart+metadata['time_duration'][i]
+        tstart=tstart+tshift+metadata['time_duration'][i] # update tstart by tshift_observed+duration
         i+=1
         
     if verbose:
         if success:
             print('[ok]          --> succesfully realigned')
+            print('                  found n=%i episodes over the %i of the protocol ' % (len(metadata['time_start_realigned']), len(metadata['time_start'])))
         else:
             print('[X]          --> realignement failed')
     if success:
@@ -119,24 +110,31 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="""
     Realigning from Photodiod
     """,formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-df', "--datafolder", type=str, default='')
+    parser.add_argument("datafolder")
     parser.add_argument('-n', "--n_vis", type=int, default=5)
+    parser.add_argument('-id', "--istart_debug", type=int, default=0)
     parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
+    parser.add_argument('-st', "--shift_time", type=float, help='in s', default=0e-3)
     args = parser.parse_args()
 
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
     metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'), allow_pickle=True).item()
     VisualStim = np.load(os.path.join(args.datafolder, 'visual-stim.npy'), allow_pickle=True).item()
+
     if 'time_duration' not in VisualStim:
         VisualStim['time_duration'] = np.array(VisualStim['time_stop'])-np.array(VisualStim['time_start'])
-    for key in ['time_start', 'time_stop', 'time_duration']:
+    for key in VisualStim:
         metadata[key] = VisualStim[key]
 
     plt.plot(data[::1000][:1000])
     plt.title('photodiode-signal (subsampled/100)')
     plt.show()
     
-    realign_from_photodiode(data, metadata, debug=True, n_vis=args.n_vis, verbose=True)
+    realign_from_photodiode(data, metadata,
+                            debug=True,
+                            istart_debug=args.istart_debug,
+                            shift_time=args.shift_time,
+                            n_vis=args.n_vis, verbose=True)
     
 
 

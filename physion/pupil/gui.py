@@ -413,6 +413,19 @@ class MainWindow(NewWindow):
 
             self.plot_pupil_trace(xrange=self.xaxis.range)
             self.cframe1, self.cframe2 = 0, 0
+
+        elif self.cframe1==0:
+            i2 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe2][0]
+            for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
+                self.data[key][self.cframe1:i2] = self.data[key][i2] # set to i2 level !!
+            self.plot_pupil_trace(xrange=self.xaxis.range)
+            self.cframe1, self.cframe2 = 0, 0
+        elif self.cframe2==(len(self.data['frame'])-1):
+            i1 = np.arange(len(self.data['frame']))[self.data['frame']>=self.cframe1][0]
+            for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
+                self.data[key][i1:self.cframe2] = self.data[key][i1] # set to i2 level !!
+            self.plot_pupil_trace(xrange=self.xaxis.range)
+            self.cframe1, self.cframe2 = 0, 0
         else:
             print('cursors at: ', self.cframe1, self.cframe2)
             print('blinking/outlier labelling failed')
