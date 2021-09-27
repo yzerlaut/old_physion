@@ -431,7 +431,9 @@ class visual_stim:
             print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
-                self.inter_screen(parent, duration=self.experiment['interstim'][i], color=self.experiment['interstim-screen'][i])
+                self.inter_screen(parent,
+                                  duration=self.experiment['interstim'][i],
+                                  color=self.experiment['interstim-screen'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
             parent.statusBar.showMessage('stimulation over !')
@@ -601,27 +603,26 @@ class multiprotocol(visual_stim):
                     elif key not in ['protocol_id', 'time_duration']:
                         self.experiment[key].append(None)
                 self.experiment['protocol_id'].append(IS)
-                self.experiment['time_duration'].append(stim.experiment['time_duration'][i])
-
-        # SHUFFLING IF NECESSARY
-        indices = np.arange(len(self.experiment['index']))
-        if (protocol['shuffling']=='full'):
-            print('shuffling multiprotocol')
-            np.random.seed(protocol['shuffling-seed'])
-            np.random.shuffle(indices)
-        for key in self.experiment:
-            self.experiment[key] = np.array(self.experiment[key])[indices]
+                
+        # # SHUFFLING IF NECESSARY
+        # if (protocol['shuffling']=='full'):
+        #     print('full shuffling of multi-protocol sequence !')
+        #     np.random.seed(protocol['shuffling-seed']) # initializing random seed
+        #     indices = np.arange(len(self.experiment['index']))
+        #     np.random.shuffle(indices)
+            
+        #     for key in self.experiment:
+        #         self.experiment[key] = np.array(self.experiment[key])[indices]
 
         # we rebuild time
         self.experiment['time_start'][0] = protocol['presentation-prestim-period']
         self.experiment['time_stop'][0] = protocol['presentation-prestim-period']+self.experiment['time_duration'][0]
-        self.experiment['interstim'] = np.concatenate([self.experiment['interstim'][1:], [self.experiment['interstim'][0]]])
         for i in range(1, len(self.experiment['index'])):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
-        for key in ['index', 'protocol_id', 'time_duration', 'time_start', 'time_stop']:
-            print(key, self.experiment[key])
+        for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
+            print(self.experiment[key], key)
             
     # functions implemented in child class
     def get_frame(self, index):
