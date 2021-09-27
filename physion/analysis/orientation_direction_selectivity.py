@@ -10,6 +10,7 @@ from dataviz.show_data import MultimodalData
 from analysis.tools import summary_pdf_folder
 from analysis.process_NWB import EpisodeResponse
 from analysis import stat_tools
+from analysis.summary_pdf import summary_fig
 
 
 def orientation_selectivity_index(angles, resp):
@@ -171,7 +172,7 @@ def DS_ROI_analysis(FullData,
         return fig, SI, responsive
 
 
-def summary_fig(Nresp, Ntot, quantity,
+def summary_fig2(Nresp, Ntot, quantity,
                 label='Orient. Select. Index',
                 labels=['responsive', 'unresponsive']):
     fig, AX = ge.figure(axes=(4, 1))
@@ -205,7 +206,7 @@ def OS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
                 Nresp += 1
                 SIs.append(SI)
 
-        summary_fig(Nresp, data.iscell.sum(), SIs, label='Orient. Select. Index')
+        summary_fig2(Nresp, data.iscell.sum(), SIs, label='Orient. Select. Index')
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
 
@@ -231,11 +232,78 @@ def DS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
                 Nresp += 1
                 SIs.append(SI)
 
-        summary_fig(Nresp, data.iscell.sum(), SIs, label='Direct. Select. Index')
+        summary_fig2(Nresp, data.iscell.sum(), SIs, label='Direct. Select. Index')
         pdf.savefig()  # saves the current figure into a pdf page
         plt.close()
 
     print('[ok] direction selectivity analysis saved as: "%s" ' % pdf_filename)
+
+def C_ROI_analysis(FullData,
+                 roiIndex=0,
+                 iprotocol = 0,
+                 subprotocol_id=0,
+                 verbose=False,
+                 response_significance_threshold=0.05,
+                 with_responsive_angles = False,
+                 stat_test_props=dict(interval_pre=[-2,0], interval_post=[2,4],
+                                      test='ttest', positive=True)):
+    """
+    orientation selectivity ROI analysis
+    """
+
+    EPISODES = EpisodeResponse(FullData,
+                               protocol_id=iprotocol,
+                               quantity='CaImaging', subquantity='dF/F',
+                               prestim_duration=-stat_test_props['interval_pre'][0],
+                               roiIndex = roiIndex)
+
+    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
+                                          protocol_id=iprotocol,
+                                          quantity='CaImaging', subquantity='dF/F',
+                                          roiIndex = roiIndex,
+                                          column_key='angle',
+                                          row_key='contrast',
+                                          color_keys=['spatial-freq', 'speed'],
+                                          ybar=1., ybarlabel='1dF/F',
+                                          xbar=1., xbarlabel='1s',
+                                          fig_preset='raw-traces-preset',
+                                          with_annotation=True,
+                                          with_stat_test=True, stat_test_props=stat_test_props,
+                                          with_screen_inset=True,
+                                          verbose=verbose)
+
+    cell_resp = EPISODES.compute_summary_data(stat_test_props,
+                                              response_significance_threshold=response_significance_threshold)
+    
+    return fig, cell_resp
+
+
+def C_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
+
+    data = MultimodalData(datafile)
+
+    if not os.path.isdir(summary_pdf_folder(datafile)):
+        os.mkdir(summary_pdf_folder(datafile))
+    
+    pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-gratings-analysis.pdf' % data.protocols[iprotocol])
+    
+    CELL_RESPS = []
+    with PdfPages(pdf_filename) as pdf:
+
+        for roi in np.arange(data.iscell.sum())[:Nmax]:
+
+            fig, cell_resp = C_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            CELL_RESPS.append(cell_resp)
+            
+            pdf.savefig(fig)  # saves the current figure into a pdf page
+            plt.close(fig)
+
+        fig = summary_fig(CELL_RESPS)
+        
+        pdf.savefig(fig)
+        plt.close(fig)
+
+    print('[ok] moving dot analysis saved as: "%s" ' % pdf_filename)
     
 
 if __name__=='__main__':
@@ -256,6 +324,8 @@ if __name__=='__main__':
             OS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
         elif args.analysis=='direction':
             DS_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
+        elif args.analysis=='gratings':
+            C_analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
         else:
             print('need to choose either "direction"/"orientation" as an analysis type')
     else:

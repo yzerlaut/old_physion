@@ -210,6 +210,11 @@ class MainWindow(guiparts.NewWindow):
         self.subsamplingSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.subsamplingSelect)
 
+        self.annotSelect = QtGui.QCheckBox("annot.")
+        self.annotSelect.setStyleSheet('color: grey;')
+        self.annotSelect.setFont(guiparts.smallfont)
+        Layout122.addWidget(self.annotSelect)
+        
         self.imgSelect = QtGui.QCheckBox("img")
         self.imgSelect.setStyleSheet('color: grey;')
         self.imgSelect.setFont(guiparts.smallfont)
@@ -284,12 +289,12 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #             (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-        #                                                 filter="*.nwb")
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                                                        filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
-        filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-14-55-23.nwb'
+        # filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-14-55-23.nwb'
         
         if filename!='':
             self.datafile=filename
@@ -303,7 +308,10 @@ class MainWindow(guiparts.NewWindow):
 
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
+        self.notes.clear()
         self.subsamplingSelect.setChecked(True)
+        self.annotSelect.setChecked(False)
+        self.stimSelect.setChecked(False)
         self.init_panel_imgs()
         self.roiIndices = None
 
@@ -337,7 +345,9 @@ class MainWindow(guiparts.NewWindow):
             self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
             
-        if self.sbox.currentIndex()==0:
+        if len(self.SUBJECTS.keys())==0:
+            self.sbox.clear()
+            self.sbox.addItem(self.subject_default_key)
             self.sbox.addItem(self.data.nwbfile.subject.description)
             self.sbox.setCurrentIndex(1)
             
@@ -415,11 +425,10 @@ class MainWindow(guiparts.NewWindow):
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
                                            self.highlight_format)
                 self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
-                                         for f in np.array(FILES)[DATES==d]]
+                                         for f in np.array(FILES)[DATES==d]][::-1]
             except BaseException as be:
                 print(be)
-            # except ValueError:
-            #     pass
+                print('error for date %s' % d)
             
         print(' -> found n=%i datafiles ' % len(FILES))
         

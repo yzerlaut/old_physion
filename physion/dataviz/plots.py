@@ -249,6 +249,7 @@ def raw_data_plot(self, tzoom,
             #     nrnp = scale_and_position(self, y, value=self.data.Neuropil.data[:,isampling][self.data.validROI_indices[self.roiIndices],:].sum(axis=0), i=iplot)
             #     self.plot.plot(tt, nrnp, pen=pg.mkPen(color=(255,255,255), linewidth=0.2))
         else:
+
             for n, ir in enumerate(self.roiIndices):
                 y = scale_and_position(self, compute_CaImaging_trace(self.data, self.CaImaging_key, [ir]).sum(axis=0)[isampling], i=iplot)+n/2.
                 self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
@@ -259,8 +260,8 @@ def raw_data_plot(self, tzoom,
 
     # ## -------- Visual Stimulation --------- ##
 
-    if self.stimSelect.isChecked():
-        
+    if self.stimSelect.isChecked() and ('time_start_realigned' in self.data.nwbfile.stimulus):
+
         icond = np.argwhere((self.data.nwbfile.stimulus['time_start_realigned'].data[:]<=self.time) & \
                             (self.data.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
         if len(icond)>0:
@@ -280,28 +281,41 @@ def raw_data_plot(self, tzoom,
         icond = np.argwhere((self.data.nwbfile.stimulus['time_start_realigned'].data[:]>tzoom[0]-10) & \
                             (self.data.nwbfile.stimulus['time_stop_realigned'].data[:]<tzoom[1]+10)).flatten()
 
-        if hasattr(self, 'StimFill') and self.StimFill is not None:
+        if hasattr(self, 'StimFill') and (self.StimFill is not None):
             for x in self.StimFill:
+                self.plot.removeItem(x)
+        if hasattr(self, 'StimAnnots') and (self.StimAnnots is not None):
+            for x in self.StimAnnots:
                 self.plot.removeItem(x)
 
         X, Y = [], []
         if len(icond)>0:
-            self.StimFill = []
-            # for i in icond:
+            
+            self.StimFill, self.StimAnnots = [], []
+
+            # looping over episodes
             for i in range(max([0,icond[0]-1]),
-                           min([icond[-1]+1,self.data.nwbfile.stimulus['time_stop_realigned'].data.shape[0]-1])):
+                           min([icond[-1]+1,self.data.nwbfile.stimulus['time_stop_realigned'].data.shape[0]])):
+                
                 t0 = self.data.nwbfile.stimulus['time_start_realigned'].data[i]
                 t1 = self.data.nwbfile.stimulus['time_stop_realigned'].data[i]
+
+                # stimulus area shaded
                 self.StimFill.append(self.plot.plot([t0, t1], [0, 0],
                                 fillLevel=y.max(), brush=(150,150,150,80)))
 
-    # if with_scatter and hasattr(self, 'scatter'):
-    #     self.plot.removeItem(self.scatter)
-    #     self.scatter.setData([s[0] for s in scatter],
-    #                          [s[1] for s in scatter],
-    #                          size=10, brush=pg.mkBrush(255,255,255))
-    #     self.plot.addItem(self.scatter)
-
+                # adding annotation for that episode
+                if self.annotSelect.isChecked():
+                    self.StimAnnots.append(pg.TextItem())
+                    text = 'stim.#%i\n\n' % (i+1)
+                    for key in self.data.nwbfile.stimulus.keys():
+                        if (self.data.nwbfile.stimulus[key].data[i]!='None') and\
+                           (key not in ['time_start', 'time_start_realigned', 'time_stop', 'time_stop_realigned']):
+                            text+='%s : %s\n' % (key, str(self.data.nwbfile.stimulus[key].data[i]))
+                    self.StimAnnots[-1].setPlainText(text)                    
+                    self.StimAnnots[-1].setPos(t0, 0.95*y.max())
+                    self.plot.addItem(self.StimAnnots[-1])
+                    
     self.plot.setRange(xRange=tzoom, yRange=[0,y.max()], padding=0.0)
     self.frameSlider.setValue(int(self.settings['Npoints']*(self.time-tzoom[0])/(tzoom[1]-tzoom[0])))
     

@@ -446,10 +446,20 @@ class visual_stim:
         print('to be implemented in child class')
         return 0*self.x
     
-    def plot_stim_picture(self, episode, ax, parent=None):
-        print('to be implemented in child class, here ')
-        ax.imshow(self.get_image(episode, parent=parent),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None,
+                          label=None, enhance=False):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode,
+                             ax=ax,
+                             label=label,
+                             enhance=enhance,
+                             parent=parent)
+
+        return ax
+
+        
 
     def get_prestim_image(self):
         return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
@@ -495,33 +505,16 @@ class visual_stim:
                                          np.linspace(-width*self.screen['resolution'][1]/self.screen['resolution'][0],
                                                      width*self.screen['resolution'][1]/self.screen['resolution'][0],
                                                      self.screen['resolution'][1]))
-            
-        ax.imshow(self.get_image(episode, time_from_episode_start=time_from_episode_start),
+
+        cls = (parent if parent is not None else self)
+
+        ax.imshow(cls.get_image(episode,
+                                 time_from_episode_start=time_from_episode_start,
+                                 parent=cls),
                   cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
         
         ax.axis('off')
 
-        if parent is not None:
-            
-            # ARROW FOR DRIFTING GRATINGS
-            Pname = parent.metadata['Protocol-%i-Stimulus' % (1+parent.nwbfile.stimulus['protocol_id'].data[episode])]
-            if 'drifting' in Pname:
-                arrow = {'direction':parent.nwbfile.stimulus['angle'].data[episode],
-                         'length':40, 'width_factor':0.1, 'color':'red', 'center':[0,0]}
-                if ('off-center' in Pname):
-                    arrow['center'] = (0,0)
-                else:
-                    if 'x-center' in parent.nwbfile.stimulus.keys():
-                        arrow['center'][0] = parent.nwbfile.stimulus['x-center'].data[episode]
-                    if 'y-center' in parent.nwbfile.stimulus.keys():
-                        arrow['center'][1] = parent.nwbfile.stimulus['y-center'].data[episode]
-
-            # TRAJECTORY FOR VIRTUAL SCENE EXPLORATION
-            """
-            TO BE DONE
-            """
-                                              
-            
         if label is not None:
             nz, nx = self.x.shape
             L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
@@ -529,17 +522,23 @@ class visual_stim:
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
             ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
 
-            
-        if arrow is not None:
-            nz, nx = self.x.shape
-            ax.arrow(self.angle_to_pix(arrow['center'][0])+nx/2,
-                     self.angle_to_pix(arrow['center'][1])+nz/2,
-                     np.cos(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
-                     -np.sin(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
-                     width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
-                     color=arrow['color'])
         return ax
-            
+
+
+    def add_arrow(self, arrow, ax):
+        nz, nx = self.x.shape
+        ax.arrow(self.angle_to_pix(arrow['center'][0])+nx/2,
+                 self.angle_to_pix(arrow['center'][1])+nz/2,
+                 np.cos(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
+                 -np.sin(np.pi/180.*arrow['direction'])*self.angle_to_pix(arrow['length']),
+                 width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
+                 color=arrow['color'])
+        
+    def add_vse(self, arrow, ax):
+        """ to be written """
+        pass
+
+    
 #####################################################
 ##  ----         MULTI-PROTOCOLS            --- #####           
 #####################################################
@@ -625,8 +624,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
-    def get_picture(self, episodeparent=None):
-        return self.STIM[self.experiment['protocol_id'][episode]].get_picture(episode, parent=self)
+    def plot_stim_picture(self, episode, ax=None, parent=None, enhance=False):
+        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self, enhance=enhance)
     # def show_interstim(self):
         
 
@@ -643,10 +642,7 @@ class light_level_single_stim(visual_stim):
         super().init_experiment(protocol, ['light-level'], run_type='static')
             
     def get_patterns(self, index, parent=None):
-        if parent is not None:
-            cls = parent
-        else:
-            cls = self
+        cls = (parent if parent is not None else self)
         return [visual.GratingStim(win=cls.win,
                                    size=10000, pos=[0,0], sf=0, units='pix',
                                    color=cls.gamma_corrected_lum(cls.experiment['light-level'][index]))]
@@ -655,9 +651,9 @@ class light_level_single_stim(visual_stim):
         cls = (parent if parent is not None else self)
         return 0*self.x+(1+cls.experiment['light-level'][episode])/2.
 
-    def plot_stim_picture(self, episode, ax, parent=None):
-        ax.imshow(self.get_image(episode, parent=parent),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    # def plot_stim_picture(self, episode, ax=None, parent=None):
+    #     ax.imshow(self.get_image(episode, parent=parent),
+    #               cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
     
 
 
@@ -666,9 +662,9 @@ class light_level_single_stim(visual_stim):
 #####################################################
 
 # some general grating functions
-def compute_xrot(x, z,
-                 angle=0, xcenter=0, zcenter=0):
-    return (x-xcenter)*np.cos(angle/180.*np.pi)-(z-zcenter)*np.sin(angle/180.*np.pi)
+def compute_xrot(x, z, angle,
+                 xcenter=0, zcenter=0):
+    return (x-xcenter)*np.cos(angle/180.*np.pi)+(z-zcenter)*np.sin(angle/180.*np.pi)
 
 def compute_grating(xrot,
                     spatial_freq=0.1, contrast=1, time_phase=0.):
@@ -679,7 +675,9 @@ class full_field_grating_stim(visual_stim):
 
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['spatial-freq', 'angle', 'contrast'], run_type='static')
+        super().init_experiment(protocol,
+                                ['spatial-freq', 'angle', 'contrast'],
+                                run_type='static')
 
     def get_patterns(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -691,11 +689,12 @@ class full_field_grating_stim(visual_stim):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        xrot = compute_xrot(cls.x, cls.z,
-                            angle=cls.experiment['angle'][episode])
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode])
         return compute_grating(xrot,
                                spatial_freq=cls.experiment['spatial-freq'][episode],
-                               contrast=cls.experiment['contrast'][episode])
+                               contrast=cls.experiment['contrast'][episode],
+                               time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+
 
     
 class oddball_full_field_grating_stim(visual_stim):
@@ -754,13 +753,12 @@ class oddball_full_field_grating_stim(visual_stim):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        xrot = compute_xrot(cls.x, cls.z,
-                            angle=cls.experiment['angle'][episode])
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode])
         return compute_grating(xrot,
                                spatial_freq=cls.experiment['spatial-freq'][episode],
                                contrast=cls.experiment['contrast'][episode])
         
-                                 
+
             
 class drifting_full_field_grating_stim(visual_stim):
 
@@ -780,12 +778,29 @@ class drifting_full_field_grating_stim(visual_stim):
     
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        xrot = compute_xrot(cls.x, cls.z,
-                            angle=cls.experiment['angle'][episode])
+        xrot = compute_xrot(cls.x, cls.z, cls.experiment['angle'][episode])
         return compute_grating(xrot,
                                spatial_freq=cls.experiment['spatial-freq'][episode],
                                contrast=cls.experiment['contrast'][episode],
                                time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red', 'center':[0,0]}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax,
+                             parent=parent,
+                             label=label,
+                             enhance=enhance)
+
+        arrow['direction'] = cls.experiment['angle'][episode]
+        self.add_arrow(arrow, ax)
+
+        return ax
+    
 
         
 #####################################################
@@ -824,7 +839,9 @@ class center_grating_stim(visual_stim):
                                     contrast=cls.experiment['contrast'][episode],
                                     spatial_freq=cls.experiment['spatial-freq'][episode])
         return img
-    
+
+
+
 
 class drifting_center_grating_stim(visual_stim):
     
@@ -862,6 +879,27 @@ class drifting_center_grating_stim(visual_stim):
                                     spatial_freq=cls.experiment['spatial-freq'][episode],
                                     time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
         return img
+
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red', 'center':[0,0]}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax,
+                             parent=parent,
+                             label=label,
+                             enhance=enhance)
+
+        arrow['center'] = [cls.experiment['x-center'][episode],
+                           cls.experiment['y-center'][episode]]
+        arrow['direction'] = cls.experiment['angle'][episode]
+        self.add_arrow(arrow, ax)
+
+        return ax
+    
 
 #####################################################
 ##  ----    PRESENTING OFF-CENTERED GRATINGS    --- #####           
@@ -957,6 +995,26 @@ class drifting_off_center_grating_stim(visual_stim):
         img[mask] = (1+cls.experiment['bg-color'][episode])/2.+0*cls.x[mask]
         return img
     
+
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red', 'center':[0,0]}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax,
+                             parent=parent,
+                             label=label,
+                             enhance=enhance)
+
+        arrow['center'] = [cls.experiment['x-center'][episode],
+                           cls.experiment['y-center'][episode]]
+        arrow['direction'] = cls.experiment['angle'][episode]
+        self.add_arrow(arrow, ax)
+
+        return ax
     
 #####################################################
 ##  ----    PRESENTING SURROUND GRATINGS    --- #####           
@@ -1055,6 +1113,24 @@ class drifting_surround_grating_stim(visual_stim):
         return img
     
 
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red', 'center':[0,0]}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax,
+                             parent=parent,
+                             label=label,
+                             enhance=enhance)
+
+        arrow['direction'] = cls.experiment['angle'][episode]
+        self.add_arrow(arrow, ax)
+
+        return ax
+    
+    
 #####################################################
 ##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
 #####################################################
@@ -1427,7 +1503,32 @@ class line_moving_dots(visual_stim):
                          cls.experiment['size'][episode],
                          cls.experiment['dotcolor'][episode])
         return img
-    
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+
+        direction = cls.experiment['direction'][episode]
+
+        # print(direction)
+        arrow['direction'] = ((direction+180)%180)+180
+        # print(arrow['direction'])
+        
+        for shift in [-.5, 0, .5]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
+                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+            self.add_arrow(arrow, ax)
+
+        return ax
     
         
 class random_dots(visual_stim):
@@ -1557,11 +1658,33 @@ class looming_stim(visual_stim):
     def get_image(self, index, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         img = cls.experiment['bg-color'][index]+0.*self.x
-        self.add_dot(img, (cls.experiment['x-center'][index], cls.experiment['y-center'][index]),
-                     (cls.experiment['radius-start'][index]+cls.experiment['radius-end'][index])/4.,
+        self.add_dot(img, (cls.experiment['x-center'][index],
+                           cls.experiment['y-center'][index]),
+                     cls.experiment['radius-end'][index]/4.,
                      cls.experiment['color'][index])
         return img
 
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             parent=parent)
+
+        l = cls.experiment['radius-end'][episode]/3.8 # just like above
+        for d in np.linspace(0, 2*np.pi, 3, endpoint=False):
+            arrow['center'] = [cls.experiment['x-center'][episode]+np.cos(d)*l+\
+                               np.cos(d)*arrow['length']/2.,
+                               cls.experiment['y-center'][episode]+np.sin(d)*l+\
+                               np.sin(d)*arrow['length']/2.]
+                
+            arrow['direction'] = -180*d/np.pi
+            self.add_arrow(arrow, ax)
+            
+        return ax
     
     
 if __name__=='__main__':
