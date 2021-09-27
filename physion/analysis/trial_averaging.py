@@ -202,11 +202,12 @@ class TrialAverageWindow(NewWindow):
             self.roiIndices = [0]
             self.roiPick.setText('0')
             self.statusBar.showMessage('/!\ ROI string not recognized /!\ --> ROI set to [0]')
+
             
-    
     def keyword_update2(self):
         self.keyword_update(string=self.guiKeywords.text(), parent=self.parent)
 
+        
     def plot_row_column_of_quantity(self):
 
         self.Pcond = self.data.get_protocol_cond(self.pbox.currentIndex()-1)
@@ -284,7 +285,7 @@ class TrialAverageWindow(NewWindow):
     def build_color_conditions(self):
         X, K = [], []
         for i, key in enumerate(self.EPISODES.varied_parameters.keys()):
-            if len(getattr(self, 'box%i'%i).currentText().split('color'))>1:
+            if len(getattr(self, 'box%i'%i).currentText().split('color-code'))>1:
                 X.append(np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.Pcond])))
                 K.append(key)
         return self.data.get_stimulus_conditions(X, K, self.pbox.currentIndex()-1)

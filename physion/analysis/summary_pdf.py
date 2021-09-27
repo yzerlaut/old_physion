@@ -48,6 +48,42 @@ def metadata_fig(data):
         
     return fig
 
+def summary_fig(CELL_RESPS):
+    # find the varied keys:
+    max_resp = {}
+    for key in CELL_RESPS[0]:
+        if (key not in ['value', 'significant']) and ('bins' not in key):
+            max_resp[key] = []
+            
+    # create fig
+    fig, AX = ge.figure(axes=(2+len(max_resp.keys()), 1))
+
+    Nresp = 0
+    for c, cell_resp in enumerate(CELL_RESPS):
+        if np.sum(cell_resp['significant']):
+            # print('roi #%i -> responsive' % c)
+            Nresp += 1
+            values = cell_resp['value']
+            values[~cell_resp['significant']] = cell_resp['value'].min()
+            imax = np.argmax(cell_resp['value'])
+            for key in max_resp:
+                max_resp[key].append(cell_resp[key][imax])
+        # else:
+        #     print('roi #%i -> unresponsive' % c)
+                
+    for ax, key in zip(AX[2:], max_resp.keys()):
+        ge.hist(max_resp[key], bins=CELL_RESPS[0][key+'-bins'], ax=ax, axes_args=dict(xlabel=key,
+                                                                                      xticks=np.unique(max_resp[key]),
+                                                                                      ylabel='count'))
+    data = [Nresp/len(CELL_RESPS), (1-Nresp/len(CELL_RESPS))]
+    ge.pie(data, ax=AX[0],
+           pie_labels = ['%.1f%%' % (100*d/np.sum(data)) for d in data],
+           ext_labels=['  responsive', ''],
+           COLORS=[plt.cm.tab10(2), plt.cm.tab10(3)])
+    
+    AX[1].axis('off')
+
+    return fig
 
 
 def make_summary_pdf(filename, Nmax=1000000,
@@ -58,12 +94,6 @@ def make_summary_pdf(filename, Nmax=1000000,
     
     folder = summary_pdf_folder(filename)
     
-    if not os.path.isdir(folder):
-        os.mkdir(folder)
-        print('-> created summary PDF folder !')
-    else:
-        print('summary PDF folder "%s" already exists !' % folder)
-        
     if 'exp' in include:
         
         with PdfPages(os.path.join(folder, 'exp.pdf')) as pdf:
@@ -140,6 +170,16 @@ def make_summary_pdf(filename, Nmax=1000000,
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s direction --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
 
+                if 'dg-' in protocol:
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'orientation_direction_selectivity.py')
+                    p = subprocess.Popen('%s %s %s gratings --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
+                    
+                if 'looming-' in protocol:
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'looming_stim.py')
+                    p = subprocess.Popen('%s %s %s --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
+                    
                 if 'gaussian-blobs' in protocol:
                     process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                                   'gaussian_blobs.py')
@@ -148,6 +188,12 @@ def make_summary_pdf(filename, Nmax=1000000,
                 if 'noise' in protocol:
                     process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                                   'receptive_field_mapping.py')
+                    p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
+
+
+                if ('dot-stim' in protocol) or ('moving-dot' in protocol):
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                                  'moving_dot_selectivity.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
                     
     print('subprocesses to analyze "%s" were launched !' % filename)

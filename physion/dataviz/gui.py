@@ -40,7 +40,7 @@ class MainWindow(guiparts.NewWindow):
                  df_width = 600,
                  selector_height = 30,
                  win1_Wmax=1200, win1_Wmin=300,
-                 win1_Hmax=500, win2_Wmax=500,
+                 win1_Hmax=300, win2_Wmax=500,
                  fullscreen=False):
 
         self.app = app
@@ -55,8 +55,6 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
         
-        # guiparts.load_config1(self)
-
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
 
@@ -96,6 +94,7 @@ class MainWindow(guiparts.NewWindow):
         # notes
         self.notes = QtWidgets.QLabel('\n[exp info]'+5*'\n', self)
         self.notes.setFont(guiparts.smallfont)
+        self.notes.setMaximumHeight(60)
         Layout11.addWidget(self.notes)
 
         self.pbox = QtWidgets.QComboBox(self)
@@ -163,7 +162,7 @@ class MainWindow(guiparts.NewWindow):
         self.gazeSelect.setStyleSheet('color: orange;')
 
         self.faceMtnSelect = QtGui.QCheckBox("whisk.")
-        self.faceMtnSelect.setStyleSheet('color: purple;')
+        self.faceMtnSelect.setStyleSheet('color: magenta;')
 
         self.runSelect = QtGui.QCheckBox("run")
         
@@ -171,10 +170,10 @@ class MainWindow(guiparts.NewWindow):
         self.photodiodeSelect.setStyleSheet('color: grey;')
 
         self.ephysSelect = QtGui.QCheckBox("ephys")
-        self.ephysSelect.setStyleSheet('color: grey;')
+        self.ephysSelect.setStyleSheet('color: blue;')
         
         self.ophysSelect = QtGui.QCheckBox("ophys")
-        self.ophysSelect.setStyleSheet('color: grey;')
+        self.ophysSelect.setStyleSheet('color: green;')
 
         for x in [self.stimSelect, self.pupilSelect,
                   self.gazeSelect, self.faceMtnSelect,
@@ -210,6 +209,18 @@ class MainWindow(guiparts.NewWindow):
         self.subsamplingSelect.setStyleSheet('color: grey;')
         self.subsamplingSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.subsamplingSelect)
+
+        self.annotSelect = QtGui.QCheckBox("annot.")
+        self.annotSelect.setStyleSheet('color: grey;')
+        self.annotSelect.setFont(guiparts.smallfont)
+        Layout122.addWidget(self.annotSelect)
+        
+        self.imgSelect = QtGui.QCheckBox("img")
+        self.imgSelect.setStyleSheet('color: grey;')
+        self.imgSelect.setFont(guiparts.smallfont)
+        self.imgSelect.setChecked(True)
+        self.imgSelect.clicked.connect(self.remove_img)
+        Layout122.addWidget(self.imgSelect)
         
         self.cwidget.setLayout(mainLayout)
         self.show()
@@ -240,7 +251,15 @@ class MainWindow(guiparts.NewWindow):
         self.pFacemotionimg.setImage(np.ones((10,12))*50)
         self.pCaimg.setImage(np.ones((50,50))*100)
         self.pupilContour.setData([0], [0], size=1, brush=pg.mkBrush(0,0,0))
+        self.faceMotionContour.setData([0], [0], size=2,
+                    brush=pg.mkBrush(*settings['colors']['FaceMotion'][:3]))
+        self.facePupilContour.setData([0], [0], size=2,
+                    brush=pg.mkBrush(*settings['colors']['Pupil'][:3]))
 
+    def remove_img(self):
+        if not self.imgSelect.isChecked():
+            self.init_panel_imgs()
+            
     def init_panels(self):
 
         # screen panel
@@ -248,6 +267,8 @@ class MainWindow(guiparts.NewWindow):
         self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
         # FaceCamera panel
         self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.faceMotionContour = pg.ScatterPlotItem()
+        self.facePupilContour = pg.ScatterPlotItem()
         self.pFaceimg = pg.ImageItem(np.ones((10,12))*50)
         # Pupil panel
         self.pPupil=self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1])
@@ -261,18 +282,19 @@ class MainWindow(guiparts.NewWindow):
         self.pCa=self.win1.addViewBox(lockAspect=True,invertY=True, border=[1, 1, 1])
         self.pCaimg = pg.ImageItem(np.ones((50,50))*100)
         
-        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa],
-                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg]):
+        for x, y in zip([self.pScreen, self.pFace,self.pPupil,self.pPupil,self.pFacemotion,self.pFacemotion,self.pCa, self.pFace, self.pFace],
+                        [self.pScreenimg, self.pFaceimg, self.pPupilimg, self.pupilContour, self.pFacemotionimg, self.facemotionROI, self.pCaimg, self.faceMotionContour, self.facePupilContour]):
             x.addItem(y)
+            
 
     def open_file(self):
 
-        # filename, _ = QtGui.QFileDialog.getOpenFileName(self,
-        #              "Open Multimodal Experimental Recording (NWB file) ",
-        #             (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
-                                                        # filter="*.nwb")
+        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+                     "Open Multimodal Experimental Recording (NWB file) ",
+                    (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
+                                                        filter="*.nwb")
         # filename = '/home/yann/UNPROCESSED/2021_06_17/2021_06_17-12-57-44.nwb'
-        filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/2021_07_01/2021_07_01-16-27-22.nwb'
+        # filename = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-14-55-23.nwb'
         
         if filename!='':
             self.datafile=filename
@@ -286,14 +308,11 @@ class MainWindow(guiparts.NewWindow):
 
     def reset(self):
         self.windowTA, self.windowBM = None, None # sub-windows
-        self.no_subsampling = False
+        self.notes.clear()
+        self.subsamplingSelect.setChecked(True)
+        self.annotSelect.setChecked(False)
+        self.stimSelect.setChecked(False)
         self.init_panel_imgs()
-        # self.plot.clear()
-        # self.pScreenimg.clear()
-        # self.pFaceimg.clear()
-        # self.pCaimg.clear()
-        # self.pPupilimg.clear()
-        # self.win1.clear()
         self.roiIndices = None
 
     def select_stim(self):
@@ -326,7 +345,9 @@ class MainWindow(guiparts.NewWindow):
             self.dbox.addItem(self.data.df_name)
             self.dbox.setCurrentIndex(0)
             
-        if self.sbox.currentIndex()==0:
+        if len(self.SUBJECTS.keys())==0:
+            self.sbox.clear()
+            self.sbox.addItem(self.subject_default_key)
             self.sbox.addItem(self.data.nwbfile.subject.description)
             self.sbox.setCurrentIndex(1)
             
@@ -334,7 +355,11 @@ class MainWindow(guiparts.NewWindow):
 
         if 'ophys' in self.data.nwbfile.processing:
             self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.validROI_indices)-1))
+            self.ophysSelect.setChecked(True)
 
+        if ('Electrophysiological-Signal' in self.data.nwbfile.acquisition) or ('Vm' in self.data.nwbfile.acquisition) or ('LFP' in self.data.nwbfile.acquisition):
+            self.ephysSelect.setChecked(True)
+            
         if 'Photodiode-Signal' in self.data.nwbfile.acquisition:
             self.photodiodeSelect.setChecked(True)
 
@@ -343,16 +368,32 @@ class MainWindow(guiparts.NewWindow):
             self.runSelect.isChecked()
 
         if 'FaceMotion' in self.data.nwbfile.processing:
+            coords = self.data.nwbfile.processing['FaceMotion'].description.split('facemotion ROI: (x0,dx,y0,dy)=(')[1].split(')\n')[0].split(',')
+            coords = [int(c) for c in coords]
+            self.faceMotionContour.setData(np.concatenate([np.linspace(x1, x2, 20) for x1, x2 in zip([coords[1], coords[1], coords[1]+coords[3], coords[1]+coords[3], coords[1]],
+                                                                                                     [coords[1], coords[1]+coords[3], coords[1]+coords[3], coords[1], coords[1]])]),
+                                           np.concatenate([np.linspace(y1, y2, 20) for y1, y2 in zip([coords[0], coords[0]+coords[2], coords[0]+coords[2], coords[0], coords[0]],
+                                                                                                     [coords[0]+coords[2], coords[0]+coords[2], coords[0], coords[0], coords[0]])]))
             self.faceMtnSelect.setChecked(True)
             
         if 'Pupil' in self.data.nwbfile.processing:
+            self.pupil_mm_to_pix = 1./float(self.data.nwbfile.processing['Pupil'].description.split('pix_to_mm=')[1].split('\n')[0])
+            coords = self.data.nwbfile.processing['Pupil'].description.split('pupil ROI: (xmin,xmax,ymin,ymax)=(')[1].split(')\n')[0].split(',')
+            if len(coords)==3: # bug (fixed), typo in previous datafiles
+                coords.append(coords[2][3:])
+                coords[2] = coords[2][:3]
+            coords = [int(c) for c in coords]
+            self.facePupilContour.setData(np.concatenate([np.linspace(x1, x2, 10) for x1, x2 in zip([coords[2], coords[2], coords[3], coords[3]],
+                                                                                                    [coords[2], coords[3], coords[3], coords[2]])]),
+                                           np.concatenate([np.linspace(y1, y2, 10) for y1, y2 in zip([coords[0], coords[1], coords[1], coords[0]],
+                                                                                                     [coords[1], coords[1], coords[0], coords[0]])]))
             self.pupilSelect.setChecked(True)
 
         if 'Pupil' in self.data.nwbfile.processing:
             self.gaze_center = [np.mean(self.data.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]),
                                 np.mean(self.data.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:])]
             self.gazeSelect.setChecked(True)
-            
+
             
     def load_VisualStim(self):
 
@@ -384,11 +425,10 @@ class MainWindow(guiparts.NewWindow):
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
                                            self.highlight_format)
                 self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
-                                         for f in np.array(FILES)[DATES==d]]
+                                         for f in np.array(FILES)[DATES==d]][::-1]
             except BaseException as be:
                 print(be)
-            # except ValueError:
-            #     pass
+                print('error for date %s' % d)
             
         print(' -> found n=%i datafiles ' % len(FILES))
         
@@ -539,7 +579,7 @@ class MainWindow(guiparts.NewWindow):
 
     def back_to_initial_view(self):
         self.time = 0
-        self.tzoom = self.tlim
+        self.tzoom = self.data.tlim
         self.display_quantities(force=True)
 
     def hitting_space(self):

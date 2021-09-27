@@ -220,14 +220,7 @@ class MultimodalData(Data):
                             lw=0, alpha=0.05, color=color)
             axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
             axi.axis('equal')
-            arrow = self.visual_stim.get_arrow(i, self,
-                                               arrow_props={'length':25, 'width_factor':0.1})
-            vse = self.visual_stim.get_vse(i, self)
-
-            self.visual_stim.show_frame(i, ax=axi,
-                                        label=None,
-                                        arrow=arrow,
-                                        enhance=True)
+            self.visual_stim.plot_stim_picture(i, ax=axi)
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
 
         
@@ -237,8 +230,6 @@ class MultimodalData(Data):
         if self.visual_stim is None:
             self.init_visual_stim()
 
-        print(self.visual_stim.experiment)
-        
         fig, AX = ge.figure(axes=(Npanels,1),
                             figsize=(1.6/2., 0.9/2.), top=3, bottom=2, wspace=.2)
 
@@ -254,9 +245,7 @@ class MultimodalData(Data):
                 #             arrow_props={'length':25, 'width_factor':0.1})
                 self.visual_stim.show_frame(iEp, ax=AX[i],
                                             time_from_episode_start=ti-tEp,
-                                            label=label,
-                                            # arrow=arrow,
-                                            enhance=True)
+                                            label=label)
             # else:
             #     self.visual_stim.show_interstim(AX[i])
             AX[i].set_title('%.1fs' % ti, fontsize=6)
@@ -410,8 +399,9 @@ class MultimodalData(Data):
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
+                    
                     cond = np.array(condition & col_cond & row_cond & color_cond)[:EPISODES.resp.shape[0]]
-
+                    
                     if EPISODES.resp[cond,:].shape[0]>0:
                         my = EPISODES.resp[cond,:].mean(axis=0)
                         if with_std:
@@ -428,10 +418,9 @@ class MultimodalData(Data):
 
                             
                     if with_screen_inset:
-                        inset = ge.inset(AX[irow][icol], [.8, .9, .3, .25])
-                        self.visual_stim.show_frame(\
-                                    EPISODES.index_from_start[cond][0],
-                                    ax=inset, enhance=True, label=None)
+                        inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
+                        self.visual_stim.plot_stim_picture(EPISODES.index_from_start[cond][0],
+                                                           ax=inset)
                         
                     if with_annotation:
                         
@@ -440,18 +429,19 @@ class MultimodalData(Data):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==column_key) or (key in column_keys):
-                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+' ' # should have a unique value
-                            ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom', size='small')
+                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+',' # should have a unique value
+                            # ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom', size='small')
+                            ge.annotate(AX[irow][icol], s[:-1], (0.5, 1), ha='center', va='bottom', size='small')
                         # row label
                         if (len(ROW_CONDS)>1) and (icol==0) and (icolor==0):
                             s = ''
                             for i, key in enumerate(EPISODES.varied_parameters.keys()):
                                 if (key==row_key) or (key in row_keys):
                                     try:
-                                        s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+4*' ' # should have a unique value
+                                        s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+', ' # should have a unique value
                                     except IndexError:
                                         pass
-                            ge.annotate(AX[irow][icol], s, (0, 0), ha='right', va='bottom', rotation=90, size='small')
+                            ge.annotate(AX[irow][icol], s[:-2], (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
                         ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
                                     (.99,0), color=COLORS[icolor], size='xx-small',
@@ -472,8 +462,8 @@ class MultimodalData(Data):
                         cond = np.array(condition & col_cond & row_cond & color_cond)[:EPISODES.resp.shape[0]]
                         results = EPISODES.stat_test_for_evoked_responses(episode_cond=cond, **stat_test_props)
                         ps, size = results.pval_annot()
-                        AX[irow][icol].annotate(ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
-                                                     self.ylim[0]), va='top', ha='center', size=size, xycoords='data', color=COLORS[icolor])
+                        AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
+                                                                 self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
                         AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                         AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                             
@@ -628,8 +618,8 @@ class MultimodalData(Data):
                                                         ax=inset,
                                                         label=({'degree':15,
                                                                'shift_factor':0.03,
-                                                               'lw':0.5, 'fontsize':7} if (icol==1) else None),
-                                                        enhance=True)
+                                                               'lw':0.5, 'fontsize':7} if (icol==1) else None))
+                                            
                 AX[irow][icol].axis('off')
 
         # dF/F bar legend
@@ -685,7 +675,7 @@ class MultimodalData(Data):
         return fig, ax
 
 def format_key_value(key, value):
-    if key=='angle':
+    if key in ['angle','direction']:
         return '$\\theta$=%.0f$^{o}$' % value
     elif key=='x-center':
         return '$x$=%.0f$^{o}$' % value
@@ -712,6 +702,26 @@ def format_key_value(key, value):
             return 'white'
         else:
             return 'lum.=%.1f' % value
+    elif key=='dotcolor':
+        if value==-1:
+            return 'black dot'
+        elif value==0:
+            return 'grey dot'
+        elif value==1:
+            return 'white dot'
+        else:
+            return 'dot=%.1f' % value
+    elif key=='color':
+        if value==-1:
+            return 'black'
+        elif value==0:
+            return 'grey'
+        elif value==1:
+            return 'white'
+        else:
+            return 'color=%.1f' % value
+    elif key=='speed':
+        return 'v=%.0f$^{o}$/s' % value
     elif key=='protocol_id':
         return 'p.#%i' % (value+1)
     else:
@@ -727,6 +737,7 @@ if __name__=='__main__':
     parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", default='raw', help='')
     parser.add_argument("--tlim", type=float, nargs='*', default=[10, 50], help='')
+    parser.add_argument('-e', "--episode", type=int, default=0)
     parser.add_argument('-nmax', "--Nmax", type=int, default=20)
     parser.add_argument("--Npanels", type=int, default=8)
     parser.add_argument('-roi', "--roiIndex", type=int, default=0)
@@ -764,6 +775,9 @@ if __name__=='__main__':
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
+        fig2 = data.visual_stim.plot_stim_picture(args.episode, enhance=True)
+        print('interval [%.1f, %.1f] ' % (data.nwbfile.stimulus['time_start_realigned'].data[args.episode],
+                                          data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
     elif args.ops=='FOV':
         fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))

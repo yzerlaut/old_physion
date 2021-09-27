@@ -113,6 +113,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                                             "Open datafile (through metadata file) )",
                                                             FOLDERS[self.folderD.currentText()],
                                                             filter="*.nwb")
+        self.Ifolder = ''
+        self.imagingF.setText('None')
         if filename!='':
             self.filename = filename
         else:
