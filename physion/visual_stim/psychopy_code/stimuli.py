@@ -236,29 +236,32 @@ class visual_stim:
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
 
-            # SHUFFLING IF NECESSARY
-            if (protocol['Presentation']=='Randomized-Sequence'):
-                np.random.seed(protocol['shuffling-seed'])
-                np.random.shuffle(index_no_repeat)
-                
+            # then dealing with repetitions
             Nrepeats = max([1,protocol['N-repeat']])
-            index = np.concatenate([index_no_repeat for r in range(Nrepeats)])
-            repeat = np.concatenate([r+0*index_no_repeat for r in range(Nrepeats)])
 
-            for n, i in enumerate(index[protocol['starting-index']:]):
-                for key in keys:
-                    self.experiment[key].append(FULL_VECS[key][i])
-                self.experiment['index'].append(i)
-                self.experiment['repeat'].append(repeat[n+protocol['starting-index']])
-                self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
-                                                     n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
-                self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
-                                                     (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
-                self.experiment['interstim'].append(protocol['presentation-interstim-period'])
-                self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
-                self.experiment['time_duration'].append(protocol['presentation-duration'])
-                self.experiment['frame_run_type'].append(run_type)
+            if 'shuffling-seed' in protocol:
+                np.random.seed(protocol['shuffling-seed']) # initialize random seed
 
+            for r in range(Nrepeats):
+                
+                # shuffling if necessary !
+                if (protocol['Presentation']=='Randomized-Sequence'):
+                    np.random.shuffle(index_no_repeat)
+                
+                for n, i in enumerate(index_no_repeat):
+                    for key in keys:
+                        self.experiment[key].append(FULL_VECS[key][i])
+                    self.experiment['index'].append(i) # shuffled
+                    self.experiment['repeat'].append(r)
+                    self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
+                                    n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                    self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
+                                    (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                    self.experiment['interstim'].append(protocol['presentation-interstim-period'])
+                    self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
+                    self.experiment['time_duration'].append(protocol['presentation-duration'])
+                    self.experiment['frame_run_type'].append(run_type)
+                    
     # the close function
     def close(self):
         self.win.close()
@@ -598,12 +601,12 @@ class multiprotocol(visual_stim):
                     elif key not in ['protocol_id', 'time_duration']:
                         self.experiment[key].append(None)
                 self.experiment['protocol_id'].append(IS)
-                self.experiment['time_duration'].append(stim.experiment['time_stop'][i]-stim.experiment['time_start'][i])
+                self.experiment['time_duration'].append(stim.experiment['time_duration'][i])
 
         # SHUFFLING IF NECESSARY
         indices = np.arange(len(self.experiment['index']))
         if (protocol['shuffling']=='full'):
-            print('shuffling')
+            print('shuffling multiprotocol')
             np.random.seed(protocol['shuffling-seed'])
             np.random.shuffle(indices)
         for key in self.experiment:
@@ -616,6 +619,9 @@ class multiprotocol(visual_stim):
         for i in range(1, len(self.experiment['index'])):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
+
+        for key in ['index', 'protocol_id', 'time_duration', 'time_start', 'time_stop']:
+            print(key, self.experiment[key])
             
     # functions implemented in child class
     def get_frame(self, index):
