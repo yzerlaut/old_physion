@@ -2,13 +2,13 @@
     "Presentation": "Stimuli-Sequence",
     "Stimulus": "looming-stim",
     "Screen": "Dell-2020",
-    "presentation-duration": 5.0,
-    "presentation-prestim-period": 0.0,
-    "presentation-poststim-period": 1.0,
+    "presentation-duration": 4.0,
+    "presentation-prestim-period": 4.0,
+    "presentation-poststim-period": 4.0,
+    "presentation-interstim-period": 1.0,
+    "presentation-interstim-screen": 0,
     "presentation-prestim-screen": 0,
     "presentation-poststim-screen": 0,
-    "presentation-interstim-period": 0.1,
-    "presentation-interstim-screen": 0,
     "radius-start-1":0.5,
     "radius-start-2":0.5,
     "N-radius-start":0,
@@ -37,5 +37,5 @@
     "color-2": 1,
     "N-color": 2,
     "starting-index": 0,
-    "N-repeat": 4
+    "N-repeat": 2
 }
