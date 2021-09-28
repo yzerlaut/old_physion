@@ -135,7 +135,9 @@ class Data:
             
 
     def read_and_format_ophys_data(self):
-        
+
+        if 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
+            self.imaging_depth = float(self.nwbfile.acquisition['CaImaging-TimeSeries'].imaging_plane.description.replace('Depth=', '').replace('[um]', ''))
         self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
         self.pixel_masks_index = self.Segmentation.columns[0].data[:]
         self.pixel_masks = self.Segmentation.columns[1].data[:]
@@ -286,13 +288,13 @@ def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
 if __name__=='__main__':
 
-    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
+    # FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
     # print(np.unique(SUBJECTS))
 
-    # data = Data(sys.argv[-1])
-    # # print(data.nwbfile.processing['ophys'])
+    data = Data(sys.argv[-1])
+    print(float(data.nwbfile.acquisition['CaImaging-TimeSeries'].imaging_plane.description.replace('Depth=', '').replace('[um]', '')))
     # print(data.iscell)
 
     
