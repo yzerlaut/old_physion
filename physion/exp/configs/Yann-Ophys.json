@@ -18,6 +18,6 @@
     "institution":"Institut du Cerveau et de la Moelle, Paris",
     "protocols":["direction-selectivity-precise", "light-levels-3repeatsx5levelsx2min",
 		 "ff-drifting-grating-contrast-curve", "spatial-mapping-fast", "neurometric-task",
-		  "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "secondary-receptive-field",
+		  "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "size-tuning-protocol", "secondary-receptive-field",
 		  "mismatch-negativity", "NDNF-protocol"]
 }
