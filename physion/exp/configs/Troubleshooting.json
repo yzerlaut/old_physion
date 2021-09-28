@@ -16,8 +16,5 @@
     "experimenter":"Yann Zerlaut",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
-    "protocols":["direction-selectivity-precise", "light-levels-3repeatsx5levelsx2min",
-		 "ff-drifting-grating-contrast-curve", "spatial-mapping-fast", "neurometric-task",
-		  "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "secondary-receptive-field",
-		  "mismatch-negativity", "NDNF-protocol"]
+    "protocols":["mixed-moving-dots-static-patch"]
 }
