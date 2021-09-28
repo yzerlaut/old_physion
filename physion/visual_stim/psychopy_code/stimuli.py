@@ -49,6 +49,8 @@ def build_stim(protocol, no_psychopy=False):
         return line_moving_dots(protocol)
     elif (protocol['Stimulus']=='looming-stim'):
         return looming_stim(protocol)
+    elif (protocol['Stimulus']=='mixed-moving-dots-static-patch'):
+        return moving_dots_static_patch(protocol)
     elif (protocol['Stimulus']=='sparse-noise'):
         if protocol['Presentation']=='Single-Stimulus':
             return sparse_noise(protocol)
@@ -1709,13 +1711,160 @@ class looming_stim(visual_stim):
             
         return ax
     
+class moving_dots_static_patch(visual_stim):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 30.
+        self.frame_refresh = protocol['movie_refresh_freq']
+        
+        super().init_experiment(protocol,
+                                ['speed', 'bg-color', 'ndots', 'spacing',
+                                 'direction', 'size', 'dotcolor'],
+                                run_type='images_sequence')
+
+
+    def add_patch(self, image,
+                  angle=0,
+                  radius=10,
+                  spatial_freq=0.1,
+                  contrast=1.,
+                  time_phase=0.,
+                  xcenter=0, zcenter=0):
+
+        xrot = compute_xrot(self.x, self.z, angle,
+                            xcenter=xcenter, zcenter=zcenter)
+
+        cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
+        image[cond] = compute_grating(xrot[cond],
+                                      spatial_freq=spatial_freq,
+                                      contrast=contrast,
+                                      time_phase=time_phase)
+
+        
+    def add_dot(self, image, pos, size, color, type='square'):
+        """
+        add dot
+        """
+        if type=='square':
+            cond = (self.x>(pos[0]-size/2)) & (self.x<(pos[0]+size/2)) & (self.z>(pos[1]-size/2)) & (self.z<(pos[1]+size/2))
+        else:
+            cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
+        image[cond] = color
+
+
+    def get_starting_point_and_direction(self, index, cls):
+        
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        
+        line = np.arange(int(cls.experiment['ndots'][index]))*cls.experiment['spacing'][index]
+        X0, Y0 = [], []
+        if cls.experiment['direction'][index]==0:
+            # right -> left
+            dx_per_time, dy_per_time = -cls.experiment['speed'][index], 0
+            X0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dx_per_time/2.
+            Y0 = line-line.mean()
+        elif cls.experiment['direction'][index]==180:
+            # left -> right
+            dx_per_time, dy_per_time = cls.experiment['speed'][index], 0
+            X0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dx_per_time/2.
+            Y0 = line-line.mean()
+        elif cls.experiment['direction'][index]==90:
+            # top -> bottom
+            dx_per_time, dy_per_time = 0, -cls.experiment['speed'][index]
+            Y0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dy_per_time/2.
+            X0 = line-line.mean()
+        elif cls.experiment['direction'][index]==270:
+            # top -> bottom
+            dx_per_time, dy_per_time = 0, cls.experiment['speed'][index]
+            Y0 = np.zeros(int(cls.experiment['ndots'][index]))-interval*dy_per_time/2.
+            X0 = line-line.mean()
+        else:
+            print('direction "%i" not implemented !' % cls.experiment['direction'][index])
+
+        return X0, Y0, dx_per_time, dy_per_time
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
+
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
+
+        bg_color = cls.experiment['bg-color'][index]
+        
+        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+
+        times, FRAMES = [], []
+        for iframe, it in enumerate(np.arange(itend)):
+            time = it/cls.protocol['movie_refresh_freq']
+            img = 2*bg_color-1.+0.*self.x
+            for x0, y0 in zip(X0, Y0):
+                # adding the dots one by one
+                new_position = (x0+dx_per_time*time, y0+dy_per_time*time)
+                self.add_dot(img, new_position,
+                             cls.experiment['size'][index],
+                             cls.experiment['dotcolor'][index])
+            if time>1:
+                self.add_patch(img)
+                
+            FRAMES.append(img)
+            times.append(iframe)
+            
+        return times, FRAMES
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = 0*cls.x+cls.experiment['bg-color'][episode]
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
+        for x0, y0 in zip(X0, Y0):
+            new_position = (x0+dx_per_time*time_from_episode_start,
+                            y0+dy_per_time*time_from_episode_start)
+            self.add_dot(img, new_position,
+                         cls.experiment['size'][episode],
+                         cls.experiment['dotcolor'][episode])
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+
+        direction = cls.experiment['direction'][episode]
+
+        # print(direction)
+        arrow['direction'] = ((direction+180)%180)+180
+        # print(arrow['direction'])
+        
+        for shift in [-.5, 0, .5]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
+                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+            self.add_arrow(arrow, ax)
+
+        return ax
+    
     
 if __name__=='__main__':
 
     import json, tempfile
     from pathlib import Path
     
-    with open('physion/exp/protocols/looming-stim.json', 'r') as fp:
+    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
         protocol = json.load(fp)
 
     class df:
