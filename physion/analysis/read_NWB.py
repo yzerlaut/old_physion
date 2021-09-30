@@ -160,7 +160,7 @@ class Data:
         else:
             self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
         
-            
+    # ----------------------------------------------------------------
     def read_pupil(self):
 
         pd = str(self.nwbfile.processing['Pupil'].description)
@@ -177,12 +177,19 @@ class Data:
         self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
-        
+    # ----------------------------------------------------------------
     def read_facemotion(self):
         
         fd = str(self.nwbfile.processing['FaceMotion'].description)
         self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
 
+    def build_facemotion(self):
+        """
+        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
+        """
+        self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps
+        self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
+        
 
     def close(self):
         self.io.close()
