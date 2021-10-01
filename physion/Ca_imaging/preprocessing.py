@@ -71,9 +71,16 @@ if __name__=='__main__':
     if os.path.isdir(str(args.CaImaging_folder)) and ('TSeries' in str(args.CaImaging_folder)):
         run_preprocessing(args)
         # print('--> preprocessing of "%s" done !' % args.CaImaging_folder)
+    elif os.path.isdir(str(args.CaImaging_folder)):
+        folders = [os.path.join(args.CaImaging_folder, f) for f in os.listdir(args.CaImaging_folder) if ('TSeries' in f)]
+        for args.CaImaging_folder in folders:
+            run_preprocessing(args)
     else:
         print('/!\ Need to provide a valid "TSeries" folder /!\ ')
         
+
+
+
 
 
 
