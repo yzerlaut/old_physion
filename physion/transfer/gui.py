@@ -15,7 +15,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(650, 700, 300, 350)
+        self.setGeometry(650, 700, 300, 400)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
@@ -81,6 +81,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
         
+        HEIGHT +=60 
+        self.synch = QtWidgets.QPushButton(' synch. folders ', self)
+        self.synch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.synch.clicked.connect(self.synch_folders)
+        self.synch.setMinimumWidth(200)
+        self.synch.move(50, HEIGHT)
+        
         self.show()
 
     def set_source_folder(self):
@@ -103,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def file_copy_command(self, source_file, destination_folder):
         if sys.platform.startswith("win"):
             return 'xcopy %s %s' % (source_file,
-                                               destination_folder)
+                                    destination_folder)
         else:
             return 'rsync -avhP %s %s' % (source_file, destination_folder)
             
@@ -116,7 +123,17 @@ class MainWindow(QtWidgets.QMainWindow):
                                             destination_folder)
         else:
             return 'rsync -avhP %s %s &' % (source_folder, destination_folder)
-    
+
+    def synch_folders(self):
+        if self.typeBox.currentText() in ['nwb', 'npy']:
+            include_string = '--include "/*" --exclude "*" --include "*.%s"' % self.typeBox.currentText()
+        else:
+            include_string = ''
+        cmd = 'rsync -avhP %s%s %s' % (include_string,
+                                       FOLDERS[self.sourceBox.currentText()],\
+                                       FOLDERS[self.destBox.currentText()])
+        p = subprocess.Popen(cmd, shell=True)
+        
     def run(self):
 
         if self.destination_folder=='':
