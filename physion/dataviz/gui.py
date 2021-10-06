@@ -55,7 +55,7 @@ class MainWindow(guiparts.NewWindow):
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
         
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
 
         self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
@@ -151,28 +151,28 @@ class MainWindow(guiparts.NewWindow):
         Layout122 = QtWidgets.QHBoxLayout()
         Layout12.addLayout(Layout122)
 
-        self.stimSelect = QtGui.QCheckBox("vis. stim")
+        self.stimSelect = QtWidgets.QCheckBox("vis. stim")
         self.stimSelect.clicked.connect(self.select_stim)
         self.stimSelect.setStyleSheet('color: grey;')
 
-        self.pupilSelect = QtGui.QCheckBox("pupil")
+        self.pupilSelect = QtWidgets.QCheckBox("pupil")
         self.pupilSelect.setStyleSheet('color: red;')
 
-        self.gazeSelect = QtGui.QCheckBox("gaze")
+        self.gazeSelect = QtWidgets.QCheckBox("gaze")
         self.gazeSelect.setStyleSheet('color: orange;')
 
-        self.faceMtnSelect = QtGui.QCheckBox("whisk.")
+        self.faceMtnSelect = QtWidgets.QCheckBox("whisk.")
         self.faceMtnSelect.setStyleSheet('color: magenta;')
 
-        self.runSelect = QtGui.QCheckBox("run")
+        self.runSelect = QtWidgets.QCheckBox("run")
         
-        self.photodiodeSelect = QtGui.QCheckBox("photodiode")
+        self.photodiodeSelect = QtWidgets.QCheckBox("photodiode")
         self.photodiodeSelect.setStyleSheet('color: grey;')
 
-        self.ephysSelect = QtGui.QCheckBox("ephys")
+        self.ephysSelect = QtWidgets.QCheckBox("ephys")
         self.ephysSelect.setStyleSheet('color: blue;')
         
-        self.ophysSelect = QtGui.QCheckBox("ophys")
+        self.ophysSelect = QtWidgets.QCheckBox("ophys")
         self.ophysSelect.setStyleSheet('color: green;')
 
         for x in [self.stimSelect, self.pupilSelect,
@@ -183,19 +183,19 @@ class MainWindow(guiparts.NewWindow):
             Layout122.addWidget(x)
         
         
-        self.roiPick = QtGui.QLineEdit()
+        self.roiPick = QtWidgets.QLineEdit()
         self.roiPick.setText(' [...] ')
         self.roiPick.setMinimumWidth(50)
         self.roiPick.setMaximumWidth(250)
         self.roiPick.returnPressed.connect(self.select_ROI)
         self.roiPick.setFont(guiparts.smallfont)
 
-        self.ephysPick = QtGui.QLineEdit()
+        self.ephysPick = QtWidgets.QLineEdit()
         self.ephysPick.setText(' ')
         # self.ephysPick.returnPressed.connect(self.select_ROI)
         self.ephysPick.setFont(guiparts.smallfont)
 
-        self.guiKeywords = QtGui.QLineEdit()
+        self.guiKeywords = QtWidgets.QLineEdit()
         self.guiKeywords.setText('     [GUI keywords] ')
         # self.guiKeywords.setFixedWidth(200)
         self.guiKeywords.returnPressed.connect(self.keyword_update)
@@ -205,17 +205,17 @@ class MainWindow(guiparts.NewWindow):
         # Layout122.addWidget(self.ephysPick)
         Layout122.addWidget(self.roiPick)
 
-        self.subsamplingSelect = QtGui.QCheckBox("subsampl.")
+        self.subsamplingSelect = QtWidgets.QCheckBox("subsampl.")
         self.subsamplingSelect.setStyleSheet('color: grey;')
         self.subsamplingSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.subsamplingSelect)
 
-        self.annotSelect = QtGui.QCheckBox("annot.")
+        self.annotSelect = QtWidgets.QCheckBox("annot.")
         self.annotSelect.setStyleSheet('color: grey;')
         self.annotSelect.setFont(guiparts.smallfont)
         Layout122.addWidget(self.annotSelect)
         
-        self.imgSelect = QtGui.QCheckBox("img")
+        self.imgSelect = QtWidgets.QCheckBox("img")
         self.imgSelect.setStyleSheet('color: grey;')
         self.imgSelect.setFont(guiparts.smallfont)
         self.imgSelect.setChecked(True)
@@ -289,7 +289,7 @@ class MainWindow(guiparts.NewWindow):
 
     def open_file(self):
 
-        filename, _ = QtGui.QFileDialog.getOpenFileName(self,
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                      "Open Multimodal Experimental Recording (NWB file) ",
                     (FOLDERS[self.fbox.currentText()] if self.fbox.currentText() in FOLDERS else os.path.join(os.path.expanduser('~'), 'DATA')),
                                                         filter="*.nwb")
@@ -696,22 +696,22 @@ def add_buttons(self, Layout):
 
     iconSize = QtCore.QSize(20, 20)
 
-    self.playButton = QtGui.QToolButton()
-    self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+    self.playButton = QtWidgets.QToolButton()
+    self.playButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
     self.playButton.setIconSize(iconSize)
     self.playButton.setToolTip("Play   -> [Space]")
     self.playButton.setCheckable(True)
     self.playButton.setEnabled(True)
     self.playButton.clicked.connect(self.play)
 
-    self.pauseButton = QtGui.QToolButton()
+    self.pauseButton = QtWidgets.QToolButton()
     self.pauseButton.setCheckable(True)
-    self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+    self.pauseButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
     self.pauseButton.setIconSize(iconSize)
     self.pauseButton.setToolTip("Pause   -> [Space]")
     self.pauseButton.clicked.connect(self.pause)
 
-    btns = QtGui.QButtonGroup(self)
+    btns = QtWidgets.QButtonGroup(self)
     btns.addButton(self.playButton,0)
     btns.addButton(self.pauseButton,1)
     btns.setExclusive(True)
@@ -721,30 +721,30 @@ def add_buttons(self, Layout):
     self.pauseButton.setChecked(True)
 
     
-    self.refreshButton = QtGui.QToolButton()
+    self.refreshButton = QtWidgets.QToolButton()
     self.refreshButton.setCheckable(True)
-    self.refreshButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_BrowserReload))
+    self.refreshButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
     self.refreshButton.setIconSize(iconSize)
     self.refreshButton.setToolTip("Refresh   -> [r]")
     self.refreshButton.clicked.connect(self.refresh)
 
-    self.quitButton = QtGui.QToolButton()
+    self.quitButton = QtWidgets.QToolButton()
     # self.quitButton.setCheckable(True)
-    self.quitButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DialogCloseButton))
+    self.quitButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogCloseButton))
     self.quitButton.setIconSize(iconSize)
     self.quitButton.setToolTip("Quit")
     self.quitButton.clicked.connect(self.quit)
     
-    self.backButton = QtGui.QToolButton()
+    self.backButton = QtWidgets.QToolButton()
     # self.backButton.setCheckable(True)
-    self.backButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogBack))
+    self.backButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_FileDialogBack))
     self.backButton.setIconSize(iconSize)
     self.backButton.setToolTip("Back to initial view   -> [i]")
     self.backButton.clicked.connect(self.back_to_initial_view)
 
-    self.settingsButton = QtGui.QToolButton()
+    self.settingsButton = QtWidgets.QToolButton()
     # self.settingsButton.setCheckable(True)
-    self.settingsButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_FileDialogDetailedView))
+    self.settingsButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_FileDialogDetailedView))
     self.settingsButton.setIconSize(iconSize)
     # self.settingsButton.setToolTip("Settings")
     # self.settingsButton.clicked.connect(self.change_settings)
