@@ -16,11 +16,12 @@ else:
 from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
-    from hardware_control.FLIRcamera.recording import launch_FaceCamera
-    from hardware_control.LogitechWebcam.preview import launch_RigView
 except ModuleNotFoundError:
-    # just to be able to work on the UI without the modules
-    print('The hardware control modules were not found...')
+    print(' /!\ Problem with the NIdaq module /!\ ')
+try:
+    from hardware_control.FLIRcamera.recording import launch_FaceCamera
+except ModuleNotFoundError:
+    print(' /!\ Problem with the FLIR camera module /!\ ')
 
 # os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 ## NASTY workaround to the error:
