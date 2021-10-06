@@ -1,7 +1,7 @@
 {
   "Presentation": "Stimuli-Sequence",
   "Stimulus": "light-level",
-  "Screen": "Dell-P2018H",
+  "Screen": "Lilliput",
   "presentation-duration": 10.0,
   "presentation-prestim-period": 1.0,
   "presentation-poststim-period": 1.0,
