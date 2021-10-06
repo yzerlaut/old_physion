@@ -64,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox.setMinimumWidth(150)
         self.typeBox.move(100, HEIGHT)
         # self.typeBox.activated.connect(self.update_setting)
-        self.typeBox.addItems(['NWB', 'FULL',
+        self.typeBox.addItems(['nwb', 'npy', 'FULL', 
                                'Imaging (processed)', 'Imaging (+binary)'])
 
         HEIGHT += 40
@@ -132,12 +132,12 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             print('starting copy [...]')
 
-        if self.typeBox.currentText()=='NWB':
-            ##############################################
-            #############      NWB file         ##########
-            ##############################################
+        if self.typeBox.currentText() in ['nwb', 'npy']:
+            #####################################################
+            #############      nwb or npy file         ##########
+            #####################################################
             FILES = get_files_with_extension(self.source_folder,
-                                             extension='.nwb', 
+                                             extension='.%s' % self.typeBox.currentText(), 
                                              recursive=True)
             for f in FILES:
                 if '10.0.0.' in self.destination_folder:
