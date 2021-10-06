@@ -413,8 +413,12 @@ class MainWindow(guiparts.NewWindow):
                                          extension='.nwb', recursive=True)
 
         DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
+        TIMES = []
+        for f in FILES:
+            Time = f.split(os.path.sep)[-1].replace('.nwb', '').split('-')
+            TIMES.append(3600*int(Time[0])+60*int(Time[1])+int(Time[2]))
+        TIMES = np.array(TIMES)
         NDATES = np.array([datetime.date(*[int(dd) for dd in date.split('_')]).toordinal() for date in DATES])
-
         self.FILES_PER_DAY = {}
         
         guiparts.reinit_calendar(self,
@@ -424,8 +428,10 @@ class MainWindow(guiparts.NewWindow):
             try:
                 self.cal.setDateTextFormat(QtCore.QDate(datetime.date(*[int(dd) for dd in d.split('_')])),
                                            self.highlight_format)
+                day_cond = (DATES==d)
+                time_sorted = np.argsort(TIMES[day_cond])
                 self.FILES_PER_DAY[d] = [os.path.join(FOLDERS[self.fbox.currentText()], f)\
-                                         for f in np.array(FILES)[DATES==d]][::-1]
+                                         for f in np.array(FILES)[day_cond][time_sorted]]
             except BaseException as be:
                 print(be)
                 print('error for date %s' % d)
