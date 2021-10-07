@@ -256,9 +256,9 @@ class visual_stim:
                     self.experiment['index'].append(i) # shuffled
                     self.experiment['repeat'].append(r)
                     self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
-                                    n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
-                    self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
-                                    (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                                                         (r*len(index_no_repeat)+n)*\
+                                                         (protocol['presentation-duration']+protocol['presentation-interstim-period']))
+                    self.experiment['time_stop'].append(self.experiment['time_start'][-1]+protocol['presentation-duration'])
                     self.experiment['interstim'].append(protocol['presentation-interstim-period'])
                     self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
                     self.experiment['time_duration'].append(protocol['presentation-duration'])

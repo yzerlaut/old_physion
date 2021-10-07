@@ -315,13 +315,15 @@ class MainWindow(QtWidgets.QMainWindow):
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
-                max_time = int(3*self.stim.experiment['time_stop'][-1]) # for security
+                max_time = int(3*np.max(self.stim.experiment['time_stop'])) # for security
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
 
+        print('max_time of NIdaq recording: %.2dh:%.2dm:%.2ds' % (max_time/3600, (max_time%3600)/60, (max_time%60)))
+        
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
