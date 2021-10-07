@@ -426,11 +426,14 @@ class visual_stim:
         
     ## FINAL RUN FUNCTION
     def run(self, parent):
+        t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
-            print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
+            t = time.time()-t0
+            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i' % (t/3600, (t%3600)/60, (t%60),
+                                                                       i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
                 self.inter_screen(parent,
