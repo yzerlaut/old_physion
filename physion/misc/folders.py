@@ -11,6 +11,10 @@ elif os.path.isdir(os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'p
         python_path = os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'physion', 'python.exe')
     else:
         python_path = os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'physion', 'bin', 'python')
+elif (os.name=='nt') and os.path.isdir(os.path.join(os.path.expanduser('~'), '.conda', 'envs', 'acquisition')):
+    print('acq setting')
+    python_path = os.path.join(os.path.expanduser('~'), '.conda', 'envs', 'acquisition', 'python.exe')
+
         
 python_path_suite2p_env = python_path
 if os.path.isdir(os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p')):

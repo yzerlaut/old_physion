@@ -10,7 +10,12 @@ from analysis.read_NWB import Data
 from analysis import stat_tools, process_NWB
 from Ca_imaging.tools import compute_CaImaging_trace, compute_CaImaging_raster
 from visual_stim.psychopy_code.stimuli import build_stim
-from datavyz import graph_env_manuscript as ge
+try:
+    from datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    print(' "datavyz" module not available -> no figure output capabilities ')
+
+blue, orange, green, red, purple, brown, pink, grey, kaki, cyan = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 # we define a data object fitting this analysis purpose
 class MultimodalData(Data):
@@ -35,7 +40,7 @@ class MultimodalData(Data):
         return tlim[0]-0.01*(tlim[1]-tlim[0])
     
     def plot_scaled_signal(self, ax, t, signal, tlim, scale_bar, ax_fraction_extent, ax_fraction_start,
-                           color=ge.blue, scale_unit_string='%.1f'):
+                           color=blue, scale_unit_string='%.1f'):
         # generic function to add scaled signal
 
         try:
@@ -55,7 +60,7 @@ class MultimodalData(Data):
         ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=grey, name='photodiode'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Photodiode-Signal'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
@@ -76,7 +81,7 @@ class MultimodalData(Data):
     def add_Locomotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=2,
                        speed_scale_bar=1, # cm/s
-                       color=ge.blue, name='run. speed'):
+                       color=blue, name='run. speed'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
@@ -85,7 +90,7 @@ class MultimodalData(Data):
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
     def add_FaceMotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.purple, name='facemotion'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=purple, name='facemotion'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
         t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
         motion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2]
@@ -110,7 +115,7 @@ class MultimodalData(Data):
     def add_GazeMovement(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., subsampling=2,
                          gaze_scale_bar = 0.2, # scale bar in mm
-                         color=ge.orange, name='gaze mov.'):
+                         color=orange, name='gaze mov.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
         cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[i1:i2]
@@ -754,12 +759,12 @@ if __name__=='__main__':
                                                    normalization='per-line',
                                                    quantity='CaImaging', subquantity='Fluorescence'),
                             'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                             # quantity='CaImaging', subquantity='dF/F', color=ge.green,
-                                             quantity='CaImaging', subquantity='Fluorescence', color=ge.green,
+                                             # quantity='CaImaging', subquantity='dF/F', color=green,
+                                             quantity='CaImaging', subquantity='Fluorescence', color=green,
                                              roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), args.Nmax, replace=False))),
-                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
-                            # 'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
-                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=blue),
+                            # 'Pupil':dict(fig_fraction=2, subsampling=1, color=red),
+                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=orange),
                             'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                             'VisualStim':dict(fig_fraction=.5, color='black')},
                             Tbar=5)
@@ -771,7 +776,7 @@ if __name__=='__main__':
                                           xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
                                           with_stat_test=True,
                                           with_annotation=True,
-                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+                                          fig_preset='raw-traces-preset', color=blue, label='test\n')
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
