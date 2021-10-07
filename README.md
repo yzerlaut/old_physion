@@ -31,7 +31,7 @@ The software is organized into several modules to perform the acquisition, the p
    to create the `physion` environment and perform the installation, run:
    ```
    cd physion
-   conda env create -f environment.yml
+   conda env create python=3.6 -f environment.yml
    ```
 
 ## Getting started

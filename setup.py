@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='physion',
     version='1.0',
-    description='Physiology of Vision - Code for experimental setup and analysis to study the physiology of visual circuits',
+    description='Vision Physiology - Code for experimental setup and analysis to study the physiology of visual circuits',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/yzerlaut/physion',
@@ -24,15 +24,12 @@ setup(
     ],
     keywords='vision physiology',
     packages=find_packages(),
-    # install_requires=[
-    #     "pynwb",
-    #     "matplotlib",
-    #     "numpy",
-    #     "scipy",
-    #     "argparse",
-    #     "scikit-learn",
-    #     "pyqt5",
-    #     "pyqtgraph",
-    #     "xmltodict"
-    # ]
+    install_requires=[
+        "pynwb",
+        "scipy",
+        "numpy",
+        "argparse",
+        "pyqt5",
+        "pyqtgraph"
+    ]
 )
