@@ -7,8 +7,6 @@ from pupil import roi, process
 from Ca_imaging.tools import compute_CaImaging_trace
 from dataviz.tools import *
 
-t = np.linspace(0, 2*np.pi)
-
 def raw_data_plot(self, tzoom,
                   plot_update=True,
                   with_images=False,
@@ -226,8 +224,8 @@ def raw_data_plot(self, tzoom,
                                 (self.data.pixel_masks_index[ir] if ir<len(self.data.validROI_indices) else len(self.data.pixel_masks_index)))
             x = [self.data.pixel_masks[ii][1] for ii in indices]
             y = [self.data.pixel_masks[ii][0] for ii in indices]
-            X += list(np.mean(x)+3*np.std(x)*np.cos(t)) # TO PLOT CIRCLES
-            Y += list(np.mean(y)+3*np.std(y)*np.sin(t))
+            X += list(np.mean(x)+3*np.std(x)*np.cos(np.linspace(0, 2*np.pi))) # TO PLOT CIRCLES
+            Y += list(np.mean(y)+3*np.std(y)*np.sin(np.linspace(0, 2*np.pi)))
             # X += x # TO PLOT THE REAL ROIS
             # Y += y
         self.ROIscatter.setData(X, Y, size=1, brush=pg.mkBrush(0,255,0))

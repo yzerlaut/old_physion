@@ -2,6 +2,7 @@ name: physion
 channels:
   - conda-forge
 dependencies:
+  - python
   - pip
   - mkl_fft=1.0.10
   - mkl=2019.3
@@ -11,6 +12,7 @@ dependencies:
   - matplotlib
   - scipy
   - scikit-learn
+  - scikit-image
   - ruamel
   - ruamel.yaml
   - pathlib

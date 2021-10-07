@@ -32,8 +32,12 @@ class CameraAcquisition:
         self.cam = simple_pyspin.Camera()
         self.cam.init()
 
-        ###
-        ## -- SETTINGS through the FlyCap software, easier....
+        ########################################################################
+        # -------------------------------------------------------------------- #
+        ## -- SETTINGS through the FlyCap or SpinView software, easier....  ####
+        # -------------------------------------------------------------------- #
+        ########################################################################
+
         
         # # Set the area of interest (AOI) to the middle half
         # self.cam.Width = self.cam.SensorWidth // 2
@@ -42,9 +46,9 @@ class CameraAcquisition:
         # self.cam.OffsetY = self.cam.SensorHeight // 4
 
         # # To change the frame rate, we need to enable manual control
-        self.cam.AcquisitionFrameRateAuto = 'Off'
+        # self.cam.AcquisitionFrameRateAuto = 'Off'
         # # self.cam.AcquisitionFrameRateEnabled = True # seemingly not available here
-        self.cam.AcquisitionFrameRate = settings['frame_rate']
+        # self.cam.AcquisitionFrameRate = settings['frame_rate']
 
         # # To control the exposure settings, we need to turn off auto
         # self.cam.GainAuto = 'Off'

@@ -4,7 +4,6 @@
 
 ## Install
 
-
 - Install NIdaq-mx, get it from the National Instruments website:
   - either https://www.ni.com/fr-fr/support/downloads/drivers/download.ni-daqmx.html#348669
   - or https://www.ni.com/fr-fr/support/downloads/drivers/download.ni-daqmx.html#291872

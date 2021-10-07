@@ -11,6 +11,10 @@ elif os.path.isdir(os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'p
         python_path = os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'physion', 'python.exe')
     else:
         python_path = os.path.join(os.path.expanduser('~'), 'anaconda3', 'envs', 'physion', 'bin', 'python')
+elif (os.name=='nt') and os.path.isdir(os.path.join(os.path.expanduser('~'), '.conda', 'envs', 'acquisition')):
+    print('acq setting')
+    python_path = os.path.join(os.path.expanduser('~'), '.conda', 'envs', 'acquisition', 'python.exe')
+
         
 python_path_suite2p_env = python_path
 if os.path.isdir(os.path.join(os.path.expanduser('~'), 'miniconda3', 'envs', 'suite2p')):
@@ -38,11 +42,12 @@ if os.name=='nt':
     FOLDERS['F-drive'] = 'F:\\'
     FOLDERS['G-drive'] = 'G:\\'
 else:
-    FOLDERS['curated-storage'] = '/media/yann/DATADRIVE1/CURATED'
+    FOLDERS['storage-curated'] = '/media/yann/DATADRIVE1/CURATED/'
+    FOLDERS['storage-DATA'] = '/media/yann/DATADRIVE1/DATA/'
+    FOLDERS['10.0.0.1:curated'] = 'yann@10.0.0.1:/media/yann/DATADRIVE1/CURATED'
     FOLDERS['MsWin-DATA'] = '/media/yann/Windows/Users/yann.zerlaut/DATA'
     FOLDERS['usb (YANN)'] = '/media/yann/YANN/'
     FOLDERS['usb (Yann)'] = '/media/yann/Yann/'
-    FOLDERS['desktop-storage'] = '/media/yann/DATADRIVE1/DATA/'
     # FOLDERS['MsWin-data'] = '/media/yann/Windows/home/yann/DATA/'
     # FOLDERS['MsWin-cygwin'] = '/media/yann/Windows/Users/yann.zerlaut/DATA/'
     FOLDERS['usb (code)'] = '/media/yann/CODE_YANN/'

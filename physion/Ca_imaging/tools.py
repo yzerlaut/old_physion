@@ -64,6 +64,34 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         else:
             return np.array(DFoF)
 
+    elif 'd(F-' in CaImaging_key:
+        """
+        computes dF/F with a smotthed sliding percentile
+        """
+        if '*Fneu' in CaImaging_key:
+            coef = float(CaImaging_key.replace('d(F-', '').replace('*Fneu)', ''))
+        else:
+            coef = 1. # d(F-Fneu)
+            
+        iTsm = int(T_sliding_min/data.CaImaging_dt)
+
+        DFoF, FMIN = [], []
+        for ROI in data.validROI_indices[np.array(roiIndices)]:
+            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:]-coef*data.Neuropil.data[ROI,:],
+                                      percentile_sliding_min, iTsm) # sliding percentile
+            Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
+            if np.sum(Fmin<0)>0:
+                print(' /!\ sliding percentile gets negative -> pb !  ')
+
+            DFoF.append((data.Fluorescence.data[ROI,:]-coef*data.Neuropil.data[ROI,:]-Fmin)/Fmin)
+                
+            if with_baseline:
+                FMIN.append(Fmin)
+        if with_baseline:
+            return np.array(DFoF), np.array(FMIN)
+        else:
+            return np.array(DFoF)
+        
     elif CaImaging_key in ['F-Fneu', 'dF']:
         DF = []
         for ROI in data.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\
