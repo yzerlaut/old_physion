@@ -30,6 +30,7 @@ setup(
         "numpy",
         "argparse",
         "pyqt5",
-        "pyqtgraph"
+        "pyqtgraph",
+        "pathlib"
     ]
 )
