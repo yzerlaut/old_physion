@@ -256,9 +256,9 @@ class visual_stim:
                     self.experiment['index'].append(i) # shuffled
                     self.experiment['repeat'].append(r)
                     self.experiment['time_start'].append(protocol['presentation-prestim-period']+\
-                                    n*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
-                    self.experiment['time_stop'].append(protocol['presentation-prestim-period']+\
-                                    (n+1)*protocol['presentation-duration']+n*protocol['presentation-interstim-period'])
+                                                         (r*len(index_no_repeat)+n)*\
+                                                         (protocol['presentation-duration']+protocol['presentation-interstim-period']))
+                    self.experiment['time_stop'].append(self.experiment['time_start'][-1]+protocol['presentation-duration'])
                     self.experiment['interstim'].append(protocol['presentation-interstim-period'])
                     self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
@@ -426,11 +426,14 @@ class visual_stim:
         
     ## FINAL RUN FUNCTION
     def run(self, parent):
+        t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
-            print('Running protocol of index %i/%i' % (i+1, len(self.experiment['index'])))
+            t = time.time()-t0
+            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i' % (t/3600, (t%3600)/60, (t%60),
+                                                                       i+1, len(self.experiment['index'])))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
                 self.inter_screen(parent,
