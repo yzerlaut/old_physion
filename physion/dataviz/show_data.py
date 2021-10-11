@@ -270,13 +270,13 @@ class MultimodalData(Data):
                                                  quantity='CaImaging', subquantity='Fluorescence', color='green',
                                                  roiIndices='all'),
                                 'VisualStim':dict(fig_fraction=0, color='black')},                    
-                      figsize=(15,6), Tbar=0.,
+                      figsize=(3,3), Tbar=0., zoom_area=None,
                       ax=None, ax_raster=None):
 
         if ('CaImaging' in settings) and ('raster' in settings['CaImaging']) and (ax_raster is None):
             fig, [ax, ax_raster] = ge.figure(axes=(1,2), figsize=(3,1), bottom=.3, left=.5, hspace=0.)
         if ax is None:
-            fig, ax = ge.figure(figsize=(3,2), bottom=.3, left=.5)
+            fig, ax = ge.figure(figsize=figsize, bottom=.3, left=.5)
         else:
             fig = None
             
@@ -293,13 +293,17 @@ class MultimodalData(Data):
         # time scale bar
         if Tbar==0.:
             Tbar = np.max([int((tlim[1]-tlim[0])/30.), 1])
+
         ax.plot([self.shifted_start(tlim), self.shifted_start(tlim)+Tbar], [1.,1.], lw=1, color='k')
-        ax.annotate((' %is' % Tbar if Tbar>1 else  '%.1fs' % Tbar) ,
+        ax.annotate((' %is' % Tbar if Tbar>=1 else  '%.1fs' % Tbar) ,
                     [self.shifted_start(tlim), 1.02], color='k', fontsize=9)
         
         ax.axis('off')
         ax.set_xlim([self.shifted_start(tlim)-0.01*(tlim[1]-tlim[0]),tlim[1]+0.01*(tlim[1]-tlim[0])])
         ax.set_ylim([-0.05,1.05])
+
+        if zoom_area is not None:
+            ax.fill_between(zoom_area, [0,0], [1,1],  color='k', alpha=.2, lw=0)
         
         return fig, ax
 
@@ -771,11 +775,12 @@ if __name__=='__main__':
         
     elif args.ops=='trial-average':
         fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
-                                          protocol_id=0,
-                                          quantity='CaImaging', subquantity='dF/F', column_key='angle', with_screen_inset=True,
+                                          protocol_id=3,
+                                          quantity='CaImaging', subquantity='dF/F', column_key='direction', 
                                           xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
                                           with_stat_test=True,
                                           with_annotation=True,
+                                          with_screen_inset=True,                                          
                                           fig_preset='raw-traces-preset', color=blue, label='test\n')
         
     elif args.ops=='visual-stim':

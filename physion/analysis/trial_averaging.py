@@ -67,6 +67,11 @@ class TrialAverageWindow(NewWindow):
         self.qbox.addItem('')
         if 'ophys' in self.data.nwbfile.processing:
             self.qbox.addItem('CaImaging')
+        if 'Pupil' in self.data.nwbfile.processing:
+            self.qbox.addItem('pupil-size')
+            self.qbox.addItem('gaze-movement')
+        if 'FaceMotion' in self.data.nwbfile.processing:
+            self.qbox.addItem('facemotion')
         for key in self.data.nwbfile.acquisition:
             if len(self.data.nwbfile.acquisition[key].data.shape)==1:
                 self.qbox.addItem(key) # only for scalar variables

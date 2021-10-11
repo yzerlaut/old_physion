@@ -611,7 +611,7 @@ class multiprotocol(visual_stim):
         # # SHUFFLING IF NECESSARY
         
         if (protocol['shuffling']=='full'):
-            print('full shuffling of multi-protocol sequence !')
+            # print('full shuffling of multi-protocol sequence !')
             np.random.seed(protocol['shuffling-seed']) # initializing random seed
             indices = np.arange(len(self.experiment['index']))
             np.random.shuffle(indices)
@@ -640,8 +640,8 @@ class multiprotocol(visual_stim):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
-        for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
-            print(self.experiment[key], key)
+        # for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
+        #     print(self.experiment[key], key)
             
     # functions implemented in child class
     def get_frame(self, index):

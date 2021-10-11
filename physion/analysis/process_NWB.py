@@ -60,10 +60,14 @@ class EpisodeResponse:
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
                                                                self.roiIndices).sum(axis=0) # valid ROI indices inside
-        elif quantity=='Pupil':
+        elif quantity in ['Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter']:
             if not hasattr(full_data, 'pupil_diameter'):
                 full_data.build_pupil_diameter()
             tfull, valfull = full_data.t_pupil, full_data.pupil_diameter
+        elif quantity in ['facemotion', 'FaceMotion']:
+            if not hasattr(full_data, 'facemotion'):
+                full_data.build_facemotion()
+            tfull, valfull = full_data.t_facemotion, full_data.facemotion
         else:
             if quantity in full_data.nwbfile.acquisition:
                 tfull = np.arange(full_data.nwbfile.acquisition[quantity].data.shape[0])/full_data.nwbfile.acquisition[quantity].rate
