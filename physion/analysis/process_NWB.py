@@ -59,7 +59,7 @@ class EpisodeResponse:
         if quantity=='CaImaging':
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
-                                                               self.roiIndices).sum(axis=0) # valid ROI indices inside
+                                                               self.roiIndices).mean(axis=0) # valid ROI indices inside
         elif quantity in ['Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter']:
             if not hasattr(full_data, 'pupil_diameter'):
                 full_data.build_pupil_diameter()
