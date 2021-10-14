@@ -36,5 +36,3 @@ dependencies:
     - pygame
     - opencv-python    
     - svgutils
-    - git+https://github.com/yzerlaut/datavyz
-    - git+https://github.com/yzerlaut/physion
