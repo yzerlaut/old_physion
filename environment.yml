@@ -1,38 +1,40 @@
+# 
+#  - matplotlib=3.4.2
+#  - jupyter
+#    - rastermap>0.1.0
+#    - scanimage-tiff-reader>=1.4.1
+#    - importlib-metadata
+#    - paramiko
+#    - sbxreader
+#    - suite2p
+#    - scikit-video
+#    - nidaqmx
+#    - psychopy==2021.1.1
+#    - pygame
+#    - svgutils
+#    - opencv-python    
+#    - tifffile
+
 name: physion
 channels:
   - conda-forge
 dependencies:
-  - python
-  - pip
+  - python=3.7.10
+  - pip=21.1.2
   - mkl_fft=1.0.10
   - mkl=2019.3
   - tbb
-  - numpy<1.19.0
-  - numba<0.50.0
-  - matplotlib
+  - numpy=1.18.5
+  - numba=0.48.0
   - scipy
   - scikit-learn
   - scikit-image
   - ruamel
   - ruamel.yaml
   - pathlib
-  - jupyter
   - pip:
     - pyqt5
     - pyqt5.sip
     - h5py==2.10.0
-    - rastermap>0.1.0
-    - tifffile
-    - scanimage-tiff-reader>=1.4.1
-    - pyqtgraph
-    - importlib-metadata
-    - paramiko
-    - pynwb
-    - sbxreader
-    - suite2p
-    - nidaqmx
-    - psychopy==2021.1.1
-    - scikit-video
-    - pygame
-    - opencv-python    
-    - svgutils
+    - pynwb==1.5.1
+    - pyqtgraph==0.12.1
