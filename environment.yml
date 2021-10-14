@@ -1,15 +1,7 @@
-# 
-#  - matplotlib=3.4.2
-#  - jupyter
 #    - rastermap>0.1.0
 #    - scanimage-tiff-reader>=1.4.1
 #    - importlib-metadata
-#    - paramiko
-#    - sbxreader
-#    - suite2p
-#    - scikit-video
 #    - nidaqmx
-#    - psychopy==2021.1.1
 #    - pygame
 #    - svgutils
 #    - opencv-python    
@@ -27,14 +19,19 @@ dependencies:
   - numpy=1.18.5
   - numba=0.48.0
   - scipy
-  - scikit-learn
-  - scikit-image
+  - scikit-learn=0.24.2
+  - scikit-image=0.18.1
+  - scikit-video=1.1.11
   - ruamel
   - ruamel.yaml
   - pathlib
+  - matplotlib=3.4.2
+  - jupyter
   - pip:
     - pyqt5
     - pyqt5.sip
     - h5py==2.10.0
     - pynwb==1.5.1
     - pyqtgraph==0.12.1
+    - suite2p==0.10.2
+    - psychopy==2021.1.1
