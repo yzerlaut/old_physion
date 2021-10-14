@@ -56,7 +56,8 @@ def add_ophys(nwbfile, args,
                                                  'Excitation 1',
                                                  float(xml['settings']['laserWavelength']['Excitation 1']))
     imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
-                                                 description='Depth=%.1f[um]' % float(xml['settings']['positionCurrent']['ZAxis']),
+                                                 description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*#
+                                                                                 float(xml['settings']['positionCurrent']['ZAxis'])),
                                                  device=device,
                                                  excitation_lambda=float(xml['settings']['laserWavelength']['Excitation 1']),
                                                  imaging_rate=1./float(xml['settings']['framePeriod']),
