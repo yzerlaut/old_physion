@@ -7,11 +7,11 @@ SCREEN = [int(16/9.*600),600]
 
 if sys.argv[-1]=='bar':
 
-    mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=-1) #create a window
+    mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=0) #create a window
     
     LEVELS = []
     for x_pos in np.linspace(-15,15,100):
-        LEVELS.append(visual.Rect(win=mywin, size=(5,30), pos=(x_pos,0), fillColor=1))
+        LEVELS.append(visual.Rect(win=mywin, size=(5,30), pos=(x_pos,0), fillColor=1, color=-1))
 
     for level in LEVELS:
         level.draw()
@@ -21,7 +21,7 @@ if sys.argv[-1]=='bar':
     core.quit()
 
 if sys.argv[-1]=='light-level':
-
+    
     mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg") #create a window
     LEVELS = []
     for i, level in enumerate([0, 1, -1, 0]):

@@ -684,6 +684,43 @@ class light_level_single_stim(visual_stim):
     #               cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
     
 
+################################################
+##  ----   PRESENTING VARIOUS BARS   ---     ###
+#                (for intrinsic imaging maps)  #
+################################################
+
+class bar_stim(visual_stim):
+
+    def __init__(self, protocol):
+        
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['orientation', 'width', 'degree',
+                                           'barColor', 'bgColor'], run_type='static')
+            
+    def get_patterns(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        if cls.experiment['orientation'][index]==90:
+                                               sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
+
+            size=(cls.angle_to_pix(cls.experiment['width'][index]), 200)
+            position = (cls.angle_to_pix(cls.experiment['degree'][index]), 0)
+        else:
+            size=(200, cls.angle_to_pix(cls.experiment['width'][index]))
+            position = (0, cls.angle_to_pix(cls.experiment['degree'][index]))
+            
+        return [visual.Rect(win=cls.win,
+                            size=size, pos=position, units='pix',
+                            fillColor=1, color=-1)]
+    
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return 0*self.x 
+
+    # def plot_stim_picture(self, episode, ax=None, parent=None):
+    #     ax.imshow(self.get_image(episode, parent=parent),
+    #               cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    
+
 
 #####################################################
 ##  ----   PRESENTING FULL FIELD GRATINGS   --- #####           
