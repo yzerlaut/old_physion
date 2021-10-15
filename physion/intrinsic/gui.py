@@ -3,6 +3,7 @@ import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
+from pycromanager import Acquisition
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS, python_path
@@ -135,6 +136,7 @@ class MainWindow(NewWindow):
         
     def launch_protocol(self):
         print('launching protocol [...]')
+
         
     def hitting_space(self):
         self.launch_protocol()
