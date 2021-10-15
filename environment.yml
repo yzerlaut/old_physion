@@ -26,7 +26,7 @@ dependencies:
   - pathlib
   - matplotlib=3.4.2
   - jupyter
-  - pynwb
+  - pynwb=2.0.0
   - pip:
     - pyqt5
     - pyqt5.sip
