@@ -177,5 +177,6 @@ if __name__=='__main__':
     import matplotlib.pylab as plt
     # for i in range(args.Nchannel_analog_rec):
     #     plt.plot(t_array[::10], analog_inputs[i][::10])
-    plt.plot(t_array, analog_inputs[0,:])
+    plt.plot(1e3*t_array, analog_inputs[0,:])
+    plt.xlabel('time (ms)')
     plt.show()
