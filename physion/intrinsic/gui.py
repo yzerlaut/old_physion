@@ -3,7 +3,7 @@ import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
-from pycromanager import Acquisition
+from pycromanager import Bridge
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS, python_path
@@ -29,7 +29,17 @@ class MainWindow(NewWindow):
         super(MainWindow, self).__init__(i=1,
                                          title='intrinsic imaging')
 
-
+        ###
+        try:
+            bridge = Bridge()
+            core = bridge.get_core()
+            exposure = core.get_exposure()
+        except BaseException as be:
+            print(be)
+            print('')
+            print(' /!\ Problem with the Camera /!\ ')
+            print('')
+        
         ########################
         ##### building GUI #####
         ########################
@@ -44,6 +54,7 @@ class MainWindow(NewWindow):
         # layout
         Nx_wdgt, Ny_wdgt, self.wdgt_length = 20, 20, 3
         self.i_wdgt = 0
+        self.running = False
         
         self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
@@ -55,14 +66,13 @@ class MainWindow(NewWindow):
         # layout = self.win.ci.layout
 
         # -- A plot area (ViewBox + axes) for displaying the image ---
-        self.p0 = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,
+        self.view = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,
                                       border=[100,100,100])
         self.pimg = pg.ImageItem()
-        self.p0.setAspectLocked()
-        self.p0.addItem(self.pimg)
+        self.view.setAspectLocked()
+        self.view.setRange(QtCore.QRectF(0, 0, 1280, 1024))
+        self.view.addItem(self.pimg)
         
-        self.pimg.setImage(np.random.randn(100,100))
-
         # ---  setting subject information ---
         self.add_widget(QtWidgets.QLabel('subjects file:'))
         self.subjectFileBox = QtWidgets.QComboBox(self)
@@ -83,12 +93,22 @@ class MainWindow(NewWindow):
         self.folderB.addItems(FOLDERS.keys())
         self.add_widget(self.folderB, spec='large-right')
 
+        self.add_widget(QtWidgets.QLabel('  - exposure (ms):'),
+                        spec='large-left')
+        self.exposureBox = QtWidgets.QLineEdit()
+        self.exposureBox.setText(str(exposure))
+        self.add_widget(self.exposureBox, spec='small-right')
+        
         # ---  launching acquisition ---
         self.add_widget(QtWidgets.QLabel(' '))
-        self.acqButton = QtWidgets.QPushButton("- RUN PROTOCOL = ", self)
+        self.acqButton = QtWidgets.QPushButton("-- RUN PROTOCOL -- ", self)
         self.acqButton.clicked.connect(self.launch_protocol)
-        self.add_widget(self.acqButton)
+        self.add_widget(self.acqButton, spec='large-left')
+        self.stopButton = QtWidgets.QPushButton(" STOP ", self)
+        self.stopButton.clicked.connect(self.stop_protocol)
+        self.add_widget(self.stopButton, spec='small-right')
 
+        
         # ---  launching analysis ---
         self.add_widget(QtWidgets.QLabel(20*' - '))
         self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
@@ -135,8 +155,40 @@ class MainWindow(NewWindow):
         self.subjectBox.addItems(self.subjects.keys())
         
     def launch_protocol(self):
-        print('launching protocol [...]')
+        if not self.running:
+            self.running = True
+            self.bridge = Bridge()
+            self.core = self.bridge.get_core()
+            exposure = self.core.get_exposure()
+            self.core.set_exposure(int(self.exposureBox.text()))
+            # auto_shutter = self.core.get_property('Core', 'AutoShutter')
+            # self.core.set_property('Core', 'AutoShutter', 0)
+            self.start = time.time()
+            print('acquisition running [...]')
+            self.update_Image() # ~ while loop
+        else:
+            print('acquisition already running [...]')
 
+    def stop_protocol(self):
+        if self.running:
+            self.running = False
+        else:
+            print('acquisition not launched')
+            
+    def update_Image(self):
+        self.core.snap_image()
+        tagged_image = self.core.get_tagged_image()
+        #pixels by default come out as a 1D array. We can reshape them into an image
+        frame = np.reshape(tagged_image.pix,
+                           newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
+        #plot it
+        self.pimg.setImage(frame)
+        if self.running:
+            QtCore.QTimer.singleShot(1, self.update_Image)
+        else:
+            self.bridge.close()
+
+        
         
     def hitting_space(self):
         self.launch_protocol()
