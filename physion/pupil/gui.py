@@ -111,6 +111,11 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.reflectorBtn, 2, 8+6, 1, 1)
         self.reflectorBtn.setEnabled(True)
         self.reflectorBtn.clicked.connect(self.add_reflectROI)
+
+        self.keepCheckBox = QtWidgets.QCheckBox("keep ROIs")
+        self.keepCheckBox.setStyleSheet("color: gray;")
+        self.keepCheckBox.setChecked(True)
+        self.l0.addWidget(self.keepCheckBox, 2, 8+7, 1, 1)
         
         # fit pupil
         self.fit_pupil = QtWidgets.QPushButton('fit Pupil [Ctrl+F]')
@@ -315,8 +320,9 @@ class MainWindow(NewWindow):
             self.datafolder = folder
             
             if os.path.isdir(os.path.join(folder, 'FaceCamera-imgs')):
-                
-                self.reset()
+
+                if not self.keepCheckBox.isChecked():
+                    self.reset()
                 self.imgfolder = os.path.join(self.datafolder, 'FaceCamera-imgs')
                 self.times, self.FILES, self.nframes, self.Lx, self.Ly = load_FaceCamera_data(self.imgfolder,
                                                                                               t0=0, verbose=True)
@@ -343,6 +349,7 @@ class MainWindow(NewWindow):
                 
             else:
                 self.data = None
+                self.p1.clear()
 
             if self.times is not None:
                 self.jump_to_frame()
@@ -482,9 +489,6 @@ class MainWindow(NewWindow):
         i1, i2 = self.xaxis.range
         self.cframe = max([0, int(i1+(i2-i1)*float(self.frameSlider.value()/200.))])
         self.jump_to_frame()
-
-    def fitToWindow(self):
-        self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
 
     def updateFrameSlider(self):
         self.timeLabel.setEnabled(True)
