@@ -49,7 +49,6 @@ class MainWindow(NewWindow):
         self.subsampling = subsampling
         self.process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                            'process.py')
-        self.saturation = 255
         self.ROI, self.pupil, self.times = None, None, None
         self.data = None
         self.bROI, self.reflectors = [], []
@@ -95,6 +94,7 @@ class MainWindow(NewWindow):
 
         # saturation sliders
         self.sl = Slider(0, self)
+        self.sl.setValue(100)
         self.l0.addWidget(self.sl,1,6,1,7)
         qlabel= QtWidgets.QLabel('saturation')
         qlabel.setStyleSheet('color: white;')
@@ -213,6 +213,12 @@ class MainWindow(NewWindow):
         self.stdBox = QtWidgets.QLineEdit()
         self.stdBox.setText('2.0')
         self.stdBox.setFixedWidth(50)
+
+        wdthLabel = QtWidgets.QLabel("excl. width (s): ")
+        wdthLabel.setStyleSheet("color: gray;")
+        self.wdthBox = QtWidgets.QLineEdit()
+        self.wdthBox.setText('0.1')
+        self.wdthBox.setFixedWidth(50)
         
         self.excludeOutliers = QtWidgets.QPushButton('exclude outlier [Ctrl+E]')
         self.excludeOutliers.clicked.connect(self.find_outliers)
@@ -231,8 +237,8 @@ class MainWindow(NewWindow):
 
         for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
                   self.saverois, self.addROI, self.interpBtn, self.processOutliers,
-                  self.stdBox, self.excludeOutliers, self.printSize, cursorLabel,
-                  sampLabel, smoothLabel, stdLabel, self.smoothBox, self.samplingBox]:
+                  self.stdBox, self.wdthBox, self.excludeOutliers, self.printSize, cursorLabel,
+                  sampLabel, smoothLabel, stdLabel, wdthLabel, self.smoothBox, self.samplingBox]:
             x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         
         
@@ -265,10 +271,12 @@ class MainWindow(NewWindow):
 
         self.l0.addWidget(stdLabel, 21, 0, 1, 3)
         self.l0.addWidget(self.stdBox, 21, 2, 1, 3)
-        self.l0.addWidget(self.excludeOutliers, 22, 0, 1, 3)
-        self.l0.addWidget(cursorLabel, 24, 0, 1, 3)
-        self.l0.addWidget(self.processOutliers, 25, 0, 1, 3)
-        self.l0.addWidget(self.interpBtn, 26, 0, 1, 3)
+        self.l0.addWidget(wdthLabel, 22, 0, 1, 3)
+        self.l0.addWidget(self.wdthBox, 22, 2, 1, 3)
+        self.l0.addWidget(self.excludeOutliers, 23, 0, 1, 3)
+        self.l0.addWidget(cursorLabel, 25, 0, 1, 3)
+        self.l0.addWidget(self.processOutliers, 26, 0, 1, 3)
+        self.l0.addWidget(self.interpBtn, 27, 0, 1, 3)
         self.l0.addWidget(self.printSize, 29, 0, 1, 3)
 
         self.l0.addWidget(QtWidgets.QLabel(''),istretch,0,1,3)
@@ -359,7 +367,6 @@ class MainWindow(NewWindow):
         self.ROI, self.bROI = None, []
         self.fit = None
         self.reflectors=[]
-        self.saturation = 255
         self.cframe1, self.cframe2 = 0, -1
         
     def add_blankROI(self):
@@ -437,10 +444,13 @@ class MainWindow(NewWindow):
         if not hasattr(self, 'data_before_outliers') or (self.data_before_outliers==None):
 
             self.data['std_exclusion_factor'] = float(self.stdBox.text())
+            self.data['exclusion_width'] = float(self.wdthBox.text())
             self.data_before_outliers = {}
             for key in self.data:
                 self.data_before_outliers[key] = self.data[key]
-            process.remove_outliers(self.data, std_criteria=self.data['std_exclusion_factor'])
+            process.remove_outliers(self.data,
+                                    std_criteria=self.data['std_exclusion_factor'],
+                                    width_criteria=self.data['exclusion_width'])
         else:
             # we revert to before
             for key in self.data_before_outliers:
@@ -552,7 +562,7 @@ class MainWindow(NewWindow):
             data['ROIellipse'] = self.ROI.extract_props()
         if self.pupil is not None:
             data['ROIpupil'] = self.pupil.extract_props()
-        data['ROIsaturation'] = self.saturation
+        data['ROIsaturation'] = self.sl.value()
 
         boundaries = process.extract_boundaries_from_ellipse(\
                                     data['ROIellipse'], self.Lx, self.Ly)

@@ -303,7 +303,7 @@ def load_ROI(cls, with_plot=True):
                                                  moveable=True, parent=cls))
 
             
-def remove_outliers(data, std_criteria=1.5):
+def remove_outliers(data, std_criteria=1.5, width_criteria=0.1):
     """
     linear interpolation of pupil properties
     """
@@ -320,9 +320,16 @@ def remove_outliers(data, std_criteria=1.5):
         product[accept_cond] *= (data[key][accept_cond]-data[key][accept_cond].mean())**2
         std *= std_criteria**2 * data[key][accept_cond].std()**2
 
-    # finally, we apply the std criteria
+    # we apply the std dev. criteria
     accept_cond = accept_cond & (product<std)
+
+    # then we have a window around those values for security
+    reject_indices = np.arange(len(data['cx']))[~accept_cond]
+    for r in reject_indices:
+        cond = np.abs(data['times'][r]-data['times'])<width_criteria
+        accept_cond[cond] = False
     
+    # finally we extrapolate the values for the rejected points
     dt = times[1]-times[0]
     for key in ['cx', 'cy', 'sx', 'sy', 'residual', 'angle']:
         # duplicating the first and last valid points to avoid boundary errors
@@ -334,6 +341,7 @@ def remove_outliers(data, std_criteria=1.5):
         
     # mark the exclusions as blinking:
     data['blinking'][~accept_cond] = 1
+    print('\n --> around n=%i blinking episodes' % len(reject_indices))
     print('\n --> fraction blinking: %.1f %% \n' % (100*np.sum(data['blinking'])/len(data['blinking'])) )
         
     return data
