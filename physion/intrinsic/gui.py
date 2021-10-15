@@ -6,11 +6,10 @@ from scipy.interpolate import interp1d
 from pycromanager import Bridge
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from misc.folders import FOLDERS, python_path
-from misc.style import set_dark_style, set_app_icon
-from misc.guiparts import NewWindow, Slider
-from assembling.tools import load_FaceCamera_data
-from facemotion import roi, process
+from misc.folders import FOLDERS
+from misc.guiparts import NewWindow
+from assembling.saving import *
+import multiprocessing # for the camera streams !!
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
 
@@ -33,14 +32,14 @@ class MainWindow(NewWindow):
         try:
             bridge = Bridge()
             core = bridge.get_core()
-            exposure = core.get_exposure()
+            self.exposure = core.get_exposure()
         except BaseException as be:
             print(be)
             print('')
             print(' /!\ Problem with the Camera /!\ ')
             print('        --> no camera found ')
             print('')
-            exposure = -1 # flag for no camera
+            self.exposure = -1 # flag for no camera
         
         ########################
         ##### building GUI #####
@@ -98,11 +97,20 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - exposure (ms):'),
                         spec='large-left')
         self.exposureBox = QtWidgets.QLineEdit()
-        self.exposureBox.setText(str(exposure))
+        self.exposureBox.setText(str(self.exposure))
         self.add_widget(self.exposureBox, spec='small-right')
+
+        self.add_widget(QtWidgets.QLabel('  - speed (degree/min):'),
+                        spec='large-left')
+        self.speedBox = QtWidgets.QLineEdit()
+        self.speedBox.setText(str(self.exposure))
+        self.add_widget(self.speedBox, spec='small-right')
+
+        self.demoBox = QtWidgets.QCheckBox("demo mode")
+        self.demoBox.setStyleSheet("color: gray;")
+        self.add_widget(self.demoBox, spec='large-right')
         
         # ---  launching acquisition ---
-        self.add_widget(QtWidgets.QLabel(' '))
         self.acqButton = QtWidgets.QPushButton("-- RUN PROTOCOL -- ", self)
         self.acqButton.clicked.connect(self.launch_protocol)
         self.add_widget(self.acqButton, spec='large-left')
@@ -155,21 +163,38 @@ class MainWindow(NewWindow):
             self.subjects = json.load(f)
         self.subjectBox.clear()
         self.subjectBox.addItems(self.subjects.keys())
+
+    def set_datafolder(self):
+        self.filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
+                                               filename='metadata', extension='.npy')
+        self.datafolder.set(os.path.dirname(self.filename))
         
     def launch_protocol(self):
+
+        if self.screen is None:
+            if self.demoBox.isChecked():
+                self.window = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=-1) #create a window
+            else:
+                # create monitor and window
+                self.window = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=-1) #create a window
+
         if not self.running:
             self.running = True
-            self.bridge = Bridge()
-            self.core = self.bridge.get_core()
-            exposure = self.core.get_exposure()
-            self.core.set_exposure(int(self.exposureBox.text()))
+
+            if self.exposure>0:
+                self.bridge = Bridge()
+                self.core = self.bridge.get_core()
+                self.core.set_exposure(int(self.exposureBox.text()))
+            # SHUTTER PROPS ???
             # auto_shutter = self.core.get_property('Core', 'AutoShutter')
             # self.core.set_property('Core', 'AutoShutter', 0)
             self.start = time.time()
             print('acquisition running [...]')
-            self.update_Image() # ~ while loop
+            
+            if self.exposure>0:
+                self.update_Image() # ~ while loop
         else:
-            print('acquisition already running [...]')
+            print(' /!\  --> pb in launching acquisition (either already running or missing camera)')
 
     def stop_protocol(self):
         if self.running:
