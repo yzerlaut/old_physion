@@ -248,8 +248,3 @@ if __name__=='__main__':
     main = MainWindow(app,
                       args=args)
     sys.exit(app.exec_())
-
-
-
-    
-        
