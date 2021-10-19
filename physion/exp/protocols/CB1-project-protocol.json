@@ -1,14 +1,13 @@
 {
   "Presentation": "multiprotocol",
-  "shuffling" :"full",
-  "shuffling-seed" :34,
-  "Protocol-1": "ff-static-grating-contrast-curve.json",
-  "Protocol-2": "ff-drifting-grating-contrast-curve.json",
-  "presentation-prestim-period": 2.0,
-  "presentation-poststim-period": 2.0,
+  "shuffling" :"None",
+  "Protocol-1": "ff-drifting-grating-contrast-curve-log-spaced.json",
+  "Protocol-2": "Pakan-et-al-drifting.json",
+  "presentation-prestim-period": 5.0,
+  "presentation-poststim-period": 5.0,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
-  "presentation-interstim-period": 2.0,
+  "presentation-interstim-period": 5.0,
   "presentation-interstim-screen": 0,
   "Screen": "Dell-2020"
 }

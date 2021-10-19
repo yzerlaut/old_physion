@@ -268,6 +268,7 @@ class visual_stim:
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
                     
+                    
     # the close function
     def close(self):
         self.win.close()
@@ -1911,14 +1912,18 @@ if __name__=='__main__':
     import json, tempfile
     from pathlib import Path
     
-    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
+    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
         protocol = json.load(fp)
 
+    protocol['demo'] = True
+    
     class df:
         def __init__(self):
             pass
         def get(self):
-            Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+            # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
             return tempfile.gettempdir()
         
     class dummy_parent:
