@@ -2,7 +2,7 @@ import os, sys, pathlib, time, datetime
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from analysis import read_NWB # import Data
+from analysis.read_NWB import Data
 from assembling.IO.bruker_xml_parser import bruker_xml_parser
 from assembling.saving import get_files_with_extension, get_TSeries_folders
 
