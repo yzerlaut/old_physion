@@ -150,21 +150,10 @@ if __name__=='__main__':
     fn = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
     CA_FOLDER = '/home/yann/DATA/'
     
-    CA_FILES = build_Ca_filelist(os.path.join(os.path.expanduser('~'), 'UNPROCESSED', '2021_10_14'))
+    CA_FILES = build_Ca_filelist(os.path.join(os.path.expanduser('~'), 'UNPROCESSED'))
     print(CA_FILES)
     
     # success, folder = find_matching_CaImaging_data(fn, CA_FOLDER)
 
     # times, FILES, nframes, Lx, Ly = load_FaceCamera_data(folder+'FaceCamera-imgs')
     # Tstart = np.load(folder+'NIdaq.start.npy')[0]
-
-
-
-
-
-
-
-
-
-
-
