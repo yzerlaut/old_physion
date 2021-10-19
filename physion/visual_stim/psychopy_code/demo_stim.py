@@ -5,8 +5,23 @@ from preprocess_NI import *
 
 SCREEN = [int(16/9.*600),600]
 
-if sys.argv[-1]=='light-level':
+if sys.argv[-1]=='bar':
 
+    mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=0) #create a window
+    
+    LEVELS = []
+    for x_pos in np.linspace(-15,15,100):
+        LEVELS.append(visual.Rect(win=mywin, size=(5,30), pos=(x_pos,0), fillColor=1, color=-1))
+
+    for level in LEVELS:
+        level.draw()
+        mywin.flip()
+        clock.wait(0.2)
+    mywin.close()
+    core.quit()
+
+if sys.argv[-1]=='light-level':
+    
     mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg") #create a window
     LEVELS = []
     for i, level in enumerate([0, 1, -1, 0]):
@@ -18,7 +33,7 @@ if sys.argv[-1]=='light-level':
         clock.wait(duration)
     mywin.close()
     core.quit()
-        
+    
 if sys.argv[-1]=='grating':
 
     mywin = visual.Window(SCREEN,monitor="testMonitor", units="deg") #create a window

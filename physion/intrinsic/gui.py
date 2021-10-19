@@ -38,7 +38,9 @@ class MainWindow(NewWindow):
             print(be)
             print('')
             print(' /!\ Problem with the Camera /!\ ')
+            print('        --> no camera found ')
             print('')
+            exposure = -1 # flag for no camera
         
         ########################
         ##### building GUI #####
