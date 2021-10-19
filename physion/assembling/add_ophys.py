@@ -46,20 +46,21 @@ def add_ophys(nwbfile, args,
     xml = bruker_xml_parser(CaFn) # metadata
 
     onset = (metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset'] if 'STEP_FOR_CA_IMAGING_TRIGGER' in metadata else 0)
-    CaImaging_timestamps = onset+xml['Ch1']['relativeTime']+\
+    CaImaging_timestamps = onset+xml['Ch2']['relativeTime']+\
         float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
 
 
     device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
     nwbfile.add_device(device)
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
-                                                 'Excitation 1',
-                                                 float(xml['settings']['laserWavelength']['Excitation 1']))
+                                                 'Laser',
+                                                 float(xml['settings']['laserWavelength']['Laser']))
+    print(xml['settings']['positionCurrent']['ZAxis'])
     imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
                                                  description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*#
-                                                                                 float(xml['settings']['positionCurrent']['ZAxis'])),
+                                                    float(xml['settings']['positionCurrent']['ZAxis']['Z Focus'][0])),
                                                  device=device,
-                                                 excitation_lambda=float(xml['settings']['laserWavelength']['Excitation 1']),
+                                                 excitation_lambda=float(xml['settings']['laserWavelength']['Laser']),
                                                  imaging_rate=1./float(xml['settings']['framePeriod']),
                                                  indicator='GCamp',
                                                  location='V1',
