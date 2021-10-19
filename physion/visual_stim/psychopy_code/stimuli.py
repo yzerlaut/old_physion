@@ -23,6 +23,8 @@ def build_stim(protocol, no_psychopy=False):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
     elif (protocol['Stimulus']=='light-level'):
         return light_level_single_stim(protocol)
+    elif (protocol['Stimulus']=='bar'):
+        return bar_stim(protocol)
     elif (protocol['Stimulus']=='full-field-grating'):
         return full_field_grating_stim(protocol)
     elif (protocol['Stimulus']=='oddball-full-field-grating'):
@@ -217,8 +219,8 @@ class visual_stim:
                     self.experiment['time_start'] = [protocol['presentation-prestim-period']]
                     self.experiment['time_stop'] = [protocol['presentation-duration']+protocol['presentation-prestim-period']]
                     self.experiment['time_duration'] = [protocol['presentation-duration']]
-                    self.experiment['interstim'] = [protocol['presentation-interstim-period']]
-                    self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen']]
+                    self.experiment['interstim'] = [protocol['presentation-interstim-period'] if 'presentation-interstim-period' in protocol else 0]
+                    self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen'] if 'presentation-interstim-screen' in protocol else 0]
         else: # MULTIPLE STIMS
             VECS, FULL_VECS = [], {}
             for key in keys:
@@ -426,7 +428,11 @@ class visual_stim:
         
     ## FINAL RUN FUNCTION
     def run(self, parent):
-        t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
+        try:
+            t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
+        except FileNotFoundError:
+            print(str(parent.datafolder.get()), 'NIdaq.start.npy', 'not found !')
+            t0 = time.time()
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
@@ -694,18 +700,17 @@ class bar_stim(visual_stim):
     def __init__(self, protocol):
         
         super().__init__(protocol)
-        super().init_experiment(protocol, ['orientation', 'width', 'degree',
-                                           'barColor', 'bgColor'], run_type='static')
+        super().init_experiment(protocol, ['orientation', 'width', 'degree'],
+                                run_type='static')
+        
             
     def get_patterns(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        if cls.experiment['orientation'][index]==90:
-                                               sf=1./cls.angle_to_pix(1./cls.experiment['spatial-freq'][index]),
-
-            size=(cls.angle_to_pix(cls.experiment['width'][index]), 200)
+        if cls.experiment['orientation'][index]==[90]:
+            size=(cls.angle_to_pix(cls.experiment['width'][index]), 2000)
             position = (cls.angle_to_pix(cls.experiment['degree'][index]), 0)
         else:
-            size=(200, cls.angle_to_pix(cls.experiment['width'][index]))
+            size=(2000, cls.angle_to_pix(cls.experiment['width'][index]))
             position = (0, cls.angle_to_pix(cls.experiment['degree'][index]))
             
         return [visual.Rect(win=cls.win,

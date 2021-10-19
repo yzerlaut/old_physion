@@ -28,17 +28,17 @@ STIMULI = {
         "light-level (lum.)":0.5,
         # range
         "light-level-1":-1., "light-level-2":1., "N-light-level":3},
-    
-    # full-field static grating
-    "full-field-grating":{
-        "angle (deg)":60,
-        "spatial-freq (cycle/deg)":0.05,
-        "contrast (norm.)":1.,
-        # range
-        "spatial-freq-1":0.001, "spatial-freq-2":2., "N-spatial-freq":2,
-        "angle-1":0., "angle-2":360, "N-angle":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0},
 
+    # a white bar over a black background
+    "bar":{
+        "width (deg.)":2.,
+        "degree (deg.)":0.,
+        "orientation (deg.)":0.,
+        # range
+        "degree-1":-300., "degree-2":300., "N-degree":100,
+        "orientation-1":0., "orientation-2":360., "N-orientation":0,
+        "width-1":0.01, "width-2":200., "N-width":1},
+    
     # full-field static grating
     "full-field-grating":{
         "angle (deg)":60,
