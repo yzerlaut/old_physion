@@ -1,10 +1,10 @@
 import os, sys, pathlib, time, datetime
 import numpy as np
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from physion.assembling.IO.bruker_xml_parser import bruker_xml_parser
-from physion.assembling.saving import get_files_with_extension, get_TSeries_folders
-from physion.analysis.read_NWB import Data
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from analysis import read_NWB # import Data
+from assembling.IO.bruker_xml_parser import bruker_xml_parser
+from assembling.saving import get_files_with_extension, get_TSeries_folders
 
 def build_subsampling_from_freq(subsampled_freq=1.,
                                 original_freq=1.,
@@ -86,7 +86,7 @@ def build_Ca_filelist(folder):
         fn = get_files_with_extension(bdf, extension='.xml')[0]
         try:
             xml = bruker_xml_parser(fn)
-            if len(xml['Ch1']['relativeTime'])>0 or len(xml['Ch2']['relativeTime'])>0:
+            if (len(xml['Ch1']['relativeTime'])>0) or (len(xml['Ch2']['relativeTime'])>0):
                 CA_FILES['date'].append(stringdatetime_to_date(xml['date']))
                 CA_FILES['Bruker_folder'].append(bdf)
                 CA_FILES['Bruker_file'].append(fn)

@@ -47,7 +47,7 @@ STIMULI = {
         # range
         "spatial-freq-1":0.001, "spatial-freq-2":2., "N-spatial-freq":2,
         "angle-1":0., "angle-2":360, "N-angle":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0, "N-log-contrast":0},
+        "contrast-1":0., "contrast-2":1., "N-contrast":0, "N-log-contrast":0},
     
     "oddball-full-field-grating":{
         "angle-redundant (deg)":45.0,
@@ -66,7 +66,7 @@ STIMULI = {
         "spatial-freq-1":0.001, "spatial-freq-2":2., "N-spatial-freq":0,
         "angle-redundant-1":0., "angle-redundant-2":360.0, "N-angle-redundant":0,
         "angle-deviant-1":0., "angle-deviant-2":360.0, "N-angle-deviant":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "N_deviant-1":1,"N_deviant-2":1,"N-N_deviant":0,
         "N_redundant-1":2,"N_redundant-2":100,"N-N_redundant":0,
         "Nmin-successive-redundant-1":1,"Nmin-successive-redundant-2":100,"N-Nmin-successive-redundant":0,
@@ -89,7 +89,7 @@ STIMULI = {
         "radius-1":0, "radius-2":150., "N-radius":0,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
 
     # off-center grating
@@ -104,7 +104,7 @@ STIMULI = {
         "radius-1":0, "radius-2":150., "N-radius":0,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
 
     # surround grating
@@ -121,7 +121,7 @@ STIMULI = {
         "radius-end-1":0., "radius-end-2":20., "N-radius-end":0,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
     
     # full-field drifting grating
@@ -134,7 +134,7 @@ STIMULI = {
         "spatial-freq-1":0.001, "spatial-freq-2":2., "N-spatial-freq":2,
         "angle-1":0., "angle-2":360, "N-angle":0,
         "speed-1":0.1, "speed-2":50, "N-speed":5,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0},
+        "contrast-1":0., "contrast-2":1., "N-contrast":0},
     
     # center drifting grating
     "drifting-center-grating":{
@@ -150,7 +150,7 @@ STIMULI = {
         "radius-1":0, "radius-2":150., "N-radius":0,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
     
     # off-center grating
@@ -167,7 +167,7 @@ STIMULI = {
         "speed-1":0.1, "speed-2":50, "N-speed":5,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
 
     # surround drifting grating
@@ -186,7 +186,7 @@ STIMULI = {
         "speed-1":0.1, "speed-2":50, "N-speed":5,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
     
     "center-surround-grating":{},
@@ -204,7 +204,7 @@ STIMULI = {
         "radius-1":0, "radius-2":150., "N-radius":0,
         "x-center-1":-200, "x-center-2":200, "N-x-center":0,
         "y-center-1":-200., "y-center-2":200., "N-y-center":0,
-        "contrast-1":0.2, "contrast-2":1., "N-contrast":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0,
         "bg-color-1":-1., "bg-color-2":1., "N-bg-color":0},
 
     # NI

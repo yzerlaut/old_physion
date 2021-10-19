@@ -60,7 +60,6 @@ def bruker_xml_parser(filename):
     # translation to numpy arrays
     for channel in ['Ch1', 'Ch2']:
         for key in ['relativeTime', 'absoluteTime']:
-            print(np.unique(data[channel][key]))
             data[channel][key] = np.array(data[channel][key], dtype=np.float64)
         for key in ['tifFile']:
             data[channel][key] = np.array(data[channel][key], dtype=str)
@@ -76,13 +75,17 @@ if __name__=='__main__':
     example_file = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
                                 'Ca_imaging', 'Bruker_xml', 'TSeries-190620-250-00-002.xml')
     
-    example_file = str('C:\\Users\\yann.zerlaut\\UNPROCESSED\\TSeries-10142021-1325-010\\TSeries-10142021-1325-010.xml')
+    example_file = os.path.join(os.path.expanduser('~'), 'UNPROCESSED',
+                                'TSeries-10142021-1325-010', 'TSeries-10142021-1325-010.xml')
+
+    # example_file = str('C:\\Users\\yann.zerlaut\\UNPROCESSED\\TSeries-10142021-1325-010\\TSeries-10142021-1325-010.xml')
     
     data = bruker_xml_parser(example_file)
     print(data.keys())
-    for key in ['Ch1', 'Ch2']:
-        print(data[key].keys())
-        print(data[key]['absoluteTime'][-10:])
-        print(data[key]['tifFile'][-10:])
     import pprint
     pprint.pprint(data['settings'])
+    for key in ['Ch1', 'Ch2']:
+        print('--- ', key)
+        # print(data[key].keys())
+        print(data[key]['absoluteTime'][-100:])
+        print(data[key]['tifFile'][-100:])

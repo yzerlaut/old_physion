@@ -53,13 +53,13 @@ def add_ophys(nwbfile, args,
     device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
     nwbfile.add_device(device)
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
-                                                 'Excitation 1',
-                                                 float(xml['settings']['laserWavelength']['Excitation 1']))
+                                                 'Laser',
+                                                 float(xml['settings']['laserWavelength']['Laser']))
     imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
                                                  description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*#
                                                                                  float(xml['settings']['positionCurrent']['ZAxis'])),
                                                  device=device,
-                                                 excitation_lambda=float(xml['settings']['laserWavelength']['Excitation 1']),
+                                                 excitation_lambda=float(xml['settings']['laserWavelength']['Laser']),
                                                  imaging_rate=1./float(xml['settings']['framePeriod']),
                                                  indicator='GCamp',
                                                  location='V1',
