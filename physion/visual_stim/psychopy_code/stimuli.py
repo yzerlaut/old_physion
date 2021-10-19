@@ -223,10 +223,12 @@ class visual_stim:
             VECS, FULL_VECS = [], {}
             for key in keys:
                 FULL_VECS[key], self.experiment[key] = [], []
-                if protocol['N-'+key]>1:
+                if ('N-log-'+key in protocol) and (protocol['N-log-'+key]>1):
+                    VECS.append(np.logspace(np.log10(protocol[key+'-1']), np.log10(protocol[key+'-2']),protocol['N-log-'+key]))
+                elif protocol['N-'+key]>1:
                     VECS.append(np.linspace(protocol[key+'-1'], protocol[key+'-2'],protocol['N-'+key]))
                 else:
-                    VECS.append(np.array([protocol[key+'-2']]))
+                    VECS.append(np.array([protocol[key+'-2']])) # we pick the SECOND VALUE as the constant one (so remember to fill this right in GUI)
             for vec in itertools.product(*VECS):
                 for i, key in enumerate(keys):
                     FULL_VECS[key].append(vec[i])
