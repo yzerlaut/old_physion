@@ -1914,7 +1914,8 @@ if __name__=='__main__':
     
     # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
     # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
-    with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
+    # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
+    with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True

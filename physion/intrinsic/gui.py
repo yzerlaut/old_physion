@@ -9,6 +9,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.guiparts import NewWindow
 from assembling.saving import *
+from visual_stim.psychopy_code import stimuli as visual_stim
 import multiprocessing # for the camera streams !!
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
