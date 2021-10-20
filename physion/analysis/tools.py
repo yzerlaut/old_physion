@@ -2,7 +2,10 @@ import os
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
-from datavyz import ge
+try:
+    from datavyz import ge
+except ModuleNotFoundError:
+    pass
 
 def summary_pdf_folder(filename):
     if not os.path.isdir(filename.replace('.nwb', '')):

@@ -1,0 +1,21 @@
+name: acquisition
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip=21.2.4
+  - numpy=1.18.5
+  - scipy=1.5.3
+  - scikit-learn=0.24.2
+  - scikit-image=0.17.2
+  - pathlib
+  - pip:
+    - pyqt5==5.15.4
+    - pyqt5.sip==12.9.0
+    - h5py==2.10.0
+    - pyqtgraph==0.11.1
+    - pynwb==1.5.1
+    - nidaqmx==0.5.7
+    - pyWinhook==1.6.0
+    - psychopy==2021.1.1
+    - git+https://github.com/yzerlaut/simple_pyspin

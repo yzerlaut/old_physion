@@ -16,11 +16,12 @@ else:
 from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
-    from hardware_control.FLIRcamera.recording import launch_FaceCamera
-    from hardware_control.LogitechWebcam.preview import launch_RigView
 except ModuleNotFoundError:
-    # just to be able to work on the UI without the modules
-    print('The hardware control modules were not found...')
+    print(' /!\ Problem with the NIdaq module /!\ ')
+try:
+    from hardware_control.FLIRcamera.recording import launch_FaceCamera
+except ModuleNotFoundError:
+    print(' /!\ Problem with the FLIR camera module /!\ ')
 
 # os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 ## NASTY workaround to the error:
@@ -314,14 +315,15 @@ class MainWindow(QtWidgets.QMainWindow):
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
-                max_time = int(3*self.stim.experiment['time_stop'][-1]) # for security
-                print('max_time', max_time)
+                max_time = int(3*np.max(self.stim.experiment['time_stop'])) # for security
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
 
+        print('max_time of NIdaq recording: %.2dh:%.2dm:%.2ds' % (max_time/3600, (max_time%3600)/60, (max_time%60)))
+        
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])

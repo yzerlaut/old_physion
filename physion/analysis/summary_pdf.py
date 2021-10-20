@@ -131,7 +131,7 @@ def make_summary_pdf(filename, Nmax=1000000,
                                           'mismatch_negativity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
-        elif 'surround-suppression' in data.metadata['protocol']:
+        elif ('surround-suppression' in data.metadata['protocol']) or ('size-tuning' in data.metadata['protocol']):
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)

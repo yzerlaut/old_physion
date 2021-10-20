@@ -6,15 +6,18 @@ from Ca_imaging.process_xml import build_suite2p_options
 from misc.folders import python_path_suite2p_env
 
 PREPROCESSING_SETTINGS = {
-    'GCamp6f_1plane':{'cell_diameter':20, # in um
-                      'tau':0.7,
+    'GCamp6s_1plane':{'cell_diameter':20, # in um
+                      'tau':1.3,
                       'sparse_mode':False,
                       'connected':True,
                       # 'nonrigid':0,
                       'threshold_scaling':0.5,
                       'neucoeff': 1.0},
-    'GCamp6s_1plane':{'cell_diameter':20, # in um
-                      'tau':1.3,
+    'registration-only':{'do_registration': 1,
+                         'nonrigid': False,
+                         'roidetect':False}, 
+    'GCamp6f_1plane':{'cell_diameter':20, # in um
+                      'tau':0.7,
                       'sparse_mode':False,
                       'connected':True,
                       # 'nonrigid':0,
@@ -68,9 +71,16 @@ if __name__=='__main__':
     if os.path.isdir(str(args.CaImaging_folder)) and ('TSeries' in str(args.CaImaging_folder)):
         run_preprocessing(args)
         # print('--> preprocessing of "%s" done !' % args.CaImaging_folder)
+    elif os.path.isdir(str(args.CaImaging_folder)):
+        folders = [os.path.join(args.CaImaging_folder, f) for f in os.listdir(args.CaImaging_folder) if ('TSeries' in f)]
+        for args.CaImaging_folder in folders:
+            run_preprocessing(args)
     else:
         print('/!\ Need to provide a valid "TSeries" folder /!\ ')
         
+
+
+
 
 
 

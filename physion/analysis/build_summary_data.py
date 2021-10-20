@@ -14,12 +14,8 @@ def find_protocol_details(FILES):
     # protocol based on the first one:
     data0 = Data(FILES[0])
     protocols = list(data0.protocols)
-
-    STIM = {'subject':[],
-            'session_per_subject':[],
-            'session':[],
-            'running-speed':[], 'pupil':[], 'facemotion':[],
-            'roi':[]}
+    
+    STIM = {}
     for key in data0.nwbfile.stimulus.keys():
         STIM[key] = []
 
@@ -51,16 +47,25 @@ def build_summary_episodes(FILES,
     """
 
     protocols, subjects, sessions, sessions_per_subject, filename, STIM = find_protocol_details(FILES)
-    FULL_EPISODE_ARRAY, QUANT = [], {'pupil':[], 'running-speed':[], 'facemotion':[]}
+    FULL_EPISODE_ARRAY, QUANT = [], {'subject':[],
+                                     'session_per_subject':[],
+                                     'session':[], 'roi':[],
+                                     'pupil':[], 'running-speed':[], 'facemotion':[]}
+    print('- building "%s" by concatenating episodes from n=%i files [...]' % (filename, len(FILES)))
     
     for session, f in enumerate(FILES):
 
-        print('session #%i: %s' % (session+1, f))
+        print('   -> session #%i: %s' % (session+1, f))
         data = Data(f)
 
         for ip, p in enumerate(protocols):
 
 
+            if len(protocols)>1:
+                duration = data.metadata['Protocol-%i-presentation-duration' % (ip+1)]
+            else:
+                duration = data.metadata['presentation-duration']
+                
             # build episodes of other modalities (running, ...)
             if ('Pupil' in data.nwbfile.processing) and ('pupil' in modalities):
                 Pupil_episodes = EpisodeResponse(data,
@@ -68,7 +73,7 @@ def build_summary_episodes(FILES,
                                                  prestim_duration=prestim_duration,
                                                  dt_sampling=dt_sampling, # ms
                                                  quantity='Pupil')
-                t_pupil_cond = (Pupil_episodes.t>0) & (Pupil_episodes.t<data.metadata['Protocol-%i-presentation-duration' % (ip+1)])
+                t_pupil_cond = (Pupil_episodes.t>0) & (Pupil_episodes.t<duration)
             else:
                 Pupil_episodes = None
 
@@ -78,7 +83,7 @@ def build_summary_episodes(FILES,
                                                    prestim_duration=prestim_duration,
                                                    dt_sampling=dt_sampling, # ms
                                                    quantity='Running-Speed')
-                t_running_cond = (Running_episodes.t>0) & (Running_episodes.t<data.metadata['Protocol-%i-presentation-duration' % (ip+1)])
+                t_running_cond = (Running_episodes.t>0) & (Running_episodes.t<duration)
             else:
                 Running_episodes = None
 
@@ -88,7 +93,7 @@ def build_summary_episodes(FILES,
                                                       prestim_duration=prestim_duration,
                                                       dt_sampling=dt_sampling, # ms
                                                       quantity='FaceMotion')
-                t_facemotion_cond = (FaceMotion_episodes.t>0) & (FaceMotion_episodes.t<data.metadata['Protocol-%i-presentation-duration' % (ip+1)])
+                t_facemotion_cond = (FaceMotion_episodes.t>0) & (FaceMotion_episodes.t<duration)
             else:
                 FaceMotion_episodes = None
                 
@@ -109,10 +114,10 @@ def build_summary_episodes(FILES,
                     FULL_EPISODE_ARRAY.append(EPISODES.resp[iEp,:])
                     for key in data.nwbfile.stimulus.keys():
                         STIM[key].append(data.nwbfile.stimulus[key].data[iEp])
-                    STIM['roi'].append(roiID)
-                    STIM['session'].append(session)
-                    STIM['subject'].append(data.metadata['subject_ID'])
-                    STIM['session_per_subject'].append(sessions_per_subject[session])
+                    QUANT['roi'].append(roiID)
+                    QUANT['session'].append(session)
+                    QUANT['subject'].append(data.metadata['subject_ID'])
+                    QUANT['session_per_subject'].append(sessions_per_subject[session])
                     
                     if Running_episodes is not None:
                         QUANT['running-speed'].append(Running_episodes.resp[iEp,:][t_running_cond])
@@ -130,7 +135,10 @@ def build_summary_episodes(FILES,
                         QUANT['facemotion'].append(666.) # flag for None
                         
     # set up the NWBFile
-    nwbfile = pynwb.NWBFile(session_description='Summary data concatenating episodes from different datafiles',
+    description = 'Summary data concatenating episodes from the datafiles:\n'
+    for f in FILES:
+        description += '- %s\n' % f
+    nwbfile = pynwb.NWBFile(session_description=description,
                             identifier=filename,
                             session_start_time=datetime.datetime.now().astimezone())
 
@@ -150,7 +158,7 @@ def build_summary_episodes(FILES,
 
     for key in QUANT:
         stim = pynwb.TimeSeries(name=key,
-                                data=np.array(STIM[key]),
+                                data=np.array(QUANT[key]),
                                 unit='None', rate=1.)
         nwbfile.add_acquisition(stim)
         
@@ -199,7 +207,8 @@ if __name__=='__main__':
     else:
         FILES = args.datafiles
 
-
+    print('list of NWB files:\n', FILES)
+    print(' - concatenating [...]')
     build_summary_episodes(FILES, modalities=args.modalities)
 
 

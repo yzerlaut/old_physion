@@ -135,9 +135,7 @@ class Data:
             
 
     def read_and_format_ophys_data(self):
-
-        if 'CaImaging-TimeSeries' in self.nwbfile.acquisition:
-            self.imaging_depth = float(self.nwbfile.acquisition['CaImaging-TimeSeries'].imaging_plane.description.replace('Depth=', '').replace('[um]', ''))
+        
         self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
         self.pixel_masks_index = self.Segmentation.columns[0].data[:]
         self.pixel_masks = self.Segmentation.columns[1].data[:]
@@ -160,7 +158,9 @@ class Data:
         else:
             self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
         
-    # ----------------------------------------------------------------
+    ######################
+    #       PUPIL 
+    ######################        
     def read_pupil(self):
 
         pd = str(self.nwbfile.processing['Pupil'].description)
@@ -177,7 +177,13 @@ class Data:
         self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
-    # ----------------------------------------------------------------
+
+    # TODO add Gaze here !!
+
+    #########################
+    #       FACEMOTION  
+    #########################      
+    
     def read_facemotion(self):
         
         fd = str(self.nwbfile.processing['FaceMotion'].description)
@@ -189,7 +195,7 @@ class Data:
         """
         self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps
         self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
-        
+
 
     def close(self):
         self.io.close()
@@ -262,7 +268,8 @@ class Data:
         
     def list_subquantities(self, quantity):
         if quantity=='CaImaging':
-            return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'F-0.7*Fneu', 'F-Fneu']
+            return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved',
+                    'F-0.7*Fneu', 'F-Fneu', 'd(F-Fneu)', 'd(F-0.7*Fneu)']
         else:
             return ['']
         
@@ -295,13 +302,13 @@ def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
 if __name__=='__main__':
 
-    # FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
+    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
     # print(np.unique(SUBJECTS))
 
-    data = Data(sys.argv[-1])
-    print(float(data.nwbfile.acquisition['CaImaging-TimeSeries'].imaging_plane.description.replace('Depth=', '').replace('[um]', '')))
+    # data = Data(sys.argv[-1])
+    # # print(data.nwbfile.processing['ophys'])
     # print(data.iscell)
 
     

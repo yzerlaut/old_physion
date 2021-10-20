@@ -15,7 +15,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
 
-        self.setGeometry(650, 700, 300, 350)
+        self.setGeometry(650, 700, 300, 400)
         # adding a "quit" keyboard shortcut
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
@@ -64,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox.setMinimumWidth(150)
         self.typeBox.move(100, HEIGHT)
         # self.typeBox.activated.connect(self.update_setting)
-        self.typeBox.addItems(['NWB', 'FULL',
+        self.typeBox.addItems(['nwb', 'npy', 'FULL', 
                                'Imaging (processed)', 'Imaging (+binary)'])
 
         HEIGHT += 40
@@ -80,6 +80,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.clicked.connect(self.run)
         self.gen.setMinimumWidth(200)
         self.gen.move(50, HEIGHT)
+        
+        HEIGHT +=60 
+        self.synch = QtWidgets.QPushButton(' synch. folders ', self)
+        self.synch.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.synch.clicked.connect(self.synch_folders)
+        self.synch.setMinimumWidth(200)
+        self.synch.move(50, HEIGHT)
         
         self.show()
 
@@ -103,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def file_copy_command(self, source_file, destination_folder):
         if sys.platform.startswith("win"):
             return 'xcopy %s %s' % (source_file,
-                                               destination_folder)
+                                    destination_folder)
         else:
             return 'rsync -avhP %s %s' % (source_file, destination_folder)
             
@@ -116,7 +123,17 @@ class MainWindow(QtWidgets.QMainWindow):
                                             destination_folder)
         else:
             return 'rsync -avhP %s %s &' % (source_folder, destination_folder)
-    
+
+    def synch_folders(self):
+        if self.typeBox.currentText() in ['nwb', 'npy']:
+            include_string = '--include "/*" --exclude "*" --include "*.%s"' % self.typeBox.currentText()
+        else:
+            include_string = ''
+        cmd = 'rsync -avhP %s%s %s' % (include_string,
+                                       FOLDERS[self.sourceBox.currentText()],\
+                                       FOLDERS[self.destBox.currentText()])
+        p = subprocess.Popen(cmd, shell=True)
+        
     def run(self):
 
         if self.destination_folder=='':
@@ -132,12 +149,12 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             print('starting copy [...]')
 
-        if self.typeBox.currentText()=='NWB':
-            ##############################################
-            #############      NWB file         ##########
-            ##############################################
+        if self.typeBox.currentText() in ['nwb', 'npy']:
+            #####################################################
+            #############      nwb or npy file         ##########
+            #####################################################
             FILES = get_files_with_extension(self.source_folder,
-                                             extension='.nwb', 
+                                             extension='.%s' % self.typeBox.currentText(), 
                                              recursive=True)
             for f in FILES:
                 if '10.0.0.' in self.destination_folder:

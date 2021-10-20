@@ -45,9 +45,10 @@ class EpisodeResponse:
                     self.fixed_parameters[key] = unique
 
         # new sampling
-        if (prestim_duration is None):
-            prestim_duration = data['metadata']['presentation-duration']
-            
+        if (prestim_duration is None) and ('interstim' in full_data.nwbfile.stimulus):
+            prestim_duration = np.min(full_data.nwbfile.stimulus['interstim'].data[:])/2. # half the stim duration
+        if (prestim_duration is None) or (prestim_duration<1):
+            prestim_duration = 1 # still 1s is a minimum
         ipre = int(prestim_duration/dt_sampling*1e3)
 
         duration = full_data.nwbfile.stimulus['time_stop'].data[Pcond][0]-full_data.nwbfile.stimulus['time_start'].data[Pcond][0]
@@ -59,11 +60,11 @@ class EpisodeResponse:
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
                                                                self.roiIndices).sum(axis=0) # valid ROI indices inside
-        elif quantity=='Pupil':
+        elif quantity in ['Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter']:
             if not hasattr(full_data, 'pupil_diameter'):
                 full_data.build_pupil_diameter()
             tfull, valfull = full_data.t_pupil, full_data.pupil_diameter
-        elif quantity=='FaceMotion':
+        elif quantity in ['facemotion', 'FaceMotion']:
             if not hasattr(full_data, 'facemotion'):
                 full_data.build_facemotion()
             tfull, valfull = full_data.t_facemotion, full_data.facemotion
@@ -88,7 +89,7 @@ class EpisodeResponse:
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
             # compute time and interpolate
-            cond = (tfull>=(tstart-2.*prestim_duration)) & (tfull<(tstop+2.*prestim_duration)) # higher range of interpolation to avoid boundary problems
+            cond = (tfull>=(tstart-2.*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
             func = interp1d(tfull[cond]-tstart, valfull[cond],
                             kind=interpolation)
             try:
@@ -102,7 +103,7 @@ class EpisodeResponse:
             except BaseException as be:
                 print('----')
                 print(be)
-                print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, 'compared to: ', self.t[0], self.t[-1])
+                print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, tstop-tstart)
                 print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
         self.resp = np.array(resp)
