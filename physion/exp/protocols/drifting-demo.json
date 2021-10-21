@@ -22,5 +22,7 @@
   "N-speed": 0,
   "contrast-1": 1.0,
   "contrast-2": 1.0,
-  "N-contrast": 0
+  "N-contrast": 0,
+  "data-folder": "",
+  "protocol-folder": "/home/yann/work/physion/physion/exp/protocols"
 }
