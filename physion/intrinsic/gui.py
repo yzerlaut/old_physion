@@ -1,18 +1,32 @@
-import sys, os, shutil, glob, time, subprocess, pathlib, json
+import sys, os, shutil, glob, time, subprocess, pathlib, json, tempfile
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
-from pycromanager import Bridge
+try:
+    from pycromanager import Bridge
+except ModuleNotFoundError:
+    print('camera support not available !')
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.guiparts import NewWindow
 from assembling.saving import *
-from visual_stim.psychopy_code import stimuli as visual_stim
+from visual_stim.psychopy_code.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
+
+class df:
+    def __init__(self):
+        pass
+    def get(self):
+        return tempfile.gettempdir()
+
+class dummy_parent:
+    def __init__(self):
+        self.stop_flag = False
+        self.datafolder = df()
 
 class MainWindow(NewWindow):
     
@@ -56,7 +70,7 @@ class MainWindow(NewWindow):
         # layout
         Nx_wdgt, Ny_wdgt, self.wdgt_length = 20, 20, 3
         self.i_wdgt = 0
-        self.running = False
+        self.running, self.stim = False, None
         
         self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
@@ -101,15 +115,27 @@ class MainWindow(NewWindow):
         self.exposureBox.setText(str(self.exposure))
         self.add_widget(self.exposureBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - speed (degree/min):'),
+        self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
         self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText(str(self.exposure))
+        self.speedBox.setText('10')
         self.add_widget(self.speedBox, spec='small-right')
 
+        self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
+                        spec='large-left')
+        self.barBox = QtWidgets.QLineEdit()
+        self.barBox.setText('4')
+        self.add_widget(self.barBox, spec='small-right')
+        
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
         self.add_widget(self.demoBox, spec='large-right')
+        self.demoBox.setChecked(True)
+        
+        # ---  launching acquisition ---
+        self.liveButton = QtWidgets.QPushButton("--   live view    -- ", self)
+        self.liveButton.clicked.connect(self.live_view)
+        self.add_widget(self.liveButton)
         
         # ---  launching acquisition ---
         self.acqButton = QtWidgets.QPushButton("-- RUN PROTOCOL -- ", self)
@@ -169,57 +195,150 @@ class MainWindow(NewWindow):
         self.filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
                                                filename='metadata', extension='.npy')
         self.datafolder.set(os.path.dirname(self.filename))
+
+    def init_visual_stim(self, demo=True):
+
+        with open(os.path.join(pathlib.Path(__file__).resolve().parents[1], 'intrinsic', 'vis_stim', 'up.json'), 'r') as fp:
+            protocol = json.load(fp)
+
+        if self.demoBox.isChecked():
+            protocol['demo'] = True
+
+        self.stim = visual_stim.build_stim(protocol)
+        self.parent = dummy_parent()
+
+    def init_camera(self):
+        self.bridge = Bridge()
+        self.core = self.bridge.get_core()
+        self.core.set_exposure(int(self.exposureBox.text()))
+        # SHUTTER PROPS ???
+        # auto_shutter = self.core.get_property('Core', 'AutoShutter')
+        # self.core.set_property('Core', 'AutoShutter', 0)
+
+    def get_pattern(self, direction, angle, size):
+
+        if direction=='horizontal':
+            return visual.Rect(win=self.stim.win,
+                               size=(self.stim.angle_to_pix(size), 2000),
+                               pos=(self.stim.angle_to_pix(angle), 0),
+                               units='pix', fillColor=1, color=-1)
+        elif direction=='vertical':
+            return visual.Rect(win=self.stim.win,
+                               size=(2000, self.stim.angle_to_pix(size)),
+                               pos=(0, self.stim.angle_to_pix(angle)),
+                               units='pix', fillColor=1, color=-1)
+        
+    def run(self):
+
+        self.stim = visual_stim({"Screen": "Dell-2020",
+                                 "presentation-prestim-screen": -1,
+                                 "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
+        
+        self.speed = float(self.speedBox.text()) # degree / second
+        self.bar_size = float(self.barBox.text()) # degree / second
+            
+        xmin, xmax = 1.2*np.min(self.stim.x), 1.2*np.max(self.stim.x)
+        zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
+
+        self.angle_start, self.angle_max, self.direction, self.label = 0, 0, '', ''
+
+        self.STIM = {'angle_start':[zmin, xmax, zmax, xmin],
+                     'angle_stop':[zmax, xmin, zmin, xmax],
+                     'direction':['vertical', 'horizontal', 'vertical', 'horizontal'],
+                     'label':['up', 'left', 'down', 'right']}
+        
+        self.index, self.tstart = 0, time.time()
+        
+        self.update_dt()
+                
+        if self.exposure>0: # at the end we close the camera
+            self.bridge.close()
+        
+
+    def update_dt(self):
+        
+        # update stim angle
+        self.angle = self.STIM['angle_start'][self.index%4]+\
+            self.speed*(time.time()-self.tstart)*np.sign(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])
+        
+        print('angle=%.1f' % self.angle, 'dt=%.1f' % (time.time()-self.tstart), 'label: ', self.STIM['label'][self.index%4])
+        
+        # grab frame
+        frame = self.get_frame()
+        if True: # live display
+            self.pimg.setImage(frame)
+
+        # update stim image
+        pattern = self.get_pattern(self.STIM['direction'][self.index%4], self.angle, self.bar_size)
+        pattern.draw()
+        try:
+            self.stim.win.flip()
+        except BaseException as be:
+            pass
+            
+        # continuing ?
+        if self.running:
+            
+            time.sleep(0.1) # max acq freq. here ! POTENTIALLY TO REMOVE
+            
+            # checking if not episode over
+            if (np.abs(self.angle-self.STIM['angle_start'][self.index%4])>=np.abs(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])):
+                self.index += 1
+                self.tstart=time.time()
+                
+            QtCore.QTimer.singleShot(1, self.update_dt)
+        
         
     def launch_protocol(self):
-
-        if self.screen is None:
-            if self.demoBox.isChecked():
-                self.window = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=-1) #create a window
-            else:
-                # create monitor and window
-                self.window = visual.Window(SCREEN,monitor="testMonitor", units="deg", color=-1) #create a window
 
         if not self.running:
             self.running = True
 
+            # initialization of camera:
             if self.exposure>0:
-                self.bridge = Bridge()
-                self.core = self.bridge.get_core()
-                self.core.set_exposure(int(self.exposureBox.text()))
-            # SHUTTER PROPS ???
-            # auto_shutter = self.core.get_property('Core', 'AutoShutter')
-            # self.core.set_property('Core', 'AutoShutter', 0)
-            self.start = time.time()
+                self.init_camera()
+
             print('acquisition running [...]')
-            
-            if self.exposure>0:
-                self.update_Image() # ~ while loop
+            self.run()
+                
         else:
             print(' /!\  --> pb in launching acquisition (either already running or missing camera)')
 
+    def live_view(self):
+        self.running = True
+        self.update_Image()
+        
     def stop_protocol(self):
         if self.running:
             self.running = False
+            if self.stim is not None:
+                self.stim.close()
         else:
             print('acquisition not launched')
-            
+
+    def get_frame(self):
+        if self.exposure>0:
+            self.core.snap_image()
+            tagged_image = self.core.get_tagged_image()
+            #pixels by default come out as a 1D array. We can reshape them into an image
+            return np.reshape(tagged_image.pix,
+                              newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
+        else:
+            return np.random.randn(720, 1080)
+        
     def update_Image(self):
-        self.core.snap_image()
-        tagged_image = self.core.get_tagged_image()
-        #pixels by default come out as a 1D array. We can reshape them into an image
-        frame = np.reshape(tagged_image.pix,
-                           newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
-        #plot it
-        self.pimg.setImage(frame)
+        # plot it
+        self.pimg.setImage(self.get_frame())
         if self.running:
             QtCore.QTimer.singleShot(1, self.update_Image)
-        else:
+        elif self.exposure>0: # at the end
             self.bridge.close()
 
-        
-        
     def hitting_space(self):
-        self.launch_protocol()
+        if not self.running:
+            self.launch_protocol()
+        else:
+            self.stop_protocol()
 
     def launch_analysis(self):
         print('launching analysis [...]')

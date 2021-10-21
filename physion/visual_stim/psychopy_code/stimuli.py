@@ -455,7 +455,6 @@ class visual_stim:
         if self.store_frame:
             self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                                   'screen-frames', 'frame.tiff'))
-
     
     ##########################################################
     #############    DRAWING STIMULI (offline)  ##############
