@@ -62,7 +62,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delayBox = QtWidgets.QComboBox(self)
         self.delayBox.setMinimumWidth(150)
         self.delayBox.move(100, HEIGHT)
-        self.delayBox.addItems(['None', '10min', '1h', '2h', '10h', '20h'])
+        self.delayBox.addItems(['None', '10min', '30min',
+                                '1h', '2h', '3h', '5h', '10h', '20h', '40h'])
         
         HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
