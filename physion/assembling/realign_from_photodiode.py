@@ -71,10 +71,7 @@ def realign_from_photodiode(signal,
         else:
             print('[X]          --> realignement failed')
     if success:
-        if len(metadata['time_start_realigned'])<len(metadata['time_start']):
-            metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])[:-1] # if not all removing the last episode for security
-        else:
-            metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])
+        metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])
         metadata['time_stop_realigned'] = metadata['time_start_realigned']+\
             metadata['time_duration'][:len(metadata['time_start_realigned'])]
     else:
