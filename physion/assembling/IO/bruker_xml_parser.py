@@ -71,25 +71,18 @@ def bruker_xml_parser(filename):
 
     # dealing with depth  --- MANUAL for piezo plane-scanning mode because the bruker xml files don't hold this info...
     if np.sum(['Piezo' in key for key in depths.keys()]):
-        if len(np.unique(depths['Z Focus']))==1:
-            depth_middle = depths['Z Focus'][0]
-            Ndepth = len(np.unique(data['Ch2']['depth_index'])) # SHOULD ALWAYS BE ODD
-            for key in depths.keys():
-                if 'Piezo' in key:
-                    depth_start_piezo = depths[key][0]
-            depth_middle_piezo = 200 # SHOULD BE ALWAYS CENTER AT 200um
-            piezo_shift = np.linspace(-1, 1, Ndepth)*(depth_middle_piezo-depth_start_piezo)
-            for channel in ['Ch1', 'Ch2']:
-                data[channel]['z'] = - ( depth_middle+piezo_shift[np.array(data[channel]['depth_index'], dtype=int)] )
-                # NEED -1 factor because the Z is inversed in the setup with piezo
+        Ndepth = len(np.unique(data['Ch2']['depth_index'])) # SHOULD ALWAYS BE ODD
+        for key in depths.keys():
+            if 'Piezo' in key:
+                depth_start_piezo = depths[key][0]
+        depth_middle_piezo = 200 # SHOULD BE ALWAYS CENTER AT 200um
+        data['depth_shift'] = np.linspace(-1, 1, Ndepth)*(depth_middle_piezo-depth_start_piezo)
     else:
-        depth_middle = depths[list(depths.keys())[0]][0] # SHOULD BE A UNIQUE VALUE
-        for channel in ['Ch1', 'Ch2']:
-            data[channel]['z'] = depth_middle+0*data[channel]['depth_index']
+        data['depth_shift'] = np.zeros(1)
 
     # translation to numpy arrays
     for channel in ['Ch1', 'Ch2']:
-        for key in ['relativeTime', 'absoluteTime', 'z']:
+        for key in ['relativeTime', 'absoluteTime']:
             data[channel][key] = np.array(data[channel][key], dtype=np.float64)
         for key in ['tifFile']:
             data[channel][key] = np.array(data[channel][key], dtype=str)
@@ -112,6 +105,7 @@ if __name__=='__main__':
     
     
     data = bruker_xml_parser(example_file)
+    print(data['depth_shift'])
     # print(data.keys())
     # import pprint
     # pprint.pprint(data['settings'])
@@ -120,4 +114,5 @@ if __name__=='__main__':
         # print(data[key].keys())
         print(data[key]['absoluteTime'][-10:])
         print(data[key]['tifFile'][-10:])
-        print(data[key]['z'][-10:])
+        print(data[key]['depth_index'][-10:])
+
