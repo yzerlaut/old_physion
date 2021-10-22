@@ -1770,7 +1770,8 @@ class moving_dots_static_patch(visual_stim):
         
         super().init_experiment(protocol,
                                 ['speed', 'bg-color', 'ndots', 'spacing',
-                                 'direction', 'size', 'dotcolor'],
+                                 'direction', 'size', 'dotcolor', 'patch-delay',
+                                 'patch-radius', 'patch-contrast', 'patch-spatial-freq', 'patch-angle'],
                                 run_type='images_sequence')
 
 
@@ -1786,10 +1787,10 @@ class moving_dots_static_patch(visual_stim):
                             xcenter=xcenter, zcenter=zcenter)
 
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
-        image[cond] = compute_grating(xrot[cond],
+        image[cond] = 2*compute_grating(xrot[cond],
                                       spatial_freq=spatial_freq,
                                       contrast=contrast,
-                                      time_phase=time_phase)
+                                      time_phase=time_phase)-1
 
         
     def add_dot(self, image, pos, size, color, type='square'):
@@ -1858,8 +1859,12 @@ class moving_dots_static_patch(visual_stim):
                 self.add_dot(img, new_position,
                              cls.experiment['size'][index],
                              cls.experiment['dotcolor'][index])
-            if time>1:
-                self.add_patch(img)
+            if time>cls.experiment['patch-delay'][index]:
+                self.add_patch(img,
+                               angle=cls.experiment['patch-angle'][index],
+                               radius=cls.experiment['patch-radius'][index],
+                               spatial_freq=cls.experiment['patch-spatial-freq'][index],
+                               contrast=cls.experiment['patch-contrast'][index])
                 
             FRAMES.append(img)
             times.append(iframe)
@@ -1912,9 +1917,9 @@ if __name__=='__main__':
     from pathlib import Path
     
     # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
-    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
-    with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
+    # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
+    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True
