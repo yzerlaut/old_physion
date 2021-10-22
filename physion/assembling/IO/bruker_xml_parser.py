@@ -39,7 +39,7 @@ def bruker_xml_parser(filename):
                          'depth':[],
                          'tifFile':[]}
     data['StartTime'] = frames.attrib['time']
-    
+
     for x in frames:
         if x.tag == 'Frame':
             for f in x:
@@ -55,7 +55,10 @@ def bruker_xml_parser(filename):
                                 for e in d:
                                     if e.attrib['index']=='ZAxis':
                                         for g in e:
-                                            data[channel]['depth'].append(float(g.attrib['value']))
+                                            try:
+                                                data[channel]['depth'].append(float(g.attrib['value']))
+                                            except ValueError:
+                                                data[channel]['depth'].append(-10000000)
 
     # translation to numpy arrays
     for channel in ['Ch1', 'Ch2']:
