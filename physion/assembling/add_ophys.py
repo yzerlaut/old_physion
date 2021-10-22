@@ -45,24 +45,32 @@ def add_ophys(nwbfile, args,
         
     xml = bruker_xml_parser(CaFn) # metadata
 
+    if 'A1-2P' in metadata['Rig']:
+        functional_chan = 'Ch2' # green channel is channel 2 downstairs
+        laser_key = 'Laser'
+        Depth = float(xml['settings']['positionCurrent']['ZAxis']['Z Focus'][0])
+    else:
+        functional_chan = 'Ch1'
+        laser_key = 'Excitation 1'
+        Depth = float(xml['settings']['positionCurrent']['ZAxis'])
+        
     onset = (metadata['STEP_FOR_CA_IMAGING_TRIGGER']['onset'] if 'STEP_FOR_CA_IMAGING_TRIGGER' in metadata else 0)
-    CaImaging_timestamps = onset+xml['Ch1']['relativeTime']+\
+    CaImaging_timestamps = onset+xml[functional_chan]['relativeTime']+\
         float(xml['settings']['framePeriod'])/2. # in the middle in-between two time stamps
 
 
     device = pynwb.ophys.Device('Imaging device with settings: \n %s' % str(xml['settings'])) # TO BE FILLED
     nwbfile.add_device(device)
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
-                                                 'Excitation 1',
-                                                 float(xml['settings']['laserWavelength']['Excitation 1']))
+                                                 laser_key,
+                                                 float(xml['settings']['laserWavelength'][laser_key]))
     imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
-                                                 description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*#
-                                                                                 float(xml['settings']['positionCurrent']['ZAxis'])),
+                                                 description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*Depth),
                                                  device=device,
-                                                 excitation_lambda=float(xml['settings']['laserWavelength']['Excitation 1']),
+                                                 excitation_lambda=float(xml['settings']['laserWavelength'][laser_key]),
                                                  imaging_rate=1./float(xml['settings']['framePeriod']),
                                                  indicator='GCamp',
-                                                 location='V1',
+                                                 location='V1', # ADD METADATA HERE
                                                  # reference_frame='A frame to refer to',
                                                  grid_spacing=(float(xml['settings']['micronsPerPixel']['YAxis']),
                                                                float(xml['settings']['micronsPerPixel']['XAxis'])))
