@@ -48,7 +48,7 @@ def add_ophys(nwbfile, args,
     if 'A1-2P' in metadata['Rig']:
         functional_chan = 'Ch2' # green channel is channel 2 downstairs
         laser_key = 'Laser'
-        Depth = float(xml['settings']['positionCurrent']['ZAxis']['Z Focus'][0])
+        Depth = float(xml['settings']['positionCurrent']['ZAxis']['Z Focus'][0]) # center depth only !
     else:
         functional_chan = 'Ch1'
         laser_key = 'Excitation 1'
@@ -64,6 +64,9 @@ def add_ophys(nwbfile, args,
     optical_channel = pynwb.ophys.OpticalChannel('excitation_channel 1',
                                                  laser_key,
                                                  float(xml['settings']['laserWavelength'][laser_key]))
+
+    # START LOOP HERE OVER IMAGING PLANES
+    
     imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
                                                  description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*Depth),
                                                  device=device,
