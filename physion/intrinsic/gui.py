@@ -1,8 +1,10 @@
-import sys, os, shutil, glob, time, subprocess, pathlib, json, tempfile
+import sys, os, shutil, glob, time, subprocess, pathlib, json, tempfile, datetime
 import numpy as np
+import pynwb
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
+from skimage import measure
 try:
     from pycromanager import Bridge
 except ModuleNotFoundError:
@@ -11,9 +13,10 @@ except ModuleNotFoundError:
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.guiparts import NewWindow
-from assembling.saving import generate_filename_path
+from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
 from visual_stim.psychopy_code.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
+from intrinsic import analysis
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
 
@@ -48,6 +51,8 @@ class MainWindow(NewWindow):
             bridge = Bridge()
             core = bridge.get_core()
             self.exposure = core.get_exposure()
+            self.init_camera()
+            self.demo = False
         except BaseException as be:
             print(be)
             print('')
@@ -55,6 +60,7 @@ class MainWindow(NewWindow):
             print('        --> no camera found ')
             print('')
             self.exposure = -1 # flag for no camera
+            self.demo = True
         
 
         # some initialisation
@@ -82,12 +88,13 @@ class MainWindow(NewWindow):
                           Nx_wdgt, Ny_wdgt-self.wdgt_length)
         
         # -- A plot area (ViewBox + axes) for displaying the image ---
-        self.view = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,
-                                      border=[100,100,100])
-        self.pimg = pg.ImageItem()
+        self.view = self.win.addViewBox(lockAspect=True, invertY=True)
+        self.view.setMenuEnabled(False)
         self.view.setAspectLocked()
-        self.view.setRange(QtCore.QRectF(0, 0, 1280, 1024))
+        self.pimg = pg.ImageItem()
         self.view.addItem(self.pimg)
+        self.pimg.setImage(self.get_frame())
+        self.view.autoRange(padding=0.001)
         
         # ---  setting subject information ---
         self.add_widget(QtWidgets.QLabel('subjects file:'))
@@ -127,16 +134,22 @@ class MainWindow(NewWindow):
         self.barBox.setText('4')
         self.add_widget(self.barBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - acq. freq. max. (Hz):'),
+        self.add_widget(QtWidgets.QLabel('  - spatial sub-sampling (px):'),
+                        spec='large-left')
+        self.spatialBox = QtWidgets.QLineEdit()
+        self.spatialBox.setText('1')
+        self.add_widget(self.spatialBox, spec='small-right')
+
+        self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('30')
+        self.freqBox.setText('10')
         self.add_widget(self.freqBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
         self.add_widget(self.demoBox, spec='large-right')
-        self.demoBox.setChecked(True)
+        self.demoBox.setChecked(self.demo)
         
         # ---  launching acquisition ---
         self.liveButton = QtWidgets.QPushButton("--   live view    -- ", self)
@@ -236,6 +249,13 @@ class MainWindow(NewWindow):
                                size=(2000, self.stim.angle_to_pix(size)),
                                pos=(0, self.stim.angle_to_pix(angle)),
                                units='pix', fillColor=1, color=-1)
+
+    def resample_img(self, img, Nsubsampling):
+        if Nsubsampling>1:
+            return measure.block_reduce(img, block_size=(Nsubsampling,
+                                                         Nsubsampling), func=np.mean)
+        else:
+            return img
         
     def run(self):
 
@@ -245,7 +265,8 @@ class MainWindow(NewWindow):
         
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-            
+        self.dt = 1/float(self.freqBox.text())
+        
         xmin, xmax = 1.2*np.min(self.stim.x), 1.2*np.max(self.stim.x)
         zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
 
@@ -255,64 +276,104 @@ class MainWindow(NewWindow):
                      'angle_stop':[zmax, xmin, zmin, xmax],
                      'direction':['vertical', 'horizontal', 'vertical', 'horizontal'],
                      'label':['up', 'left', 'down', 'right']}
+
+        for il, label in enumerate(self.STIM['label']):
+            tmax = np.abs(self.STIM['angle_stop'][il]-self.STIM['angle_start'][il])/self.speed
+            self.STIM[label+'-times'] = np.arange(int(tmax/self.dt))*self.dt
+            self.STIM[label+'-angle'] = np.linspace(self.STIM['angle_start'][il],
+                                                    self.STIM['angle_stop'][il],
+                                                    int(tmax/self.dt))
+  
+        self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
         
-        self.index, self.tstart = 0, time.time()
-        
-        self.update_dt()
-                
+        self.update_dt() # while loop
+
         if self.exposure>0: # at the end we close the camera
             self.bridge.close()
         
 
     def update_dt(self):
-
-        new_time = time.time()-self.tstart
-        
-        # update stim angle
-        self.angle = self.STIM['angle_start'][self.index%4]+\
-            self.speed*(new_time)*np.sign(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])
-        
-        # print('angle=%.1f' % self.angle, 'dt=%.1f' % (time.time()-self.tstart), 'label: ', self.STIM['label'][self.index%4])
-        
-        # grab frame
-        frame = self.get_frame()
-        if True: # live display
-            self.pimg.setImage(frame)
-
-        # NEED TO STORE DATA HERE (time, angle, frame)
-        self.TIMES.append(new_time)
-        self.ANGLES.append(self.angle)
-        self.FRAMES.append(frame)
         
         # update stim image
-        pattern = self.get_pattern(self.STIM['direction'][self.index%4], self.angle, self.bar_size)
+        pattern = self.get_pattern(self.STIM['direction'][self.iEp%4],
+                            self.STIM[self.STIM['label'][self.iEp%4]+'-angle'][self.iTime],
+                                   self.bar_size)
         pattern.draw()
         try:
             self.stim.win.flip()
         except BaseException as be:
             pass
-            
+
+
+        # fetch the camera data
+        img = np.zeros(self.imgsize)
+        t0, n = time.time(), 0
+
+        while (time.time()-t0)<=self.dt:
+            img += self.resample_img(self.get_frame(),
+                                     int(self.spatialBox.text()))
+            n+=1
+        if n>0:
+            img /= n
+
+        if True: # live display
+            self.pimg.setImage(img)
+
+        self.iTime += 1
+        # NEED TO STORE DATA HERE
+        self.FRAMES.append(img)
+        
         # continuing ?
         if self.running:
 
-            time.sleep(1./float(self.freqBox.text())) # max acq freq. here !
+            time.sleep(0.9/float(self.freqBox.text())) # max acq freq. here !
             
             # checking if not episode over
-            if (np.abs(self.angle-self.STIM['angle_start'][self.index%4])>=np.abs(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])):
+            if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
                 self.write_data() # writing data when over
-                self.index += 1
-                self.tstart=time.time()
+                self.FRAMES = [] # re init data
+                self.iTime = 0  
+                self.iEp += 1
                 
             QtCore.QTimer.singleShot(1, self.update_dt)
 
+
     def write_data(self):
 
-        data = {'times':self.TIMES,
-                'angles':self.ANGLES,
-                'frames':self.FRAMES}
+        filename = '%s-%i.nwb' % (self.STIM['label'][self.iEp%4], int(self.iEp/4)+1)
+        
+        nwbfile = pynwb.NWBFile('Intrinsic Imaging data following bar stimulation',
+                                'intrinsic',
+                                datetime.datetime.utcnow(),
+                                file_create_date=datetime.datetime.utcnow())
 
-        np.save(os.path.join(self.datafolder,
-            '%s-%i.npy' % (self.STIM['label'][self.index%4], int(self.index/4)+1)), data)
+        # Create our time series
+        angles = pynwb.TimeSeries(name='angle_timeseries',
+                                  data=self.STIM[self.STIM['label'][self.iEp%4]+'-angle'],
+                                  unit='Rd',
+                                  timestamps=self.STIM[self.STIM['label'][self.iEp%4]+'-times'])
+        nwbfile.add_acquisition(angles)
+
+        images = pynwb.image.ImageSeries(name='image_timeseries',
+                                         data=np.array(self.FRAMES),
+                                         unit='a.u.',
+                                         timestamps=self.STIM[self.STIM['label'][self.iEp%4]+'-times'])
+
+        nwbfile.add_acquisition(images)
+        
+        
+        # Write the data to file
+        io = pynwb.NWBHDF5IO(os.path.join(self.datafolder, filename), 'w')
+        print('writing:', filename)
+        io.write(nwbfile)
+        io.close()
+        print(filename, ' saved !')
+        
+        # filename = '%s-%i.npy' % (self.STIM['label'][self.iEp%4], int(self.iEp/4)+1))
+        # data = {'times':self.TIMES,
+        #         'angles':self.ANGLES,
+        #         'frames':self.FRAMES}
+        # np.save(os.path.join(self.datafolder, filename), data)
         
         
     def launch_protocol(self):
@@ -320,16 +381,17 @@ class MainWindow(NewWindow):
         if not self.running:
             self.running = True
 
-            # initialization of camera:
-            if self.exposure>0:
-                self.init_camera()
-
             # initialization of data
-            self.TIMES, self.ANGLES, self.FRAMES = [], [], []
-
+            self.FRAMES = []
+            self.imgsize = self.resample_img(self.get_frame(),
+                                             int(self.spatialBox.text())).shape
+            self.pimg.setImage(self.resample_img(self.get_frame(),
+                                                 int(self.spatialBox.text())))
+            self.view.autoRange(padding=0.001)
+            
             # init
             filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
-                                                   filename='metadata', extension='.npy')
+                                              filename='metadata', extension='.npy')
             metadata = {'subject':str(self.subjectBox.currentText()),
                         'exposure':float(self.exposureBox.text()),
                         'bar-size':float(self.barBox.text()),
@@ -382,6 +444,11 @@ class MainWindow(NewWindow):
 
     def launch_analysis(self):
         print('launching analysis [...]')
+        if self.datafolder=='' and self.lastBox.isChecked():
+            self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
+                                                           with_NIdaq=False)
+        analysis.run(self.datafolder)
+        print('-> analysis done !')
 
     def process(self):
         self.launch_analysis()
