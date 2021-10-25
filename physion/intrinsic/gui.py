@@ -11,7 +11,7 @@ except ModuleNotFoundError:
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.guiparts import NewWindow
-from assembling.saving import *
+from assembling.saving import generate_filename_path
 from visual_stim.psychopy_code.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
 
@@ -56,13 +56,17 @@ class MainWindow(NewWindow):
             print('')
             self.exposure = -1 # flag for no camera
         
+
+        # some initialisation
+        self.running, self.stim = False, None
+        self.datafolder = ''        
+        
         ########################
         ##### building GUI #####
         ########################
         
         self.minView = False
         self.showwindow()
-
         # central widget
         self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -70,8 +74,6 @@ class MainWindow(NewWindow):
         # layout
         Nx_wdgt, Ny_wdgt, self.wdgt_length = 20, 20, 3
         self.i_wdgt = 0
-        self.running, self.stim = False, None
-        
         self.l0 = QtWidgets.QGridLayout()
         self.cwidget.setLayout(self.l0)
         
@@ -79,8 +81,6 @@ class MainWindow(NewWindow):
         self.l0.addWidget(self.win,0, self.wdgt_length,
                           Nx_wdgt, Ny_wdgt-self.wdgt_length)
         
-        # layout = self.win.ci.layout
-
         # -- A plot area (ViewBox + axes) for displaying the image ---
         self.view = self.win.addViewBox(lockAspect=False,row=0,col=0,invertY=True,
                                       border=[100,100,100])
@@ -126,6 +126,12 @@ class MainWindow(NewWindow):
         self.barBox = QtWidgets.QLineEdit()
         self.barBox.setText('4')
         self.add_widget(self.barBox, spec='small-right')
+
+        self.add_widget(QtWidgets.QLabel('  - acq. freq. max. (Hz):'),
+                        spec='large-left')
+        self.freqBox = QtWidgets.QLineEdit()
+        self.freqBox.setText('30')
+        self.add_widget(self.freqBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
@@ -145,9 +151,17 @@ class MainWindow(NewWindow):
         self.stopButton.clicked.connect(self.stop_protocol)
         self.add_widget(self.stopButton, spec='small-right')
 
-        
         # ---  launching analysis ---
         self.add_widget(QtWidgets.QLabel(20*' - '))
+        
+        self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
+        self.folderButton.clicked.connect(self.open_file)
+        self.add_widget(self.folderButton, spec='large-left')
+        self.lastBox = QtWidgets.QCheckBox("last ")
+        self.lastBox.setStyleSheet("color: gray;")
+        self.add_widget(self.lastBox, spec='small-right')
+        self.lastBox.setChecked(True)
+
         self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
                         spec='large-left')
         self.spatialSmoothingBox = QtWidgets.QLineEdit()
@@ -190,11 +204,6 @@ class MainWindow(NewWindow):
             self.subjects = json.load(f)
         self.subjectBox.clear()
         self.subjectBox.addItems(self.subjects.keys())
-
-    def set_datafolder(self):
-        self.filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
-                                               filename='metadata', extension='.npy')
-        self.datafolder.set(os.path.dirname(self.filename))
 
     def init_visual_stim(self, demo=True):
 
@@ -256,18 +265,25 @@ class MainWindow(NewWindow):
         
 
     def update_dt(self):
+
+        new_time = time.time()-self.tstart
         
         # update stim angle
         self.angle = self.STIM['angle_start'][self.index%4]+\
-            self.speed*(time.time()-self.tstart)*np.sign(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])
+            self.speed*(new_time)*np.sign(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])
         
-        print('angle=%.1f' % self.angle, 'dt=%.1f' % (time.time()-self.tstart), 'label: ', self.STIM['label'][self.index%4])
+        # print('angle=%.1f' % self.angle, 'dt=%.1f' % (time.time()-self.tstart), 'label: ', self.STIM['label'][self.index%4])
         
         # grab frame
         frame = self.get_frame()
         if True: # live display
             self.pimg.setImage(frame)
 
+        # NEED TO STORE DATA HERE (time, angle, frame)
+        self.TIMES.append(new_time)
+        self.ANGLES.append(self.angle)
+        self.FRAMES.append(frame)
+        
         # update stim image
         pattern = self.get_pattern(self.STIM['direction'][self.index%4], self.angle, self.bar_size)
         pattern.draw()
@@ -278,15 +294,25 @@ class MainWindow(NewWindow):
             
         # continuing ?
         if self.running:
-            
-            time.sleep(0.1) # max acq freq. here ! POTENTIALLY TO REMOVE
+
+            time.sleep(1./float(self.freqBox.text())) # max acq freq. here !
             
             # checking if not episode over
             if (np.abs(self.angle-self.STIM['angle_start'][self.index%4])>=np.abs(self.STIM['angle_stop'][self.index%4]-self.STIM['angle_start'][self.index%4])):
+                self.write_data() # writing data when over
                 self.index += 1
                 self.tstart=time.time()
                 
             QtCore.QTimer.singleShot(1, self.update_dt)
+
+    def write_data(self):
+
+        data = {'times':self.TIMES,
+                'angles':self.ANGLES,
+                'frames':self.FRAMES}
+
+        np.save(os.path.join(self.datafolder,
+            '%s-%i.npy' % (self.STIM['label'][self.index%4], int(self.index/4)+1)), data)
         
         
     def launch_protocol(self):
@@ -298,9 +324,23 @@ class MainWindow(NewWindow):
             if self.exposure>0:
                 self.init_camera()
 
+            # initialization of data
+            self.TIMES, self.ANGLES, self.FRAMES = [], [], []
+
+            # init
+            filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
+                                                   filename='metadata', extension='.npy')
+            metadata = {'subject':str(self.subjectBox.currentText()),
+                        'exposure':float(self.exposureBox.text()),
+                        'bar-size':float(self.barBox.text()),
+                        'acq-freq':float(self.freqBox.text()),
+                        'speed':float(self.speedBox.text())}
+            np.save(filename, metadata)
+            self.datafolder = os.path.dirname(filename)
+
             print('acquisition running [...]')
             self.run()
-                
+            
         else:
             print(' /!\  --> pb in launching acquisition (either already running or missing camera)')
 
@@ -346,7 +386,19 @@ class MainWindow(NewWindow):
     def process(self):
         self.launch_analysis()
     
-    
+
+    def open_file(self):
+
+        self.lastBox.setChecked(False)
+        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                                            "Choose datafolder",
+                                                            FOLDERS[self.folderB.currentText()])
+
+        if folder!='':
+            self.datafolder = folder
+        else:
+            print('data-folder not set !')
+        
         
 def run(app, args=None, parent=None):
     return MainWindow(app,
