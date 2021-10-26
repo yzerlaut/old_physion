@@ -108,6 +108,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml,
         traces.append(np.load(os.path.join(pData_folder, fstr))[iscell[:,0], :])
         
     stat = np.load(os.path.join(pData_folder, 'stat.npy'), allow_pickle=True)
+
     ncells = np.sum(iscell[:,0])
     plane_ID = np.zeros(ncells)
     for n in np.arange(ncells):

@@ -71,6 +71,7 @@ ops0 = {
     'max_iterations': 20,
     'threshold_scaling': 1.0,
     'max_overlap': 0.75,
+    'anatomical_only': 0,
     'high_pass': 6.0,
     'use_builtin_classifier': False,
     'inner_neuropil_radius': 2,
