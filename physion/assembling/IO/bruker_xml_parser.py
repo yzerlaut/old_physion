@@ -100,8 +100,8 @@ if __name__=='__main__':
     
     example_file = os.path.join(os.path.expanduser('~'), 'UNPROCESSED',
                                 'TSeries-10202021-1256-020', 'TSeries-10202021-1256-020.xml')
-    example_file = os.path.join(os.path.expanduser('~'), 'UNPROCESSED',
-                                'TSeries-10222021-1427-028', 'TSeries-10222021-1427-028.xml')
+    # example_file = os.path.join(os.path.expanduser('~'), 'UNPROCESSED',
+    #                             'TSeries-10222021-1427-028', 'TSeries-10222021-1427-028.xml')
     
     
     data = bruker_xml_parser(example_file)

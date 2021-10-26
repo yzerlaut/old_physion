@@ -13,7 +13,7 @@ from pynwb.ophys import RoiResponseSeries
 from pynwb.ophys import Fluorescence
 from pynwb import NWBHDF5IO
 
-def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps,
+def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml, 
                                       device=None,
                                       optical_channel=None,
                                       imaging_plane=None,
@@ -23,14 +23,20 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
     """
 
     plane_folders = natsorted([ f.path for f in os.scandir(save_folder) if f.is_dir() and f.name[:5]=='plane'])
-    ops1 = [np.load(os.path.join(f, 'ops.npy'), allow_pickle=True).item() for f in plane_folders]
-    if len(ops1)>1:
-        multiplane = True
+    OPS = [np.load(os.path.join(f, 'ops.npy'), allow_pickle=True).item() for f in plane_folders]
+
+    if len(OPS)>1:
+        multiplane, nplanes = True, len(plane_folders)
+        pData_folder = os.path.join(save_folder, 'combined') # processed data folder -> using the "combined output from suite2p"
     else:
-        multiplane = False
+        multiplane, nplanes = False, 1
+        pData_folder = os.path.join(save_folder, 'plane0') # processed data folder
 
-    ops = ops1[0]
+    # find time sampling per plane
+    functional_chan = ('Ch1' if len(xml['Ch1']['relativeTime'])>1 else 'Ch2') # functional channel is one of the two !!
+    CaImaging_timestamps = xml[functional_chan]['relativeTime']+float(xml['settings']['framePeriod'])/2.
 
+    ops = np.load(os.path.join(pData_folder, 'ops.npy'), allow_pickle=True).item() 
     
     if device is None:
         device = nwbfile.create_device(
@@ -85,49 +91,38 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
 
     file_strs = ['F.npy', 'Fneu.npy', 'spks.npy']
     traces = []
-    ncells_all = 0
-    for iplane, ops in enumerate(ops1):
-        if iplane==0:
-            iscell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')).astype(bool)
-            if ops['nchannels']>1:
-                if os.path.isfile(os.path.join(save_folder, 'plane%i' % iplane, 'redcell_manual.npy')):
-                    redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell_manual.npy'))[iscell[:,0], :]
-                else:
-                    print('\n'+30*'--')
-                    print(' /!\ no file found for the manual labelling of red cells (generate it with the red-cell labelling GUI) /!\ ')
-                    print(' /!\ taking the raw suit2p output with the classifier settings /!\ ')
-                    print('\n'+30*'--')
-                    redcell = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))[iscell[:,0], :]
-            for fstr in file_strs:
-                traces.append(np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr))[iscell[:,0], :])
+
+    iscell = np.load(os.path.join(pData_folder, 'iscell.npy')).astype(bool)
+
+    if ops['nchannels']>1:
+        if os.path.isfile(os.path.join(pData_folder, 'redcell_manual.npy')):
+            redcell = np.load(os.path.join(pData_folder, 'redcell_manual.npy'))[iscell[:,0], :]
         else:
-            iscell = np.append(iscell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'iscell.npy')), axis=0)
-            if ops['nchannels']>1:
-                redcell = np.append(redcell, np.load(os.path.join(save_folder, 'plane%i' % iplane, 'redcell.npy'))[iscell[:,0], :], axis=0)
-            for i,fstr in enumerate(file_strs):
-                traces[i] = np.append(traces[i], 
-                                      np.load(os.path.join(save_folder, 'plane%i' % iplane, fstr))[iscell[:,0], :], axis=0) 
+            print('\n'+30*'--')
+            print(' /!\ no file found for the manual labelling of red cells (generate it with the red-cell labelling GUI) /!\ ')
+            print(' /!\ taking the raw suit2p output with the classifier settings /!\ ')
+            print('\n'+30*'--')
+            redcell = np.load(os.path.join(pData_folder, 'redcell.npy'))[iscell[:,0], :]
+            
+    for fstr in file_strs:
+        traces.append(np.load(os.path.join(pData_folder, fstr))[iscell[:,0], :])
+        
+    stat = np.load(os.path.join(pData_folder, 'stat.npy'), allow_pickle=True)
+    ncells = np.sum(iscell[:,0])
+    plane_ID = np.zeros(ncells)
+    for n in np.arange(ncells):
+        pixel_mask = np.array([stat[iscell[:,0]][n]['ypix'], stat[iscell[:,0]][n]['xpix'], 
+                               stat[iscell[:,0]][n]['lam']])
+        ps.add_roi(pixel_mask=pixel_mask.T)
+        if 'iplane' in stat[0]:
+            plane_ID[n] = stat[iscell[:,0]][n]['iplane']
 
-        stat = np.load(os.path.join(save_folder, 'plane%i' % iplane, 'stat.npy'), allow_pickle=True)
-        ncells = np.sum(iscell[:,0])
-        for n in np.arange(ncells):
-            if multiplane:
-                pixel_mask = np.array([stat[iscell[:,0]][n]['ypix'], stat[iscell[:,0]][n]['xpix'], 
-                                    iplane*np.ones(stat[iscell[:,0]][n]['npix']), 
-                                    stat[iscell[:,0]][n]['lam']])
-                ps.add_roi(voxel_mask=pixel_mask.T)
-            else:
-                pixel_mask = np.array([stat[iscell[:,0]][n]['ypix'], stat[iscell[:,0]][n]['xpix'], 
-                                    stat[iscell[:,0]][n]['lam']])
-                ps.add_roi(pixel_mask=pixel_mask.T)
-        ncells_all+=ncells
-
-    # ps.add_column('iscell', 'two columns - iscell & probcell', iscell)
     if ops['nchannels']>1:
         ps.add_column('redcell', 'two columns - redcell & probcell', redcell)
+    ps.add_column('plane', 'one column - plane ID', plane_ID)
 
     rt_region = ps.create_roi_table_region(
-        region=list(np.arange(0, ncells_all)),
+        region=list(np.arange(0, ncells)),
         description='all ROIs')
 
     # FLUORESCENCE (all are required)
@@ -140,7 +135,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
             data=traces[i],
             rois=rt_region,
             unit='lumens',
-            timestamps=CaImaging_timestamps) # CRITICAL TO HAVE IT HERE FOR RE-ALIGNEMENT
+            timestamps=CaImaging_timestamps[::nplanes]) # ideally should be shifted for each ROI depending on the plane...
         fl = Fluorescence(roi_response_series=roi_resp_series, name=nstr)
         ophys_module.add(fl)
 
@@ -161,3 +156,39 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, CaImaging_timestamps
                 images.add_image(GrayscaleImage(name=bstr, data=img))
 
         ophys_module.add(images)
+
+
+if __name__=='__main__':
+
+    # creat dummy example
+
+    import argparse, os, pynwb, datetime
+    from physion.assembling.saving import get_files_with_extension, get_TSeries_folders
+    from physion.assembling.IO.bruker_xml_parser import bruker_xml_parser
+    
+    parser=argparse.ArgumentParser(description="""
+    Building test NWB file with Ophys data
+    """,formatter_class=argparse.RawTextHelpFormatter)
+    # main
+    parser.add_argument("CaImaging_folder", type=str, default='')
+    # other
+    args = parser.parse_args()
+
+    nwbfile = pynwb.NWBFile('Intrinsic Imaging data following bar stimulation',
+                            'intrinsic',
+                            datetime.datetime.utcnow(),
+                            file_create_date=datetime.datetime.utcnow())
+
+    CaFn = get_files_with_extension(args.CaImaging_folder, extension='.xml')[0]# get Tseries metadata
+    xml = bruker_xml_parser(CaFn) # metadata
+
+    add_ophys_processing_from_suite2p(os.path.join(args.CaImaging_folder, 'suite2p'),
+                                      nwbfile, xml) # ADD UPDATE OF starting_time
+
+    
+    
+
+
+
+
+

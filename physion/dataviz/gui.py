@@ -234,7 +234,7 @@ class MainWindow(guiparts.NewWindow):
             self.root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA')
 
         self.time, self.data, self.roiIndices, self.tzoom = 0, None, [], [0,50]
-        self.CaImaging_bg_key = 'meanImg'
+        self.CaImaging_bg_key, self.planeID = 'meanImg', 0
         self.CaImaging_key = 'Fluorescence'
 
         self.FILES_PER_DAY, self.FILES_PER_SUBJECT, self.SUBJECTS = {}, {}, {}

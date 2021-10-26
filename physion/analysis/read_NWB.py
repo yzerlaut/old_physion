@@ -124,7 +124,8 @@ class Data:
         if 'ophys' in self.nwbfile.processing:
             self.read_and_format_ophys_data()
         else:
-            for key in ['Segmentation', 'Fluorescence', 'iscell', 'validROI_indices', 'Neuropil', 'Deconvolved']:
+            for key in ['Segmentation', 'Fluorescence', 'iscell', 'redcell', 'plane',
+                        'validROI_indices', 'Neuropil', 'Deconvolved']:
                 setattr(self, key, None)
                 
         if 'Pupil' in self.nwbfile.processing:
@@ -134,29 +135,37 @@ class Data:
             self.read_facemotion()
             
 
+    #########################################################
+    #       CALCIUM IMAGING DATA (from suite2p output)      #
+    #########################################################
+    
     def read_and_format_ophys_data(self):
         
-        self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
-        self.pixel_masks_index = self.Segmentation.columns[0].data[:]
-        self.pixel_masks = self.Segmentation.columns[1].data[:]
-
+        ### ROI activity ###
         self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
         self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
         self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
         self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
 
-        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='iscell'): # DEPRECATED
-            self.iscell = self.Segmentation.columns[2].data[:,0].astype(bool)
-            self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
-        else:
-            self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool)
-            self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
-
-        # red-labelling
-        if len(self.Segmentation.columns)>2 and (self.Segmentation.columns[2].name=='redcell'):
-            self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
-        else:
-            self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool)
+        ### ROI properties ###
+        self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']
+        self.pixel_masks_index = self.Segmentation.columns[0].data[:]
+        self.pixel_masks = self.Segmentation.columns[1].data[:]
+        # other ROI properties --- by default:
+        self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
+        self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
+        self.planeID = np.zeros(len(self.Fluorescence.data[:,0]), dtype=int)
+        self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
+        # looping over the table properties (0,1 -> rois locs) for the ROIS to overwrite the defaults:
+        for i in range(2, len(self.Segmentation.columns)):
+            if self.Segmentation.columns[i].name=='iscell': # DEPRECATED
+                self.iscell = self.Segmentation.columns[i].data[:,0].astype(bool)
+                self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
+            if self.Segmentation.columns[i].name=='plane':
+                self.planeID = self.Segmentation.columns[i].data[:,0].astype(int)
+            if self.Segmentation.columns[i].name=='redcell': # DEPRECATED
+                self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
+                
         
     ######################
     #       PUPIL 
@@ -302,15 +311,15 @@ def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
 if __name__=='__main__':
 
-    FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
+    # FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
     # print(np.unique(SUBJECTS))
 
-    # data = Data(sys.argv[-1])
-    # # print(data.nwbfile.processing['ophys'])
-    # print(data.iscell)
-
+    data = Data(sys.argv[-1])
+    # print(data.nwbfile.processing['ophys'])
+    print(data.iscell)
+    
     
 
 

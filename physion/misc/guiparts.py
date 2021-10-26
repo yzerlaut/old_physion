@@ -322,6 +322,8 @@ class NewWindow(QtWidgets.QMainWindow):
             cls.scan_folder()
         elif string in ['meanImg', 'meanImg_chan2', 'meanImgE', 'Vcorr', 'max_proj']:
             cls.CaImaging_bg_key = string
+        elif 'plane' in string:
+            cls.planeID = int(string.split('plane')[1])
         elif string=='no_subsampling':
             cls.no_subsampling = True
         elif string in ['F', 'Fluorescence', 'Neuropil', 'Deconvolved', 'Fneu', 'dF/F', 'dFoF'] or ('F-' in string):
