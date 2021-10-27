@@ -237,18 +237,27 @@ class MainWindow(NewWindow):
         # auto_shutter = self.core.get_property('Core', 'AutoShutter')
         # self.core.set_property('Core', 'AutoShutter', 0)
 
-    def get_pattern(self, direction, angle, size):
+    def get_patterns(self, direction, angle, size,
+                     Npatch=30):
+
+        patterns = []
+        x = np.linspace(-150, 150, Npatch)
+        x += np.random.choice([0,1])*(x[1]-x[0]) # adding a random component
 
         if direction=='horizontal':
-            return visual.Rect(win=self.stim.win,
-                               size=(self.stim.angle_to_pix(size), 2000),
-                               pos=(self.stim.angle_to_pix(angle), 0),
-                               units='pix', fillColor=1, color=-1)
+            for x0 in x:
+                patterns.append(visual.Rect(win=self.stim.win,
+                                            size=(self.stim.angle_to_pix(size), self.stim.angle_to_pix((x[1]-x[0]))/2.),
+                                            # pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(np.random.uniform(-50,50))),
+                                            pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(x)),
+                                            units='pix', fillColor=1, color=-1))
         elif direction=='vertical':
-            return visual.Rect(win=self.stim.win,
-                               size=(2000, self.stim.angle_to_pix(size)),
-                               pos=(0, self.stim.angle_to_pix(angle)),
-                               units='pix', fillColor=1, color=-1)
+            for x0 in x:
+                patterns.append(visual.Rect(win=self.stim.win,
+                                            size=(self.stim.angle_to_pix((x[1]-x[0])/2.), self.stim.angle_to_pix(size)),
+                                            pos=(self.stim.angle_to_pix(x0), self.stim.angle_to_pix(angle)),
+                                            units='pix', fillColor=1, color=-1))
+        return patterns
 
     def resample_img(self, img, Nsubsampling):
         if Nsubsampling>1:
@@ -295,10 +304,11 @@ class MainWindow(NewWindow):
     def update_dt(self):
         
         # update stim image
-        pattern = self.get_pattern(self.STIM['direction'][self.iEp%4],
-                            self.STIM[self.STIM['label'][self.iEp%4]+'-angle'][self.iTime],
-                                   self.bar_size)
-        pattern.draw()
+        patterns = self.get_patterns(self.STIM['direction'][self.iEp%4],
+                                     self.STIM[self.STIM['label'][self.iEp%4]+'-angle'][self.iTime],
+                                     self.bar_size)
+        for pattern in patterns:
+            pattern.draw()
         try:
             self.stim.win.flip()
         except BaseException as be:
