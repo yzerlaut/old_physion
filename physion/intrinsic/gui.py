@@ -145,6 +145,12 @@ class MainWindow(NewWindow):
         self.freqBox = QtWidgets.QLineEdit()
         self.freqBox.setText('10')
         self.add_widget(self.freqBox, spec='small-right')
+
+        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz):'),
+                        spec='large-left')
+        self.flickBox = QtWidgets.QLineEdit()
+        self.flickBox.setText('40')
+        self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
@@ -238,25 +244,31 @@ class MainWindow(NewWindow):
         # self.core.set_property('Core', 'AutoShutter', 0)
 
     def get_patterns(self, direction, angle, size,
-                     Npatch=30):
+                     Npatch=25):
 
         patterns = []
-        x = np.linspace(-150, 150, Npatch)
-        x += np.random.choice([0,1])*(x[1]-x[0]) # adding a random component
-
+        
         if direction=='horizontal':
-            for x0 in x:
+            x = self.stim.angle_to_pix(np.linspace(self.STIM['zmin'], self.STIM['zmax'], Npatch))
+            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
+            for i in np.arange(Npatch-1)[(1if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
-                                            size=(self.stim.angle_to_pix(size), self.stim.angle_to_pix((x[1]-x[0]))/2.),
-                                            # pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(np.random.uniform(-50,50))),
-                                            pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(x)),
+                                            size=(self.stim.angle_to_pix(size),
+                                                  self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i]))),
+                                            pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(x[i])),
                                             units='pix', fillColor=1, color=-1))
         elif direction=='vertical':
-            for x0 in x:
+            x = np.linspace(self.STIM['xmin'], self.STIM['xmax'], Npatch)
+            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
+            for i in np.arange(Npatch-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
-                                            size=(self.stim.angle_to_pix((x[1]-x[0])/2.), self.stim.angle_to_pix(size)),
-                                            pos=(self.stim.angle_to_pix(x0), self.stim.angle_to_pix(angle)),
+                                            size=(self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i])),
+                                                  self.stim.angle_to_pix(size)),
+                                            pos=(self.stim.angle_to_pix(x[i]), self.stim.angle_to_pix(angle)),
                                             units='pix', fillColor=1, color=-1))
+
+        self.flip = (False if self.flip else True) # flip the flag
+            
         return patterns
 
     def resample_img(self, img, Nsubsampling):
@@ -268,13 +280,15 @@ class MainWindow(NewWindow):
         
     def run(self):
 
+        self.flip = False
+        
         self.stim = visual_stim({"Screen": "Dell-2020",
                                  "presentation-prestim-screen": -1,
                                  "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
         
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-        self.dt = 1/float(self.freqBox.text())
+        self.dt_save, self.dt = 1/float(self.freqBox.text()), 1/float(self.flickBox.text())
         
         xmin, xmax = 1.2*np.min(self.stim.x), 1.2*np.max(self.stim.x)
         zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
@@ -284,7 +298,8 @@ class MainWindow(NewWindow):
         self.STIM = {'angle_start':[zmin, xmax, zmax, xmin],
                      'angle_stop':[zmax, xmin, zmin, xmax],
                      'direction':['vertical', 'horizontal', 'vertical', 'horizontal'],
-                     'label':['up', 'left', 'down', 'right']}
+                     'label':['up', 'left', 'down', 'right'],
+                     'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
 
         for il, label in enumerate(self.STIM['label']):
             tmax = np.abs(self.STIM['angle_stop'][il]-self.STIM['angle_start'][il])/self.speed
@@ -294,6 +309,7 @@ class MainWindow(NewWindow):
                                                     int(tmax/self.dt))
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
+        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
         
         self.update_dt() # while loop
 
@@ -301,42 +317,49 @@ class MainWindow(NewWindow):
             self.bridge.close()
         
 
-    def update_dt(self):
+    def save_img(self):
         
-        # update stim image
-        patterns = self.get_patterns(self.STIM['direction'][self.iEp%4],
-                                     self.STIM[self.STIM['label'][self.iEp%4]+'-angle'][self.iTime],
-                                     self.bar_size)
-        for pattern in patterns:
-            pattern.draw()
-        try:
-            self.stim.win.flip()
-        except BaseException as be:
-            pass
-
-
-        # fetch the camera data
-        img = np.zeros(self.imgsize)
-        t0, n = time.time(), 0
-
-        while (time.time()-t0)<=self.dt:
-            img += self.resample_img(self.get_frame(),
-                                     int(self.spatialBox.text()))
-            n+=1
-        if n>0:
-            img /= n
+        if self.nSave>0:
+            self.img /= self.nSave
 
         if True: # live display
-            self.pimg.setImage(img)
+            self.pimg.setImage(self.img)
 
         self.iTime += 1
         # NEED TO STORE DATA HERE
-        self.FRAMES.append(img)
+        self.FRAMES.append(self.img)
+
+        # re-init time step of acquisition
+        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
         
+    def update_dt(self):
+        
+        t0 = time.time()
+        while (time.time()-t0)<=self.dt:
+
+            # show image
+            patterns = self.get_patterns(self.STIM['direction'][self.iEp%4],
+                                         self.STIM[self.STIM['label'][self.iEp%4]+'-angle'][self.iTime],
+                                         self.bar_size)
+            for pattern in patterns:
+                pattern.draw()
+            try:
+                self.stim.win.flip()
+            except BaseException:
+                pass
+
+            # fetch image
+            self.img += self.resample_img(self.get_frame(),
+                                          int(self.spatialBox.text()))
+            self.nSave+=1
+
+            
         # continuing ?
         if self.running:
 
-            time.sleep(0.9/float(self.freqBox.text())) # max acq freq. here !
+            # saving frame data
+            if (time.time()-self.tSave)<=self.dt_save:
+                self.save_img()
             
             # checking if not episode over
             if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):

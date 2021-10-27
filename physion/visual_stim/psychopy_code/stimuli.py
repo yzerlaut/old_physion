@@ -188,11 +188,16 @@ class visual_stim:
     def angle_to_cm(self, value):
         return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
     
-    def angle_to_pix(self, value, from_center=False, starting_angle=0):
+    def angle_to_pix(self, value, from_x_center=False, from_z_center=False, starting_angle=0):
         """
         We deal here with the non-linear transformation of angle to distance on the screen (see "tan" function toward 90deg)
         we introduce a "starting_angle" so that a size-on-screen can be taken 
         """
+        # if from_x_center:
+        #     return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)+self.screen['resolution'][0]/2.
+        # elif from_z_center:
+        #     return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)+\
+        #         self.screen['resolution'][0]*self.screen['height']/self.screen['width']/2.
         if starting_angle==0:
             return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)
         else:
