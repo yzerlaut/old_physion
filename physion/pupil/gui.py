@@ -216,7 +216,7 @@ class MainWindow(NewWindow):
         stdLabel = QtWidgets.QLabel("std excl. factor: ")
         stdLabel.setStyleSheet("color: gray;")
         self.stdBox = QtWidgets.QLineEdit()
-        self.stdBox.setText('2.0')
+        self.stdBox.setText('3.0')
         self.stdBox.setFixedWidth(50)
 
         wdthLabel = QtWidgets.QLabel("excl. width (s): ")

@@ -175,8 +175,16 @@ if __name__=='__main__':
     # np.save(args.filename, analog_inputs)
 
     import matplotlib.pylab as plt
-    # for i in range(args.Nchannel_analog_rec):
-    #     plt.plot(t_array[::10], analog_inputs[i][::10])
-    plt.plot(1e3*t_array, analog_inputs[0,:])
+    fig, AX = plt.subplots(args.Nchannel_analog_rec-1)
+    for i, l in zip([1,2], ['A','B']):
+        signal = analog_inputs[i]
+        # if signal.std()>0:
+        #     plt.plot(t_array, i+(signal-signal.min())/(signal.max()-signal.min()))
+        # else:
+        AX[i-1].plot(t_array, signal)
+        AX[i-1].set_ylabel('Channel %s (V)' % l)
+        
+        
+    # plt.plot(1e3*t_array, analog_inputs[0,:])
     plt.xlabel('time (ms)')
     plt.show()
