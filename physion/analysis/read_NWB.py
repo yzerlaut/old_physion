@@ -25,31 +25,31 @@ class Data:
         if verbose:
             t0 = time.time()
 
-        try:
-            self.io = pynwb.NWBHDF5IO(filename, 'r')
-            self.nwbfile = self.io.read()
+        # try:
+        self.io = pynwb.NWBHDF5IO(filename, 'r')
+        self.nwbfile = self.io.read()
 
-            self.read_metadata()
+        self.read_metadata()
 
-            if with_tlim:
-                self.read_tlim()
+        if with_tlim:
+            self.read_tlim()
 
-            if not metadata_only:
-                self.read_data()
+        if not metadata_only:
+            self.read_data()
 
-            if with_visual_stim:
-                self.init_visual_stim()
+        if with_visual_stim:
+            self.init_visual_stim()
+
+        if metadata_only:
+            self.close()
             
-            if metadata_only:
-                self.close()
-            
-        except BaseException as be:
-            print('-----------------------------------------')
-            print(be)
-            print('-----------------------------------------')
-            print(' /!\ Pb with datafile: "%s"' % filename)
-            print('-----------------------------------------')
-            print('')
+        # except BaseException as be:
+        #     print('-----------------------------------------')
+        #     print(be)
+        #     print('-----------------------------------------')
+        #     print(' /!\ Pb with datafile: "%s"' % filename)
+        #     print('-----------------------------------------')
+        #     print('')
             
         if verbose:
             print('NWB-file reading time: %.1fms' % (1e3*(time.time()-t0)))
@@ -162,8 +162,8 @@ class Data:
                 self.iscell = self.Segmentation.columns[i].data[:,0].astype(bool)
                 self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
             if self.Segmentation.columns[i].name=='plane':
-                self.planeID = self.Segmentation.columns[i].data[:,0].astype(int)
-            if self.Segmentation.columns[i].name=='redcell': # DEPRECATED
+                self.planeID = self.Segmentation.columns[i].data[:].astype(int)
+            if self.Segmentation.columns[i].name=='redcell':
                 self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
                 
         
