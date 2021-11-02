@@ -146,7 +146,7 @@ class MainWindow(NewWindow):
         self.freqBox.setText('10')
         self.add_widget(self.freqBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz):'),
+        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
                         spec='large-left')
         self.flickBox = QtWidgets.QLineEdit()
         self.flickBox.setText('40')
@@ -251,7 +251,7 @@ class MainWindow(NewWindow):
         if direction=='horizontal':
             x = self.stim.angle_to_pix(np.linspace(self.STIM['zmin'], self.STIM['zmax'], Npatch))
             # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
-            for i in np.arange(Npatch-1)[(1if self.flip else 0)::2]:
+            for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
                                             size=(self.stim.angle_to_pix(size),
                                                   self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i]))),
@@ -260,7 +260,7 @@ class MainWindow(NewWindow):
         elif direction=='vertical':
             x = np.linspace(self.STIM['xmin'], self.STIM['xmax'], Npatch)
             # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
-            for i in np.arange(Npatch-1)[(1 if self.flip else 0)::2]:
+            for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
                                             size=(self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i])),
                                                   self.stim.angle_to_pix(size)),
@@ -290,8 +290,8 @@ class MainWindow(NewWindow):
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1/float(self.freqBox.text()), 1/float(self.flickBox.text())
         
-        xmin, xmax = 1.2*np.min(self.stim.x), 1.2*np.max(self.stim.x)
-        zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
+        xmin, xmax = 1.1*np.min(self.stim.x), 1.1*np.max(self.stim.x)
+        zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
 
         self.angle_start, self.angle_max, self.direction, self.label = 0, 0, '', ''
 
@@ -331,9 +331,10 @@ class MainWindow(NewWindow):
 
         # re-init time step of acquisition
         self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+
         
     def update_dt(self):
-        
+
         t0 = time.time()
         while (time.time()-t0)<=self.dt:
 
@@ -359,11 +360,14 @@ class MainWindow(NewWindow):
 
             # saving frame data
             if (time.time()-self.tSave)<=self.dt_save:
-                self.save_img()
+                self.save_img() # re-init image here
+            else:
+                print(time.time()-self.tSave, self.dt_save, 'not entering save loop')
             
             # checking if not episode over
             if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
                 self.write_data() # writing data when over
+                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
                 self.FRAMES = [] # re init data
                 self.iTime = 0  
                 self.iEp += 1
