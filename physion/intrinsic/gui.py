@@ -46,12 +46,18 @@ class MainWindow(NewWindow):
         super(MainWindow, self).__init__(i=1,
                                          title='intrinsic imaging')
 
-        ###
+        # some initialisation
+        self.running, self.stim = False, None
+        self.datafolder = ''        
+
+
+
+        ### trying the camera
         try:
-            bridge = Bridge()
-            core = bridge.get_core()
-            self.exposure = core.get_exposure()
-            self.init_camera()
+            # we initialize the camera
+            self.bridge = Bridge()
+            self.core = self.bridge.get_core()
+            self.exposure = self.core.get_exposure()
             self.demo = False
         except BaseException as be:
             print(be)
@@ -61,11 +67,6 @@ class MainWindow(NewWindow):
             print('')
             self.exposure = -1 # flag for no camera
             self.demo = True
-        
-
-        # some initialisation
-        self.running, self.stim = False, None
-        self.datafolder = ''        
         
         ########################
         ##### building GUI #####
@@ -116,11 +117,7 @@ class MainWindow(NewWindow):
         self.folderB.addItems(FOLDERS.keys())
         self.add_widget(self.folderB, spec='large-right')
 
-        self.add_widget(QtWidgets.QLabel('  - exposure (ms):'),
-                        spec='large-left')
-        self.exposureBox = QtWidgets.QLineEdit()
-        self.exposureBox.setText(str(self.exposure))
-        self.add_widget(self.exposureBox, spec='small-right')
+        self.add_widget(QtWidgets.QLabel('  - exposure: %.0f ms (from Micro-Manager)' % self.exposure))
 
         self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
@@ -137,19 +134,19 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - spatial sub-sampling (px):'),
                         spec='large-left')
         self.spatialBox = QtWidgets.QLineEdit()
-        self.spatialBox.setText('1')
+        self.spatialBox.setText('2')
         self.add_widget(self.spatialBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('10')
+        self.freqBox.setText('1')
         self.add_widget(self.freqBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
                         spec='large-left')
         self.flickBox = QtWidgets.QLineEdit()
-        self.flickBox.setText('40')
+        self.flickBox.setText('5')
         self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
@@ -238,7 +235,6 @@ class MainWindow(NewWindow):
     def init_camera(self):
         self.bridge = Bridge()
         self.core = self.bridge.get_core()
-        self.core.set_exposure(int(self.exposureBox.text()))
         # SHUTTER PROPS ???
         # auto_shutter = self.core.get_property('Core', 'AutoShutter')
         # self.core.set_property('Core', 'AutoShutter', 0)
@@ -313,10 +309,6 @@ class MainWindow(NewWindow):
         
         self.update_dt() # while loop
 
-        if self.exposure>0: # at the end we close the camera
-            self.bridge.close()
-        
-
     def save_img(self):
         
         if self.nSave>0:
@@ -363,6 +355,10 @@ class MainWindow(NewWindow):
                 self.save_img() # re-init image here
             else:
                 print(time.time()-self.tSave, self.dt_save, 'not entering save loop')
+                print('Re-initializing the whole episode')
+                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+                self.FRAMES = [] # re init data
+                self.iTime = 0  
             
             # checking if not episode over
             if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
@@ -398,7 +394,6 @@ class MainWindow(NewWindow):
 
         nwbfile.add_acquisition(images)
         
-        
         # Write the data to file
         io = pynwb.NWBHDF5IO(os.path.join(self.datafolder, filename), 'w')
         print('writing:', filename)
@@ -430,7 +425,7 @@ class MainWindow(NewWindow):
             filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
                                               filename='metadata', extension='.npy')
             metadata = {'subject':str(self.subjectBox.currentText()),
-                        'exposure':float(self.exposureBox.text()),
+                        'exposure':self.exposure,
                         'bar-size':float(self.barBox.text()),
                         'acq-freq':float(self.freqBox.text()),
                         'speed':float(self.speedBox.text())}
@@ -444,7 +439,7 @@ class MainWindow(NewWindow):
             print(' /!\  --> pb in launching acquisition (either already running or missing camera)')
 
     def live_view(self):
-        self.running = True
+        self.running, self.t0 = True, time.time()
         self.update_Image()
         
     def stop_protocol(self):
@@ -468,11 +463,12 @@ class MainWindow(NewWindow):
     def update_Image(self):
         # plot it
         self.pimg.setImage(self.get_frame())
+        new_t0 = time.time()
+        print('dt=%.1f ms' % (1e3*(new_t0-self.t0)))
+        self.t0 = new_t0
         if self.running:
             QtCore.QTimer.singleShot(1, self.update_Image)
-        elif self.exposure>0: # at the end
-            self.bridge.close()
-
+                
     def hitting_space(self):
         if not self.running:
             self.launch_protocol()
@@ -503,6 +499,9 @@ class MainWindow(NewWindow):
         else:
             print('data-folder not set !')
         
+    def quit(self):
+        self.bridge.close()
+        sys.exit()
         
 def run(app, args=None, parent=None):
     return MainWindow(app,

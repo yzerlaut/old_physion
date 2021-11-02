@@ -1,6 +1,7 @@
 import os, pynwb, itertools, skimage
 import numpy as np
-from datavyz import graph_env_screen as ge
+import matplotlib.pylab as plt
+# from datavyz import graph_env_screen as ge
 
 
 def resample_data(array, old_time, time):
@@ -16,7 +17,7 @@ def resample_data(array, old_time, time):
 def run(datafolder,
         dt=0.1):
 
-    fig, AX = ge.figure(axes=(4,1))
+    fig, AX = plt.subplots(4,1)
 
     data = {}
 
@@ -33,7 +34,7 @@ def run(datafolder,
         io2.close()
     
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        ge.title(AX[l], label)
+        # ge.title(AX[l], label)
         i=1
         while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
             io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
