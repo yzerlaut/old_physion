@@ -50,8 +50,6 @@ class MainWindow(NewWindow):
         self.running, self.stim = False, None
         self.datafolder = ''        
 
-
-
         ### trying the camera
         try:
             # we initialize the camera
@@ -263,8 +261,6 @@ class MainWindow(NewWindow):
                                             pos=(self.stim.angle_to_pix(x[i]), self.stim.angle_to_pix(angle)),
                                             units='pix', fillColor=1, color=-1))
 
-        self.flip = (False if self.flip else True) # flip the flag
-            
         return patterns
 
     def resample_img(self, img, Nsubsampling):
@@ -284,7 +280,7 @@ class MainWindow(NewWindow):
         
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-        self.dt_save, self.dt = 1/float(self.freqBox.text()), 1/float(self.flickBox.text())
+        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
         
         xmin, xmax = 1.1*np.min(self.stim.x), 1.1*np.max(self.stim.x)
         zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
@@ -327,8 +323,9 @@ class MainWindow(NewWindow):
         
     def update_dt(self):
 
-        t0 = time.time()
-        while (time.time()-t0)<=self.dt:
+        self.tSave = time.time()
+
+        while (time.time()-self.tSave)<=self.dt_save:
 
             # show image
             patterns = self.get_patterns(self.STIM['direction'][self.iEp%4],
@@ -346,28 +343,21 @@ class MainWindow(NewWindow):
                                           int(self.spatialBox.text()))
             self.nSave+=1
 
+            self.flip = (False if self.flip else True) # flip the flag (ADJUST TO HAVE IT ONLY AT DT)
+            
+            
+        self.save_img() # re-init image here
+        
+        # checking if not episode over
+        if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
+            self.write_data() # writing data when over
+            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+            self.FRAMES = [] # re init data
+            self.iTime = 0  
+            self.iEp += 1
             
         # continuing ?
         if self.running:
-
-            # saving frame data
-            if (time.time()-self.tSave)<=self.dt_save:
-                self.save_img() # re-init image here
-            else:
-                print(time.time()-self.tSave, self.dt_save, 'not entering save loop')
-                print('Re-initializing the whole episode')
-                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
-                self.FRAMES = [] # re init data
-                self.iTime = 0  
-            
-            # checking if not episode over
-            if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
-                self.write_data() # writing data when over
-                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
-                self.FRAMES = [] # re init data
-                self.iTime = 0  
-                self.iEp += 1
-                
             QtCore.QTimer.singleShot(1, self.update_dt)
 
 
@@ -500,7 +490,8 @@ class MainWindow(NewWindow):
             print('data-folder not set !')
         
     def quit(self):
-        self.bridge.close()
+        if self.exposure>0:
+            self.bridge.close()
         sys.exit()
         
 def run(app, args=None, parent=None):
