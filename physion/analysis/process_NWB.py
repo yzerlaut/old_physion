@@ -16,7 +16,7 @@ class EpisodeResponse:
                  dt_sampling=1, # ms
                  interpolation='linear',
                  baseline_substraction=False,
-                 verbose=False):
+                 verbose=True):
 
         self.dt_sampling = dt_sampling,
         self.quantity = quantity
@@ -101,10 +101,11 @@ class EpisodeResponse:
                 for key in full_data.nwbfile.stimulus.keys():
                     getattr(self, key).append(full_data.nwbfile.stimulus[key].data[iEp])
             except BaseException as be:
-                print('----')
-                print(be)
-                print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, tstop-tstart)
-                print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
+                if verbose:
+                    print('----')
+                    print(be)
+                    print(tfull[cond][0]-tstart, tfull[cond][-1]-tstart, tstop-tstart)
+                    print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
 
         self.resp = np.array(resp)
         self.index_from_start = np.arange(len(Pcond))[Pcond][:self.resp.shape[0]]

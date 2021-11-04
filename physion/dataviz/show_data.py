@@ -336,7 +336,7 @@ class MultimodalData(Data):
                            color='k',
                            label='',
                            ylim=None, xlim=None,
-                           fig=None, AX=None, verbose=False):
+                           fig=None, AX=None, no_set=True, verbose=False):
 
         # ----- protocol cond ------
         Pcond = self.get_protocol_cond(protocol_id)
@@ -402,7 +402,7 @@ class MultimodalData(Data):
                                 **dv_tools.FIGURE_PRESETS[fig_preset])
             no_set=False
         else:
-            no_set=True
+            no_set=no_set
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):

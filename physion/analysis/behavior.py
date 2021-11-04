@@ -210,9 +210,15 @@ def analysis_pdf(datafile,
 def population_analysis(FILES,
                         min_time_minutes=2,
                         exclude_subjects=[],
+                        ax=None,
                         running_speed_threshold=0.1):
 
     times, fracs_running, subjects = [], [], []
+    if ax is None:
+        fig, ax = ge.figure(figsize=(5,1), top=5)
+    else:
+        fig = None
+        
     for f in FILES:
 
         data = Data(f)
@@ -225,7 +231,6 @@ def population_analysis(FILES,
                 subjects.append(data.metadata['subject_ID'])
             
     i=-1
-    fig, ax = ge.figure(figsize=(5,1), top=5)
     for c, s in enumerate(np.unique(subjects)):
         s_cond = np.array(subjects)==s
         ax.bar(np.arange(1+i, i+1+np.sum(s_cond)),
@@ -242,7 +247,8 @@ def population_analysis(FILES,
         s_cond = np.array(subjects)==s
         ge.annotate(ax, s, (1+i, ymax), rotation=90, color=plt.cm.tab10(c%10), xycoords='data', size='x-small')
         i+=np.sum(s_cond)+1
-    ge.show()
+    return fig, ax
+
     
 if __name__=='__main__':
 
