@@ -1,8 +1,6 @@
 import os, pynwb, itertools, skimage
 import numpy as np
 import matplotlib.pylab as plt
-# from datavyz import graph_env_screen as ge
-
 
 def resample_data(array, old_time, time):
     new_array = 0*time
@@ -14,11 +12,9 @@ def resample_data(array, old_time, time):
             new_array[i1] = array[cond][0]
     return new_array
 
-def run(datafolder,
-        dt=0.1):
 
-    fig, AX = plt.subplots(4,1)
-
+def get_data(datafolder):
+    
     data = {}
 
     # # determining sampling time
@@ -34,16 +30,45 @@ def run(datafolder,
         io2.close()
     
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        # ge.title(AX[l], label)
         i=1
         while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
             io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
             nwbfile = io.read()
             data[label]['movie'][:,:,:] += nwbfile.acquisition['image_timeseries'].data[:,:,:]
-            AX[l].plot(data[label]['t'], data[label]['movie'][:,0,0])
             io.close()
             i+=1
+        # # store angle
+        # data['angle_'+label] = nwbfile.acquisition['image_timeseries'].data[:]
+        
         if i>1:
             data[label]['movie'] /= (i-1)
+
+    return data
+
+
+def run(datafolder,
+        show=False):
+
+    fig, AX = plt.subplots(4,1)
+
+    data = get_data(datafolder)
+
+    for l, label in enumerate(['up', 'down', 'left', 'right']):
+        AX[l].set_ylabel(label, fontsize=8)
+        AX[l].plot(data[label]['t'], data[label]['movie'][:,0,0])
             
-    ge.show()
+    if show:
+        plt.show()
+        
+    return fig
+
+if __name__=='__main__':
+    
+
+    from physion.assembling.saving import day_folder, last_datafolder_in_dayfolder
+    
+    datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(os.path.expanduser('~'), 'DATA')),
+                                              with_NIdaq=False)
+
+    run(datafolder, show=True)
+

@@ -120,7 +120,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
         self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText('30')
+        self.speedBox.setText('10')
         self.add_widget(self.speedBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
@@ -238,12 +238,10 @@ class MainWindow(NewWindow):
         # self.core.set_property('Core', 'AutoShutter', 0)
 
     def get_patterns(self, direction, angle, size,
-                     Npatch=25):
+                     Npatch=30):
 
         patterns = []
 
-        print(self.stim.screen['resolution'][1])
-        
         if direction=='horizontal':
             z = np.linspace(-self.stim.screen['resolution'][1], self.stim.screen['resolution'][1], Npatch)
             for i in np.arange(len(z)-1)[(1 if self.flip else 0)::2]:
@@ -391,12 +389,6 @@ class MainWindow(NewWindow):
         io.close()
         print(filename, ' saved !')
         
-        # filename = '%s-%i.npy' % (self.STIM['label'][self.iEp%4], int(self.iEp/4)+1))
-        # data = {'times':self.TIMES,
-        #         'angles':self.ANGLES,
-        #         'frames':self.FRAMES}
-        # np.save(os.path.join(self.datafolder, filename), data)
-        
         
     def launch_protocol(self):
 
@@ -500,6 +492,7 @@ def run(app, args=None, parent=None):
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",
