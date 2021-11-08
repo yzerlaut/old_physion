@@ -120,7 +120,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
         self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText('10')
+        self.speedBox.setText('30')
         self.add_widget(self.speedBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
@@ -241,24 +241,24 @@ class MainWindow(NewWindow):
                      Npatch=25):
 
         patterns = []
+
+        print(self.stim.screen['resolution'][1])
         
         if direction=='horizontal':
-            x = self.stim.angle_to_pix(np.linspace(self.STIM['zmin'], self.STIM['zmax'], Npatch))
-            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
-            for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
+            z = np.linspace(-self.stim.screen['resolution'][1], self.stim.screen['resolution'][1], Npatch)
+            for i in np.arange(len(z)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
                                             size=(self.stim.angle_to_pix(size),
-                                                  self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i]))),
-                                            pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(x[i])),
+                                                  z[1]-z[0]),
+                                            pos=(self.stim.angle_to_pix(angle), z[i]),
                                             units='pix', fillColor=1, color=-1))
         elif direction=='vertical':
-            x = np.linspace(self.STIM['xmin'], self.STIM['xmax'], Npatch)
-            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
+            x = np.linspace(-self.stim.screen['resolution'][0], self.stim.screen['resolution'][0], Npatch)
             for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
-                                            size=(self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i])),
+                                            size=(x[1]-x[0],
                                                   self.stim.angle_to_pix(size)),
-                                            pos=(self.stim.angle_to_pix(x[i]), self.stim.angle_to_pix(angle)),
+                                            pos=(x[i], self.stim.angle_to_pix(angle)),
                                             units='pix', fillColor=1, color=-1))
 
         return patterns
@@ -277,7 +277,7 @@ class MainWindow(NewWindow):
         self.stim = visual_stim({"Screen": "Dell-2020",
                                  "presentation-prestim-screen": -1,
                                  "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
-        
+
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
