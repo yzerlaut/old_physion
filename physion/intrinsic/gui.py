@@ -193,13 +193,18 @@ class MainWindow(NewWindow):
         self.analysisButton.clicked.connect(self.launch_analysis)
         self.add_widget(self.analysisButton)
         
-        self.add_widget(QtWidgets.QLabel(20*' - '))
+        self.displayBox = QtWidgets.QComboBox(self)
+        self.displayBox.addItems(['raw data', 'horizontal-map', 'vertical-map'])
+        self.displayBox.activated.connect(self.pick_display)
+        self.add_widget(self.displayBox, 'shift-right')
 
     def add_widget(self, wdgt, spec='None'):
         if 'small' in spec:
             wdgt.setFixedWidth(70)
             
-        if spec=='small-left':
+        if spec=='shift-right':
+            self.l0.addWidget(wdgt, self.i_wdgt-1, 3, 1, 4)
+        elif spec=='small-left':
             self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, 1)
         elif spec=='large-left':
             self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length-1)
@@ -475,11 +480,20 @@ class MainWindow(NewWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                                             "Choose datafolder",
                                                             FOLDERS[self.folderB.currentText()])
-
+        
         if folder!='':
             self.datafolder = folder
         else:
             print('data-folder not set !')
+
+    def pick_display(self):
+
+        if self.displayBox.currentText()=='horizontal-map':
+            print('show horizontal map')
+        elif self.displayBox.currentText()=='vertical-map':
+            print('show vertical map')
+            
+        
         
     def quit(self):
         if self.exposure>0:

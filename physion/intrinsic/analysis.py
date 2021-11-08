@@ -35,10 +35,11 @@ def get_data(datafolder):
             io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
             nwbfile = io.read()
             data[label]['movie'][:,:,:] += nwbfile.acquisition['image_timeseries'].data[:,:,:]
-            io.close()
+
+            print(nwbfile.acquisition['angle_timeseries'].data[:])
+            if i==1:
+                data[label]['angle'] = nwbfile.acquisition['angle_timeseries'].data[:]
             i+=1
-        # # store angle
-        # data['angle_'+label] = nwbfile.acquisition['image_timeseries'].data[:]
         
         if i>1:
             data[label]['movie'] /= (i-1)
@@ -55,7 +56,10 @@ def run(datafolder,
 
     for l, label in enumerate(['up', 'down', 'left', 'right']):
         AX[l].set_ylabel(label, fontsize=8)
-        AX[l].plot(data[label]['t'], data[label]['movie'][:,0,0])
+        # show some pixels:
+        AX[l].plot(data[label]['angle'], data[label]['movie'][:,0,0])
+        AX[l].plot(data[label]['angle'], data[label]['movie'][:,10,100])
+        AX[l].plot(data[label]['angle'], data[label]['movie'][:,100,10])
             
     if show:
         plt.show()
