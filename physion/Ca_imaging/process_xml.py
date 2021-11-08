@@ -7,6 +7,7 @@ from Ca_imaging.presets import ops0
 
 
 def build_db(folder):
+    print(folder)
     db = {'data_path':[folder],
           'subfolders': [],
           'save_path0': folder,
@@ -19,9 +20,12 @@ def build_ops(folder):
 
 def build_suite2p_options(folder,
                           settings_dict):
-
-    xml_file = os.path.join(folder, os.path.join(folder.split(os.path.sep)[-1]+'.xml'))
     
+    if os.name=='nt':
+        xml_file = os.path.join(folder, folder.split('/')[-1]+'.xml')
+    else:
+        xml_file = os.path.join(folder, folder.split(os.path.sep)[-1]+'.xml')
+
     bruker_data = bruker_xml_parser(xml_file)
     ops = ops0.copy()
 
