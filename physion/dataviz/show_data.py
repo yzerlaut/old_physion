@@ -246,13 +246,9 @@ class MultimodalData(Data):
             iEp = self.find_episode_from_time(ti)
             tEp = self.nwbfile.stimulus['time_start_realigned'].data[iEp]
             if iEp>=0:
-                # arrow = self.visual_stim.get_arrow(iEp, self,
-                #             arrow_props={'length':25, 'width_factor':0.1})
                 self.visual_stim.show_frame(iEp, ax=AX[i],
                                             time_from_episode_start=ti-tEp,
                                             label=label)
-            # else:
-            #     self.visual_stim.show_interstim(AX[i])
             AX[i].set_title('%.1fs' % ti, fontsize=6)
             AX[i].axis('off')
             label=None

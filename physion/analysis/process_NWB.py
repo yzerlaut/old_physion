@@ -1,6 +1,8 @@
 import sys, time, tempfile, os, pathlib, json, datetime, string, itertools
 import numpy as np
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from Ca_imaging import tools as Ca_imaging_tools
 from scipy.interpolate import interp1d
 from analysis import stat_tools
@@ -16,6 +18,7 @@ class EpisodeResponse:
                  dt_sampling=1, # ms
                  interpolation='linear',
                  baseline_substraction=False,
+                 tfull=None,
                  verbose=True):
 
         self.dt_sampling = dt_sampling,
@@ -56,7 +59,9 @@ class EpisodeResponse:
         # -> time array:
         self.t = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
 
-        if quantity=='CaImaging':
+        if type(quantity)!=str and (tfull is not None):
+            valfull = quantity
+        elif quantity=='CaImaging':
             tfull = full_data.Neuropil.timestamps[:]
             valfull = Ca_imaging_tools.compute_CaImaging_trace(full_data, subquantity,
                                                                self.roiIndices).mean(axis=0) # valid ROI indices inside
