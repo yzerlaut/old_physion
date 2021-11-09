@@ -409,15 +409,18 @@ class MainWindow(guiparts.NewWindow):
 
         print('inspecting the folder "%s" [...]' % FOLDERS[self.fbox.currentText()])
 
-        FILES = get_files_with_extension(FOLDERS[self.fbox.currentText()],
-                                         extension='.nwb', recursive=True)
+        FILES0 = get_files_with_extension(FOLDERS[self.fbox.currentText()],
+                                          extension='.nwb', recursive=True)
 
-        DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
-        TIMES = []
-        for f in FILES:
+        TIMES, DATES, FILES = [], [], []
+        for f in FILES0:
             Time = f.split(os.path.sep)[-1].replace('.nwb', '').split('-')
-            TIMES.append(3600*int(Time[0])+60*int(Time[1])+int(Time[2]))
-        TIMES = np.array(TIMES)
+            if len(Time)>=4:
+                TIMES.append(3600*int(Time[0])+60*int(Time[1])+int(Time[2]))
+                DATES.append(f.split(os.path.sep)[-1].split('-')[0])
+                FILES.append(f)
+                
+        TIMES, DATES, FILES = np.array(TIMES), np.array(DATES), np.array(FILES)
         NDATES = np.array([datetime.date(*[int(dd) for dd in date.split('_')]).toordinal() for date in DATES])
         self.FILES_PER_DAY = {}
         

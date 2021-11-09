@@ -14,7 +14,7 @@ class RCGwindow(NewWindow):
                  args=None,
                  parent=None):
         """
-        FaceMotion GUI
+        Red-Cell selection GUI
         """
         self.app = app
         
@@ -24,8 +24,8 @@ class RCGwindow(NewWindow):
         self.nextSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+N'), self)
         self.nextSc.activated.connect(self.next_roi)
 
-        # self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
-        # self.saveSc.activated.connect(self.save_data)
+        self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
+        self.saveSc.activated.connect(self.save)
         
         self.roi_index=0
         
@@ -103,10 +103,10 @@ class RCGwindow(NewWindow):
 
     def open_file(self):
 
-        # self.folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
-        #                             "Choose datafolder",
-        #                             FOLDERS[self.folderB.currentText()])
-        self.folder = '/home/yann/UNPROCESSED/TSeries-001'
+        self.folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+                                    "Choose datafolder",
+                                    FOLDERS[self.folderB.currentText()])
+        # self.folder = '/home/yann/UNPROCESSED/TSeries-001'
 
         if self.folder!='':
 
