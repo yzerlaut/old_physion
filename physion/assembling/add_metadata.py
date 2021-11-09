@@ -44,6 +44,7 @@ def add_metadata(args):
             
     # updates of subject
     if args.subject!='':
+        print('previous subject: ', metadata['subject_ID'])
         try:
             with open(args.subject_file) as f:
                 subjects = json.load(f)
@@ -71,7 +72,7 @@ if __name__=='__main__':
     parser.add_argument('-p', "--protocol", type=str, default='', help='provide the full path !')
     parser.add_argument('-sf', "--subject_file", type=str,
         default=os.path.join(base_path, 'exp', 'subjects', 'mice_fani.json'))
-    parser.add_argument('-s', "--subject", type=str, default='Mouse1', help='provide the subject name')
+    parser.add_argument('-s', "--subject", type=str, default='', help='provide the subject name')
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
