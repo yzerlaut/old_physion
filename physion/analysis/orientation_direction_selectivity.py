@@ -13,6 +13,17 @@ from analysis import stat_tools
 from analysis.summary_pdf import summary_fig
 
 
+def shift_orientation_according_to_pref(angle, 
+                                        pref_angle=0, 
+                                        start_angle=-45, 
+                                        angle_range=360):
+    new_angle = (angle-pref_angle)%angle_range
+    if new_angle>=angle_range+start_angle:
+        return new_angle-angle_range
+    else:
+        return new_angle
+    
+
 def orientation_selectivity_index(angles, resp):
     """
     computes 

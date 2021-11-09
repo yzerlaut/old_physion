@@ -9,26 +9,15 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from physion.analysis.read_NWB import Data
 from physion.analysis.process_NWB import EpisodeResponse
 from analysis.tools import summary_pdf_folder
+from analysis.orientation_direction_selectivity import shift_orientation_according_to_pref
 
-def shift_orientation_according_to_pref(angle, 
-                                        pref_angle=0, 
-                                        start_angle=-45, 
-                                        angle_range=360):
-    new_angle = (angle-pref_angle)%angle_range
-    if new_angle>=angle_range+start_angle:
-        return new_angle-angle_range
-    else:
-        return new_angle
-    
-# shift_orientation_according_to_pref(360, 45)
-
-def compute_population_resp(filename, options,
-                            protocol_id=0,
-                            Nmax = 100000,
-                            stat_test_props=dict(interval_pre=[-2,0],
-                                                 interval_post=[1,3],
-                                                 test='ttest', positive=True),
-                            significance_threshold=0.01):
+def compute_DS_population_resp(filename, options,
+                               protocol_id=0,
+                               Nmax = 100000,
+                               stat_test_props=dict(interval_pre=[-2,0],
+                                                    interval_post=[1,3],
+                                                    test='ttest', positive=True),
+                               significance_threshold=0.01):
 
     # load datafile
     data = Data(filename)
@@ -37,15 +26,26 @@ def compute_population_resp(filename, options,
                  'post_level':[], 'evoked_level':[]}
 
     # get levels of pupil and running-speed in the episodes (i.e. after realignement)
-    if 'Pupil' in data.nwbfile.acquisition:    
+    if 'Pupil' in data.nwbfile.processing:    
         Pupil_episodes = EpisodeResponse(data, protocol_id=protocol_id, quantity='Pupil', **options)
         full_resp['pupil_level'] = []
+    else:
+        Pupil_episodes = None
     if 'Running-Speed' in data.nwbfile.acquisition:
         Running_episodes = EpisodeResponse(data, protocol_id=protocol_id, quantity='Running-Speed', **options)
         full_resp['speed_level'] = []
-    
-    for key in Pupil_episodes.varied_parameters.keys():
-        full_resp[key] = []
+    else:
+        Running_episodes = None
+
+    if Running_episodes is not None:
+        for key in Running_episodes.varied_parameters.keys():
+            full_resp[key] = []
+    elif Pupil_episodes is not None:
+        for key in Pupil_episodes.varied_parameters.keys():
+            full_resp[key] = []
+    else:
+        print(100*'-'+'\n /!\ Need at least one of the Pupil or Running modalities /!\ \n  '+100*'-')
+
 
     for roi in np.arange(data.iscell.sum())[:Nmax]:
         ROI_EPISODES = EpisodeResponse(data,
@@ -76,9 +76,9 @@ def compute_population_resp(filename, options,
                 full_resp['evoked_level'].append(full_resp['post_level'][-1]-ROI_EPISODES.resp[iep, pre_interval_cond].mean())
                 full_resp['roi'].append(roi)
                 # adding running and speed level in the "post" interval:
-                if 'Pupil' in data.nwbfile.acquisition:
+                if Pupil_episodes is not None:
                     full_resp['pupil_level'].append(Pupil_episodes.resp[iep, post_interval_cond].mean())
-                if 'Running-Speed' in data.nwbfile.acquisition:
+                if Running_episodes is not None:
                     full_resp['speed_level'].append(Running_episodes.resp[iep, post_interval_cond].mean())
 
     # transform to numpy array for convenience
@@ -155,6 +155,7 @@ def compute_behavior_mod_population_tuning(full_resp,
     if 'speed_level' in full_resp:
         running_cond = (np.abs(full_resp['speed_level'])>=running_speed_threshold)
     else:
+        # always a running cond set to False if no running monitoring
         running_cond = np.zeros(len(full_resp['roi']), dtype=bool) # False by default
         
     if 'pupil_level' in full_resp:
@@ -162,10 +163,11 @@ def compute_behavior_mod_population_tuning(full_resp,
         constricted_cond = ~running_cond & (full_resp['pupil_level']<pupil_threshold)
 
     # add to full_resp
-    full_resp['running_cond'] = running_cond
-    full_resp['dilated_cond'] = dilated_cond
-    full_resp['constricted_cond'] = constricted_cond
     full_resp['Ncells'], full_resp['Neps'] = Ncells, Neps
+    full_resp['running_cond'] = running_cond
+    if 'pupil_level' in full_resp:
+        full_resp['dilated_cond'] = dilated_cond
+        full_resp['constricted_cond'] = constricted_cond
             
     angles = np.unique(full_resp['angle_from_pref'])
     curves = {'running_mean': [], 'running_std':[],
@@ -182,18 +184,20 @@ def compute_behavior_mod_population_tuning(full_resp,
         # still
         curves['still_mean'].append(full_resp[resp_key][cond & ~running_cond].mean())
         curves['still_std'].append(full_resp[resp_key][cond & ~running_cond].std())
-        # dilated pupil
-        curves['dilated_mean'].append(full_resp[resp_key][cond & dilated_cond].mean())
-        curves['dilated_std'].append(full_resp[resp_key][cond & dilated_cond].std())
-        # constricted pupil
-        curves['constricted_mean'].append(full_resp[resp_key][cond & constricted_cond].mean())
-        curves['constricted_std'].append(full_resp[resp_key][cond & constricted_cond].std())
+        if 'pupil_level' in full_resp:
+            # dilated pupil
+            curves['dilated_mean'].append(full_resp[resp_key][cond & dilated_cond].mean())
+            curves['dilated_std'].append(full_resp[resp_key][cond & dilated_cond].std())
+            # constricted pupil
+            curves['constricted_mean'].append(full_resp[resp_key][cond & constricted_cond].mean())
+            curves['constricted_std'].append(full_resp[resp_key][cond & constricted_cond].std())
         
     curves['all'] = np.mean(full_resp['per_cell'], axis=0)
 
     return curves
 
 def tuning_modulation_fig(curves, full_resp=None):
+
     # running vs still --- raw evoked response
     fig, ax = ge.figure(figsize=(1.5,1.5), right=6)
     ge.plot(curves['angles'], curves['all'], label='all', color='grey', ax=ax, no_set=True, lw=2, alpha=.5)
@@ -205,7 +209,7 @@ def tuning_modulation_fig(curves, full_resp=None):
     ge.set_plot(ax, xlabel='angle ($^{o}$) w.r.t. pref. orient.', ylabel='evoked resp, ($\delta$ dF/F)   ',
                xticks=[0,90,180,270])
 
-    if full_resp is not None:
+    if (full_resp is not None) and ('speed_level' in full_resp) and ('pupil_level' in full_resp):
         inset = ge.inset(fig, [.8,.5,.16,.28])
         ge.scatter(full_resp['pupil_level'][full_resp['running_cond']],full_resp['speed_level'][full_resp['running_cond']],
                    ax=inset, no_set=True, color=ge.orange)
@@ -216,31 +220,34 @@ def tuning_modulation_fig(curves, full_resp=None):
                    title='episodes (n=%i)   ' % full_resp['Neps'])
         ge.annotate(inset, 'n=%i' % (np.sum(full_resp['running_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.orange)
         ge.annotate(inset, '\nn=%i' % (np.sum(~full_resp['running_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.blue)
- 
-    # constricted vs dilated --- raw evoked response
-    fig2, ax = ge.figure(figsize=(1.5,1.5), right=6)
-    ge.plot(curves['angles'], curves['all'], label='all', color='grey', ax=ax, no_set=True, lw=2, alpha=.5)
-    ge.plot(curves['angles'], curves['constricted_mean'], 
-            color=ge.green, ms=4, m='o', ax=ax, lw=2, label='constricted', no_set=True)
-    ge.plot(curves['angles'], curves['dilated_mean'], 
-            color=ge.purple, ms=4, m='o', ax=ax, lw=2, label='dilated', no_set=True)
-    ge.legend(ax, ncol=3, loc=(.1,1.))
-    ge.set_plot(ax, xlabel='angle ($^{o}$) w.r.t. pref. orient.', ylabel='evoked resp, ($\delta$ dF/F)   ',
-               xticks=[0,90,180,270])
 
-    if full_resp is not None:
-        inset2 = ge.inset(fig2, [.8,.5,.16,.28])
-        ge.scatter(full_resp['pupil_level'][full_resp['dilated_cond']],
-                   full_resp['speed_level'][full_resp['dilated_cond']],
-                   ax=inset2, no_set=True, color=ge.purple)
-        ge.scatter(full_resp['pupil_level'][full_resp['constricted_cond']],
-                   full_resp['speed_level'][full_resp['constricted_cond']],
-                   ax=inset2, no_set=True, color=ge.green)
-        ge.annotate(ax, 'n=%i cells\n' % len(np.unique(full_resp['roi'])), (0.,1.), ha='right')
-        ge.set_plot(inset2, xlabel='pupil size (mm)', ylabel='run. speed (cm/s)     ', ylim=inset.get_ylim(),
-                   title='episodes (n=%i)   ' % full_resp['Neps'])
-        ge.annotate(inset2, 'n=%i' % (np.sum(full_resp['constricted_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.green)
-        ge.annotate(inset2, '\nn=%i' % (np.sum(full_resp['dilated_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.purple)
+    if len(curves['constricted_mean'])>0:
+        # constricted vs dilated --- raw evoked response
+        fig2, ax = ge.figure(figsize=(1.5,1.5), right=6)
+        ge.plot(curves['angles'], curves['all'], label='all', color='grey', ax=ax, no_set=True, lw=2, alpha=.5)
+        ge.plot(curves['angles'], curves['constricted_mean'], 
+                color=ge.green, ms=4, m='o', ax=ax, lw=2, label='constricted', no_set=True)
+        ge.plot(curves['angles'], curves['dilated_mean'], 
+                color=ge.purple, ms=4, m='o', ax=ax, lw=2, label='dilated', no_set=True)
+        ge.legend(ax, ncol=3, loc=(.1,1.))
+        ge.set_plot(ax, xlabel='angle ($^{o}$) w.r.t. pref. orient.', ylabel='evoked resp, ($\delta$ dF/F)   ',
+                   xticks=[0,90,180,270])
+
+        if (full_resp is not None) and ('speed_level' in full_resp) and ('pupil_level' in full_resp):
+            inset2 = ge.inset(fig2, [.8,.5,.16,.28])
+            ge.scatter(full_resp['pupil_level'][full_resp['dilated_cond']],
+                       full_resp['speed_level'][full_resp['dilated_cond']],
+                       ax=inset2, no_set=True, color=ge.purple)
+            ge.scatter(full_resp['pupil_level'][full_resp['constricted_cond']],
+                       full_resp['speed_level'][full_resp['constricted_cond']],
+                       ax=inset2, no_set=True, color=ge.green)
+            ge.annotate(ax, 'n=%i cells\n' % len(np.unique(full_resp['roi'])), (0.,1.), ha='right')
+            ge.set_plot(inset2, xlabel='pupil size (mm)', ylabel='run. speed (cm/s)     ', ylim=inset.get_ylim(),
+                       title='episodes (n=%i)   ' % full_resp['Neps'])
+            ge.annotate(inset2, 'n=%i' % (np.sum(full_resp['constricted_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.green)
+            ge.annotate(inset2, '\nn=%i' % (np.sum(full_resp['dilated_cond'])/full_resp['Ncells']), (0.,1.), va='top', color=ge.purple)
+    else:
+        fig2 = None
     
     return fig, fig2
 
@@ -281,10 +288,25 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    if '.nwb' in args.datafile:
-        analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
-    else:
-        print('/!\ Need to provide a NWB datafile as argument ')
+    # if '.nwb' in args.datafile:
+    #     analysis_pdf(args.datafile, iprotocol=args.iprotocol, Nmax=args.Nmax)
+    # else:
+    #     print('/!\ Need to provide a NWB datafile as argument ')
+
+    options = dict(subquantity='d(F-0.7*Fneu)',
+                   dt_sampling=1, prestim_duration=2, 
+                   verbose=False)
+
+    full_resp = compute_DS_population_resp(args.datafile, options, Nmax=args.Nmax)
+    if len(full_resp['roi'])>0:
+        fig = population_tuning_fig(full_resp)
+        curves = compute_behavior_mod_population_tuning(full_resp,
+                                                        running_speed_threshold = 0.2,
+                                                        pupil_threshold=2.1)
+        fig1, fig2 = tuning_modulation_fig(curves, full_resp=full_resp)
+    ge.show()
+
+
 
 
 
