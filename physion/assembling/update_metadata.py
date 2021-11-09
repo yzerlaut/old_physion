@@ -6,7 +6,7 @@ import numpy as np
 
 base_path = str(pathlib.Path(__file__).resolve().parents[1])
 
-def add_metadata(args):
+def update_metadata(args):
 
     fn = os.path.join(args.datafolder, 'metadata.npy')
 
@@ -78,6 +78,6 @@ if __name__=='__main__':
 
     if args.datafolder!='':
         if os.path.isdir(args.datafolder):
-            add_metadata(args)
+            update_metadata(args)
         else:
             print('"%s" not a valid datafolder' % args.datafolder)
