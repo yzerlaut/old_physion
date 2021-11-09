@@ -193,13 +193,18 @@ class MainWindow(NewWindow):
         self.analysisButton.clicked.connect(self.launch_analysis)
         self.add_widget(self.analysisButton)
         
-        self.add_widget(QtWidgets.QLabel(20*' - '))
+        self.displayBox = QtWidgets.QComboBox(self)
+        self.displayBox.addItems(['raw data', 'horizontal-map', 'vertical-map'])
+        self.displayBox.activated.connect(self.pick_display)
+        self.add_widget(self.displayBox, 'shift-right')
 
     def add_widget(self, wdgt, spec='None'):
         if 'small' in spec:
             wdgt.setFixedWidth(70)
             
-        if spec=='small-left':
+        if spec=='shift-right':
+            self.l0.addWidget(wdgt, self.i_wdgt-1, 3, 1, 4)
+        elif spec=='small-left':
             self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, 1)
         elif spec=='large-left':
             self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length-1)
@@ -238,27 +243,25 @@ class MainWindow(NewWindow):
         # self.core.set_property('Core', 'AutoShutter', 0)
 
     def get_patterns(self, direction, angle, size,
-                     Npatch=25):
+                     Npatch=30):
 
         patterns = []
-        
+
         if direction=='horizontal':
-            x = self.stim.angle_to_pix(np.linspace(self.STIM['zmin'], self.STIM['zmax'], Npatch))
-            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
-            for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
+            z = np.linspace(-self.stim.screen['resolution'][1], self.stim.screen['resolution'][1], Npatch)
+            for i in np.arange(len(z)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
                                             size=(self.stim.angle_to_pix(size),
-                                                  self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i]))),
-                                            pos=(self.stim.angle_to_pix(angle), self.stim.angle_to_pix(x[i])),
+                                                  z[1]-z[0]),
+                                            pos=(self.stim.angle_to_pix(angle), z[i]),
                                             units='pix', fillColor=1, color=-1))
         elif direction=='vertical':
-            x = np.linspace(self.STIM['xmin'], self.STIM['xmax'], Npatch)
-            # for i in np.random.choice(np.arange(Npatch-1), int(Npatch/2)+1):
+            x = np.linspace(-self.stim.screen['resolution'][0], self.stim.screen['resolution'][0], Npatch)
             for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
                 patterns.append(visual.Rect(win=self.stim.win,
-                                            size=(self.stim.angle_to_pix(np.abs(x[i+1]-x[i]), starting_angle=np.abs(x[i])),
+                                            size=(x[1]-x[0],
                                                   self.stim.angle_to_pix(size)),
-                                            pos=(self.stim.angle_to_pix(x[i]), self.stim.angle_to_pix(angle)),
+                                            pos=(x[i], self.stim.angle_to_pix(angle)),
                                             units='pix', fillColor=1, color=-1))
 
         return patterns
@@ -277,7 +280,7 @@ class MainWindow(NewWindow):
         self.stim = visual_stim({"Screen": "Dell-2020",
                                  "presentation-prestim-screen": -1,
                                  "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
-        
+
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
@@ -391,12 +394,6 @@ class MainWindow(NewWindow):
         io.close()
         print(filename, ' saved !')
         
-        # filename = '%s-%i.npy' % (self.STIM['label'][self.iEp%4], int(self.iEp/4)+1))
-        # data = {'times':self.TIMES,
-        #         'angles':self.ANGLES,
-        #         'frames':self.FRAMES}
-        # np.save(os.path.join(self.datafolder, filename), data)
-        
         
     def launch_protocol(self):
 
@@ -483,11 +480,20 @@ class MainWindow(NewWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                                             "Choose datafolder",
                                                             FOLDERS[self.folderB.currentText()])
-
+        
         if folder!='':
             self.datafolder = folder
         else:
             print('data-folder not set !')
+
+    def pick_display(self):
+
+        if self.displayBox.currentText()=='horizontal-map':
+            print('show horizontal map')
+        elif self.displayBox.currentText()=='vertical-map':
+            print('show vertical map')
+            
+        
         
     def quit(self):
         if self.exposure>0:
@@ -500,6 +506,7 @@ def run(app, args=None, parent=None):
                       parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
     parser=argparse.ArgumentParser(description="Experiment interface",
