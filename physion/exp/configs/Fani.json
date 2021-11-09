@@ -18,5 +18,5 @@
     "experimenter":"Fani Koukouli",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
-    "protocols":["Pakan-et-al-Elife-2016", "Pakan-et-al-drifting", "ff-drifting-grating-contrast-curve", "ff-drifting-grating-contrast-curve-log-spaced", "CB1-project-protocol", "sparse-noise-1h", "mismatch-negativity"]
+    "protocols":["Pakan-et-al-Elife-2016", "Pakan-et-al-drifting", "ff-drifting-grating-contrast-curve", "ff-drifting-grating-contrast-curve-log-spaced", "CB1-project-protocol", "direction-selectivity-precise", "sparse-noise-1h", "mismatch-negativity"]
 }

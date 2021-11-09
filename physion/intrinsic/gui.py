@@ -57,6 +57,9 @@ class MainWindow(NewWindow):
             self.core = self.bridge.get_core()
             self.exposure = self.core.get_exposure()
             self.demo = False
+            auto_shutter = self.core.get_property('Core', 'AutoShutter')
+            print(auto_shutter)
+            self.core.set_property('Core', 'AutoShutter', 0)
         except BaseException as be:
             print(be)
             print('')
@@ -254,7 +257,7 @@ class MainWindow(NewWindow):
                                             size=(self.stim.angle_to_pix(size),
                                                   z[1]-z[0]),
                                             pos=(self.stim.angle_to_pix(angle), z[i]),
-                                            units='pix', fillColor=1, color=-1))
+                                            units='pix', fillColor=1))
         elif direction=='vertical':
             x = np.linspace(-self.stim.screen['resolution'][0], self.stim.screen['resolution'][0], Npatch)
             for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
@@ -262,7 +265,7 @@ class MainWindow(NewWindow):
                                             size=(x[1]-x[0],
                                                   self.stim.angle_to_pix(size)),
                                             pos=(x[i], self.stim.angle_to_pix(angle)),
-                                            units='pix', fillColor=1, color=-1))
+                                            units='pix', fillColor=1))
 
         return patterns
 
@@ -341,13 +344,15 @@ class MainWindow(NewWindow):
             except BaseException:
                 pass
 
-            # fetch image
+            # # fetch image
             self.img += self.resample_img(self.get_frame(),
                                           int(self.spatialBox.text()))
             self.nSave+=1
 
+            time.sleep(self.dt/2.)
             self.flip = (False if self.flip else True) # flip the flag (ADJUST TO HAVE IT ONLY AT DT)
             
+        print(self.nSave)
             
         self.save_img() # re-init image here
         
