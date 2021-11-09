@@ -359,9 +359,9 @@ class MainWindow(NewWindow):
         
         # checking if not episode over
         if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
-            if not self.screen_only:
+            if self.camBox.isChecked():
                 self.write_data() # writing data when over
-                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
             self.FRAMES = [] # re init data
             self.iTime = 0  
             self.iEp += 1
