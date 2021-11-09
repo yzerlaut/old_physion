@@ -152,8 +152,13 @@ class MainWindow(NewWindow):
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
-        self.add_widget(self.demoBox, spec='large-right')
+        self.add_widget(self.demoBox, spec='large-left')
         self.demoBox.setChecked(self.demo)
+
+        self.camBox = QtWidgets.QCheckBox("cam.")
+        self.camBox.setStyleSheet("color: gray;")
+        self.add_widget(self.camBox, spec='small-right')
+        self.camBox.setChecked(True)
         
         # ---  launching acquisition ---
         self.liveButton = QtWidgets.QPushButton("--   live view    -- ", self)
@@ -238,13 +243,6 @@ class MainWindow(NewWindow):
         self.stim = visual_stim.build_stim(protocol)
         self.parent = dummy_parent()
 
-    def init_camera(self):
-        self.bridge = Bridge()
-        self.core = self.bridge.get_core()
-        # SHUTTER PROPS ???
-        # auto_shutter = self.core.get_property('Core', 'AutoShutter')
-        # self.core.set_property('Core', 'AutoShutter', 0)
-
     def get_patterns(self, direction, angle, size,
                      Npatch=30):
 
@@ -307,6 +305,7 @@ class MainWindow(NewWindow):
                                                     int(tmax/self.dt))
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
+
         self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
         
         self.update_dt() # while loop
@@ -319,7 +318,6 @@ class MainWindow(NewWindow):
         if True: # live display
             self.pimg.setImage(self.img)
 
-        self.iTime += 1
         # NEED TO STORE DATA HERE
         self.FRAMES.append(self.img)
 
@@ -344,22 +342,26 @@ class MainWindow(NewWindow):
             except BaseException:
                 pass
 
-            # # fetch image
-            self.img += self.resample_img(self.get_frame(),
-                                          int(self.spatialBox.text()))
-            self.nSave+=1
+            
+            if self.camBox.isChecked():
+                # # fetch image
+                self.img += self.resample_img(self.get_frame(),
+                                              int(self.spatialBox.text()))
+                self.nSave+=1
 
             time.sleep(self.dt/2.)
             self.flip = (False if self.flip else True) # flip the flag (ADJUST TO HAVE IT ONLY AT DT)
             
-        print(self.nSave)
-            
-        self.save_img() # re-init image here
+        if self.camBox.isChecked():
+            self.save_img() # re-init image here
+
+        self.iTime += 1
         
         # checking if not episode over
         if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
-            self.write_data() # writing data when over
-            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+            if not self.screen_only:
+                self.write_data() # writing data when over
+                self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
             self.FRAMES = [] # re init data
             self.iTime = 0  
             self.iEp += 1
