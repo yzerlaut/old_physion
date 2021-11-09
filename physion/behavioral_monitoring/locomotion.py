@@ -46,7 +46,7 @@ def compute_locomotion_speed(binary_signal,
                              with_raw_position=False):
 
     A = binary_signal%2
-    B = np.round(binary_signal/2, 0)
+    B = np.floor(binary_signal/2)
 
     position = compute_position_from_binary_signals(A, B)*2.*np.pi*radius_position_on_disk/rotoencoder_value_per_rotation
 
@@ -115,7 +115,12 @@ if __name__=='__main__':
         
     else:
         from hardware_control.NIdaq.recording import *
-        device = find_m_series_devices()[0]
+        M, X = find_m_series_devices(), find_x_series_devices()
+        if len(M)>0:
+            device = M[0]
+        else:
+            device = X[0]
+
         t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
         analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
         analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array)])
@@ -124,6 +129,13 @@ if __name__=='__main__':
         analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
                                                      args.Nchannel_digital_rec)
 
+
+        A = digital_inputs[0,:]%2
+        B = np.floor(digital_inputs[0,:]/2)
+        plt.plot(t_array, A)
+        plt.plot(t_array, 2+B)
+        plt.show()
+        
         speed, position = compute_locomotion_speed(digital_inputs[0],
                                                    acq_freq=1./args.acq_time_step,
                                                    position_smoothing=100e-3,

@@ -18,7 +18,7 @@ SCREENS = {
         'gamma_correction':{'k':1.,
                             'gamma':1.},
     },
-    'Dell-2020_35.0V+ScanFeedback':{
+    'Dell-2020_35.6V+ScanFeedback':{
         'name':'Dell-2020',
         'screen_id':1,
         'resolution':[1280, 720],
@@ -32,8 +32,6 @@ SCREENS = {
                              'color-off':-1,
                              'time-on':0.2,
                              'time-off':0.8},
-	'luminosity-setting':'100%',
-	'contrast-setting':'100%',
         'gamma_correction':{'k':1.,
                             'gamma':1.},
     },
@@ -51,8 +49,6 @@ SCREENS = {
                              'color-off':-1,
                              'time-on':0.2,
                              'time-off':0.8},
-	'luminosity-setting':'100%',
-	'contrast-setting':'100%',
         'gamma_correction':{'k':1.,
                             'gamma':1.},
     },

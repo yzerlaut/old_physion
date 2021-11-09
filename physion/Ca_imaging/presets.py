@@ -10,7 +10,7 @@ ops0 = {
     'look_one_level_down': 0.0,
     'delete_bin': False,
     'mesoscan': False,
-    # 'bruker': True,
+    'bruker': True,
     'h5py': [], 'h5py_key': 'data',
     'move_bin': False, 
     'nplanes': 1, # (int, default: 1) each tiff has this many planes in sequence
@@ -71,6 +71,7 @@ ops0 = {
     'max_iterations': 20,
     'threshold_scaling': 1.0,
     'max_overlap': 0.75,
+    'anatomical_only': 0,
     'high_pass': 6.0,
     'use_builtin_classifier': False,
     'inner_neuropil_radius': 2,

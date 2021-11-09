@@ -13,6 +13,17 @@ from analysis import stat_tools
 from analysis.summary_pdf import summary_fig
 
 
+def shift_orientation_according_to_pref(angle, 
+                                        pref_angle=0, 
+                                        start_angle=-45, 
+                                        angle_range=360):
+    new_angle = (angle-pref_angle)%angle_range
+    if new_angle>=angle_range+start_angle:
+        return new_angle-angle_range
+    else:
+        return new_angle
+    
+
 def orientation_selectivity_index(angles, resp):
     """
     computes 
@@ -111,30 +122,32 @@ def DS_ROI_analysis(FullData,
                     verbose=False,
                     response_significance_threshold=0.01,
                     with_responsive_angles = False,
+                    fig=None, AX=None,
+                    CaImaging_options = dict(quantity='CaImaging', subquantity='dF/F'),
                     stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                         test='wilcoxon')):
+                                         test='wilcoxon'),
+                    inset_coords=(0.92,0.4,0.07,0.4)):
     """
     direction selectivity ROI analysis
     """
 
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
-                               quantity='CaImaging', subquantity='dF/F',
-                               roiIndex = roiIndex)
+                               roiIndex = roiIndex, verbose=verbose, **CaImaging_options)
     
     fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
                                           protocol_id=iprotocol,
-                                          quantity='CaImaging', subquantity='dF/F',
                                           roiIndex = roiIndex,
                                           column_key='angle',
                                           ybar=1., ybarlabel='1dF/F',
                                           xbar=1., xbarlabel='1s',
+                                          fig=fig, AX=AX, no_set=False,
                                           fig_preset='raw-traces-preset+right-space',
                                           with_annotation=True,
                                           with_stat_test=True, stat_test_props=stat_test_props,
-                                          verbose=verbose)
+                                          verbose=verbose, **CaImaging_options)
     
-    ax = ge.inset(fig, (0.92,0.4,0.07,0.4))
+    ax = ge.inset(fig, inset_coords)
     angles, y, sy, responsive_angles = [], [], [], []
     responsive = False
     for i, angle in enumerate(EPISODES.varied_parameters['angle']):
@@ -158,13 +171,13 @@ def DS_ROI_analysis(FullData,
             
     ge.plot(angles, np.array(y), sy=np.array(sy), ax=ax,
             axes_args=dict(ylabel='<post dF/F>         ', xlabel='angle ($^{o}$)',
-                           xticks=np.array(angles)[::2], size='small'), m='o', ms=2, lw=1)
+                           xticks=np.array(angles)[::int(len(angles)/4)], size='small'), m='o', ms=2, lw=1)
 
     SI = orientation_selectivity_index(angles, y)
-    ge.annotate(fig, 'SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
+    ge.annotate(ax, 'SI=%.2f\n ' % SI, (1, 1), ha='right',
                 weight='bold', fontsize=8, color=('k' if responsive else 'lightgray'))
-    ge.annotate(fig, ('responsive' if responsive else 'unresponsive'), (0.9, 0.98), ha='left', va='top',
-                xycoords='figure fraction', weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
+    ge.annotate(ax, ('responsive' if responsive else 'unresponsive'), (0., 1), ha='left',
+                weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     
     if with_responsive_angles:
         return fig, SI, responsive, responsive_angles

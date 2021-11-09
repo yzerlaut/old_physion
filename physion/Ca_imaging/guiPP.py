@@ -62,7 +62,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delayBox = QtWidgets.QComboBox(self)
         self.delayBox.setMinimumWidth(150)
         self.delayBox.move(100, HEIGHT)
-        self.delayBox.addItems(['None', '10min', '1h', '2h', '10h', '20h'])
+        self.delayBox.addItems(['None', '10min', '30min',
+                                '1h', '2h', '3h', '5h', '10h', '20h', '40h'])
         
         HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
@@ -103,8 +104,9 @@ class MainWindow(QtWidgets.QMainWindow):
         delay = ''
         if self.delayBox.currentText()!='None':
             delay = 'sleep %s; ' % self.delayBox.currentText()
-        return delay+'%s %s --CaImaging_folder %s --setting_key %s -v' % (python_path_suite2p_env,
-                                                                          self.process_script, folder, key)
+        print(folder)
+        return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
+                                                                            self.process_script, folder, key)
     
     def load_imaging(self):
 
@@ -112,7 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                     "Choose datafolder",
                                     FOLDERS[self.folderI.currentText()])
         if folder!='':
-            if ('Tseries' in str(folder)):
+            if ('Tseries' in str(folder)) or ('TSeries' in str(folder)):
                 self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
             else:
                 folders = get_TSeries_folders(folder, limit_to_subdirectories=False)

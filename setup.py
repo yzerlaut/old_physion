@@ -24,13 +24,13 @@ setup(
     ],
     keywords='vision physiology',
     packages=find_packages(),
-    install_requires=[
-        "pynwb",
-        "scipy",
-        "numpy",
-        "argparse",
-        "pyqt5",
-        "pyqtgraph",
-        "pathlib"
-    ]
+    # install_requires=[
+    #     "pynwb",
+    #     "scipy",
+    #     "numpy",
+    #     "argparse",
+    #     "pyqt5",
+    #     "pyqtgraph",
+    #     "pathlib"
+    # ]
 )

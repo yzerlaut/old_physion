@@ -1,10 +1,10 @@
 import os, sys, pathlib, time, datetime
 import numpy as np
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from physion.assembling.IO.bruker_xml_parser import bruker_xml_parser
-from physion.assembling.saving import get_files_with_extension, get_TSeries_folders
-from physion.analysis.read_NWB import Data
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from analysis.read_NWB import Data
+from assembling.IO.bruker_xml_parser import bruker_xml_parser
+from assembling.saving import get_files_with_extension, get_TSeries_folders
 
 def build_subsampling_from_freq(subsampled_freq=1.,
                                 original_freq=1.,
@@ -86,15 +86,19 @@ def build_Ca_filelist(folder):
         fn = get_files_with_extension(bdf, extension='.xml')[0]
         try:
             xml = bruker_xml_parser(fn)
-            if len(xml['Ch1']['relativeTime'])>0:
+            if (len(xml['Ch1']['relativeTime'])>0) or (len(xml['Ch2']['relativeTime'])>0):
                 CA_FILES['date'].append(stringdatetime_to_date(xml['date']))
                 CA_FILES['Bruker_folder'].append(bdf)
                 CA_FILES['Bruker_file'].append(fn)
                 CA_FILES['StartTimeString'].append(xml['StartTime'])
                 start = StartTime_to_day_seconds(xml['StartTime'])
+                CA_FILES['protocol'].append('')
+            if len(xml['Ch1']['relativeTime'])>0:
                 CA_FILES['StartTime'].append(start+xml['Ch1']['absoluteTime'][0])
                 CA_FILES['EndTime'].append(start+xml['Ch1']['absoluteTime'][-1])
-                CA_FILES['protocol'].append('')
+            elif len(xml['Ch2']['relativeTime'])>0:
+                CA_FILES['StartTime'].append(start+xml['Ch2']['absoluteTime'][0])
+                CA_FILES['EndTime'].append(start+xml['Ch2']['absoluteTime'][-1])
         except BaseException as e:
             print(e)
             print(100*'-')
@@ -145,18 +149,11 @@ if __name__=='__main__':
 
     fn = '/media/yann/Yann/2021_02_16/15-41-13/2021_02_16-15-41-13.nwb'
     CA_FOLDER = '/home/yann/DATA/'
-    success, folder = find_matching_CaImaging_data(fn, CA_FOLDER)
+    
+    CA_FILES = build_Ca_filelist(os.path.join(os.path.expanduser('~'), 'UNPROCESSED'))
+    print(CA_FILES)
+    
+    # success, folder = find_matching_CaImaging_data(fn, CA_FOLDER)
 
     # times, FILES, nframes, Lx, Ly = load_FaceCamera_data(folder+'FaceCamera-imgs')
     # Tstart = np.load(folder+'NIdaq.start.npy')[0]
-
-
-
-
-
-
-
-
-
-
-

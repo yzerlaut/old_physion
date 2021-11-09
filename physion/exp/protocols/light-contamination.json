@@ -1,13 +1,8 @@
 {
   "Presentation": "Stimuli-Sequence",
   "Stimulus": "light-level",
-<<<<<<< HEAD
-  "Screen": "Dell-P2018H",
-  "presentation-duration": 6.0,
-=======
   "Screen": "Lilliput",
   "presentation-duration": 10.0,
->>>>>>> baf55a602da1cf1929db59adad217671bd60434a
   "presentation-prestim-period": 1.0,
   "presentation-poststim-period": 1.0,
   "presentation-prestim-screen": -1,
@@ -18,7 +13,7 @@
   "starting-index": 0,
   "light-level-1": -1.0,
   "light-level-2": 1.0,
-  "N-light-level": 3,
+  "N-light-level": 5,
   "data-folder": "",
   "protocol-folder": "/home/yann/work/physion/physion/exp/protocols"
 }

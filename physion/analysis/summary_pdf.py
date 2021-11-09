@@ -126,7 +126,12 @@ def make_summary_pdf(filename, Nmax=1000000,
         print('* looping over protocols for analysis [...]')
 
         # --- analysis of multi-protocols ---
-        if data.metadata['protocol']=='mismatch-negativity':
+        if data.metadata['protocol']=='NDNF-protocol':
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                                          'ndnf_protocol.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif data.metadata['protocol']=='mismatch-negativity':
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
                                           'mismatch_negativity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)

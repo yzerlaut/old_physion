@@ -203,37 +203,49 @@ class MainWindow(QtWidgets.QMainWindow):
                     print(' /!\ Problem no "xml" found !! /!\  ')
                 # XML metadata file
                 Fsuite2p = os.path.join(f, 'suite2p')
-                iplane=0
+
+
+                # building old and new folders
+                old_folders, new_folders, iplane = [], [], 0
                 while os.path.isdir(os.path.join(Fsuite2p, 'plane%i' % iplane)):
-                    npys = get_files_with_extension(os.path.join(Fsuite2p, 'plane%i' % iplane),
+                    old_folders.append(os.path.join(Fsuite2p, 'plane%i' % iplane))
+                    new_folders.append(os.path.join(new_folder, 'suite2p', 'plane%i' % iplane))
+                    iplane+=1
+                if os.path.isdir(os.path.join(Fsuite2p, 'combined')):
+                    old_folders.append(os.path.join(Fsuite2p, 'combined'))
+                    new_folders.append(os.path.join(new_folder, 'suite2p', 'combined'))
+                    
+                for oldfolder, newfolder in zip(old_folders, new_folders):
+                    print(oldfolder, newfolder)
+                    npys = get_files_with_extension(oldfolder,
                                                     extension='.npy', recursive=False)
-                    inewfolder = os.path.join(new_folder, 'suite2p', 'plane%i' % iplane)
                     if '10.0.0.' in self.destination_folder:
                         F.write('sshpass -p $passwd ssh %s mkdir %s \n' % (self.destination_folder.split(':')[0],
-                                                                           new_folder.split(':')[1]+'/suite2p/plane%i' % iplane))
+                                                                           new_folder.split(':')[1]+newfolder))
                     else:
-                        pathlib.Path(inewfolder).mkdir(parents=True, exist_ok=True)
+                        pathlib.Path(newfolder).mkdir(parents=True, exist_ok=True)
                     for n in npys:
                         if '10.0.0.' in self.destination_folder:
                             F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (n, inewfolder))
                         else:
                             print(' copying "%s" [...]' % n)
-                            subprocess.Popen(self.file_copy_command(n, inewfolder), shell=True)
+                            print(n, newfolder)
+                            subprocess.Popen(self.file_copy_command(n, newfolder), shell=True)
                         
                     if ('binary' in self.typeBox.currentText()) or ('full' in self.typeBox.currentText()):
-                        if os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin')):
-                            print(' copying "%s" [...]' % os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'))
-                            if '10.0.0.' in self.destination_folder:
-                                F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'),
-                                                                                  inewfolder))
-                            else:
-                                print(' copying "%s" [...]' % n)
-                                subprocess.Popen(self.file_copy_command(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'), inewfolder), shell=True)
-                        else:
-                            print('In: "%s" ' % os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane)))
-                            print(' /!\ Problem no "binary file" found !! /!\  ')
+                        print('broken !')
+                    #     if os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin')):
+                    #         print(' copying "%s" [...]' % os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'))
+                    #         if '10.0.0.' in self.destination_folder:
+                    #             F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'),
+                    #                                                               inewfolder))
+                    #         else:
+                    #             print(' copying "%s" [...]' % n)
+                    #             subprocess.Popen(self.file_copy_command(os.path.join(Fsuite2p, 'plane%i' % iplane, 'data.bin'), inewfolder), shell=True)
+                    #     else:
+                    #         print('In: "%s" ' % os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane)))
+                    #         print(' /!\ Problem no "binary file" found !! /!\  ')
 
-                    iplane+=1
                     
         if '10.0.0.' in self.destination_folder:
             print('bash script "temp.sh" closed !')

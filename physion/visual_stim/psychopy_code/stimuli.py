@@ -23,6 +23,8 @@ def build_stim(protocol, no_psychopy=False):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
     elif (protocol['Stimulus']=='light-level'):
         return light_level_single_stim(protocol)
+    elif (protocol['Stimulus']=='bar'):
+        return bar_stim(protocol)
     elif (protocol['Stimulus']=='full-field-grating'):
         return full_field_grating_stim(protocol)
     elif (protocol['Stimulus']=='oddball-full-field-grating'):
@@ -186,11 +188,16 @@ class visual_stim:
     def angle_to_cm(self, value):
         return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
     
-    def angle_to_pix(self, value, from_center=False, starting_angle=0):
+    def angle_to_pix(self, value, from_x_center=False, from_z_center=False, starting_angle=0):
         """
         We deal here with the non-linear transformation of angle to distance on the screen (see "tan" function toward 90deg)
         we introduce a "starting_angle" so that a size-on-screen can be taken 
         """
+        # if from_x_center:
+        #     return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)+self.screen['resolution'][0]/2.
+        # elif from_z_center:
+        #     return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)+\
+        #         self.screen['resolution'][0]*self.screen['height']/self.screen['width']/2.
         if starting_angle==0:
             return self.screen['resolution'][0]/self.screen['width']*self.angle_to_cm(value)
         else:
@@ -217,16 +224,18 @@ class visual_stim:
                     self.experiment['time_start'] = [protocol['presentation-prestim-period']]
                     self.experiment['time_stop'] = [protocol['presentation-duration']+protocol['presentation-prestim-period']]
                     self.experiment['time_duration'] = [protocol['presentation-duration']]
-                    self.experiment['interstim'] = [protocol['presentation-interstim-period']]
-                    self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen']]
+                    self.experiment['interstim'] = [protocol['presentation-interstim-period'] if 'presentation-interstim-period' in protocol else 0]
+                    self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen'] if 'presentation-interstim-screen' in protocol else 0]
         else: # MULTIPLE STIMS
             VECS, FULL_VECS = [], {}
             for key in keys:
                 FULL_VECS[key], self.experiment[key] = [], []
-                if protocol['N-'+key]>1:
+                if ('N-log-'+key in protocol) and (protocol['N-log-'+key]>1):
+                    VECS.append(np.logspace(np.log10(protocol[key+'-1']), np.log10(protocol[key+'-2']),protocol['N-log-'+key]))
+                elif protocol['N-'+key]>1:
                     VECS.append(np.linspace(protocol[key+'-1'], protocol[key+'-2'],protocol['N-'+key]))
                 else:
-                    VECS.append(np.array([protocol[key+'-2']]))
+                    VECS.append(np.array([protocol[key+'-2']])) # we pick the SECOND VALUE as the constant one (so remember to fill this right in GUI)
             for vec in itertools.product(*VECS):
                 for i, key in enumerate(keys):
                     FULL_VECS[key].append(vec[i])
@@ -263,6 +272,7 @@ class visual_stim:
                     self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
+                    
                     
     # the close function
     def close(self):
@@ -426,7 +436,11 @@ class visual_stim:
         
     ## FINAL RUN FUNCTION
     def run(self, parent):
-        t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
+        try:
+            t0 = np.load(os.path.join(str(parent.datafolder.get()), 'NIdaq.start.npy'))[0]
+        except FileNotFoundError:
+            print(str(parent.datafolder.get()), 'NIdaq.start.npy', 'not found !')
+            t0 = time.time()
         self.start_screen(parent)
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
@@ -446,7 +460,6 @@ class visual_stim:
         if self.store_frame:
             self.win.saveMovieFrames(os.path.join(str(parent.datafolder.get()),
                                                   'screen-frames', 'frame.tiff'))
-
     
     ##########################################################
     #############    DRAWING STIMULI (offline)  ##############
@@ -678,6 +691,42 @@ class light_level_single_stim(visual_stim):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return 0*self.x+(1+cls.experiment['light-level'][episode])/2.
+
+    # def plot_stim_picture(self, episode, ax=None, parent=None):
+    #     ax.imshow(self.get_image(episode, parent=parent),
+    #               cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+    
+
+################################################
+##  ----   PRESENTING VARIOUS BARS   ---     ###
+#                (for intrinsic imaging maps)  #
+################################################
+
+class bar_stim(visual_stim):
+
+    def __init__(self, protocol):
+        
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['orientation', 'width', 'degree'],
+                                run_type='static')
+        
+            
+    def get_patterns(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        if cls.experiment['orientation'][index]==[90]:
+            size=(cls.angle_to_pix(cls.experiment['width'][index]), 2000)
+            position = (cls.angle_to_pix(cls.experiment['degree'][index]), 0)
+        else:
+            size=(2000, cls.angle_to_pix(cls.experiment['width'][index]))
+            position = (0, cls.angle_to_pix(cls.experiment['degree'][index]))
+            
+        return [visual.Rect(win=cls.win,
+                            size=size, pos=position, units='pix',
+                            fillColor=1, color=-1)]
+    
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return 0*self.x 
 
     # def plot_stim_picture(self, episode, ax=None, parent=None):
     #     ax.imshow(self.get_image(episode, parent=parent),
@@ -1726,7 +1775,8 @@ class moving_dots_static_patch(visual_stim):
         
         super().init_experiment(protocol,
                                 ['speed', 'bg-color', 'ndots', 'spacing',
-                                 'direction', 'size', 'dotcolor'],
+                                 'direction', 'size', 'dotcolor', 'patch-delay',
+                                 'patch-radius', 'patch-contrast', 'patch-spatial-freq', 'patch-angle'],
                                 run_type='images_sequence')
 
 
@@ -1742,10 +1792,10 @@ class moving_dots_static_patch(visual_stim):
                             xcenter=xcenter, zcenter=zcenter)
 
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
-        image[cond] = compute_grating(xrot[cond],
+        image[cond] = 2*compute_grating(xrot[cond],
                                       spatial_freq=spatial_freq,
                                       contrast=contrast,
-                                      time_phase=time_phase)
+                                      time_phase=time_phase)-1
 
         
     def add_dot(self, image, pos, size, color, type='square'):
@@ -1814,8 +1864,12 @@ class moving_dots_static_patch(visual_stim):
                 self.add_dot(img, new_position,
                              cls.experiment['size'][index],
                              cls.experiment['dotcolor'][index])
-            if time>1:
-                self.add_patch(img)
+            if time>cls.experiment['patch-delay'][index]:
+                self.add_patch(img,
+                               angle=cls.experiment['patch-angle'][index],
+                               radius=cls.experiment['patch-radius'][index],
+                               spatial_freq=cls.experiment['patch-spatial-freq'][index],
+                               contrast=cls.experiment['patch-contrast'][index])
                 
             FRAMES.append(img)
             times.append(iframe)
@@ -1867,14 +1921,19 @@ if __name__=='__main__':
     import json, tempfile
     from pathlib import Path
     
+    # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
+    # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
+    # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
     with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
         protocol = json.load(fp)
 
+    protocol['demo'] = True
+    
     class df:
         def __init__(self):
             pass
         def get(self):
-            Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+            # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
             return tempfile.gettempdir()
         
     class dummy_parent:
@@ -1886,3 +1945,4 @@ if __name__=='__main__':
     parent = dummy_parent()
     stim.run(parent)
     stim.close()
+
