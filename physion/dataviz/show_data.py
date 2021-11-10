@@ -139,11 +139,15 @@ class MultimodalData(Data):
             raster = compute_CaImaging_raster(self, subquantity,
                                               roiIndices=roiIndices,
                                               normalization=normalization) # validROI indices inside !!
+        else:
+            if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
+                raster = np.array([(raster[i,:]-np.min(raster[i,:]))/(np.max(raster[i,:])-np.min(raster[i,:])) for i in range(raster.shape[0])])
+            
             
         indices=np.arange(*dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1))[::subsampling]
         
         ax.imshow(raster[:,indices], origin='lower', cmap=cmap,
-                  aspect='auto', interpolation='none',
+                  aspect='auto', interpolation='none', vmin=0, vmax=1,
                   extent=(dv_tools.convert_index_to_time(indices[0], self.Neuropil),
                           dv_tools.convert_index_to_time(indices[-1], self.Neuropil),
                           fig_fraction_start, fig_fraction_start+fig_fraction))

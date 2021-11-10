@@ -18,26 +18,30 @@ class PCA(sklPCA):
     def __init__(self, data, X=None,
                  quantity='CaImaging', subquantity='Fluorescence',
                  n_components=-1):
-
+        """
+        input has convention: (Nfeatures, Nsamples) , e.g. (Ncells, Ntimesamples)
+        """
 
         # initialize quantity
         if (X is None) and (quantity=='CaImaging'):
             X = Ca_imaging_tools.compute_CaImaging_trace(data, subquantity,
-                                                         range(data.iscell.sum())).T
+                                                         range(data.iscell.sum()))
             self.t = data.Neuropil.timestamps[:]
-            self.Nsamples, self.Nfeatures = len(self.t), data.iscell.sum()
 
+        self.Nfeatures, self.Nsamples = X.shape # HERE !!
+        
+        self.means, self.stds = np.mean(X, axis=1), np.std(X, axis=1)
+        
         if n_components<0:
             n_components = self.Nfeatures
         self.components = 1+np.arange(n_components)
             
         # initialize PCA from scikit-learn
         super().__init__(n_components=n_components)
-        
-        # scale signals
-        self.scaler = preprocessing.StandardScaler().fit(X)
-        self.X = self.scaler.transform(X)
 
+        # rescale
+        self.X = X.T/self.stds-self.means
+        
         # perform PCA
         self.fit(self.X)
 
@@ -48,14 +52,26 @@ class PCA(sklPCA):
         return self.Xinv[:,component_ID]
 
     def projected_activity(self, component_ID=0):
-        return self.scaler.inverse_transform(self.get_projection(component_ID))
+        
+        if type(component_ID) in [list, np.array, range]:
+            component_IDs = component_ID
+        else:
+            component_IDs = [component_ID]
+
+        output = np.zeros((self.Nfeatures, self.Nsamples))
+        for c, comp in enumerate(component_IDs):
+            output += np.array([self.get_projection(comp)*self.components_[c][i] for i in range(self.Nfeatures)])
+            
+        return np.array([self.means[i]+self.stds[i]*output[i,:] for i in range(self.Nfeatures)])
+
     
     def show_explained_variance(self, xticks_subsampling=2):
         # let's plot the variance explained by the components
         fig, ax = ge.figure()
         ge.plot(self.components, 100.*self.explained_variance_ratio_,
                 m='o', ms=3, ax=ax, no_set=True)
-        ge.set_plot(ax, xlabel='component #', ylabel='% var. expl.', xticks=np.arange(1, len(self.components))[::xticks_subsampling])
+        ge.set_plot(ax, xlabel='component #', ylabel='% var. expl.',
+                    xticks=np.arange(1, len(self.components))[::xticks_subsampling])
         return fig, ax
     
     def show_components(self, component_ID, ylim=None):
@@ -93,12 +109,12 @@ if __name__=='__main__':
     
     data = MultimodalData(fn)
 
-    pca = PCA(data, n_components=10)
+    pca = PCA(data)
 
     # pca.show_explained_variance()
 
     # pca.show_components(0)
-    pca.show_components(range(5))
+    # pca.show_components(range(1))
 
     # EPISODES = EpisodeResponse(data,
     #                            protocol_id=0,
@@ -110,22 +126,50 @@ if __name__=='__main__':
     #                         color_keys=['contrast', 'speed'],
     #                         column_key='angle')
 
-    data.plot_raw_data(tlim, ax=AX[0],
-                       settings={'Locomotion':dict(fig_fraction=2, subsampling=30, color=ge.blue),
-                                 'FaceMotion':dict(fig_fraction=2, subsampling=30, color=ge.purple),
-                                 'Pupil':dict(fig_fraction=2, subsampling=10, color=ge.red),
-                                 'CaImagingRaster':dict(fig_fraction=5, subsampling=1,
-                                                        roiIndices='all',
-                                                        normalization='per-line',
-                                                        quantity='CaImaging', subquantity='Fluorescence')},
+
+    raster = pca.projected_activity(range(2))
+
+
+    
+    # normalize here for raster plot
+    norm_raster = np.array([(raster[i,:]-np.min(data.Fluorescence.data[i,:]))/(np.max(data.Fluorescence.data[i,:])-np.min(data.Fluorescence.data[i,:])) for i in range(raster.shape[0])])
+    
+    tlim = [0,300]
+    
+    fig, ax = data.plot_raw_data(tlim,
+                                 settings={'Locomotion':dict(fig_fraction=2, subsampling=30, color=ge.blue),
+                                           'FaceMotion':dict(fig_fraction=2, subsampling=30, color=ge.purple),
+                                           'Pupil':dict(fig_fraction=2, subsampling=10, color=ge.red),
+                                           'CaImagingRaster':dict(fig_fraction=5, subsampling=1,
+                                                                  roiIndices='all',
+                                                                  normalization='per-line',
+                                                                  quantity='CaImaging', subquantity='Fluorescence')},
+                                 Tbar=10)
+    ge.title(ax, 'Full data')
+    
+    fig, ax = data.plot_raw_data(tlim,
+                                 settings={'Locomotion':dict(fig_fraction=2, subsampling=30, color=ge.blue),
+                                           'FaceMotion':dict(fig_fraction=2, subsampling=30, color=ge.purple),
+                                           'Pupil':dict(fig_fraction=2, subsampling=10, color=ge.red),
+                                           'CaImagingRaster':dict(fig_fraction=5, subsampling=1, raster=norm_raster,
+                                                                  roiIndices='all',
+                                                                  normalization='None')},
                        Tbar=10)
-    
+    ge.title(ax, 'projection of PC components')
 
-    # raster = pca.projected_activity(0)
 
-    
+    fig, AX = ge.figure(axes=(1,10), figsize=(3,.2))
+    cond = (pca.t>tlim[0]) & (pca.t>tlim[1])
+
+    for i in range(10):
+        AX[i].plot(raster[i,cond], color=ge.blue, lw=1)
+        AX[i].plot(data.Fluorescence.data[i,:][cond], color='k', lw=0.5)
+
+    for ax in AX:
+        ge.set_plot(ax, ['left'])
     ge.show()
     
+
 
 
 
