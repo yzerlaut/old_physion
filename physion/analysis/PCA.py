@@ -65,36 +65,36 @@ class PCA(sklPCA):
         return np.array([self.means[i]+self.stds[i]*output[i,:] for i in range(self.Nfeatures)])
 
     
-    def show_explained_variance(self, xticks_subsampling=2):
+    def show_explained_variance(self, xticks_subsampling=2, graph_env=ge):
         # let's plot the variance explained by the components
-        fig, ax = ge.figure()
-        ge.plot(self.components, 100.*self.explained_variance_ratio_,
+        fig, ax = graph_env.figure()
+        graph_env.plot(self.components, 100.*self.explained_variance_ratio_,
                 m='o', ms=3, ax=ax, no_set=True)
-        ge.set_plot(ax, xlabel='component #', ylabel='% var. expl.',
-                    xticks=np.arange(1, len(self.components))[::xticks_subsampling])
+        graph_env.set_plot(ax, xlabel='component #', ylabel='% var. expl.',
+                           xticks=np.arange(1, len(self.components))[::xticks_subsampling])
         return fig, ax
     
-    def show_components(self, component_ID, ylim=None):
+    def show_components(self, component_ID, ylim=None, graph_env=ge,
+                        fig_args=dict(figsize=(1.4,.5), top=2, reshape_axes=False, hspace=0.7, left=0.8)):
 
         if type(component_ID) in [list, np.array, range]:
             component_IDs = component_ID
         else:
             component_IDs = [component_ID]
 
-        fig, AX = ge.figure(axes=(1, len(component_IDs)), figsize=(1.4,.5), top=2, reshape_axes=False, hspace=0.7, left=0.8)
+        fig, AX = graph_env.figure(axes=(1, len(component_IDs)), **fig_args)
 
-        for i, ax in enumerate(ge.flat(AX)):
+        for i, ax in enumerate(graph_env.flat(AX)):
             ax.plot(self.components_[component_IDs[i]], 'k-', lw=1)
             ax.plot([0, self.Nfeatures-1], [0,0], 'k:', lw=0.5)
             
-        for i, ax in enumerate(ge.flat(AX)):
+        for i, ax in enumerate(graph_env.flat(AX)):
             if i==0:
-                ge.set_plot(ax, ['top', 'left'], xlabel='n= %i rois' % self.Nfeatures, ylabel='PC #%i' % (component_IDs[i]+1),
+                graph_env.set_plot(ax, ['top', 'left'], xlabel='n= %i rois' % self.Nfeatures, ylabel='PC #%i' % (component_IDs[i]+1),
                             xminor_ticks=range(self.Nfeatures), xticks=[])
-                            # xticks=range(self.Nfeatures), xticks_labels=[])
             else:
-                ge.set_plot(ax, ['left'], ylabel='PC #%i' % (component_IDs[i]+1))
-        ge.set_common_ylims(AX, lims=ylim)
+                graph_env.set_plot(ax, ['left'], ylabel='PC #%i' % (component_IDs[i]+1))
+        graph_env.set_common_ylims(AX, lims=ylim)
         
         return fig, AX
 
@@ -135,7 +135,6 @@ if __name__=='__main__':
     norm_raster = np.array([(raster[i,:]-np.min(data.Fluorescence.data[i,:]))/(np.max(data.Fluorescence.data[i,:])-np.min(data.Fluorescence.data[i,:])) for i in range(raster.shape[0])])
     
     tlim = [0,300]
-    
     fig, ax = data.plot_raw_data(tlim,
                                  settings={'Locomotion':dict(fig_fraction=2, subsampling=30, color=ge.blue),
                                            'FaceMotion':dict(fig_fraction=2, subsampling=30, color=ge.purple),
