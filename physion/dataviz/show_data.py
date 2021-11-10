@@ -106,7 +106,7 @@ class MultimodalData(Data):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         if not hasattr(self, 't_pupil'):
             self.build_pupil_diameter()
-        x, y = self.t_pupil[::subsampling], self.pupil_diameter[::subsampling]
+        x, y = self.t_pupil[i1:i2][::subsampling], self.pupil_diameter[i1:i2][::subsampling]
 
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)

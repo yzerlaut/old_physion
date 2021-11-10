@@ -17,20 +17,23 @@ class PCA(sklPCA):
     """
     def __init__(self, data, X=None,
                  quantity='CaImaging', subquantity='Fluorescence',
-                 n_components=1):
+                 n_components=-1):
 
 
-        super().__init__(n_components=n_components)
-
-        self.components = 1+np.arange(n_components)
-        
+        # initialize quantity
         if (X is None) and (quantity=='CaImaging'):
             X = Ca_imaging_tools.compute_CaImaging_trace(data, subquantity,
                                                          range(data.iscell.sum())).T
             self.t = data.Neuropil.timestamps[:]
-            self.Nsamples = len(self.t)
-            self.Nfeatures = data.iscell.sum()
+            self.Nsamples, self.Nfeatures = len(self.t), data.iscell.sum()
 
+        if n_components<0:
+            n_components = self.Nfeatures
+        self.components = 1+np.arange(n_components)
+            
+        # initialize PCA from scikit-learn
+        super().__init__(n_components=n_components)
+        
         # scale signals
         self.scaler = preprocessing.StandardScaler().fit(X)
         self.X = self.scaler.transform(X)
@@ -52,9 +55,29 @@ class PCA(sklPCA):
         ge.set_plot(ax, xlabel='component #', ylabel='% var. expl.', xticks=np.arange(1, len(self.components))[::xticks_subsampling])
         return fig, ax
     
-    def show_components(self):
-        pass
+    def show_components(self, component_ID, ylim=None):
+
+        if type(component_ID) in [list, np.array, range]:
+            component_IDs = component_ID
+        else:
+            component_IDs = [component_ID]
+
+        fig, AX = ge.figure(axes=(1, len(component_IDs)), figsize=(1.4,.5), top=2, reshape_axes=False, hspace=0.7, left=0.8)
+
+        for i, ax in enumerate(ge.flat(AX)):
+            ax.plot(self.components_[component_IDs[i]], 'k-', lw=1)
+            ax.plot([0, self.Nfeatures-1], [0,0], 'k:', lw=0.5)
+            
+        for i, ax in enumerate(ge.flat(AX)):
+            if i==0:
+                ge.set_plot(ax, ['top', 'left'], xlabel='n= %i rois' % self.Nfeatures, ylabel='PC #%i' % (component_IDs[i]+1),
+                            xminor_ticks=range(self.Nfeatures), xticks=[])
+                            # xticks=range(self.Nfeatures), xticks_labels=[])
+            else:
+                ge.set_plot(ax, ['left'], ylabel='PC #%i' % (component_IDs[i]+1))
+        ge.set_common_ylims(AX, lims=ylim)
         
+        return fig, AX
 
     
 if __name__=='__main__':
@@ -62,14 +85,28 @@ if __name__=='__main__':
     fn = '/home/yann/DATA/CaImaging/NDNFcre_GCamp6s/Batch-2_September_2021/2021_09_10/2021_09_10-13-52-49.nwb'
     # fn = sys.argv[-1]
 
-    from physion.analysis.read_NWB import Data
-    data = Data(fn)
+    from physion.dataviz.show_data import MultimodalData
+    from physion.analysis.process_NWB import EpisodeResponse
+    
+    data = MultimodalData(fn)
 
     pca = PCA(data, n_components=10)
 
-    pca.show_explained_variance()
+    # pca.show_explained_variance()
 
-    ge.plot(pca.t[::100], pca.get_projection()[::100])
+    # pca.show_components(0)
+    pca.show_components(range(5))
+
+    EPISODES = EpisodeResponse(data,
+                               protocol_id=0,
+                               quantity=pca.get_projection(0),
+                               tfull=data.Neuropil.timestamps[:])
+
+    data.plot_trial_average(EPISODES=EPISODES, 
+                            protocol_id=0,
+                            color_keys=['contrast', 'speed'],
+                            column_key='angle')
+    
     ge.show()
     
 
