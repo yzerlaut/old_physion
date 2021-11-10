@@ -128,16 +128,18 @@ class MultimodalData(Data):
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
         
-    def add_CaImagingRaster(self, tlim, ax,
+    def add_CaImagingRaster(self, tlim, ax, raster=None,
                             fig_fraction_start=0., fig_fraction=1., color='green',
                             quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
                             cmap=plt.cm.binary,
                             normalization='None', subsampling=1,
                             name='\nROIs'):
 
-        raster = compute_CaImaging_raster(self, subquantity,
-                                          roiIndices=roiIndices,
-                                          normalization=normalization) # validROI indices inside !!
+        if raster is None:
+            raster = compute_CaImaging_raster(self, subquantity,
+                                              roiIndices=roiIndices,
+                                              normalization=normalization) # validROI indices inside !!
+            
         indices=np.arange(*dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1))[::subsampling]
         
         ax.imshow(raster[:,indices], origin='lower', cmap=cmap,
@@ -267,10 +269,8 @@ class MultimodalData(Data):
                                                  roiIndices='all'),
                                 'VisualStim':dict(fig_fraction=0, color='black')},                    
                       figsize=(3,3), Tbar=0., zoom_area=None,
-                      ax=None, ax_raster=None):
+                      ax=None):
 
-        if ('CaImaging' in settings) and ('raster' in settings['CaImaging']) and (ax_raster is None):
-            fig, [ax, ax_raster] = ge.figure(axes=(1,2), figsize=(3,1), bottom=.3, left=.5, hspace=0.)
         if ax is None:
             fig, ax = ge.figure(figsize=figsize, bottom=.3, left=.5)
         else:

@@ -46,7 +46,10 @@ class PCA(sklPCA):
 
     def get_projection(self, component_ID=0):
         return self.Xinv[:,component_ID]
-        
+
+    def projected_activity(self, component_ID=0):
+        return self.scaler.inverse_transform(self.get_projection(component_ID))
+    
     def show_explained_variance(self, xticks_subsampling=2):
         # let's plot the variance explained by the components
         fig, ax = ge.figure()
@@ -97,15 +100,29 @@ if __name__=='__main__':
     # pca.show_components(0)
     pca.show_components(range(5))
 
-    EPISODES = EpisodeResponse(data,
-                               protocol_id=0,
-                               quantity=pca.get_projection(0),
-                               tfull=data.Neuropil.timestamps[:])
+    # EPISODES = EpisodeResponse(data,
+    #                            protocol_id=0,
+    #                            quantity=pca.get_projection(0),
+    #                            tfull=data.Neuropil.timestamps[:])
 
-    data.plot_trial_average(EPISODES=EPISODES, 
-                            protocol_id=0,
-                            color_keys=['contrast', 'speed'],
-                            column_key='angle')
+    # data.plot_trial_average(EPISODES=EPISODES, 
+    #                         protocol_id=0,
+    #                         color_keys=['contrast', 'speed'],
+    #                         column_key='angle')
+
+    data.plot_raw_data(tlim, ax=AX[0],
+                       settings={'Locomotion':dict(fig_fraction=2, subsampling=30, color=ge.blue),
+                                 'FaceMotion':dict(fig_fraction=2, subsampling=30, color=ge.purple),
+                                 'Pupil':dict(fig_fraction=2, subsampling=10, color=ge.red),
+                                 'CaImagingRaster':dict(fig_fraction=5, subsampling=1,
+                                                        roiIndices='all',
+                                                        normalization='per-line',
+                                                        quantity='CaImaging', subquantity='Fluorescence')},
+                       Tbar=10)
+    
+
+    # raster = pca.projected_activity(0)
+
     
     ge.show()
     
