@@ -1,5 +1,6 @@
 import pynwb, time, ast, sys, pathlib, os
 import numpy as np
+from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
@@ -134,6 +135,11 @@ class Data:
         if 'FaceMotion' in self.nwbfile.processing:
             self.read_facemotion()
             
+    def resample(self, x, y, new_time_sampling,
+                 interpolation='linear'):
+        func = interp1d(x, y,
+                        kind=interpolation)
+        return func(new_time_sampling)
 
     #########################################################
     #       CALCIUM IMAGING DATA (from suite2p output)      #
@@ -178,13 +184,18 @@ class Data:
         else:
             self.FaceCamera_mm_to_pix = 1
 
-    def build_pupil_diameter(self):
+    def build_pupil_diameter(self,
+                             specific_time_sampling=None,
+                             interpolation='linear'):
         """
         build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
         """
         self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
         self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
+
+        if specific_time_sampling is not None:
+            return resample(self.t_pupil, self.pupil_diameter, specific_time_sampling)
 
 
     # TODO add Gaze here !!
