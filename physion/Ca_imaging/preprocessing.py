@@ -69,7 +69,7 @@ PREPROCESSING_SETTINGS = {
                       # 'nonrigid':0,
                       'threshold_scaling':0.5,
                       'neucoeff': 1.0},
-    'GCamp6s_1plane_2chan':{'cell_diameter':20, # in um
+    'GCamp6s_1plane_2chan':{'cell_diameter':10, # in um  SWITCH TO ONLY 10 um
                             'tau':1.3,
                             'nchannels':2,
                             'functional_chan':1,
