@@ -474,7 +474,7 @@ class MainWindow(NewWindow):
         if self.datafolder=='' and self.lastBox.isChecked():
             self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
                                                            with_NIdaq=False)
-        analysis.run(self.datafolder)
+        analysis.run(self.datafolder, show=True)
         print('-> analysis done !')
 
     def process(self):

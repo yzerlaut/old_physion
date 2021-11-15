@@ -28,7 +28,8 @@ def get_data(datafolder):
             data[l] = {'t':t, 'movie':np.zeros((len(t), *imshape))}
         io1.close()
         io2.close()
-    
+
+    # average all data across recordings
     for l, label in enumerate(['up', 'down', 'left', 'right']):
         i=1
         while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
@@ -36,7 +37,6 @@ def get_data(datafolder):
             nwbfile = io.read()
             data[label]['movie'][:,:,:] += nwbfile.acquisition['image_timeseries'].data[:,:,:]
 
-            print(nwbfile.acquisition['angle_timeseries'].data[:])
             if i==1:
                 data[label]['angle'] = nwbfile.acquisition['angle_timeseries'].data[:]
             i+=1
@@ -44,23 +44,26 @@ def get_data(datafolder):
         if i>1:
             data[label]['movie'] /= (i-1)
 
+    # compute the maps
+    for l, label in enumerate(['up', 'down', 'left', 'right']):
+        data[label]['map'] = np.argmax(data[label]['movie'], axis=0)
+    
     return data
 
 
 def run(datafolder,
         show=False):
 
-    fig, AX = plt.subplots(4,1)
+    fig, AX = plt.subplots(1,4, figsize=(15,5))
+    plt.subplots_adjust(right=.99, left=0.01, bottom=0.01)
 
     data = get_data(datafolder)
 
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        AX[l].set_ylabel(label, fontsize=8)
-        # show some pixels:
-        AX[l].plot(data[label]['angle'], data[label]['movie'][:,0,0])
-        AX[l].plot(data[label]['angle'], data[label]['movie'][:,10,100])
-        AX[l].plot(data[label]['angle'], data[label]['movie'][:,100,10])
-            
+        AX[l].set_title(label, fontsize=8)
+        AX[l].imshow(data[label]['map'], cmap=plt.cm.hsv)
+        AX[l].axis('off')
+        
     if show:
         plt.show()
         

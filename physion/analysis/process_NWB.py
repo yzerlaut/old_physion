@@ -75,10 +75,16 @@ class EpisodeResponse:
             tfull, valfull = full_data.t_facemotion, full_data.facemotion
         else:
             if quantity in full_data.nwbfile.acquisition:
-                tfull = np.arange(full_data.nwbfile.acquisition[quantity].data.shape[0])/full_data.nwbfile.acquisition[quantity].rate
+                if full_data.nwbfile.acquisition[quantity].timestamps is not None:
+                    tfull = full_data.nwbfile.acquisition[quantity].timestamps[:]
+                else:
+                    tfull = full_data.build_time_from_rate(full_data.nwbfile.acquisition[quantity])
                 valfull = full_data.nwbfile.acquisition[quantity].data[:]
             elif quantity in full_data.nwbfile.processing:
-                tfull = np.arange(full_data.nwbfile.processing[quantity].data.shape[0])/full_data.nwbfile.processing[quantity].rate
+                if full_data.nwbfile.processing[quantity].timestamps is not None:
+                    tfull = full_data.nwbfile.processing[quantity].timestamps[:]
+                else:
+                    tfull = full_data.build_time_from_rate(full_data.nwbfile.processing[quantity])
                 valfull = full_data.nwbfile.processing[quantity].data[:]
             else:
                 print(30*'-')
