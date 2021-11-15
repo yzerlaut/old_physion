@@ -21,7 +21,7 @@ def get_data(datafolder):
     # # determining sampling time
     for (l1, l2) in [('up', 'down'), ('left', 'right')]:
         io1 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l1), 'r')
-        io2 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-2.nwb' % l1), 'r')
+        io2 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l2), 'r')
         nwbfile1, nwbfile2 = io1.read(), io2.read()
         imshape = nwbfile1.acquisition['image_timeseries'].data[0,:,:].shape
         t = nwbfile1.acquisition['image_timeseries'].timestamps[:]
@@ -53,8 +53,11 @@ def get_data(datafolder):
 
 
 def run(datafolder,
-        show=False, cmap=plt.cm.hsv):
+        show=False, cmap=plt.cm.twilight):
 
+    fig2, AX2 = plt.subplots(4, 1, figsize=(10,6))
+    plt.subplots_adjust(right=.98, bottom=0.2, hspace=0.5)
+    
     fig, AX = plt.subplots(1,4, figsize=(16,5))
     plt.subplots_adjust(right=.98, left=0.02, bottom=0.2, wspace=0.1)
 
@@ -75,6 +78,9 @@ def run(datafolder,
         cb.set_ticks([10*int(np.min(data[label]['angle'])/10), 0, 10*int(np.max(data[label]['angle'])/10)])
         cb.set_label('angle (deg.)')
 
+        # time trace
+        AX2[l].set_ylabel('%s' % label, fontsize=10)
+        AX2[l].plot(data[label]['t'], data[label]['movie'][:,int(data[label]['movie'].shape[1]/2), int(data[label]['movie'].shape[2]/2)])
         
     if show:
         plt.show()
