@@ -53,7 +53,7 @@ class PCA(sklPCA):
 
     def projected_activity(self, component_ID=0):
         
-        if type(component_ID) in [list, np.array, range]:
+        if type(component_ID) in [list, range, np.ndarray]:
             component_IDs = component_ID
         else:
             component_IDs = [component_ID]
@@ -63,7 +63,6 @@ class PCA(sklPCA):
             output += np.array([self.get_projection(comp)*self.components_[c][i] for i in range(self.Nfeatures)])
             
         return np.array([self.means[i]+self.stds[i]*output[i,:] for i in range(self.Nfeatures)])
-
     
     def show_explained_variance(self, xticks_subsampling=2, graph_env=ge):
         # let's plot the variance explained by the components
@@ -127,8 +126,7 @@ if __name__=='__main__':
     #                         column_key='angle')
 
 
-    raster = pca.projected_activity(range(2))
-
+    raster = pca.projected_activity(np.arange(2))
 
     
     # normalize here for raster plot

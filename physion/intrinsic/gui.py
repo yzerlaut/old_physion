@@ -306,7 +306,7 @@ class MainWindow(NewWindow):
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
 
-        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
         
         self.update_dt() # while loop
 
@@ -322,7 +322,7 @@ class MainWindow(NewWindow):
         self.FRAMES.append(self.img)
 
         # re-init time step of acquisition
-        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
 
         
     def update_dt(self):
@@ -361,7 +361,7 @@ class MainWindow(NewWindow):
         if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
             if self.camBox.isChecked():
                 self.write_data() # writing data when over
-            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize), 0
+            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
             self.FRAMES = [] # re init data
             self.iTime = 0  
             self.iEp += 1
@@ -474,7 +474,7 @@ class MainWindow(NewWindow):
         if self.datafolder=='' and self.lastBox.isChecked():
             self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
                                                            with_NIdaq=False)
-        analysis.run(self.datafolder)
+        analysis.run(self.datafolder, show=True)
         print('-> analysis done !')
 
     def process(self):
