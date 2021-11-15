@@ -1,6 +1,7 @@
 import os, pynwb, itertools, skimage
 import numpy as np
 import matplotlib.pylab as plt
+from matplotlib import colorbar, colors
 
 def resample_data(array, old_time, time):
     new_array = 0*time
@@ -46,23 +47,34 @@ def get_data(datafolder):
 
     # compute the maps
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        data[label]['map'] = np.argmax(data[label]['movie'], axis=0)
-    
+        data[label]['map'] = data[label]['angle'][np.argmax(data[label]['movie'], axis=0)]
+
     return data
 
 
 def run(datafolder,
-        show=False):
+        show=False, cmap=plt.cm.hsv):
 
-    fig, AX = plt.subplots(1,4, figsize=(15,5))
-    plt.subplots_adjust(right=.99, left=0.01, bottom=0.01)
+    fig, AX = plt.subplots(1,4, figsize=(16,5))
+    plt.subplots_adjust(right=.98, left=0.02, bottom=0.2, wspace=0.1)
 
     data = get_data(datafolder)
 
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        AX[l].set_title(label, fontsize=8)
-        AX[l].imshow(data[label]['map'], cmap=plt.cm.hsv)
+        AX[l].set_title('%s' % label, fontsize=10)
+        im = AX[l].imshow(data[label]['map'], cmap=cmap,
+                          vmin=np.min(data[label]['angle']),
+                          vmax=np.max(data[label]['angle']))
         AX[l].axis('off')
+        # then colorbar
+        ax_cb = plt.axes([l*0.25+0.02, 0.16, 0.2, 0.03])
+        bounds = np.linspace(np.min(data[label]['angle']), np.max(data[label]['angle']), 40)
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+        cb = colorbar.ColorbarBase(ax_cb, cmap=cmap, norm=norm,
+                                   orientation='horizontal')
+        cb.set_ticks([10*int(np.min(data[label]['angle'])/10), 0, 10*int(np.max(data[label]['angle'])/10)])
+        cb.set_label('angle (deg.)')
+
         
     if show:
         plt.show()
