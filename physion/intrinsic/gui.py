@@ -147,7 +147,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
                         spec='large-left')
         self.flickBox = QtWidgets.QLineEdit()
-        self.flickBox.setText('5')
+        self.flickBox.setText('20')
         self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
@@ -299,17 +299,20 @@ class MainWindow(NewWindow):
 
         for il, label in enumerate(self.STIM['label']):
             tmax = np.abs(self.STIM['angle_stop'][il]-self.STIM['angle_start'][il])/self.speed
-            self.STIM[label+'-times'] = np.arange(int(tmax/self.dt))*self.dt
+            Npoints = int(tmax/self.dt_save)
+            self.STIM[label+'-times'] = np.arange(Npoints)*self.dt_save
             self.STIM[label+'-angle'] = np.linspace(self.STIM['angle_start'][il],
-                                                    self.STIM['angle_stop'][il],
-                                                    int(tmax/self.dt))
+                                                    self.STIM['angle_stop'][il], Npoints)
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
 
-        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
+        self.tSave, self.img, self.nSave = time.time(), self.new_img(), 0
         
         self.update_dt() # while loop
 
+    def new_img(self):
+        return np.zeros(self.imgsize, dtype=np.float64)
+    
     def save_img(self):
         
         if self.nSave>0:
@@ -322,7 +325,7 @@ class MainWindow(NewWindow):
         self.FRAMES.append(self.img)
 
         # re-init time step of acquisition
-        self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
+        self.tSave, self.img, self.nSave = time.time(), self.new_img(), 0
 
         
     def update_dt(self):
@@ -345,11 +348,11 @@ class MainWindow(NewWindow):
             
             if self.camBox.isChecked():
                 # # fetch image
-                self.img += self.resample_img(self.get_frame(),
-                                              int(self.spatialBox.text()))
-                self.nSave+=1
+                self.img += 1.0*self.resample_img(self.get_frame(),
+                                                  int(self.spatialBox.text()))
+                self.nSave+=1.0
 
-            time.sleep(self.dt/2.)
+            time.sleep(self.dt/3.)
             self.flip = (False if self.flip else True) # flip the flag (ADJUST TO HAVE IT ONLY AT DT)
             
         if self.camBox.isChecked():
@@ -361,7 +364,7 @@ class MainWindow(NewWindow):
         if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%4]+'-angle'])):
             if self.camBox.isChecked():
                 self.write_data() # writing data when over
-            self.tSave, self.img, self.nSave = time.time(), np.zeros(self.imgsize, dtype=np.float64), 0
+            self.tSave, self.img, self.nSave = time.time(), self.new_img(), 0
             self.FRAMES = [] # re init data
             self.iTime = 0  
             self.iEp += 1
@@ -388,7 +391,7 @@ class MainWindow(NewWindow):
         nwbfile.add_acquisition(angles)
 
         images = pynwb.image.ImageSeries(name='image_timeseries',
-                                         data=np.array(self.FRAMES),
+                                         data=np.array(self.FRAMES, dtype=np.float64),
                                          unit='a.u.',
                                          timestamps=self.STIM[self.STIM['label'][self.iEp%4]+'-times'])
 
