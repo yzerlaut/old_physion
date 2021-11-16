@@ -53,7 +53,7 @@ def get_data(datafolder):
 
 
 def run(datafolder,
-        show=False, cmap=plt.cm.twilight):
+        show=False, cmap=plt.cm.brg):
 
     fig2, AX2 = plt.subplots(4, 1, figsize=(10,6))
     plt.subplots_adjust(right=.98, bottom=0.2, hspace=0.5)

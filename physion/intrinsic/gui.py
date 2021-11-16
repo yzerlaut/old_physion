@@ -123,7 +123,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
         self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText('10')
+        self.speedBox.setText('0.5')
         self.add_widget(self.speedBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
@@ -135,7 +135,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - spatial sub-sampling (px):'),
                         spec='large-left')
         self.spatialBox = QtWidgets.QLineEdit()
-        self.spatialBox.setText('2')
+        self.spatialBox.setText('4')
         self.add_widget(self.spatialBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
