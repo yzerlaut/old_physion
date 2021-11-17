@@ -2,6 +2,7 @@ import os, pynwb, itertools, skimage
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib import colorbar, colors
+from skimage import measure
 
 def resample_data(array, old_time, time):
     new_array = 0*time
@@ -13,8 +14,18 @@ def resample_data(array, old_time, time):
             new_array[i1] = array[cond][0]
     return new_array
 
+def resample_img(img, Nsubsampling):
+    if Nsubsampling>1:
+        return measure.block_reduce(img, block_size=(Nsubsampling,
+                                                     Nsubsampling), func=np.mean)
+    else:
+        return img
+        
 
-def get_data(datafolder):
+
+def get_data(datafolder,
+             img_subsampling=1,
+             std_exclude_factor=0.5):
     
     data = {}
 
@@ -23,7 +34,7 @@ def get_data(datafolder):
         io1 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l1), 'r')
         io2 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l2), 'r')
         nwbfile1, nwbfile2 = io1.read(), io2.read()
-        imshape = nwbfile1.acquisition['image_timeseries'].data[0,:,:].shape
+        imshape = resample_img(nwbfile1.acquisition['image_timeseries'].data[0,:,:], img_subsampling).shape
         t = nwbfile1.acquisition['image_timeseries'].timestamps[:]
         for l in [l1, l2]:
             data[l] = {'t':t, 'movie':np.zeros((len(t), *imshape))}
@@ -36,7 +47,10 @@ def get_data(datafolder):
         while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
             io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
             nwbfile = io.read()
-            data[label]['movie'][:,:,:] += nwbfile.acquisition['image_timeseries'].data[:,:,:]
+            movie = nwbfile.acquisition['image_timeseries'].data[:,:,:]
+            exclude_cond = np.abs(movie-np.mean(movie))>std_exclude_factor*np.std(movie)
+            movie[exclude_cond] = np.mean(movie)
+            data[label]['movie'][:,:,:] += movie
 
             if i==1:
                 data[label]['angle'] = nwbfile.acquisition['angle_timeseries'].data[:]
@@ -47,12 +61,13 @@ def get_data(datafolder):
 
     # compute the maps
     for l, label in enumerate(['up', 'down', 'left', 'right']):
-        data[label]['map'] = data[label]['angle'][np.argmax(data[label]['movie'], axis=0)]
+        data[label]['map'] = data[label]['angle'][np.argmin(data[label]['movie'], axis=0)]
 
     return data
 
 
 def run(datafolder,
+        
         show=False, cmap=plt.cm.brg):
 
     fig2, AX2 = plt.subplots(4, 1, figsize=(10,6))
@@ -80,7 +95,8 @@ def run(datafolder,
 
         # time trace
         AX2[l].set_ylabel('%s' % label, fontsize=10)
-        AX2[l].plot(data[label]['t'], data[label]['movie'][:,int(data[label]['movie'].shape[1]/2), int(data[label]['movie'].shape[2]/2)])
+        # AX2[l].plot(data[label]['t'], data[label]['movie'][:,int(data[label]['movie'].shape[1]/2), int(data[label]['movie'].shape[2]/2)])
+        AX2[l].plot(data[label]['t'], data[label]['movie'][:,120:140, 120:140].mean(axis=(1,2)))
         
     if show:
         plt.show()

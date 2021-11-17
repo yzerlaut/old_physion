@@ -4,7 +4,6 @@ import pynwb
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
-from skimage import measure
 try:
     from pycromanager import Bridge
 except ModuleNotFoundError:
@@ -58,7 +57,6 @@ class MainWindow(NewWindow):
             self.exposure = self.core.get_exposure()
             self.demo = False
             auto_shutter = self.core.get_property('Core', 'AutoShutter')
-            print(auto_shutter)
             self.core.set_property('Core', 'AutoShutter', 0)
         except BaseException as be:
             print(be)
@@ -267,13 +265,6 @@ class MainWindow(NewWindow):
 
         return patterns
 
-    def resample_img(self, img, Nsubsampling):
-        if Nsubsampling>1:
-            return measure.block_reduce(img, block_size=(Nsubsampling,
-                                                         Nsubsampling), func=np.mean)
-        else:
-            return img
-        
     def run(self):
 
         self.flip = False
@@ -348,8 +339,8 @@ class MainWindow(NewWindow):
             
             if self.camBox.isChecked():
                 # # fetch image
-                self.img += 1.0*self.resample_img(self.get_frame(),
-                                                  int(self.spatialBox.text()))
+                self.img += 1.0*analysis.resample_img(self.get_frame(),
+                                                      int(self.spatialBox.text()))
                 self.nSave+=1.0
 
             time.sleep(self.dt/3.)
@@ -412,10 +403,10 @@ class MainWindow(NewWindow):
 
             # initialization of data
             self.FRAMES = []
-            self.imgsize = self.resample_img(self.get_frame(),
+            self.imgsize = analysis.resample_img(self.get_frame(),
                                              int(self.spatialBox.text())).shape
-            self.pimg.setImage(self.resample_img(self.get_frame(),
-                                                 int(self.spatialBox.text())))
+            self.pimg.setImage(analysis.resample_img(self.get_frame(),
+                                                     int(self.spatialBox.text())))
             self.view.autoRange(padding=0.001)
             
             # init
