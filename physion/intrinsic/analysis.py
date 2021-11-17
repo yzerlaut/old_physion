@@ -24,8 +24,8 @@ def resample_img(img, Nsubsampling):
 
 
 def get_data(datafolder,
-             img_subsampling=1,
-             std_exclude_factor=0.5):
+             img_subsampling=2,
+             std_exclude_factor=10):
     
     data = {}
 
@@ -48,16 +48,16 @@ def get_data(datafolder,
             io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
             nwbfile = io.read()
             movie = nwbfile.acquisition['image_timeseries'].data[:,:,:]
-            exclude_cond = np.abs(movie-np.mean(movie))>std_exclude_factor*np.std(movie)
-            movie[exclude_cond] = np.mean(movie)
-            data[label]['movie'][:,:,:] += movie
+            # exclude_cond = np.abs(movie-np.mean(movie))>std_exclude_factor*np.std(movie)
+            # movie[exclude_cond] = np.mean(movie)
+            data[label]['movie'][:,:,:] += np.array([resample_img(movie[i,:,:], img_subsampling) for i in range(movie.shape[0])])
 
             if i==1:
                 data[label]['angle'] = nwbfile.acquisition['angle_timeseries'].data[:]
             i+=1
         
         if i>1:
-            data[label]['movie'] /= (i-1)
+            data[label]['movie'] *= 1./(i-1)
 
     # compute the maps
     for l, label in enumerate(['up', 'down', 'left', 'right']):
@@ -67,17 +67,28 @@ def get_data(datafolder,
 
 
 def run(datafolder,
-        
-        show=False, cmap=plt.cm.brg):
+        show=False,
+        cmap=plt.cm.brg,
+        Npixels=5):
 
-    fig2, AX2 = plt.subplots(4, 1, figsize=(10,6))
-    plt.subplots_adjust(right=.98, bottom=0.2, hspace=0.5)
+
+    data = get_data(datafolder)
+
+    fig0, AX0 = plt.subplots(1,4, figsize=(16,5))
+    
+    FIGS, AXS, COORDS = [], [], []
+    for i in range(Npixels):
+        fig, AX = plt.subplots(4, 1, figsize=(10,6))
+        plt.subplots_adjust(right=.98, bottom=0.2, hspace=0.5)
+        FIGS.append(fig)
+        AXS.append(AX)
+        COORDS.append([np.random.choice(np.arange(data['up']['movie'].shape[1]),1)[0],
+                       np.random.choice(np.arange(data['up']['movie'].shape[2]),1)[0]])
     
     fig, AX = plt.subplots(1,4, figsize=(16,5))
     plt.subplots_adjust(right=.98, left=0.02, bottom=0.2, wspace=0.1)
 
-    data = get_data(datafolder)
-
+    
     for l, label in enumerate(['up', 'down', 'left', 'right']):
         AX[l].set_title('%s' % label, fontsize=10)
         im = AX[l].imshow(data[label]['map'], cmap=cmap,
@@ -94,9 +105,14 @@ def run(datafolder,
         cb.set_label('angle (deg.)')
 
         # time trace
-        AX2[l].set_ylabel('%s' % label, fontsize=10)
-        # AX2[l].plot(data[label]['t'], data[label]['movie'][:,int(data[label]['movie'].shape[1]/2), int(data[label]['movie'].shape[2]/2)])
-        AX2[l].plot(data[label]['t'], data[label]['movie'][:,120:140, 120:140].mean(axis=(1,2)))
+        for p in range(Npixels):
+            AXS[p][l].set_ylabel('%s' % label, fontsize=10)
+            AXS[p][l].plot(data[label]['t'], data[label]['movie'][:,COORDS[p][0], COORDS[p][1]])
+            AX0[l].plot([COORDS[p][0]], [COORDS[p][1]], 'ro')
+
+        # mean Img per protocol
+        AX0[l].set_title('%s' % label, fontsize=10)
+        AX0[l].imshow(data[label]['movie'][0,:,:], cmap=plt.cm.binary)
         
     if show:
         plt.show()
