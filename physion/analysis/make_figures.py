@@ -114,7 +114,7 @@ class FiguresWindow(NewWindow):
             Layouts[-1].addWidget(self.fovPlotBtn)
             Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'FOV type:', self)) # SEPARATOR
             self.fovType = QtWidgets.QComboBox(self)
-            self.fovType.addItems(['meanImg', 'meanImgE', 'max_proj'])
+            self.fovType.addItems(['meanImg', 'meanImgE', 'max_proj', 'meanImg_ch2'])
             Layouts[-1].addWidget(self.fovType)
             Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'NL:', self)) # SEPARATOR
             self.fovNL = QtWidgets.QSpinBox(self)
