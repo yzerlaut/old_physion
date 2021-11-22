@@ -95,23 +95,28 @@ def get_data(datafolder,
         # compute the maps
         for l, label in enumerate(['up', 'down', 'left', 'right']):
             # finding the minimum
-            data[label]['map'] = data[label]['angle'][np.argmin(data[label]['movie'], axis=0)]
+            data[label]['min-map'] = data[label]['angle'][np.argmin(data[label]['movie'], axis=0)]
+            data[label]['abs-resp'] = np.min(data[label]['movie'], axis=0)-np.mean(data[label]['movie'], axis=0)
 
+        
         return data
     else:
         return None
 
 
-def show_raw(datafolder, Npixels=5):
+def show_raw(datafolder,
+             exclude=[],
+             Npixels=5):
 
     data = init_data(datafolder)
 
     fig0, AX0 = plt.subplots(1,4, figsize=(16,5))
+    plt.subplots_adjust(right=.95, bottom=0.1, top=0.95)
     
     FIGS, AXS, COORDS = [], [], []
     for i in range(Npixels):
         fig, AX = plt.subplots(4, 1, figsize=(10,6))
-        plt.subplots_adjust(right=.98, bottom=0.2, hspace=0.5)
+        plt.subplots_adjust(right=.98, bottom=0.1, hspace=1, top=0.95)
         FIGS.append(fig)
         AXS.append(AX)
         COORDS.append([np.random.choice(np.arange(data['up']['movie'].shape[1]),1)[0],
@@ -122,40 +127,45 @@ def show_raw(datafolder, Npixels=5):
         
         i=1
         while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
+            include = True
+            for e in exclude:
+                if e in '%s-%i.nwb' % (label, i):
+                    include = False
 
-            io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
-            nwbfile = io.read()
-            movie = nwbfile.acquisition['image_timeseries'].data[:,:,:]
+            if include:
 
-            if i==1:
-                # mean Img per protocol
-                AX0[l].set_title('%s' % label, fontsize=10)
-                AX0[l].imshow(movie[0,:,:], cmap=plt.cm.binary,
-                              origin='lower')
-        
-            # time trace
-            for p in range(Npixels):
-                AXS[p][l].plot(nwbfile.acquisition['image_timeseries'].timestamps[:],
-                               nwbfile.acquisition['image_timeseries'].data[:,COORDS[p][0], COORDS[p][1]], color=plt.cm.tab10(i-1))
-                AXS[p][l].set_ylabel(label)
+                io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
+                nwbfile = io.read()
+                movie = nwbfile.acquisition['image_timeseries'].data[:,:,:]
+
                 if i==1:
-                    AX0[l].annotate(' %i' % (p+1), (COORDS[p][1], COORDS[p][0]),
-                                    xycoords='data', color='r')
-                    AXS[p][0].set_title(' %i' % (p+1))
-                    AX0[l].plot([COORDS[p][1]], [COORDS[p][0]], 'ro')
+                    # mean Img per protocol
+                    AX0[l].set_title('%s' % label, fontsize=10)
+                    AX0[l].imshow(movie[0,:,:], cmap=plt.cm.binary,
+                                  origin='lower')
 
-                if l==0:
-                    AXS[p][l].annotate(' i=%i'%(i) +i*'\n', (0, .1),
-                                       xycoords='figure fraction', color=plt.cm.tab10(i-1))
+                # time trace
+                for p in range(Npixels):
+                    AXS[p][l].plot(nwbfile.acquisition['image_timeseries'].timestamps[:],
+                                   nwbfile.acquisition['image_timeseries'].data[:,COORDS[p][0], COORDS[p][1]], color=plt.cm.tab10(i-1))
+                    AXS[p][l].set_ylabel(label)
+                    if i==1:
+                        AX0[l].annotate(' %i' % (p+1), (COORDS[p][1], COORDS[p][0]),
+                                        xycoords='data', color='r')
+                        AXS[p][0].set_title('loc. # %i' % (p+1))
+                        AX0[l].plot([COORDS[p][1]], [COORDS[p][0]], 'ro')
 
-            io.close()
+                    if l==0:
+                        AXS[p][l].annotate(' i=%i'%(i) +i*'\n', (0, .1),
+                                           xycoords='figure fraction', color=plt.cm.tab10(i-1))
+
+                io.close()
             i+=1
 
-            
     return FIGS, AXS, fig0
 
         
-def run(datafolder,
+def run(data,
         show=False,
         cmap=plt.cm.brg,
         spatial_subsampling=0,
@@ -163,54 +173,60 @@ def run(datafolder,
         exclude=[],
         std_exclude_factor=100.):
 
+    fig, AX = plt.subplots(1,4, figsize=(16,5))
+    plt.subplots_adjust(right=.98, left=0.02, bottom=0.2, wspace=0.1)
 
-    data = get_data(datafolder,
-                    spatial_subsampling=spatial_subsampling,
-                    temporal_smoothing=temporal_smoothing,
-                    exclude=exclude,
-                    std_exclude_factor=std_exclude_factor)
+    for l, label in enumerate(['up', 'down', 'left', 'right']):
+        AX[l].set_title('%s' % label, fontsize=10)
+        im = AX[l].imshow(data[label]['min-map'], cmap=cmap,
+                          vmin=np.min(data[label]['angle']),
+                          vmax=np.max(data[label]['angle']))
+        AX[l].axis('off')
+        # then colorbar
+        ax_cb = plt.axes([l*0.25+0.02, 0.16, 0.2, 0.03])
+        bounds = np.linspace(np.min(data[label]['angle']), np.max(data[label]['angle']), 40)
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+        cb = colorbar.ColorbarBase(ax_cb, cmap=cmap, norm=norm,
+                                   orientation='horizontal')
+        cb.set_ticks([10*int(np.min(data[label]['angle'])/10), 0, 10*int(np.max(data[label]['angle'])/10)])
+        cb.set_label('angle (deg.)')
 
-    if data is not None:
-        
-        fig, AX = plt.subplots(1,4, figsize=(16,5))
-        plt.subplots_adjust(right=.98, left=0.02, bottom=0.2, wspace=0.1)
+    fig2, AX2 = plt.subplots(3, 2, figsize=(9,9))
+    plt.subplots_adjust(right=.8, left=0.1, bottom=0.1, wspace=0.1)
 
-        for l, label in enumerate(['up', 'down', 'left', 'right']):
-            AX[l].set_title('%s' % label, fontsize=10)
-            im = AX[l].imshow(data[label]['map'], cmap=cmap,
-                              vmin=np.min(data[label]['angle']),
-                              vmax=np.max(data[label]['angle']))
-            AX[l].axis('off')
-            # then colorbar
-            ax_cb = plt.axes([l*0.25+0.02, 0.16, 0.2, 0.03])
-            bounds = np.linspace(np.min(data[label]['angle']), np.max(data[label]['angle']), 40)
-            norm = colors.BoundaryNorm(bounds, cmap.N)
-            cb = colorbar.ColorbarBase(ax_cb, cmap=cmap, norm=norm,
-                                       orientation='horizontal')
-            cb.set_ticks([10*int(np.min(data[label]['angle'])/10), 0, 10*int(np.max(data[label]['angle'])/10)])
-            cb.set_label('angle (deg.)')
+    AX2[0][0].set_title('horizontal') # left/right
+    AX2[0][1].set_title('vertical') # up/down
 
-        fig2, AX2 = plt.subplots(2,4, figsize=(8,10))
-        plt.subplots_adjust(right=.8, left=0.02, bottom=0.1, wspace=0.1)
-        
-        # retinotopy map
-        AX2[0][0].set_ylabel('retinotopy map')
+    # retinotopy map
+    AX2[0][0].set_ylabel('retinotopy map')
+    AX2[0][0].imshow(data['up']['min-map']-data['down']['min-map'],
+                    # vmin=np.min(data[label]['angle']),
+                    # vmax=np.max(data[label]['angle']),
+                    cmap=cmap)
+    AX2[0][1].imshow(data['left']['min-map']-data['right']['min-map'],
+                    # vmin=np.min(data[label]['angle']),
+                    # vmax=np.max(data[label]['angle']),
+                    cmap=cmap)
+
+    # double delay map
+    AX2[1][0].set_ylabel('double delay map')
+    AX2[1][0].imshow(data['up']['min-map']+data['down']['min-map'],
+                    cmap=cmap)
+    AX2[1][1].imshow(data['left']['min-map']+data['right']['min-map'],
+                    cmap=cmap)
+
+    # response magnitude  map
+    AX2[2][0].set_ylabel('resp. magnitude map')
+    AX2[2][0].imshow(data['up']['abs-resp']+data['down']['abs-resp'],
+                    cmap=cmap)
+    AX2[2][1].imshow(data['left']['abs-resp']+data['right']['abs-resp'],
+                    cmap=cmap)
 
 
-        # double delay map
-        AX2[0][1].set_ylabel('double delay map')
+    if show:
+        plt.show()
 
-        # double delay map
-        AX2[0][2].set_ylabel('retinotopy map')
-        
-        
-        if show:
-            plt.show()
-
-        return fig
-    else:
-        print('data not found or not complete (need at least one run)')
-        return None
+    return fig
     
 if __name__=='__main__':
     
@@ -227,6 +243,7 @@ if __name__=='__main__':
     parser.add_argument('-ts', "--temporal_smoothing", type=int, default=0)
     parser.add_argument('-sef', "--std_exclude_factor", type=float, default=100.)
     parser.add_argument('-sr', "--show_raw", action="store_true")
+    parser.add_argument('-gs', "--get_saved_npz", action="store_true")
     parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -235,13 +252,26 @@ if __name__=='__main__':
                                               with_NIdaq=False)
 
     if args.show_raw:
-        show_raw(args.datafolder)
+        show_raw(args.datafolder,
+                 exclude=args.exclude)
     else:
-        run(args.datafolder,
-            exclude=args.exclude,
-            spatial_subsampling=args.spatial_subsampling,
-            temporal_smoothing=args.temporal_smoothing,
-            std_exclude_factor=args.std_exclude_factor)
+
+        if args.get_saved_npz:
+            data = np.load('/tmp/data.npz', allow_pickle=True).item()
+        else:
+            data = get_data(args.datafolder,
+                            exclude=args.exclude,
+                            spatial_subsampling=args.spatial_subsampling,
+                            temporal_smoothing=args.temporal_smoothing,
+                            std_exclude_factor=args.std_exclude_factor)
+            np.save('/tmp/data.npz', data)
+            print('data saved as "/tmp/data.npz" ')
+        if data is not None:
+            run(data,
+                exclude=args.exclude,
+                spatial_subsampling=args.spatial_subsampling,
+                temporal_smoothing=args.temporal_smoothing,
+                std_exclude_factor=args.std_exclude_factor)
     
     plt.show()
     
