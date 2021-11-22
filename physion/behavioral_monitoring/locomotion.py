@@ -45,8 +45,12 @@ def compute_locomotion_speed(binary_signal,
 			     rotoencoder_value_per_rotation=1, # a.u.
                              with_raw_position=False):
 
-    A = binary_signal%2
-    B = np.floor(binary_signal/2)
+    ##############################################################
+    ##### MODIFY HERE IN CASE OF PB WITH ONE CHANNEL   ###########
+    ##############################################################
+    A = np.floor(binary_signal/2)
+    B = np.concatenate([A[1:], [0]])
+    ##############################################################
 
     position = compute_position_from_binary_signals(A, B)*2.*np.pi*radius_position_on_disk/rotoencoder_value_per_rotation
 
