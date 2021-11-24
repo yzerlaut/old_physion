@@ -199,7 +199,7 @@ class EpisodeResponse:
 
         for indices in itertools.product(*VARIED_INDICES):
             stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
-                                                                                                    list(indices)),
+                                                                                            list(indices)),
                                                         **stat_test_props)
 
             for key, index in zip(VARIED_KEYS, indices):
@@ -220,9 +220,10 @@ if __name__=='__main__':
     
     if '.nwb' in sys.argv[-1]:
         data = Data(filename)
-        # cell_resp = EpisodeResponse(data, roiIndex=0)
-        pupil_eps = EpisodeResponse(data, quantity='Pupil')
-        print(pupil_eps.t)
+        cell_resp = EpisodeResponse(data, roiIndex=1)
+        # pupil_eps = EpisodeResponse(data, quantity='Pupil')
+        # print(pupil_eps.t)
+        print(np.sum(cell_resp['significant']))
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             

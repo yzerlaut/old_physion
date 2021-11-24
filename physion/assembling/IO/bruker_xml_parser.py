@@ -66,10 +66,11 @@ def bruker_xml_parser(filename):
                                                 try:
                                                     depths[g.attrib['description']].append(float(g.attrib['value']))
                                                 except ValueError:
-                                                    pass
+                                                    print(g.attrib['description'], g.attrib['value'])
 
 
     # dealing with depth  --- MANUAL for piezo plane-scanning mode because the bruker xml files don't hold this info...
+    print(data['Ch2']['depth_index'])
     if np.sum(['Piezo' in key for key in depths.keys()]):
         Ndepth = len(np.unique(data['Ch2']['depth_index'])) # SHOULD ALWAYS BE ODD
         for key in depths.keys():

@@ -199,6 +199,7 @@ class MainWindow(NewWindow):
                   self.SsamplingBox, self.groomingBox, self.processGrooming]:
             x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         
+
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtWidgets.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
@@ -244,6 +245,8 @@ class MainWindow(NewWindow):
         # # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.timeLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
+        self.motionCheckBox.setEnabled(True)
+        self.motionCheckBox.setChecked(True)
         
         self.nframes = 0
         self.cframe = 0
@@ -363,9 +366,10 @@ class MainWindow(NewWindow):
                 if self.motionCheckBox.isChecked():
                     self.fullimg2 = np.load(os.path.join(self.imgfolder,
                                                          self.FILES[self.cframe+1]))
-                    
-                    self.img = self.fullimg2[self.zoom_cond].reshape(self.Nx, self.Ny)-\
-                        self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny)
+                    imax = np.max(self.fullimg)
+                    self.img = np.abs(self.fullimg2[self.zoom_cond].reshape(self.Nx, self.Ny)-\
+                                      self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny))
+                    self.img[0,0] = 2*imax
                 else:
                     
                     self.img = self.fullimg[self.zoom_cond].reshape(self.Nx, self.Ny)
