@@ -89,12 +89,12 @@ PREPROCESSING_SETTINGS = {
 
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):
+        print('removing "%s"' % os.path.join(args.CaImaging_folder, 'suite2p'))
         shutil.rmtree(os.path.join(args.CaImaging_folder, 'suite2p'))
     build_suite2p_options(args.CaImaging_folder, PREPROCESSING_SETTINGS[args.setting_key])
     cmd = '%s -m suite2p --db "%s" --ops "%s" &' % (python_path_suite2p_env,
                                      os.path.join(args.CaImaging_folder,'db.npy'),
                                      os.path.join(args.CaImaging_folder,'ops.npy'))
-    print(cmd)
     subprocess.run(cmd, shell=True)
     
 

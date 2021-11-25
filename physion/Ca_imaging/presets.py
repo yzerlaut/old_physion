@@ -84,6 +84,3 @@ ops0 = {
     'prctile_baseline': 8.0,
     'neucoeff': 0.7
 }
-
-
-

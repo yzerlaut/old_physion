@@ -9,7 +9,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 try:
     from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
     no_psychopy = False
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     print('Experiment & Visual-Stim modules disabled !')
     no_psychopy = True
 
@@ -29,13 +29,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # buttons and functions
         LABELS = ["r) [R]un experiments",
                   "s) [S]timulus design",
+                  "i) [I]ntrinsic imaging",
                   "p) [P]upil preprocessing",
                   "f) [F]acemotion preprocessing",
-                  "i) [I]maging preprocessing",
+                  "c) [C]a-imaging preprocessing",
                   "e) [E]lectrophy preprocessing",
                   # "b) run [B]ash script",
                   "a) [A]ssemble data",
-                  "c) Add [C]a2+ data",
                   "t) [T]ransfer data",
                   "v) [V]isualize data",
                   "n) launch [Notebook] ",
@@ -44,14 +44,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         FUNCTIONS = [self.launch_exp,
                      self.launch_visual_stim,
-                     # self.launch_organize,
+                     self.launch_intrinsic,
                      self.launch_pupil,
                      self.launch_facemotion,
                      self.launch_CaProprocessing,
                      self.launch_electrophy,
                      # self.launch_bash_script,
                      self.launch_assembling,
-                     self.launch_CaAddition,
                      self.launch_transfer,
                      self.launch_visualization,
                      self.launch_notebook,
@@ -87,11 +86,15 @@ class MainWindow(QtWidgets.QMainWindow):
             CHILDREN_PROCESSES.append(child)
         else:
             self.statusBar.showMessage('Module cant be launched, PsychoPy is missing !')
-            
         
     def launch_facemotion(self):
         from physion.facemotion.gui import run as RunFacemotion
         child = RunFacemotion(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
+
+    def launch_intrinsic(self):
+        from physion.intrinsic.gui import run as RunIntrinsic
+        child = RunIntrinsic(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
     def launch_visual_stim(self):
@@ -102,6 +105,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_assembling(self):
         from physion.assembling.gui import run as RunAssembling
         child = RunAssembling(self.app, self.args)
+        CHILDREN_PROCESSES.append(child)
+        from physion.Ca_imaging.guiAdd import run as RunCaAddition
+        child = RunCaAddition(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
     def launch_transfer(self):
@@ -119,11 +125,6 @@ class MainWindow(QtWidgets.QMainWindow):
         child = RunCaPreprocessing(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
 
-    def launch_CaAddition(self):
-        from physion.Ca_imaging.guiAdd import run as RunCaAddition
-        child = RunCaAddition(self.app, self.args)
-        CHILDREN_PROCESSES.append(child)
-        
     def launch_electrophy(self):
         self.statusBar.showMessage('Electrophy module not implemented yet')
 

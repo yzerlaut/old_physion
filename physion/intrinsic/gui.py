@@ -13,7 +13,11 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.folders import FOLDERS
 from misc.guiparts import NewWindow
 from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
-from visual_stim.psychopy_code.stimuli import visual_stim, visual
+from visual_stim.psychopy_code.stimuli import visual_stim
+try:
+    from psychopy import visual, monitors
+except ModuleNotFoundError:
+    pass
 import multiprocessing # for the camera streams !!
 from intrinsic import analysis
 

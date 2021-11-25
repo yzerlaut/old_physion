@@ -5,7 +5,7 @@ import numpy as np
 import itertools, os, sys, pathlib, time, json
 try:
     from psychopy import visual, core, event, clock, monitors # We actually do it below so that we can use the code without psychopy
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))

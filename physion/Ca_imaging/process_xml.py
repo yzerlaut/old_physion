@@ -37,6 +37,8 @@ def build_suite2p_options(folder,
     ops['diameter'] = int(settings_dict['cell_diameter']/um_per_pixel) # in pixels (int 20um)
     ops['spatial_scale'] = int(settings_dict['cell_diameter']/6/um_per_pixel)
 
+    # ops['tiff_list'] = [] 
+    
     # all other keys here
     for key in settings_dict:
         if key in ops:

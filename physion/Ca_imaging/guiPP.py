@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.app, self.args, self.CHILDREN_PROCESSES = app, args, []
         
-        self.setGeometry(350, 470, 300, 350)
+        self.setGeometry(400, 470, 300, 380)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -66,6 +66,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                 '1h', '2h', '3h', '5h', '10h', '20h', '40h'])
         
         HEIGHT +=40 
+        self.rmBox = QtWidgets.QCheckBox(' remove prev. "./suite2p/" ', self)
+        self.rmBox.setStyleSheet("color: gray;")
+        self.rmBox.setMinimumWidth(200)
+        self.rmBox.move(50, HEIGHT)
+        
+        HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.gen.clicked.connect(self.run)
@@ -73,25 +79,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.move(50, HEIGHT)
         
         HEIGHT +=40 
-        self.gen = QtWidgets.QPushButton(' open Suite2p ', self)
-        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.gen.clicked.connect(self.open_suite2p)
-        self.gen.setMinimumWidth(200)
-        self.gen.move(50, HEIGHT)
+        self.suite2p = QtWidgets.QPushButton(' open Suite2p ', self)
+        self.suite2p.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.suite2p.clicked.connect(self.open_suite2p)
+        self.suite2p.setMinimumWidth(200)
+        self.suite2p.move(50, HEIGHT)
         
         HEIGHT +=40 
-        self.gen = QtWidgets.QPushButton('red-cell selection GUI ', self)
-        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.gen.clicked.connect(self.red_cell_selection)
-        self.gen.setMinimumWidth(200)
-        self.gen.move(50, HEIGHT)
+        self.red = QtWidgets.QPushButton('red-cell selection GUI ', self)
+        self.red.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.red.clicked.connect(self.red_cell_selection)
+        self.red.setMinimumWidth(200)
+        self.red.move(50, HEIGHT)
 
         HEIGHT +=40 
-        self.gen = QtWidgets.QPushButton('Zstack cell selection GUI ', self)
-        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.gen.clicked.connect(self.zstack_selection)
-        self.gen.setMinimumWidth(200)
-        self.gen.move(50, HEIGHT)
+        self.zstack = QtWidgets.QPushButton('Zstack cell selection GUI ', self)
+        self.zstack.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.zstack.clicked.connect(self.zstack_selection)
+        self.zstack.setMinimumWidth(200)
+        self.zstack.move(50, HEIGHT)
         
         self.CMDS = []
         self.show()
@@ -101,12 +107,20 @@ class MainWindow(QtWidgets.QMainWindow):
         print('command set is reset !')
     
     def build_cmd(self, folder, key):
+        
         delay = ''
         if self.delayBox.currentText()!='None':
             delay = 'sleep %s; ' % self.delayBox.currentText()
-        print(folder)
-        return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
-                                                                            self.process_script, folder, key)
+
+        if self.rmBox.isChecked():
+            return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v %s' % (python_path_suite2p_env,
+                                                                                   self.process_script,
+                                                                                   folder, key,
+                                                                                   '--remove_previous')
+        else:
+            return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
+                                                                                self.process_script,
+                                                                                folder, key)
     
     def load_imaging(self):
 
