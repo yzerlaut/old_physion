@@ -23,7 +23,7 @@ def sliding_percentile(array, percentile, Window):
 
     x = np.zeros(len(array))
     y0 = strided_app(array, Window, 1)
-    
+
     y = np.percentile(y0, percentile, axis=-1)
     
     x[:int(Window/2)] = y[0]
@@ -46,12 +46,10 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         """
         computes dF/F with a smotthed sliding percentile
         """
-        iTsm = int(T_sliding_min/data.CaImaging_dt)
-
         DFoF, FMIN = [], []
         for ROI in data.validROI_indices[np.array(roiIndices)]:
-            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, iTsm) # sliding percentile
-            Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
+            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, int(T_sliding_min/data.CaImaging_dt)) # sliding percentile
+            Fmin = gaussian_filter1d(Fmin, int(T_sliding_min/data.CaImaging_dt)) # + smoothing
             if np.mean(Fmin)!=0:
                 DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
             else:
@@ -92,6 +90,18 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         else:
             return np.array(DFoF)
         
+    elif 'Deconvolve(F-' in CaImaging_key:
+        """
+        deconvolution using oasis
+        """
+        if '*Fneu' in CaImaging_key:
+            coef = float(CaImaging_key.replace('Deconvolve(F-', '').replace('*Fneu)', ''))
+        else:
+            coef = 1. # d(F-Fneu)
+
+        print('TO IMPLEMENT !!!')
+
+            
     elif CaImaging_key in ['F-Fneu', 'dF']:
         DF = []
         for ROI in data.validROI_indices[roiIndices]: # /!\ validROI_indices here /!\

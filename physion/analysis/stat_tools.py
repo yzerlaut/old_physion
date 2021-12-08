@@ -31,12 +31,14 @@ class StatTest:
                     setattr(self, key, getattr(result, key))
             elif test=='ttest':
                 result = stats.ttest_rel(self.x, self.y)
+                # print('%.1f' % np.mean(self.y-self.x), result) # to debug
                 for key in ['pvalue', 'statistic']:
                     setattr(self, key, getattr(result, key))
             else:
                 print(' "%s" test not implemented ! ' % test)
-        except ValueError:
-            pass
+        except BaseException as be:
+            print(be)
+            print(' /!\ Problem in statistical test /!\   \n')
 
     def significant(self, threshold=0.01):
         """

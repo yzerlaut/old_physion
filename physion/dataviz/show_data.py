@@ -513,7 +513,10 @@ class MultimodalData(Data):
         if with_annotation:
             S = ''
             if quantity=='CaImaging':
-                S+='roi #%i' % (roiIndex+1)
+                if type(roiIndex) in [list, np.ndarray, np.array]:
+                    S+='roi #%i...%i' % (roiIndex[0]+1, roiIndex[-1]+1)
+                else:
+                    S+='roi #%i' % (roiIndex+1)
             # for i, key in enumerate(EPISODES.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
