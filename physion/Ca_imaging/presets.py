@@ -41,7 +41,7 @@ ops0 = {
     'batch_size': 2000, # (int, default: 200) how many frames to register simultaneously in each batch. This depends on memory constraints - it will be faster to run if the batch is larger, but it will require more RAM.
     'two_step_registration': False, # (bool, default: False) whether or not to run registration twice (for low SNR data). keep_movie_raw must be True for this to work.
     'keep_movie_raw': False,
-    'maxregshift': 0.1, # (float, default: 0.1) the maximum shift as a fraction of the frame size. If the frame is Ly pixels x Lx pixels, then the maximum pixel shift in pixels will be max(Ly,Lx) * ops['maxregshift'].
+    'maxregshift': 0.2, # (float, default: 0.1) the maximum shift as a fraction of the frame size. If the frame is Ly pixels x Lx pixels, then the maximum pixel shift in pixels will be max(Ly,Lx) * ops['maxregshift'].
     'reg_tif': False, # (bool, default: False) whether or not to write the registered binary to tiff files
     'reg_tif_chan2': False, # (bool, default: False) whether or not to write the registered binary of the non-functional channel to tiff files
     'subpixel': 10,
@@ -52,7 +52,7 @@ ops0 = {
     'block_size': [256, 256], # (two ints, default: [128,128]) size of blocks for non-rigid registration, in pixels. HIGHLY recommend keeping this a power of 2 and/or 3 (e.g. 128, 256, 384, etc) for efficient fft
     'snr_thresh': 1.2,
     'maxregshiftNR': 8.0,
-    '1Preg': True,
+    '1Preg': False, # (bool, default: False) whether to perform high-pass spatial filtering and tapering (parameters set below), which help with 1P registration
     'spatial_hp': 42,
     'spatial_hp_reg': 42.0,
     'spatial_hp_detect': 25,
@@ -70,9 +70,9 @@ ops0 = {
     'nbinned': 5000,
     'max_iterations': 20,
     'threshold_scaling': 1.0,
-    'max_overlap': 0.75,
+    'max_overlap': 0.75, # (float, default: 0.75) we allow overlapping ROIs during cell detection. After detection, ROIs with more than ops[‘max_overlap’] fraction of their pixels overlapping with other ROIs will be discarded. Therefore, to throw out NO ROIs, set this to 1.0.
     'anatomical_only': 0,
-    'high_pass': 6.0,
+    'high_pass': 6.0, # (int, default: 100) running mean subtraction across time with window of size ‘high_pass’. Values of less than 10 are recommended for 1P data where there are often large full-field changes in brightness.
     'use_builtin_classifier': False,
     'inner_neuropil_radius': 2,
     'min_neuropil_pixels': 350,

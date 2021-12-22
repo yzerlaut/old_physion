@@ -1924,6 +1924,7 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
     # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
     # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
+    # with open('physion/exp/protocols/looming-stim.json', 'r') as fp:
     with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
         protocol = json.load(fp)
 
@@ -1933,7 +1934,6 @@ if __name__=='__main__':
         def __init__(self):
             pass
         def get(self):
-            # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
             return tempfile.gettempdir()
         
     class dummy_parent:
