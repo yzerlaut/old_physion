@@ -78,7 +78,17 @@ PREPROCESSING_SETTINGS = {
                             # 'nonrigid':0,
                             'connected':True,
                             'threshold_scaling':0.5,
-                            'neucoeff': 1.0},
+                            'neucoeff': 0.7},
+    'GCamp6s_1plane_2chan_A1':{'cell_diameter':20, # in um
+                               'tau':1.3,
+                               'nchannels':2,
+                               'functional_chan':2,
+                               'align_by_chan':1,
+                               'sparse_mode':False,
+                               # 'nonrigid':0,
+                               'connected':True,
+                               'threshold_scaling':0.5,
+                               'neucoeff': 0.7},
     'NDNF+_1plane':{'cell_diameter':20, # in um
                     'sparse_mode':True,
                     'connected':True,
