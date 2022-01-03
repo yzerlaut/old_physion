@@ -8,6 +8,8 @@ from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 
+KEYS = ['meanImg_chan2', 'meanImg', 'max_proj', 'meanImgE']
+
 class RCGwindow(NewWindow):
     
     def __init__(self, app,
@@ -26,6 +28,18 @@ class RCGwindow(NewWindow):
 
         self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
         self.saveSc.activated.connect(self.save)
+
+        self.greenSc = QtWidgets.QShortcut(QtGui.QKeySequence('1'), self)
+        self.greenSc.activated.connect(self.switch_to_1)
+        self.redSc = QtWidgets.QShortcut(QtGui.QKeySequence('2'), self)
+        self.redSc.activated.connect(self.switch_to_2)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('3'), self)
+        self.maxSc.activated.connect(self.switch_to_3)
+        self.corrSc = QtWidgets.QShortcut(QtGui.QKeySequence('4'), self)
+        self.corrSc.activated.connect(self.switch_to_4)
+        
+        self.roiSc = QtWidgets.QShortcut(QtGui.QKeySequence('Space'), self)
+        self.roiSc.activated.connect(self.switch_roi_display)
         
         self.roi_index=0
         
@@ -65,7 +79,7 @@ class RCGwindow(NewWindow):
 
         self.imgB = QtWidgets.QComboBox(self)
         self.imgB.setMinimumWidth(150)
-        self.imgB.addItems(['meanImg_chan2', 'meanImg', 'max_proj'])
+        self.imgB.addItems(KEYS)
         self.imgB.activated.connect(self.draw_image)
         
         self.load = QtGui.QPushButton('  load data [Ctrl+O]  \u2b07')
@@ -82,24 +96,55 @@ class RCGwindow(NewWindow):
 
         self.saveB = QtGui.QPushButton('save data [Ctrl+S]')
         self.saveB.clicked.connect(self.save)
+
+        self.rstRoiB = QtGui.QPushButton('reset ALL rois to green')
+        self.rstRoiB.clicked.connect(self.reset_all_to_green)
         
+        self.roiShapeCheckBox = QtWidgets.QCheckBox("ROIs as circle")
+        self.roiShapeCheckBox.setChecked(True)
+
+
         for wdgt, index in zip([self.folderB, self.load, self.imgB, self.nextB, self.prevB,
-                                self.switchB, self.saveB], [1,2,6,10,11,12,16]):
+                                self.switchB, self.saveB, self.rstRoiB, self.roiShapeCheckBox],
+                               [1,2,6,10,11,12,16,21, 23]):
             wdgt.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
             self.l0.addWidget(wdgt,index,0,1,3)
         
-
         self.rois_green = pg.ScatterPlotItem()
         self.rois_red = pg.ScatterPlotItem()
         self.rois_hl = pg.ScatterPlotItem()
 
+        self.folder, self.rois_on = '', True
         self.show()
 
+    def reset_all_to_green(self):
+        for i in range(len(self.stat)):
+            self.redcell[i,0] = 0.
+        self.refresh()
+        
     def refresh(self):
 
         self.p0.removeItem(self.rois_green)
         self.p0.removeItem(self.rois_red)
-        self.draw_rois()
+        if self.rois_on:
+            self.draw_rois()
+
+    def switch_to(self, i):
+        self.imgB.setCurrentText(KEYS[i-1])
+        self.draw_image()
+
+    def switch_to_1(self):
+        self.switch_to(1)
+    def switch_to_2(self):
+        self.switch_to(2)
+    def switch_to_3(self):
+        self.switch_to(3)
+    def switch_to_4(self):
+        self.switch_to(4)
+
+    def switch_roi_display(self):
+        self.rois_on = (not self.rois_on)
+        self.refresh()
 
     def open_file(self):
 
@@ -108,6 +153,11 @@ class RCGwindow(NewWindow):
                                     FOLDERS[self.folderB.currentText()])
         # self.folder = '/home/yann/UNPROCESSED/TSeries-001'
 
+        self.load_file()
+        
+    def load_file(self):
+
+        
         if self.folder!='':
 
             self.stat = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'stat.npy'), allow_pickle=True)
@@ -117,30 +167,47 @@ class RCGwindow(NewWindow):
 
             self.draw_image()
             self.draw_rois()
-
+        
     def draw_image(self):
         
         self.pimg.setImage(self.ops[self.imgB.currentText()]**.25)
 
 
-    def draw_rois(self, size=4, t=np.arange(20)):
+    def add_single_roi_pix(self, i, size=4, t=np.arange(20)):
 
-        x_green, y_green, x_red, y_red = [], [], [], []
+        if self.roiShapeCheckBox.isChecked():
+            # drawing circles:
+            
+            xmean = np.mean(self.stat[i]['xpix'])
+            ymean = np.mean(self.stat[i]['ypix'])
+            
+            if self.redcell[i,0]:
+                self.x_red += list(xmean+size*np.cos(2*np.pi*t/len(t)))
+                self.y_red += list(ymean+size*np.sin(2*np.pi*t/len(t)))
+            else:
+                self.x_green += list(xmean+size*np.cos(2*np.pi*t/len(t)))
+                self.y_green += list(ymean+size*np.sin(2*np.pi*t/len(t)))
+
+        else:
+            # full ROI
+            if self.redcell[i,0]:
+                self.x_red += list(self.stat[i]['xpix'])
+                self.y_red += list(self.stat[i]['ypix'])
+            else:
+                self.x_green += list(self.stat[i]['xpix'])
+                self.y_green += list(self.stat[i]['ypix'])
+        
+    def draw_rois(self):
+
+        self.x_green, self.y_green = [], []
+        self.x_red, self.y_red = [], []
+        
         for i in range(len(self.stat)):
             if self.iscell[i,0]:
-                xmean = np.mean(self.stat[i]['xpix'])
-                ymean = np.mean(self.stat[i]['ypix'])
-                if self.redcell[i,0]:
-                    x_red += list(xmean+size*np.cos(2*np.pi*t/len(t)))
-                    y_red += list(ymean+size*np.sin(2*np.pi*t/len(t)))
-                else:
-                    x_green += list(xmean+size*np.cos(2*np.pi*t/len(t)))
-                    y_green += list(ymean+size*np.sin(2*np.pi*t/len(t)))
-                    # x_green += list(self.stat[i]['xpix'])
-                    # y_green += list(self.stat[i]['ypix'])
+                self.add_single_roi_pix(i)
         
-        self.rois_red.setData(x_red, y_red, size=3, brush=pg.mkBrush(255,0,0))
-        self.rois_green.setData(x_green, y_green, size=1, brush=pg.mkBrush(0,255,0))
+        self.rois_red.setData(self.x_red, self.y_red, size=3, brush=pg.mkBrush(255,0,0))
+        self.rois_green.setData(self.x_green, self.y_green, size=1, brush=pg.mkBrush(0,255,0))
         self.p0.addItem(self.rois_red)
         self.p0.addItem(self.rois_green)
 
@@ -205,6 +272,9 @@ if __name__=='__main__':
     build_dark_palette(app)
     main = RCGwindow(app,
                       args=args)
+    if args.datafile!='':
+        main.folder = args.datafile
+        main.load_file()
     sys.exit(app.exec_())
 
 
