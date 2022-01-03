@@ -8,17 +8,20 @@ from misc.folders import FOLDERS
 from misc.style import set_dark_style, set_app_icon
 from misc.guiparts import NewWindow, Slider
 
-KEYS = ['meanImg_chan2', 'meanImg', 'max_proj', 'meanImgE']
+KEYS = ['meanImg_chan2', 'meanImg', 'max_proj', 'meanImgE',
+        'meanImg_chan2-X*meanImg', 'meanImg_chan2/(X*meanImg)']
 
 class RCGwindow(NewWindow):
     
     def __init__(self, app,
                  args=None,
-                 parent=None):
+                 parent=None,
+                 debug=False):
         """
         Red-Cell selection GUI
         """
         self.app = app
+        self.debug = debug
         
         super(RCGwindow, self).__init__(i=3,
                                         title='red-cell gui')
@@ -29,14 +32,18 @@ class RCGwindow(NewWindow):
         self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
         self.saveSc.activated.connect(self.save)
 
-        self.greenSc = QtWidgets.QShortcut(QtGui.QKeySequence('1'), self)
-        self.greenSc.activated.connect(self.switch_to_1)
-        self.redSc = QtWidgets.QShortcut(QtGui.QKeySequence('2'), self)
-        self.redSc.activated.connect(self.switch_to_2)
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('3'), self)
-        self.maxSc.activated.connect(self.switch_to_3)
-        self.corrSc = QtWidgets.QShortcut(QtGui.QKeySequence('4'), self)
-        self.corrSc.activated.connect(self.switch_to_4)
+        self.Sc1= QtWidgets.QShortcut(QtGui.QKeySequence('1'), self)
+        self.Sc1.activated.connect(self.switch_to_1)
+        self.Sc2= QtWidgets.QShortcut(QtGui.QKeySequence('2'), self)
+        self.Sc2.activated.connect(self.switch_to_2)
+        self.Sc3= QtWidgets.QShortcut(QtGui.QKeySequence('3'), self)
+        self.Sc3.activated.connect(self.switch_to_3)
+        self.Sc4= QtWidgets.QShortcut(QtGui.QKeySequence('4'), self)
+        self.Sc4.activated.connect(self.switch_to_4)
+        self.Sc5= QtWidgets.QShortcut(QtGui.QKeySequence('5'), self)
+        self.Sc5.activated.connect(self.switch_to_5)
+        self.Sc6= QtWidgets.QShortcut(QtGui.QKeySequence('6'), self)
+        self.Sc6.activated.connect(self.switch_to_6)
         
         self.roiSc = QtWidgets.QShortcut(QtGui.QKeySequence('Space'), self)
         self.roiSc.activated.connect(self.switch_roi_display)
@@ -103,7 +110,6 @@ class RCGwindow(NewWindow):
         self.roiShapeCheckBox = QtWidgets.QCheckBox("ROIs as circle")
         self.roiShapeCheckBox.setChecked(True)
 
-
         for wdgt, index in zip([self.folderB, self.load, self.imgB, self.nextB, self.prevB,
                                 self.switchB, self.saveB, self.rstRoiB, self.roiShapeCheckBox],
                                [1,2,6,10,11,12,16,21, 23]):
@@ -141,6 +147,10 @@ class RCGwindow(NewWindow):
         self.switch_to(3)
     def switch_to_4(self):
         self.switch_to(4)
+    def switch_to_5(self):
+        self.switch_to(5)
+    def switch_to_6(self):
+        self.switch_to(6)
 
     def switch_roi_display(self):
         self.rois_on = (not self.rois_on)
@@ -154,10 +164,25 @@ class RCGwindow(NewWindow):
         # self.folder = '/home/yann/UNPROCESSED/TSeries-001'
 
         self.load_file()
+
+    def build_linear_interpolation(self):
+
+        x, y = np.array(self.ops['meanImg']).flatten(), np.array(self.ops['meanImg_chan2']).flatten()
+        p = np.polyfit(x, y, 1)
+
+        if self.debug:
+            import matplotlib.pylab as plt
+            plt.scatter(x, y)
+            plt.plot(x, np.polyval(p, x), color='r')
+            plt.xlabel('Ch1');plt.ylabel('Ch2')
+            plt.show()
+
+        self.ops['meanImg_chan2-X*meanImg'] = np.clip(np.array(self.ops['meanImg_chan2'])-np.polyval(p, np.array(self.ops['meanImg'])), 0, np.inf)
+        self.ops['meanImg_chan2/(X*meanImg)'] = np.array(self.ops['meanImg_chan2'])/np.clip(np.polyval(p, np.array(self.ops['meanImg'])), 1, np.inf)
+        
         
     def load_file(self):
 
-        
         if self.folder!='':
 
             self.stat = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'stat.npy'), allow_pickle=True)
@@ -167,6 +192,10 @@ class RCGwindow(NewWindow):
 
             self.draw_image()
             self.draw_rois()
+
+            self.build_linear_interpolation()
+        else:
+            print('empty folder ...')
         
     def draw_image(self):
         
@@ -267,11 +296,12 @@ if __name__=='__main__':
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-v', "--verbose", action="store_true")
+    parser.add_argument('-d', "--debug", action="store_true")
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
     main = RCGwindow(app,
-                      args=args)
+                      args=args, debug=args.debug)
     if args.datafile!='':
         main.folder = args.datafile
         main.load_file()
