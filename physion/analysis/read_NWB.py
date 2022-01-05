@@ -137,10 +137,20 @@ class Data:
             
     def resample(self, x, y, new_time_sampling,
                  interpolation='linear'):
-        func = interp1d(x, y,
-                        kind=interpolation)
-        return func(new_time_sampling)
-
+        try:
+            func = interp1d(x, y,
+                            kind=interpolation)
+            return func(new_time_sampling)
+        except ValueError:
+            print(' /!\ ValueError: A value in x_new is above the interpolation range /!\ ' )
+            print('   -->  interpolated at boundaries with mean value ' )
+            func = interp1d(x, y,
+                            kind=interpolation,
+                            bounds_error=False,
+                            fill_value=np.mean(y))
+            return func(new_time_sampling)
+            
+   
     #########################################################
     #       CALCIUM IMAGING DATA (from suite2p output)      #
     #########################################################
@@ -239,13 +249,17 @@ class Data:
         fd = str(self.nwbfile.processing['FaceMotion'].description)
         self.FaceMotion_ROI = [int(i) for i in fd.split('y0,dy)=(')[1].split(')')[0].split(',')]
 
-    def build_facemotion(self):
+    def build_facemotion(self,
+                         specific_time_sampling=None,
+                         interpolation='linear'):
         """
-        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
+        build facemotion
         """
         self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps
         self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
 
+        if specific_time_sampling is not None:
+            return self.resample(self.t_facemotion, self.facemotion, specific_time_sampling)
 
     def close(self):
         self.io.close()

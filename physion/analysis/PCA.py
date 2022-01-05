@@ -53,13 +53,15 @@ class PCA(sklPCA):
 
     def projected_activity(self, component_ID=0):
         
-        if type(component_ID) in [list, np.array, range]:
+        if type(component_ID) in [list, np.array, range, np.ndarray]:
             component_IDs = component_ID
         else:
             component_IDs = [component_ID]
-
+        
         output = np.zeros((self.Nfeatures, self.Nsamples))
         for c, comp in enumerate(component_IDs):
+            # print(comp)
+            # print(self.get_projection(comp).shape)
             output += np.array([self.get_projection(comp)*self.components_[c][i] for i in range(self.Nfeatures)])
             
         return np.array([self.means[i]+self.stds[i]*output[i,:] for i in range(self.Nfeatures)])
@@ -127,10 +129,8 @@ if __name__=='__main__':
     #                         column_key='angle')
 
 
-    raster = pca.projected_activity(range(2))
+    raster = pca.projected_activity(np.arange(1))
 
-
-    
     # normalize here for raster plot
     norm_raster = np.array([(raster[i,:]-np.min(data.Fluorescence.data[i,:]))/(np.max(data.Fluorescence.data[i,:])-np.min(data.Fluorescence.data[i,:])) for i in range(raster.shape[0])])
     
