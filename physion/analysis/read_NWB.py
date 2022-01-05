@@ -113,7 +113,7 @@ class Data:
                 try:
                     self.tlim = [self.nwbfile.acquisition[key].starting_time,
                                  self.nwbfile.acquisition[key].starting_time+\
-                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                                 (self.nwbfile.acquisition[key].data.shape[0]-1)/self.nwbfile.acquisition[key].rate]
                 except BaseException as be:
                     pass
         if self.tlim is None:
@@ -182,8 +182,9 @@ class Data:
         """
         build distance from mean (x,y) position of pupil
         """
-        self.t_running_speed = self.nwbfile.acquisition['Running-Speed'].timestamps[:]
         self.running_speed = self.nwbfile.acquisition['Running-Speed'].data[:]
+        self.t_running_speed = self.nwbfile.acquisition['Running-Speed'].starting_time+\
+            np.arange(self.nwbfile.acquisition['Running-Speed'].num_samples)/self.nwbfile.acquisition['Running-Speed'].rate
 
         if specific_time_sampling is not None:
             return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling)

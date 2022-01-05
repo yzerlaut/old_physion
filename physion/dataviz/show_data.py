@@ -104,7 +104,7 @@ class MultimodalData(Data):
                   pupil_scale_bar = 0.5, # scale bar in mm
                   color='red', name='pupil diam.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
-        if not hasattr(self, 't_pupil'):
+        if not hasattr(self, 'pupil_diameter'):
             self.build_pupil_diameter()
         x, y = self.t_pupil[i1:i2][::subsampling], self.pupil_diameter[i1:i2][::subsampling]
 
