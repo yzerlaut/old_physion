@@ -117,12 +117,10 @@ class MultimodalData(Data):
                          gaze_scale_bar = 0.2, # scale bar in mm
                          color=orange, name='gaze mov.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
-        t = self.nwbfile.processing['Pupil'].data_interfaces['sx'].timestamps[i1:i2]
-        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[i1:i2]
-        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[i1:i2]
-        mov = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+        if not hasattr(self, 'gaze_movement'):
+            self.build_gaze_movement()
         
-        x, y = t[::subsampling], mov[::subsampling]
+        x, y = self.t_pupil[i1:i2][::subsampling], self.gaze_movement[i1:i2][::subsampling]
 
         self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)

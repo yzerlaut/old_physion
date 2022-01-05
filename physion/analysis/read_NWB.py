@@ -174,6 +174,22 @@ class Data:
                 
         
     ######################
+    #    LOCOMOTION
+    ######################
+    def build_running_speed(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.t_running_speed = self.nwbfile.acquisition['Running-Speed'].timestamps[:]
+        self.running_speed = self.nwbfile.acquisition['Running-Speed'].data[:]
+
+        if specific_time_sampling is not None:
+            return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling)
+
+    
+    ######################
     #       PUPIL 
     ######################        
     def read_pupil(self):
@@ -195,10 +211,23 @@ class Data:
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
         if specific_time_sampling is not None:
-            return resample(self.t_pupil, self.pupil_diameter, specific_time_sampling)
+            return self.resample(self.t_pupil, self.pupil_diameter, specific_time_sampling)
 
 
-    # TODO add Gaze here !!
+    def build_gaze_movement(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
+        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]
+        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:]
+        self.gaze_movement = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+
+        if specific_time_sampling is not None:
+            return self.resample(self.t_pupil, self.gaze_movement, specific_time_sampling)
+        
 
     #########################
     #       FACEMOTION  
