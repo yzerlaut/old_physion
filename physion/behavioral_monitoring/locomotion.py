@@ -3,14 +3,16 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 def process_binary_signal(binary_signal):
 
-    # ##############################################################
-    # ##### MODIFY HERE IN CASE OF PB WITH ONE CHANNEL   ###########
-    # ##############################################################
-    # A = np.floor(binary_signal/2)
-    # B = np.concatenate([A[1:], [0]])
-    # ##############################################################
+    # ########################
+    # ##### SIMPLE FIX  ######
+    # ########################
     A = binary_signal%2
-    B = np.floor(binary_signal/2).astype(int)
+    B = np.concatenate([A[1:], [0]])
+    # ##############################################
+    # ##### BUT THIS SHOULD BE WORKING   ###########
+    # ##############################################
+    # A = binary_signal%2
+    # B = np.floor(binary_signal/2).astype(int)
     return A, B
 
 def compute_position_from_binary_signals(A, B):
@@ -143,7 +145,6 @@ if __name__=='__main__':
         _, digital_inputs, dt = acq.close(return_data=True)
         t_array=np.arange(len(digital_inputs[0]))*dt
 
-        print(digital_inputs.shape)
         A, B = process_binary_signal(digital_inputs[0,:])
 
         plt.plot(t_array, A)
