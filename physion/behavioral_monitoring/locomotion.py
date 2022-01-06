@@ -1,6 +1,18 @@
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 
+def process_binary_signal(binary_signal):
+
+    # ##############################################################
+    # ##### MODIFY HERE IN CASE OF PB WITH ONE CHANNEL   ###########
+    # ##############################################################
+    # A = np.floor(binary_signal/2)
+    # B = np.concatenate([A[1:], [0]])
+    # ##############################################################
+    A = binary_signal%2
+    B = np.floor(binary_signal/2).astype(int)
+    return A, B
+
 def compute_position_from_binary_signals(A, B):
     '''
     Takes traces A and B and converts it to a trace that has the same number of
@@ -45,9 +57,8 @@ def compute_locomotion_speed(binary_signal,
 			     rotoencoder_value_per_rotation=1, # a.u.
                              with_raw_position=False):
 
-    A = binary_signal%2
-    B = np.floor(binary_signal/2)
-
+    A, B = process_binary_signal(binary_signal)
+    
     position = compute_position_from_binary_signals(A, B)*2.*np.pi*radius_position_on_disk/rotoencoder_value_per_rotation
 
     if position_smoothing>0:
@@ -90,6 +101,7 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     if args.datafolder!='':
+        
         metadata = np.load(os.path.join(args.datafolder, 'metadata.npy'),
                        allow_pickle=True).item()
         NIdaq_data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()
@@ -114,26 +126,29 @@ if __name__=='__main__':
         plt.show()
         
     else:
-        from hardware_control.NIdaq.recording import *
-        M, X = find_m_series_devices(), find_x_series_devices()
-        if len(M)>0:
-            device = M[0]
-        else:
-            device = X[0]
-
-        t_array = np.arange(int(args.recording_time/args.acq_time_step))*args.acq_time_step
-        analog_inputs = np.zeros((args.Nchannel_analog_rec,len(t_array)))
-        analog_outputs = 100*np.array([5e-2*np.sin(2*np.pi*t_array)])
-
+        import time
+        from hardware_control.NIdaq.main import Acquisition
+        
+        acq = Acquisition(dt=args.acq_time_step,
+                          Nchannel_analog_in=0,
+                          Nchannel_digital_in=2,
+                          max_time=args.recording_time)
+        
         print('You have %i s to do 5 rotations of the disk [...]' % args.recording_time)
-        analog_inputs, digital_inputs = stim_and_rec(device, t_array, analog_inputs, analog_outputs,
-                                                     args.Nchannel_digital_rec)
 
+        acq.launch()
+        
+        time.sleep(args.recording_time)
+        
+        _, digital_inputs, dt = acq.close(return_data=True)
+        t_array=np.arange(len(digital_inputs[0]))*dt
 
-        A = digital_inputs[0,:]%2
-        B = np.floor(digital_inputs[0,:]/2)
+        print(digital_inputs.shape)
+        A, B = process_binary_signal(digital_inputs[0,:])
+
         plt.plot(t_array, A)
         plt.plot(t_array, 2+B)
+        plt.plot(t_array, 4+digital_inputs[0,:])
         plt.show()
         
         speed, position = compute_locomotion_speed(digital_inputs[0],
@@ -153,3 +168,6 @@ if __name__=='__main__':
         plt.xlabel('time (s)')
         plt.show()
 
+    # else:
+    #     data = np.load('data.npy', allow_pickle=True).item()
+    #     print(len(data['digital'][0]))
