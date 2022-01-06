@@ -6,11 +6,11 @@ def process_binary_signal(binary_signal):
     # ##############################################################
     # ##### MODIFY HERE IN CASE OF PB WITH ONE CHANNEL   ###########
     # ##############################################################
-    # A = np.floor(binary_signal/2)
-    # B = np.concatenate([A[1:], [0]])
+    A = np.floor(binary_signal/2)
+    B = np.concatenate([A[1:], [0]])
     # ##############################################################
-    A = binary_signal%2
-    B = np.floor(binary_signal/2).astype(int)
+    # A = binary_signal%2
+    # B = np.floor(binary_signal/2).astype(int)
     return A, B
 
 def compute_position_from_binary_signals(A, B):
