@@ -22,7 +22,7 @@ def update_data(args, show_seconds=20, subsampling=10):
     data1 = np.load(os.path.join(args.session1, 'NIdaq.npy'), allow_pickle=True).item()
     t1 = np.arange(len(data1['analog'][0,:]))/metadata1['NIdaq-acquisition-frequency']
     
-    metadata2 = np.load(os.path.join(args.session1, 'metadata.npy'), allow_pickle=True).item()
+    metadata2 = np.load(os.path.join(args.session2, 'metadata.npy'), allow_pickle=True).item()
     data2 = np.load(os.path.join(args.session2, 'NIdaq.npy'), allow_pickle=True).item()
     t2 = np.arange(len(data2['analog'][0,:]))/metadata1['NIdaq-acquisition-frequency']
 
@@ -59,7 +59,7 @@ def update_data(args, show_seconds=20, subsampling=10):
         """ % temp)
         shutil.move(os.path.join(args.session, 'NIdaq.npy'), temp)
         print('applying changes [...]')
-        data[args.type][args.channel,:] = data1[args.type][args.channel,:]
+        data[args.type][args.channel,:] = data1[args.type][args.channel,:len(data[args.type][args.channel,:])]
         np.save(os.path.join(args.session, 'NIdaq.npy'), data)
         print('done !')
 
@@ -75,8 +75,8 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description="""
     Script to add/modify the data in case of mistakes
     """,formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('session1', type=str, help='example session #1')
-    parser.add_argument('session2', type=str, help='example session #1')
+    parser.add_argument('session1', type=str, help='session to pick data from (example 1))')
+    parser.add_argument('session2', type=str, help='session to pick data from (example 1))')
     
     parser.add_argument('session', type=str, help='session to update !')
 
