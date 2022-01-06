@@ -2,7 +2,7 @@
 N.B. there is a mix of "grey screen" corresponding to bg-color=0 and bg-color=0.5 (see in individual protocols) TO BE FIXED
 """
 import numpy as np
-import itertools, os, sys, pathlib, time, json
+import itertools, os, sys, pathlib, time, json, tempfile
 try:
     from psychopy import visual, core, event, clock, monitors # We actually do it below so that we can use the code without psychopy
 except ModuleNotFoundError:
@@ -1915,6 +1915,18 @@ class moving_dots_static_patch(visual_stim):
 
         return ax
     
+
+class dummy_datafolder:
+    def __init__(self):
+        pass
+    def get(self):
+        # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+        return tempfile.gettempdir()
+
+class dummy_parent:
+    def __init__(self):
+        self.stop_flag = False
+        self.datafolder = dummy_datafolder()
     
 if __name__=='__main__':
 
@@ -1928,18 +1940,6 @@ if __name__=='__main__':
         protocol = json.load(fp)
 
     protocol['demo'] = True
-    
-    class df:
-        def __init__(self):
-            pass
-        def get(self):
-            # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
-            return tempfile.gettempdir()
-        
-    class dummy_parent:
-        def __init__(self):
-            self.stop_flag = False
-            self.datafolder = df()
 
     stim = build_stim(protocol)
     parent = dummy_parent()

@@ -139,7 +139,7 @@ class Acquisition:
 
         self.running, self.data_saved = True, False
         
-    def close(self):
+    def close(self, return_data=False):
         """
         not optimal...
         
@@ -160,11 +160,15 @@ class Acquisition:
             else:
                 np.save(self.filename,
                         {'analog':self.analog_data[:,1:],
-                         'digital':self.digital_data[:,1:]})
+                         'digital':self.digital_data[:,1:],
+                         'dt':self.dt})
                 print('[ok] NIdaq data saved as: %s ' % self.filename)
             self.data_saved = True
             
         self.running = False
+
+        if return_data:
+            return self.analog_data[:,1:], self.digital_data[:,1:], self.dt
         
     def reading_task_callback(self, task_idx, event_type, num_samples, callback_data=None):
         if self.running:
@@ -190,13 +194,13 @@ class Acquisition:
             print('X-series card found:', self.device)
             success = True
         except BaseException: 
-            pass
+            print('no X-series card found')
         try:
             self.device = find_m_series_devices()[0]
             print('M-series card found:', self.device)
             success = True
         except BaseException:
-            pass
+            print('no M-series card found')
         if not success:
             print('Neither M-series nor X-series NI DAQ card found')
 
@@ -215,6 +219,7 @@ if __name__=='__main__':
     acq.close()
     print(acq.analog_data)
     print(np.array(acq.digital_data)[0,-100:])
+    
     # print(acq.digital_data.shape)
     # np.save('data.npy', acq.analog_data)
     # from datavyz import ge

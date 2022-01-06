@@ -113,7 +113,7 @@ class Data:
                 try:
                     self.tlim = [self.nwbfile.acquisition[key].starting_time,
                                  self.nwbfile.acquisition[key].starting_time+\
-                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                                 (self.nwbfile.acquisition[key].data.shape[0]-1)/self.nwbfile.acquisition[key].rate]
                 except BaseException as be:
                     pass
         if self.tlim is None:
@@ -137,20 +137,20 @@ class Data:
             
     def resample(self, x, y, new_time_sampling,
                  interpolation='linear'):
-        """
-        linear interpolation by default
-        switch to "nearest neightbor" interpolation if you want to remove boundary errors
-        """
-        if interpolation=='linear':
+        try:
             func = interp1d(x, y,
-                            kind='linear')
-        elif interpolation=='nearest':
+                            kind=interpolation)
+            return func(new_time_sampling)
+        except ValueError:
+            print(' /!\ ValueError: A value in x_new is above the interpolation range /!\ ' )
+            print('   -->  interpolated at boundaries with mean value ' )
             func = interp1d(x, y,
-                            kind='nearest',
+                            kind=interpolation,
                             bounds_error=False,
-                            fill_value='extrapolate')
-        return func(new_time_sampling)
-
+                            fill_value=np.mean(y))
+            return func(new_time_sampling)
+            
+   
     #########################################################
     #       CALCIUM IMAGING DATA (from suite2p output)      #
     #########################################################
@@ -182,28 +182,24 @@ class Data:
             if self.Segmentation.columns[i].name=='redcell':
                 self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
                 
-
-    def build_time_from_rate(self, quantity):
-        return np.arange(quantity.data.shape[0])/quantity.rate
-    
-    ##########################
-    #       Running-Speed
-    ##########################
-
-    def build_running_speed(self,
-                           specific_time_sampling=None,
-                           interpolation='linear'):
-        """
-        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
-        """
-        self.t_runningSpeed = self.build_time_from_rate(self.nwbfile.acquisition['Running-Speed'])
-        self.runningSpeed = self.nwbfile.acquisition['Running-Speed'].data[:]
         
+    ######################
+    #    LOCOMOTION
+    ######################
+    def build_running_speed(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.running_speed = self.nwbfile.acquisition['Running-Speed'].data[:]
+        self.t_running_speed = self.nwbfile.acquisition['Running-Speed'].starting_time+\
+            np.arange(self.nwbfile.acquisition['Running-Speed'].num_samples)/self.nwbfile.acquisition['Running-Speed'].rate
+
         if specific_time_sampling is not None:
-            return self.resample(self.t_runningSpeed, self.runningSpeed,
-                                 specific_time_sampling, interpolation=interpolation)
+            return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling)
 
-
+    
     ######################
     #       PUPIL 
     ######################        
@@ -221,16 +217,28 @@ class Data:
         """
         build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
         """
-        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[:]
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
         self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_pupil, self.pupil_diameter,
-                                 specific_time_sampling, interpolation=interpolation)
+            return self.resample(self.t_pupil, self.pupil_diameter, specific_time_sampling)
 
 
-    # TODO add Gaze here !!
+    def build_gaze_movement(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
+        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]
+        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:]
+        self.gaze_movement = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+
+        if specific_time_sampling is not None:
+            return self.resample(self.t_pupil, self.gaze_movement, specific_time_sampling)
+        
 
     #########################
     #       FACEMOTION  
@@ -245,15 +253,13 @@ class Data:
                          specific_time_sampling=None,
                          interpolation='linear'):
         """
-        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
+        build facemotion
         """
-        self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[:]
+        self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps
         self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
-        
-        if specific_time_sampling is not None:
-            return self.resample(self.t_facemotion, self.facemotion,
-                                 specific_time_sampling, interpolation=interpolation)
 
+        if specific_time_sampling is not None:
+            return self.resample(self.t_facemotion, self.facemotion, specific_time_sampling)
 
     def close(self):
         self.io.close()
@@ -367,9 +373,7 @@ if __name__=='__main__':
 
     data = Data(sys.argv[-1])
     # print(data.nwbfile.processing['ophys'])
-    t = data.Neuropil.timestamps[:]
-    running = data.build_running_speed(specific_time_sampling=t)
-    print(running)
+    print(data.iscell)
     
     
 
