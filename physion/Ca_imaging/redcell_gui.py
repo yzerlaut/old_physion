@@ -170,6 +170,9 @@ class RCGwindow(NewWindow):
         x, y = np.array(self.ops['meanImg']).flatten(), np.array(self.ops['meanImg_chan2']).flatten()
         p = np.polyfit(x, y, 1)
 
+        self.ops['meanImg_chan2-X*meanImg'] = np.clip(np.array(self.ops['meanImg_chan2'])-np.polyval(p, np.array(self.ops['meanImg'])), 0, np.inf)
+        self.ops['meanImg_chan2/(X*meanImg)'] = np.array(self.ops['meanImg_chan2'])/np.clip(np.polyval(p, np.array(self.ops['meanImg'])), 1, np.inf)
+
         if self.debug:
             import matplotlib.pylab as plt
             plt.scatter(x, y)
@@ -177,9 +180,6 @@ class RCGwindow(NewWindow):
             plt.xlabel('Ch1');plt.ylabel('Ch2')
             plt.show()
 
-        self.ops['meanImg_chan2-X*meanImg'] = np.clip(np.array(self.ops['meanImg_chan2'])-np.polyval(p, np.array(self.ops['meanImg'])), 0, np.inf)
-        self.ops['meanImg_chan2/(X*meanImg)'] = np.array(self.ops['meanImg_chan2'])/np.clip(np.polyval(p, np.array(self.ops['meanImg'])), 1, np.inf)
-        
         
     def load_file(self):
 
@@ -191,7 +191,7 @@ class RCGwindow(NewWindow):
             self.ops = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'ops.npy'), allow_pickle=True).item()
 
             self.build_linear_interpolation()
-            
+
             self.draw_image()
             self.draw_rois()
 
@@ -289,8 +289,10 @@ def run(app, args=None, parent=None):
                      parent=parent)
     
 if __name__=='__main__':
+    
     from misc.colors import build_dark_palette
     import tempfile, argparse, os
+    
     parser=argparse.ArgumentParser(description="Experiment interface",
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-f', "--datafile", type=str,default='')
@@ -298,7 +300,9 @@ if __name__=='__main__':
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
     parser.add_argument('-v', "--verbose", action="store_true")
     parser.add_argument('-d', "--debug", action="store_true")
+    
     args = parser.parse_args()
+    
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
     main = RCGwindow(app,
