@@ -118,12 +118,18 @@ class MainWindow(NewWindow):
 
         self.add_widget(QtWidgets.QLabel('  - exposure: %.0f ms (from Micro-Manager)' % self.exposure))
 
+        self.add_widget(QtWidgets.QLabel('  - Nrepeat :'),
+                        spec='large-left')
+        self.repeatBox = QtWidgets.QLineEdit()
+        self.repeatBox.setText('10')
+        self.add_widget(self.repeatBox, spec='small-right')
+
         self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
                         spec='large-left')
         self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText('0.5')
+        self.speedBox.setText('1')
         self.add_widget(self.speedBox, spec='small-right')
-
+        
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
                         spec='large-left')
         self.barBox = QtWidgets.QLineEdit()
@@ -273,6 +279,7 @@ class MainWindow(NewWindow):
                                  "presentation-prestim-screen": -1,
                                  "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
 
+        self.Nrepeat = int(self.repeatBox.text()) #
         self.speed = float(self.speedBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
@@ -291,9 +298,9 @@ class MainWindow(NewWindow):
         for il, label in enumerate(self.STIM['label']):
             tmax = np.abs(self.STIM['angle_stop'][il]-self.STIM['angle_start'][il])/self.speed
             Npoints = int(tmax/self.dt_save)
-            self.STIM[label+'-times'] = np.arange(Npoints)*self.dt_save
-            self.STIM[label+'-angle'] = np.linspace(self.STIM['angle_start'][il],
-                                                    self.STIM['angle_stop'][il], Npoints)
+            self.STIM[label+'-times'] = np.arange(Npoints*self.Nrepeat)*self.dt_save
+            self.STIM[label+'-angle'] = np.concatenate([np.linspace(self.STIM['angle_start'][il],
+                                                                    self.STIM['angle_stop'][il], Npoints) for n in range(self.Nrepeat)])
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
 
@@ -416,7 +423,8 @@ class MainWindow(NewWindow):
                         'exposure':self.exposure,
                         'bar-size':float(self.barBox.text()),
                         'acq-freq':float(self.freqBox.text()),
-                        'speed':float(self.speedBox.text())}
+                        'speed':float(self.speedBox.text()),
+                        'Nrepeat':int(self.repeatBox.text())}
             np.save(filename, metadata)
             self.datafolder = os.path.dirname(filename)
 
