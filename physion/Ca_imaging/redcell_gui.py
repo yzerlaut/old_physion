@@ -190,10 +190,11 @@ class RCGwindow(NewWindow):
             self.iscell = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'iscell.npy'), allow_pickle=True)
             self.ops = np.load(os.path.join(self.folder, 'suite2p', 'plane0', 'ops.npy'), allow_pickle=True).item()
 
+            self.build_linear_interpolation()
+            
             self.draw_image()
             self.draw_rois()
 
-            self.build_linear_interpolation()
         else:
             print('empty folder ...')
         
