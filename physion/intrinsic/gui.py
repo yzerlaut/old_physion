@@ -48,7 +48,8 @@ class MainWindow(NewWindow):
         # some initialisation
         self.running, self.stim = False, None
         self.datafolder = ''        
-
+        self.t0, self.period = 0, 1
+        
         ### trying the camera
         try:
             # we initialize the camera
@@ -124,11 +125,11 @@ class MainWindow(NewWindow):
         self.repeatBox.setText('10')
         self.add_widget(self.repeatBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - speed (degree/s):'),
+        self.add_widget(QtWidgets.QLabel('  - stim. period (s):'),
                         spec='large-left')
-        self.speedBox = QtWidgets.QLineEdit()
-        self.speedBox.setText('1')
-        self.add_widget(self.speedBox, spec='small-right')
+        self.periodBox = QtWidgets.QLineEdit()
+        self.periodBox.setText('10')
+        self.add_widget(self.periodBox, spec='small-right')
         
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
                         spec='large-left')
@@ -280,7 +281,7 @@ class MainWindow(NewWindow):
                                  "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
 
         self.Nrepeat = int(self.repeatBox.text()) #
-        self.speed = float(self.speedBox.text()) # degree / second
+        self.period = float(self.periodBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
         
@@ -296,8 +297,7 @@ class MainWindow(NewWindow):
                      'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
 
         for il, label in enumerate(self.STIM['label']):
-            tmax = np.abs(self.STIM['angle_stop'][il]-self.STIM['angle_start'][il])/self.speed
-            Npoints = int(tmax/self.dt_save)
+            Npoints = int(self.period/self.dt_save)
             self.STIM[label+'-times'] = np.arange(Npoints*self.Nrepeat)*self.dt_save
             self.STIM[label+'-angle'] = np.concatenate([np.linspace(self.STIM['angle_start'][il],
                                                                     self.STIM['angle_stop'][il], Npoints) for n in range(self.Nrepeat)])
@@ -423,7 +423,7 @@ class MainWindow(NewWindow):
                         'exposure':self.exposure,
                         'bar-size':float(self.barBox.text()),
                         'acq-freq':float(self.freqBox.text()),
-                        'speed':float(self.speedBox.text()),
+                        'period':float(self.periodBox.text()),
                         'Nrepeat':int(self.repeatBox.text())}
             np.save(filename, metadata)
             self.datafolder = os.path.dirname(filename)
@@ -454,7 +454,7 @@ class MainWindow(NewWindow):
             return np.reshape(tagged_image.pix,
                               newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
         else:
-            return np.random.randn(720, 1080)
+            return np.random.randn(720, 1080)-np.exp(-(time.time()-self.t0)**2/self.period**2)
         
     def update_Image(self):
         # plot it
