@@ -48,6 +48,7 @@ The different modules of the software are documented in the following links:
 
 - [Visual stimulation](physion/visual_stim/README.md) -- relying on [PsychoPy](https://psychopy.org)
 - [Performing multimodal recordings](physion/exp/README.md)
+- [Intrinsic Imaging](physion/intrinsic/README.md)
 - [Electrophysiology](physion/electrophy/README.md)
 - [Calcium imaging](physion/Ca_imaging/README.md) -- pipeline based on [Suite2P](https://github.com/MouseLand/suite2p)
 - [Pupil tracking](physion/pupil/README.md)

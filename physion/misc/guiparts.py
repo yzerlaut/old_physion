@@ -275,6 +275,56 @@ class NewWindow(QtWidgets.QMainWindow):
         print(' "save" function not implemented')
         print(' --> should be implemented in child class !')
 
+    ###########################################
+    ################ Widget tools #############
+    ###########################################
+
+    def init_basic_widget_grid(self,
+                               wdgt_length=3,
+                               Ncol_wdgt=20,
+                               Nrow_wdgt=20):
+        
+        self.i_wdgt = 0 # initialize widget counter
+        
+        self.wdgt_length = wdgt_length
+        
+        self.cwidget = QtWidgets.QWidget(self)
+        self.setCentralWidget(self.cwidget)
+        
+        # grid layout
+        self.layout = QtWidgets.QGridLayout()
+        self.cwidget.setLayout(self.layout)
+
+        self.graphics_layout = pg.GraphicsLayoutWidget()
+        self.layout.addWidget(self.graphics_layout, 0, self.wdgt_length,
+                              Nrow_wdgt, Ncol_wdgt)
+        
+    
+    def add_widget(self, wdgt, spec='None'):
+        if 'small' in spec:
+            wdgt.setFixedWidth(70)
+
+        # if spec=='shift-right':
+        #     self.layout.addWidget(wdgt, self.i_wdgt-1, self.wdgt_length,
+        #                           1, self.wdgt_length+1)
+        if spec=='small-left':
+            self.layout.addWidget(wdgt, self.i_wdgt, 0, 1, 1)
+        elif spec=='large-left':
+            self.layout.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length-1)
+        elif spec=='small-right':
+            self.layout.addWidget(wdgt, self.i_wdgt, self.wdgt_length-1, 1, 1)
+            self.i_wdgt += 1
+        elif spec=='large-right':
+            self.layout.addWidget(wdgt, self.i_wdgt, 1, 1, self.wdgt_length-1)
+            self.i_wdgt += 1
+        else:
+            self.layout.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length)
+            self.i_wdgt += 1
+        
+    ###########################################
+    ########## Data-specific tools ############
+    ###########################################
+    
     def select_ROI_from_pick(self, data):
 
         if self.roiPick.text() in ['sum', 'all']:
@@ -340,6 +390,7 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('  /!\ keyword "%s" not recognized /!\ ' % string)
 
+            
     # Layout11 = QtWidgets.QVBoxLayout()
     # Layout1.addLayout(Layout11)
     # create_calendar(self, Layout11)

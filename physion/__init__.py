@@ -31,30 +31,27 @@ class MainWindow(QtWidgets.QMainWindow):
                   "s) [S]timulus design",
                   "p) [P]upil preprocessing",
                   "f) [F]acemotion preprocessing",
-                  "i) [I]maging preprocessing",
+                  "c) [C]a2+ imaging preprocessing",
                   "e) [E]lectrophy preprocessing",
-                  # "b) run [B]ash script",
                   "a) [A]ssemble data",
-                  "c) Add [C]a2+ data",
                   "t) [T]ransfer data",
                   "v) [V]isualize data",
                   "n) launch [Notebook] ",
+                  "i) [I]ntrinsic Imaging",
                   "q) [Q]uit"]
         lmax = max([len(l) for l in LABELS])
 
         FUNCTIONS = [self.launch_exp,
                      self.launch_visual_stim,
-                     # self.launch_organize,
                      self.launch_pupil,
                      self.launch_facemotion,
                      self.launch_CaProprocessing,
                      self.launch_electrophy,
-                     # self.launch_bash_script,
                      self.launch_assembling,
-                     self.launch_CaAddition,
                      self.launch_transfer,
                      self.launch_visualization,
                      self.launch_notebook,
+                     self.launch_intrinsic,
                      self.quit]
         
         self.setGeometry(50, 100, 300, 46*len(LABELS))
@@ -101,8 +98,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def launch_assembling(self):
         from physion.assembling.gui import run as RunAssembling
-        child = RunAssembling(self.app, self.args)
-        CHILDREN_PROCESSES.append(child)
+        child1 = RunAssembling(self.app, self.args)
+        CHILDREN_PROCESSES.append(child1)
+        from physion.Ca_imaging.guiAdd import run as RunCaAddition
+        child2 = RunCaAddition(self.app, self.args)
+        CHILDREN_PROCESSES.append(child2)
         
     def launch_transfer(self):
         from physion.transfer.gui import run as RunTransfer
@@ -119,9 +119,9 @@ class MainWindow(QtWidgets.QMainWindow):
         child = RunCaPreprocessing(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
 
-    def launch_CaAddition(self):
-        from physion.Ca_imaging.guiAdd import run as RunCaAddition
-        child = RunCaAddition(self.app, self.args)
+    def launch_intrinsic(self):
+        from physion.intrinsic.gui import run as RunIntrinsic
+        child = RunIntrinsic(self.app, self.args)
         CHILDREN_PROCESSES.append(child)
         
     def launch_electrophy(self):

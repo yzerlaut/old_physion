@@ -47,7 +47,8 @@ class MainWindow(NewWindow):
 
         # some initialisation
         self.running, self.stim = False, None
-        self.datafolder = ''        
+        self.datafolder = ''
+        
         self.t0, self.period = 0, 1
         
         ### trying the camera
@@ -74,22 +75,13 @@ class MainWindow(NewWindow):
         
         self.minView = False
         self.showwindow()
-        # central widget
-        self.cwidget = QtWidgets.QWidget(self)
-        self.setCentralWidget(self.cwidget)
 
-        # layout
-        Nx_wdgt, Ny_wdgt, self.wdgt_length = 20, 20, 3
-        self.i_wdgt = 0
-        self.l0 = QtWidgets.QGridLayout()
-        self.cwidget.setLayout(self.l0)
-        
-        self.win = pg.GraphicsLayoutWidget()
-        self.l0.addWidget(self.win,0, self.wdgt_length,
-                          Nx_wdgt, Ny_wdgt-self.wdgt_length)
+        # layout (from NewWindow class)
+        self.init_basic_widget_grid(wdgt_length=3,
+                                    Ncol_wdgt=20, Nrow_wdgt=20)
         
         # -- A plot area (ViewBox + axes) for displaying the image ---
-        self.view = self.win.addViewBox(lockAspect=True, invertY=True)
+        self.view = self.graphics_layout.addViewBox(lockAspect=True, invertY=True)
         self.view.setMenuEnabled(False)
         self.view.setAspectLocked()
         self.pimg = pg.ImageItem()
@@ -180,56 +172,18 @@ class MainWindow(NewWindow):
 
         # ---  launching analysis ---
         self.add_widget(QtWidgets.QLabel(20*' - '))
-        
-        self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
-        self.folderButton.clicked.connect(self.open_file)
-        self.add_widget(self.folderButton, spec='large-left')
-        self.lastBox = QtWidgets.QCheckBox("last ")
-        self.lastBox.setStyleSheet("color: gray;")
-        self.add_widget(self.lastBox, spec='small-right')
-        self.lastBox.setChecked(True)
+        self.add_widget(QtWidgets.QLabel('  '))
+        self.analysisButton = QtWidgets.QPushButton(" - = Analysis GUI = - ", self)
+        self.analysisButton.clicked.connect(self.open_analysis)
+        self.add_widget(self.analysisButton, spec='large-left')
 
-        self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
-                        spec='large-left')
-        self.spatialSmoothingBox = QtWidgets.QLineEdit()
-        self.spatialSmoothingBox.setText('5')
-        self.add_widget(self.spatialSmoothingBox, spec='small-right')
-
-        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
-                        spec='large-left')
-        self.temporalSmoothingBox = QtWidgets.QLineEdit()
-        self.temporalSmoothingBox.setText('100')
-        self.add_widget(self.temporalSmoothingBox, spec='small-right')
+        self.analysisWindow = None
         
-        self.add_widget(QtWidgets.QLabel(' '))
-        self.analysisButton = QtWidgets.QPushButton("- RUN ANALYSIS - ", self)
-        self.analysisButton.clicked.connect(self.launch_analysis)
-        self.add_widget(self.analysisButton)
-        
-        self.displayBox = QtWidgets.QComboBox(self)
-        self.displayBox.addItems(['raw data', 'horizontal-map', 'vertical-map'])
-        self.displayBox.activated.connect(self.pick_display)
-        self.add_widget(self.displayBox, 'shift-right')
+    def open_analysis(self):
 
-    def add_widget(self, wdgt, spec='None'):
-        if 'small' in spec:
-            wdgt.setFixedWidth(70)
-            
-        if spec=='shift-right':
-            self.l0.addWidget(wdgt, self.i_wdgt-1, 3, 1, 4)
-        elif spec=='small-left':
-            self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, 1)
-        elif spec=='large-left':
-            self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length-1)
-        elif spec=='small-right':
-            self.l0.addWidget(wdgt, self.i_wdgt, self.wdgt_length-1, 1, 1)
-            self.i_wdgt += 1
-        elif spec=='large-right':
-            self.l0.addWidget(wdgt, self.i_wdgt, 1, 1, self.wdgt_length-1)
-            self.i_wdgt += 1
-        else:
-            self.l0.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length)
-            self.i_wdgt += 1
+        self.analysisWindow =  runAnalysis(self.app,
+                                           parent=self)
+
         
     def get_subject_list(self):
         with open(os.path.join(subjects_path, self.subjectFileBox.currentText())) as f:
@@ -237,6 +191,7 @@ class MainWindow(NewWindow):
         self.subjectBox.clear()
         self.subjectBox.addItems(self.subjects.keys())
 
+        
     def init_visual_stim(self, demo=True):
 
         with open(os.path.join(pathlib.Path(__file__).resolve().parents[1], 'intrinsic', 'vis_stim', 'up.json'), 'r') as fp:
@@ -248,6 +203,7 @@ class MainWindow(NewWindow):
         self.stim = visual_stim.build_stim(protocol)
         self.parent = dummy_parent()
 
+        
     def get_patterns(self, direction, angle, size,
                      Npatch=30):
 
@@ -297,10 +253,10 @@ class MainWindow(NewWindow):
                      'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
 
         for il, label in enumerate(self.STIM['label']):
-            Npoints = int(self.period/self.dt_save)
-            self.STIM[label+'-times'] = np.arange(Npoints*self.Nrepeat)*self.dt_save
+            self.Npoints = int(self.period/self.dt_save)
+            self.STIM[label+'-times'] = np.arange(self.Npoints*self.Nrepeat)*self.dt_save
             self.STIM[label+'-angle'] = np.concatenate([np.linspace(self.STIM['angle_start'][il],
-                                                                    self.STIM['angle_stop'][il], Npoints) for n in range(self.Nrepeat)])
+                                                                    self.STIM['angle_stop'][il], self.Npoints) for n in range(self.Nrepeat)])
   
         self.iEp, self.iTime, self.tstart, self.label = 0, 0, time.time(), 'up'
 
@@ -343,7 +299,6 @@ class MainWindow(NewWindow):
             except BaseException:
                 pass
 
-            
             if self.camBox.isChecked():
                 # # fetch image
                 self.img += 1.0*analysis.resample_img(self.get_frame(),
@@ -453,8 +408,12 @@ class MainWindow(NewWindow):
             #pixels by default come out as a 1D array. We can reshape them into an image
             return np.reshape(tagged_image.pix,
                               newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
+        elif self.stim is not None:
+            it = int((time.time()-self.tstart)/self.dt_save)%int(self.period/self.dt_save)
+            return np.random.randn(*self.stim.x.shape)+\
+                np.exp(-(self.stim.x-(40*it/self.Npoints-20))**2/2./20**2)
         else:
-            return np.random.randn(720, 1080)-np.exp(-(time.time()-self.t0)**2/self.period**2)
+            return np.random.randn(720, 1280)
         
     def update_Image(self):
         # plot it
@@ -471,18 +430,142 @@ class MainWindow(NewWindow):
         else:
             self.stop_protocol()
 
-    def launch_analysis(self):
-        print('launching analysis [...]')
-        if self.datafolder=='' and self.lastBox.isChecked():
-            self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
-                                                           with_NIdaq=False)
-        analysis.run(self.datafolder, show=True)
-        print('-> analysis done !')
-
     def process(self):
         self.launch_analysis()
     
+        
+    def quit(self):
+        if self.exposure>0:
+            self.bridge.close()
+        sys.exit()
 
+
+class AnalysisWindow(NewWindow):
+    
+    def __init__(self, app,
+                 args=None,
+                 parent=None):
+        """
+        Intrinsic Imaging Analysis GUI
+        """
+        self.app = app
+        
+        super(AnalysisWindow, self).__init__(i=2,
+                                         title='intrinsic imaging analysis')
+        
+        self.datafolder = ''
+        
+        ########################
+        ##### building GUI #####
+        ########################
+        
+        self.minView = False
+        self.showwindow()
+
+        # layout (from NewWindow class)
+        self.init_basic_widget_grid(wdgt_length=3,
+                                    Ncol_wdgt=23,
+                                    Nrow_wdgt=20)
+        
+        # --- ROW (Nx_wdgt), COLUMN (Ny_wdgt)
+
+        # self.layout = pg.GraphicsLayoutWidget()
+        
+
+        self.add_widget(QtWidgets.QLabel('data folder:'), spec='small-left')
+        self.folderB = QtWidgets.QComboBox(self)
+        self.folderB.addItems(FOLDERS.keys())
+        self.add_widget(self.folderB, spec='large-right')
+
+        self.raw_trace = self.graphics_layout.addPlot(row=0, col=0, rowspan=1, colspan=23)
+        
+        self.raw_imgB = self.graphics_layout.addViewBox(row=1, col=18, rowspan=2, colspan=2,
+                                                        lockAspect=True, invertY=True)
+        self.raw_img = pg.ImageItem()
+        self.raw_imgB.addItem(self.raw_img)
+
+        self.spectrum_power = self.graphics_layout.addPlot(row=1, col=0, rowspan=2, colspan=9)
+
+        self.spectrum_phase = self.graphics_layout.addPlot(row=1, col=9, rowspan=2, colspan=9)
+
+        self.img1B = self.graphics_layout.addViewBox(row=3, col=0, rowspan=10, colspan=10,
+                                                    lockAspect=True, invertY=True)
+        self.img1 = pg.ImageItem()
+        self.img1B.addItem(self.img1)
+
+        self.img2B = self.graphics_layout.addViewBox(row=3, col=10, rowspan=10, colspan=10,
+                                                    lockAspect=True, invertY=True)
+        self.img2 = pg.ImageItem()
+        self.img2B.addItem(self.img2)
+
+        self.raw_img.setImage(np.random.randn(30,30))
+        self.img1.setImage(np.random.randn(30,30))
+        self.img2.setImage(np.random.randn(30,30))
+
+        for i in range(4):
+            self.graphics_layout.ci.layout.setColumnStretchFactor(i, 1)
+        self.graphics_layout.ci.layout.setColumnStretchFactor(4, 10)
+        self.graphics_layout.ci.layout.setColumnStretchFactor(13, 10)
+        self.graphics_layout.ci.layout.setRowStretchFactor(0, 1)
+        self.graphics_layout.ci.layout.setRowStretchFactor(1, 2)
+        self.graphics_layout.ci.layout.setRowStretchFactor(3, 10)
+            
+        self.add_widget(QtWidgets.QLabel(' '))
+        self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
+        self.folderButton.clicked.connect(self.open_file)
+        self.add_widget(self.folderButton, spec='large-left')
+        self.lastBox = QtWidgets.QCheckBox("last ")
+        self.lastBox.setStyleSheet("color: gray;")
+        self.add_widget(self.lastBox, spec='small-right')
+        self.lastBox.setChecked(True)
+
+        self.add_widget(QtWidgets.QLabel(' '))
+        self.rmButton = QtWidgets.QPushButton(" ===== show raw data ===== ", self)
+        self.add_widget(QtWidgets.QLabel('  - pixel loc. (x,y):'),
+                        spec='large-left')
+        self.pixBox = QtWidgets.QLineEdit()
+        self.pixBox.setText('100, 100')
+        self.add_widget(self.pixBox, spec='small-right')
+        
+        self.add_widget(QtWidgets.QLabel(' '))
+        self.rmButton = QtWidgets.QPushButton(" ==== compute retinotopic maps ==== ", self)
+        self.rmButton.clicked.connect(self.compute_retinotopic_maps)
+        self.add_widget(self.rmButton)
+        self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
+                        spec='large-left')
+        self.spatialSmoothingBox = QtWidgets.QLineEdit()
+        self.spatialSmoothingBox.setText('5')
+        self.add_widget(self.spatialSmoothingBox, spec='small-right')
+
+        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
+                        spec='large-left')
+        self.temporalSmoothingBox = QtWidgets.QLineEdit()
+        self.temporalSmoothingBox.setText('100')
+        self.add_widget(self.temporalSmoothingBox, spec='small-right')
+        
+        self.add_widget(QtWidgets.QLabel(' '))
+        self.analysisButton = QtWidgets.QPushButton("- RUN ANALYSIS - ", self)
+        self.analysisButton.clicked.connect(self.launch_analysis)
+        self.add_widget(self.analysisButton)
+        
+        self.add_widget(QtWidgets.QLabel(' '))
+        self.displayBox = QtWidgets.QComboBox(self)
+        self.displayBox.addItems(['raw data', 'horizontal-map', 'vertical-map'])
+        self.displayBox.activated.connect(self.pick_display)
+        self.add_widget(self.displayBox)
+
+        
+        self.show()
+
+    def show_raw_data(self):
+        pass
+
+    def compute_phase_maps(self):
+        pass
+
+    def compute_retinotopic_maps(self):
+        pass
+    
     def open_file(self):
 
         self.lastBox.setChecked(False)
@@ -495,6 +578,14 @@ class MainWindow(NewWindow):
         else:
             print('data-folder not set !')
 
+    def launch_analysis(self):
+        print('launching analysis [...]')
+        if self.datafolder=='' and self.lastBox.isChecked():
+            self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
+                                                           with_NIdaq=False)
+        analysis.run(self.datafolder, show=True)
+        print('-> analysis done !')
+
     def pick_display(self):
 
         if self.displayBox.currentText()=='horizontal-map':
@@ -502,18 +593,19 @@ class MainWindow(NewWindow):
         elif self.displayBox.currentText()=='vertical-map':
             print('show vertical map')
             
-        
-        
-    def quit(self):
-        if self.exposure>0:
-            self.bridge.close()
-        sys.exit()
+
+    
         
 def run(app, args=None, parent=None):
     return MainWindow(app,
                       args=args,
                       parent=parent)
-    
+
+def runAnalysis(app, args=None, parent=None):
+    return AnalysisWindow(app,
+                          args=args,
+                          parent=parent)
+
 if __name__=='__main__':
     
     from misc.colors import build_dark_palette
@@ -528,5 +620,6 @@ if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
     build_dark_palette(app)
     main = MainWindow(app,
-                      args=args)
+                      # main = AnalysisWindow(app,
+                          args=args)
     sys.exit(app.exec_())
