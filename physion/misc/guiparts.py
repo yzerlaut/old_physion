@@ -309,6 +309,8 @@ class NewWindow(QtWidgets.QMainWindow):
         #                           1, self.wdgt_length+1)
         if spec=='small-left':
             self.layout.addWidget(wdgt, self.i_wdgt, 0, 1, 1)
+        elif spec=='small-middle':
+            self.layout.addWidget(wdgt, self.i_wdgt, 1, 1, 1)
         elif spec=='large-left':
             self.layout.addWidget(wdgt, self.i_wdgt, 0, 1, self.wdgt_length-1)
         elif spec=='small-right':
