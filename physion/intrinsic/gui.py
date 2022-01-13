@@ -143,7 +143,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - stim. period (s):'),
                         spec='large-left')
         self.periodBox = QtWidgets.QLineEdit()
-        self.periodBox.setText('10')
+        self.periodBox.setText('15')
         self.add_widget(self.periodBox, spec='small-right')
         
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
@@ -161,7 +161,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('1')
+        self.freqBox.setText('3')
         self.add_widget(self.freqBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
@@ -285,7 +285,7 @@ class MainWindow(NewWindow):
         self.bar_size = float(self.barBox.text()) # degree / second
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
         
-        xmin, xmax = 1.1*np.min(self.stim.x), 1.1*np.max(self.stim.x)
+        xmin, xmax = 1.15*np.min(self.stim.x), 1.15*np.max(self.stim.x)
         zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
 
         self.angle_start, self.angle_max, self.protocol, self.label = 0, 0, '', ''
@@ -515,8 +515,11 @@ class AnalysisWindow(NewWindow):
         
         super(AnalysisWindow, self).__init__(i=2,
                                          title='intrinsic imaging analysis')
-        
-        self.datafolder = args.datafile
+
+        if args is not None:
+            self.datafolder = args.datafile
+        else:
+            self.datafolder = ''
         
         ########################
         ##### building GUI #####
@@ -588,7 +591,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - pixel loc. (x,y):'),
                         spec='large-left')
         self.pixBox = QtWidgets.QLineEdit()
-        self.pixBox.setText('50, 50')
+        self.pixBox.setText('150, 140')
         self.add_widget(self.pixBox, spec='small-right')
         self.add_widget(QtWidgets.QLabel('  - protocol:'),
                         spec='small-left')
