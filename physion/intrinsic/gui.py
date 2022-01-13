@@ -15,7 +15,7 @@ from misc.guiparts import NewWindow
 from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
 from visual_stim.psychopy_code.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
-from intrinsic import analysis
+from intrinsic import analysis, RetinotopicMapping
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
 
@@ -639,18 +639,22 @@ class AnalysisWindow(NewWindow):
         self.mapBox = QtWidgets.QComboBox(self)
         self.mapBox.addItems(['azimuth', 'altitude'])
         self.add_widget(self.mapBox,
-                        spec='large-right')
-        self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
-                        spec='large-left')
-        self.spatialSmoothingBox = QtWidgets.QLineEdit()
-        self.spatialSmoothingBox.setText('5')
-        self.add_widget(self.spatialSmoothingBox, spec='small-right')
+                        spec='small-middle')
+        self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
+        self.twoPiBox.setStyleSheet("color: gray;")
+        self.add_widget(self.twoPiBox, spec='small-right')
+        
+        # self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
+        #                 spec='large-left')
+        # self.spatialSmoothingBox = QtWidgets.QLineEdit()
+        # self.spatialSmoothingBox.setText('5')
+        # self.add_widget(self.spatialSmoothingBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
-                        spec='large-left')
-        self.temporalSmoothingBox = QtWidgets.QLineEdit()
-        self.temporalSmoothingBox.setText('100')
-        self.add_widget(self.temporalSmoothingBox, spec='small-right')
+        # self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
+        #                 spec='large-left')
+        # self.temporalSmoothingBox = QtWidgets.QLineEdit()
+        # self.temporalSmoothingBox.setText('100')
+        # self.add_widget(self.temporalSmoothingBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel(' '))
         self.pasButton = QtWidgets.QPushButton(" == perform area segmentation == ", self)
@@ -760,7 +764,10 @@ class AnalysisWindow(NewWindow):
         self.img2.setImage(data[-1, :, :])
 
         spectrum = np.fft.fft(data[:,xpix, ypix])
-        power, phase = np.abs(spectrum), -np.angle(spectrum) #%(2.*np.pi)
+        if self.twoPiBox.isChecked():
+            power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
+        else:
+            power, phase = np.abs(spectrum), np.angle(spectrum)
         x = np.arange(len(power))
         self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
         self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
@@ -779,8 +786,9 @@ class AnalysisWindow(NewWindow):
     def compute_phase_maps(self):
         p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
                                             self.protocolBox.currentText(),
-                                            run_id=self.numBox.currentText())
-        power_map, phase_map = analysis.perform_fft_analysis(data, p['Nrepeat'])
+                                              run_id=self.numBox.currentText())
+        power_map, phase_map = analysis.perform_fft_analysis(data, p['Nrepeat'],
+                                                             zero_two_pi_convention=self.twoPiBox.isChecked())
 
         xpix, ypix = self.get_pixel_value()
         print('')
@@ -797,7 +805,8 @@ class AnalysisWindow(NewWindow):
 
         power_map, retinotopy_map = analysis.get_retinotopic_maps(self.get_datafolder(),
                                                                   self.mapBox.currentText(),
-                                                                  run_id=self.numBox.currentText())
+                                                                  run_id=self.numBox.currentText(),
+                                                                  zero_two_pi_convention=self.twoPiBox.isChecked())
 
         
         self.img1.setLookupTable(phase_color_map)
@@ -807,7 +816,13 @@ class AnalysisWindow(NewWindow):
         
 
     def perform_area_segmentation(self):
-        pass
+        
+        data = analysis.build_trial_data(self.get_datafolder(),
+                                         zero_two_pi_convention=self.twoPiBox.isChecked())
+        trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
+
+        trial.processTrial(isPlot=True)
+        
 
     def get_datafolder(self):
 

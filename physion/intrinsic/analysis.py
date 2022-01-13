@@ -101,15 +101,22 @@ def get_retinotopic_maps(datafolder, map_type,
     power2, phase2 = perform_fft_analysis(data2, p['Nrepeat'],
                                           zero_two_pi_convention=zero_two_pi_convention)
 
-    print(phase_to_angle_func(-np.pi), phase_to_angle_func(0), phase_to_angle_func(np.pi))
-    print('')
-    retinotopy = .5*(phase_to_angle_func(phase2)-phase_to_angle_func(phase1))
+    retinotopy = .5*(phase2-phase1)
+
+    if zero_two_pi_convention:
+        retinotopy = np.clip(retinotopy, 0, 2*np.pi)
+    else:
+        retinotopy = np.clip(retinotopy, -np.pi, np.pi)
+        
     return .5*(power1+power2), retinotopy
 
-def build_trial_data(datafolder):
+def build_trial_data(datafolder,
+                     zero_two_pi_convention=False):
 
-    altitude_power_map, altitude_delay_map = get_retinotopic_maps(datafolder, 'altitude')
-    azimuth_power_map, azimuth_delay_map = get_retinotopic_maps(datafolder, 'azimuth')
+    altitude_power_map, altitude_delay_map = get_retinotopic_maps(datafolder, 'altitude',
+                                                                  zero_two_pi_convention=zero_two_pi_convention)
+    azimuth_power_map, azimuth_delay_map = get_retinotopic_maps(datafolder, 'azimuth',
+                                                                zero_two_pi_convention=zero_two_pi_convention)
     
     metadata = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
     vasculature_img = np.load(os.path.join(datafolder, 'vasculature.npy'),
@@ -126,7 +133,15 @@ def build_trial_data(datafolder):
     
 if __name__=='__main__':
 
-    data = build_trial_data('/home/yann/DATA/2022_01_13/17-41-53/')
+    df = '/home/yann/DATA/2022_01_13/17-41-53/'
 
-    print(data)
+    altitude_power_map, altitude_phase_map = get_retinotopic_maps(df, 'altitude', zero_two_pi_convention=True)
+    plt.imshow(altitude_power_map)
+    plt.title('power map')
+    plt.figure()
+    plt.imshow(altitude_phase_map)
+    plt.title('phase map')
+    plt.colorbar()
+    plt.show()
     
+    # data = build_trial_data(df)

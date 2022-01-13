@@ -3108,10 +3108,11 @@ if __name__ == "__main__":
     from analysis import build_trial_data
 
     data = build_trial_data('/home/yann/DATA/2022_01_13/17-41-53/')
+    trial = RetinotopicMappingTrial(**data)
 
     data['params'] = params
 
-    plt.imshow(data['altitude_delay_map'])
+    plt.imshow(data['altPosMap'])
 
     plt.show()
     
