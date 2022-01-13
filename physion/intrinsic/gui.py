@@ -1,6 +1,6 @@
 import sys, os, shutil, glob, time, subprocess, pathlib, json, tempfile, datetime
 import numpy as np
-import pynwb
+import pynwb, PIL
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
@@ -104,7 +104,7 @@ class MainWindow(NewWindow):
         # ---  setting subject information ---
         self.add_widget(QtWidgets.QLabel('subjects file:'))
         self.subjectFileBox = QtWidgets.QComboBox(self)
-        self.subjectFileBox.addItems([f for f in os.listdir(subjects_path) if f.endswith('.json')])
+        self.subjectFileBox.addItems([f for f in os.listdir(subjects_path)[::-1] if f.endswith('.json')])
         self.subjectFileBox.activated.connect(self.get_subject_list)
         self.add_widget(self.subjectFileBox)
 
@@ -195,12 +195,11 @@ class MainWindow(NewWindow):
 
         # ---  launching analysis ---
         self.add_widget(QtWidgets.QLabel(20*' - '))
-        self.add_widget(QtWidgets.QLabel('  '))
         self.analysisButton = QtWidgets.QPushButton(" - = Analysis GUI = - ", self)
         self.analysisButton.clicked.connect(self.open_analysis)
         self.add_widget(self.analysisButton, spec='large-left')
 
-        self.pimg.setImage(self.get_frame())
+        self.pimg.setImage(0*self.get_frame())
         self.view.addItem(self.pimg)
         self.view.autoRange(padding=0.001)
         self.analysisWindow = None
@@ -214,6 +213,11 @@ class MainWindow(NewWindow):
         img = self.get_frame(force_HQ=True)
         self.pimg.setImage(img) # show on display
         np.save(filename, img)
+
+        img = np.array(255*(img-img.min())/(img.max()-img.min()), dtype=np.uint8)
+        im = PIL.Image.fromarray(img)
+        im.save(filename.replace('npy', 'tif'))
+        
         print('vasculature image, saved as:')
         print(filename)
         
@@ -675,7 +679,7 @@ class AnalysisWindow(NewWindow):
         self.img2.setImage(data[-1, :, :])
 
         spectrum = np.fft.fft(data[:,xpix, ypix])
-        power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
+        power, phase = np.abs(spectrum), -np.angle(spectrum) #%(2.*np.pi)
         x = np.arange(len(power))
         self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
         self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
