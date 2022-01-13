@@ -3110,6 +3110,10 @@ if __name__ == "__main__":
     data = build_trial_data('/home/yann/DATA/2022_01_13/17-41-53/')
 
     data['params'] = params
+
+    plt.imshow(data['altitude_delay_map'])
+
+    plt.show()
     
     trial = RetinotopicMappingTrial(**data)
     
@@ -3123,5 +3127,4 @@ if __name__ == "__main__":
     # _ = trial._splitPatches(isPlot=True)
     # _ = trial._mergePatches(isPlot=True)
 
-    plt.show()    
     
