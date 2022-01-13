@@ -340,6 +340,7 @@ class MainWindow(NewWindow):
 
         while (time.time()-self.tSave)<=self.dt_save:
 
+            self.t = time.time()
             # show image
             patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
                                          self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime],
@@ -356,8 +357,11 @@ class MainWindow(NewWindow):
                 self.img += self.get_frame()
                 self.nSave+=1.0
 
-            time.sleep(self.dt/3.)
-            self.flip = (False if self.flip else True) # flip the flag (ADJUST TO HAVE IT ONLY AT DT)
+            if self.demoBox.isChecked():
+                # in demo case, ~no time frame grabbing time, so we wait the dt duration
+                time.sleep(max([self.dt-(time.time()-self.t), 0])) 
+                
+            self.flip = (False if self.flip else True) # flip the flag
             
         if self.camBox.isChecked():
             self.save_img() # re-init image here
