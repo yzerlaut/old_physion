@@ -23,6 +23,62 @@ def resample_img(img, Nsubsampling):
         return img
 
 
+def load_single_datafile(datafile):
+    io = pynwb.NWBHDF5IO(datafile, 'r')
+    nwbfile = io.read()
+    t, x = nwbfile.acquisition['image_timeseries'].timestamps[:],\
+        nwbfile.acquisition['image_timeseries'].data[:,:,:]
+    io.close()
+    return t, x
+
+
+def load_raw_data(datafolder, protocol,
+                  run_id='sum'):
+    params = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
+
+    if run_id=='sum':
+        data = np.zeros((len(params['STIM']['%s-times' % protocol]), *params['imgsize']))
+        i=1
+        while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
+            t, D = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
+            data += D
+            i+=1
+        data /= (1.0*(i-1))
+        return params, (t, data)
+
+    elif os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
+        return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))
+
+
+def perform_fft_analysis(data, nrepeat):
+
+    spectrum = np.fft.fft(data, axis=0)
+    power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
+    return power[nrepeat, :, :], phase[nrepeat, :, :]
+
+
+def get_retinotopic_maps(datafolder, map_type,
+                         run_id='sum'):
+
+    if map_type=='altitude':
+        p, (t, data1) = load_raw_data(datafolder, 'up',
+                                      run_id=run_id)
+        p, (t, data2) = load_raw_data(datafolder, 'down',
+                                      run_id=run_id)
+
+    else:
+        p, (t, data1) = load_raw_data(datafolder, 'left',
+                                      run_id=run_id)
+        p, (t, data2) = load_raw_data(datafolder, 'right',
+                                      run_id=run_id)
+
+    power1, phase1 = perform_fft_analysis(data1, p['Nrepeat'])
+    power2, phase2 = perform_fft_analysis(data2, p['Nrepeat'])
+    
+    return .5*(power1+power2), .5*(phase2-phase1)
+
+            
+"""    
 def init_data(datafolder,
               spatial_subsampling=0):
     
@@ -275,3 +331,4 @@ if __name__=='__main__':
     
     plt.show()
     
+"""    
