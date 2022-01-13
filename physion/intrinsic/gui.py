@@ -61,8 +61,8 @@ class MainWindow(NewWindow):
                                          title='intrinsic imaging')
 
         # some initialisation
-        self.running, self.stim = False, None
-        self.datafolder = ''
+        self.running, self.stim, self.STIM = False, None, None
+        self.datafolder, self.vasculature_img = '', None
         
         self.t0, self.period = 0, 1
         
@@ -208,19 +208,19 @@ class MainWindow(NewWindow):
 
         filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
                             filename='vasculature-%s' % self.subjectBox.currentText(),
-                            extension='.npy')
+                            extension='.tif')
         
+        # save HQ image as tiff
         img = self.get_frame(force_HQ=True)
-        self.pimg.setImage(img) # show on display
-        np.save(filename, img)
-
         img = np.array(255*(img-img.min())/(img.max()-img.min()), dtype=np.uint8)
         im = PIL.Image.fromarray(img)
-        im.save(filename.replace('npy', 'tif'))
-        
+        im.save(filename)
         print('vasculature image, saved as:')
         print(filename)
-        
+
+        # then keep a version to store with imaging:
+        self.vasculature_img = self.get_frame()
+        self.pimg.setImage(img) # show on displayn
 
     
     def open_analysis(self):
@@ -427,6 +427,10 @@ class MainWindow(NewWindow):
                     'STIM':self.STIM}
         
         np.save(filename, metadata)
+        if self.vasculature_img is not None:
+            np.save(filename.replace('metadata', 'vasculature'),
+                    self.vasculature_img)
+            
         self.datafolder = os.path.dirname(filename)
 
         
@@ -467,10 +471,26 @@ class MainWindow(NewWindow):
             #pixels by default come out as a 1D array. We can reshape them into an image
             img = np.reshape(tagged_image.pix,
                              newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
-        elif self.stim is not None:
+        elif (self.stim is not None) and (self.STIM is not None):
             it = int((time.time()-self.t0_episode)/self.dt_save)%int(self.period/self.dt_save)
-            img = np.random.randn(*self.stim.x.shape)+\
-                .5*np.exp(-(self.stim.x-(40*it/self.Npoints-20))**2/2./10**2)
+            protocol = self.STIM['label'][self.iEp%len(self.STIM['label'])]
+            if protocol=='left':
+                img = np.random.randn(*self.stim.x.shape)+\
+                    np.exp(-(self.stim.x-(40*it/self.Npoints-20))**2/2./10**2)*\
+                    np.exp(-self.stim.z**2/2./15**2)
+            elif protocol=='right':
+                img = np.random.randn(*self.stim.x.shape)+\
+                    np.exp(-(self.stim.x+(40*it/self.Npoints-20))**2/2./10**2)*\
+                    np.exp(-self.stim.z**2/2./15**2)
+            elif protocol=='up':
+                img = np.random.randn(*self.stim.x.shape)+\
+                    np.exp(-(self.stim.z-(40*it/self.Npoints-20))**2/2./10**2)*\
+                    np.exp(-self.stim.x**2/2./15**2)
+            else: # down
+                img = np.random.randn(*self.stim.x.shape)+\
+                    np.exp(-(self.stim.z+(40*it/self.Npoints-20))**2/2./10**2)*\
+                    np.exp(-self.stim.x**2/2./15**2)
+                
         else:
             img = np.random.randn(720, 1280)
 
@@ -579,7 +599,6 @@ class AnalysisWindow(NewWindow):
         self.graphics_layout.ci.layout.setRowStretchFactor(1, 4)
         self.graphics_layout.ci.layout.setRowStretchFactor(3, 5)
             
-        self.add_widget(QtWidgets.QLabel(' '))
         self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
         self.folderButton.clicked.connect(self.open_file)
         self.add_widget(self.folderButton, spec='large-left')
@@ -643,6 +662,57 @@ class AnalysisWindow(NewWindow):
         self.displayBox.addItems(['sign map', 'areas (+vasc.)'])
         self.add_widget(self.displayBox,
                         spec='large-right')
+
+        # === -- parameters for area segmentation -- ===
+        
+        # phaseMapFilterSigma
+        self.add_widget(QtWidgets.QLabel('  - phaseMapFilterSigma:'),
+                        spec='large-left')
+        self.phaseMapFilterSigmaBox = QtWidgets.QLineEdit()
+        self.phaseMapFilterSigmaBox.setText('1.0')
+        self.phaseMapFilterSigmaBox.setToolTip('The sigma value (in pixels) of Gaussian filter for altitude and azimuth maps.\n FLOAT, default = 1.0, recommended range: [0.0, 2.0].\n Large "phaseMapFilterSigma" gives you more patches.\n Small "phaseMapFilterSigma" gives you less patches.')
+        self.add_widget(self.phaseMapFilterSigmaBox, spec='small-right')
+
+        # signMapFilterSigma
+        self.add_widget(QtWidgets.QLabel('  - signMapFilterSigma:'),
+                        spec='large-left')
+        self.signMapFilterSigmaBox = QtWidgets.QLineEdit()
+        self.signMapFilterSigmaBox.setText('9.0')
+        self.signMapFilterSigmaBox.setToolTip('The sigma value (in pixels) of Gaussian filter for visual sign maps.\n FLOAT, default = 9.0, recommended range: [0.6, 10.0].\n Large "signMapFilterSigma" gives you less patches.\n Small "signMapFilterSigma" gives you more patches.')
+        self.add_widget(self.signMapFilterSigmaBox, spec='small-right')
+
+        # signMapThr
+        self.add_widget(QtWidgets.QLabel('  - signMapThr:'),
+                        spec='large-left')
+        self.signMapThrBox = QtWidgets.QLineEdit()
+        self.signMapThrBox.setText('0.35')
+        self.signMapThrBox.setToolTip('Threshold to binarize visual signmap.\n FLOAT, default = 0.35, recommended range: [0.2, 0.5], allowed range: [0, 1).\n Large signMapThr gives you fewer patches.\n Smaller signMapThr gives you more patches.')
+        self.add_widget(self.signMapThrBox, spec='small-right')
+
+        
+        self.add_widget(QtWidgets.QLabel('  - splitLocalMinCutStep:'),
+                        spec='large-left')
+        self.splitLocalMinCutStepBox = QtWidgets.QLineEdit()
+        self.splitLocalMinCutStepBox.setText('5.0')
+        self.splitLocalMinCutStepBox.setToolTip('The step width for detecting number of local minimums during spliting. The local minimums detected will be used as marker in the following open cv watershed segmentation.\n FLOAT, default = 5.0, recommend range: [0.5, 15.0].\n Small "splitLocalMinCutStep" will make it more likely to split but into less sub patches.\n Large "splitLocalMinCutStep" will make it less likely to split but into more sub patches.')
+        self.add_widget(self.splitLocalMinCutStepBox, spec='small-right')
+
+        # splitOverlapThr: 
+        self.add_widget(QtWidgets.QLabel('  - splitOverlapThr:'),
+                        spec='large-left')
+        self.splitOverlapThrBox = QtWidgets.QLineEdit()
+        self.splitOverlapThrBox.setText('1.1')
+        self.splitOverlapThrBox.setToolTip('Patches with overlap ration larger than this value will go through the split procedure.\n FLOAT, default = 1.1, recommend range: [1.0, 1.2], should be larger than 1.0.\n Small "splitOverlapThr" will split more patches.\n Large "splitOverlapThr" will split less patches.')
+        self.add_widget(self.splitOverlapThrBox, spec='small-right')
+
+        # mergeOverlapThr: 
+        self.add_widget(QtWidgets.QLabel('  - mergeOverlapThr:'),
+                        spec='large-left')
+        self.mergeOverlapThrBox = QtWidgets.QLineEdit()
+        self.mergeOverlapThrBox.setText('0.1')
+        self.mergeOverlapThrBox.setToolTip('Considering a patch pair (A and B) with same sign, A has visual coverage a deg2 and B has visual coverage b deg2 and the overlaping visual coverage between this pair is c deg2.\n Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged.\n FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0.\n Small "mergeOverlapThr" will merge less patches.\n Large "mergeOverlapThr" will merge more patches.')
+        self.add_widget(self.mergeOverlapThrBox, spec='small-right')
+        
         
         self.show()
 
@@ -650,12 +720,15 @@ class AnalysisWindow(NewWindow):
         self.pix1.clear()
         self.pix2.clear()
         try:
-            x, y = [int(tt) for tt in self.pixBox.text().replace(' ', '').split(',')]
-            self.pix1.setData([x], [y],
+            x = min([self.img.shape[0]-1,
+                     int(self.pixBox.text().replace(' ', '').split(',')[1])])
+            y = min([self.img.shape[1]-1,
+                     int(self.pixBox.text().replace(' ', '').split(',')[0])])
+            self.pix1.setData([y], [x],
                                size=10, brush=pg.mkBrush(255,0,0,255))
-            self.pix2.setData([x], [y],
+            self.pix2.setData([y], [x],
                                size=10, brush=pg.mkBrush(255,0,0,255))
-            return y, x
+            return x, y
         except BaseException as be:
             print(be)
             return 0, 0
@@ -675,7 +748,8 @@ class AnalysisWindow(NewWindow):
         p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
                                             self.protocolBox.currentText(),
                                             run_id=self.numBox.currentText())
-
+        self.img = data[0,:,:]
+        print(self.img.shape)
         xpix, ypix = self.get_pixel_value()
 
         self.raw_trace.plot(t, data[:,xpix, ypix])
@@ -713,24 +787,23 @@ class AnalysisWindow(NewWindow):
         print('power @ pix', power_map[xpix, ypix])
         print('phase @ pix', phase_map[xpix, ypix])
 
-        self.img1.setLookupTable(power_color_map)
-        self.img2.setLookupTable(phase_color_map)
-        self.img1.setImage(power_map)
-        self.img2.setImage(phase_map)
+        self.img1.setLookupTable(phase_color_map)
+        self.img2.setLookupTable(power_color_map)
+        self.img1.setImage(phase_map)
+        self.img2.setImage(power_map)
         
 
     def compute_retinotopic_maps(self):
 
-        power_map, delay_map = analysis.get_retinotopic_maps(self.get_datafolder(),
-                                                             self.mapBox.currentText(),
-                                                             run_id=self.numBox.currentText())
+        power_map, retinotopy_map = analysis.get_retinotopic_maps(self.get_datafolder(),
+                                                                  self.mapBox.currentText(),
+                                                                  run_id=self.numBox.currentText())
 
         
-        self.img1.setLookupTable(power_color_map)
-        self.img2.setLookupTable(phase_color_map)
-        
-        self.img1.setImage(power_map)
-        self.img2.setImage(delay_map)
+        self.img1.setLookupTable(phase_color_map)
+        self.img2.setLookupTable(power_color_map)
+        self.img1.setImage(retinotopy_map)
+        self.img2.setImage(power_map)
         
 
     def perform_area_segmentation(self):

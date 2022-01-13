@@ -1,7 +1,6 @@
-__author__ = 'junz'
 #####################################################
 ##### copied from https://github.com/zhuangjun1981/NeuroAnalysisTools/blob/master/NeuroAnalysisTools/RetinotopicMapping.py
-##### Cite the original 
+##### Cite the original work/implementation: Zhuang et al., Elife (2017)
 #####################################################
 
 
@@ -19,100 +18,137 @@ import cv2
 import matplotlib.colors as col
 from matplotlib import cm
 
-from .core import FileTools as ft
-from .core import ImageAnalysis as ia
-from .core import PlottingTools as pt
+def int2str(num,length=None):
+    '''
+    generate a string representation for a integer with a given length
+    :param num: non-negative int, input number
+    :param length: positive int, length of the string
+    :return: string represetation of the integer
+    '''
+
+    rawstr = str(int(num))
+    if length is None or length == len(rawstr):return rawstr
+    elif length < len(rawstr): raise ValueError('Length of the number is longer then defined display length!')
+    elif length > len(rawstr): return '0'*(length-len(rawstr)) + rawstr
+    
+def array_nor(A, float_bit=64):
+    '''
+    normalize a np.array to the scale [0, 1]
+    '''
+
+    if float_bit == 64:
+        B = A.astype(np.float64)
+    elif float_bit == 32:
+        B = A.astype(np.float32)
+    else:
+        raise ValueError("input 'float_bit' should be 64 or 32.")
+
+    if np.isnan(A).all():
+        return A
+
+    if np.isnan(A).any():
+        maxv = np.nanmax(B.flat)
+        minv = np.nanmin(B.flat)
+    else:
+        maxv = np.max(B.flat)
+        minv = np.min(B.flat)
+
+    return (B - minv) / (maxv - minv)
+
+# from .core import FileTools as ft
+# from .core import ImageAnalysis as ia
+# from .core import PlottingTools as pt
 
 
-def loadTrial(trialPath):
-    """
-    load single retinotopic mapping trial from database
-    """
+# def loadTrial(trialPath):
+#     """
+#     load single retinotopic mapping trial from database
+#     """
 
-    trialDict = ft.loadFile(trialPath)
+#     trialDict = ft.loadFile(trialPath)
 
-    trial = RetinotopicMappingTrial(mouseID=trialDict['mouseID'],  # str, mouseID
-                                    dateRecorded=trialDict['dateRecorded'],  # int, date recorded, yearmonthday
-                                    comments=trialDict['comments'],  # str, number of the trail on that day
-                                    altPosMap=trialDict['altPosMap'],  # altitude position map
-                                    aziPosMap=trialDict['aziPosMap'],  # azimuth position map
-                                    altPowerMap=trialDict['altPowerMap'],  # altitude power map
-                                    aziPowerMap=trialDict['aziPowerMap'],  # azimuth power map
-                                    vasculatureMap=trialDict['vasculatureMap'],  # vasculature map
-                                    params=trialDict['params'])
+#     trial = RetinotopicMappingTrial(mouseID=trialDict['mouseID'],  # str, mouseID
+#                                     dateRecorded=trialDict['dateRecorded'],  # int, date recorded, yearmonthday
+#                                     comments=trialDict['comments'],  # str, number of the trail on that day
+#                                     altPosMap=trialDict['altPosMap'],  # altitude position map
+#                                     aziPosMap=trialDict['aziPosMap'],  # azimuth position map
+#                                     altPowerMap=trialDict['altPowerMap'],  # altitude power map
+#                                     aziPowerMap=trialDict['aziPowerMap'],  # azimuth power map
+#                                     vasculatureMap=trialDict['vasculatureMap'],  # vasculature map
+#                                     params=trialDict['params'])
 
-    try:
-        trial.altPosMapf = trialDict['altPosMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.altPosMapf = trialDict['altPosMapf']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.aziPosMapf = trialDict['aziPosMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.aziPosMapf = trialDict['aziPosMapf']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.altPowerMapf = trialDict['altPowerMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.altPowerMapf = trialDict['altPowerMapf']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.aziPowerMapf = trialDict['aziPowerMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.aziPowerMapf = trialDict['aziPowerMapf']
+#     except KeyError:
+#         pass
 
-    try:
-        if isinstance(trialDict['finalPatches'].values()[0], dict):
-            trial.finalPatches = {}
-            for area, patchDict in trialDict['finalPatches'].items():
-                try:
-                    trial.finalPatches.update({area: Patch(patchDict['array'], patchDict['sign'])})
-                except KeyError:
-                    trial.finalPatches.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
-        else:
-            pass
-    except KeyError:
-        pass
+#     try:
+#         if isinstance(trialDict['finalPatches'].values()[0], dict):
+#             trial.finalPatches = {}
+#             for area, patchDict in trialDict['finalPatches'].items():
+#                 try:
+#                     trial.finalPatches.update({area: Patch(patchDict['array'], patchDict['sign'])})
+#                 except KeyError:
+#                     trial.finalPatches.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
+#         else:
+#             pass
+#     except KeyError:
+#         pass
 
-    try:
-        if isinstance(trialDict['finalPatchesMarked'].values()[0], dict):
-            trial.finalPatchesMarked = {}
-            for area, patchDict in trialDict['finalPatchesMarked'].items():
-                try:
-                    trial.finalPatchesMarked.update({area: Patch(patchDict['array'], patchDict['sign'])})
-                except KeyError:
-                    trial.finalPatchesMarked.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
-        else:
-            pass
-    except KeyError:
-        pass
+#     try:
+#         if isinstance(trialDict['finalPatchesMarked'].values()[0], dict):
+#             trial.finalPatchesMarked = {}
+#             for area, patchDict in trialDict['finalPatchesMarked'].items():
+#                 try:
+#                     trial.finalPatchesMarked.update({area: Patch(patchDict['array'], patchDict['sign'])})
+#                 except KeyError:
+#                     trial.finalPatchesMarked.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
+#         else:
+#             pass
+#     except KeyError:
+#         pass
 
-    try:
-        trial.signMap = trialDict['signMap']
-    except KeyError:
-        pass
+#     try:
+#         trial.signMap = trialDict['signMap']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.signMapf = trialDict['signMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.signMapf = trialDict['signMapf']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.rawPatchMap = trialDict['rawPatchMap']
-    except KeyError:
-        pass
+#     try:
+#         trial.rawPatchMap = trialDict['rawPatchMap']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.rawPatches = trialDict['rawPatches']
-    except KeyError:
-        pass
+#     try:
+#         trial.rawPatches = trialDict['rawPatches']
+#     except KeyError:
+#         pass
 
-    try:
-        trial.eccentricityMapf = trialDict['eccentricityMapf']
-    except KeyError:
-        pass
+#     try:
+#         trial.eccentricityMapf = trialDict['eccentricityMapf']
+#     except KeyError:
+#         pass
 
-    return trial
+#     return trial
 
 
 def visualSignMap(phasemap1, phasemap2):
@@ -264,7 +300,7 @@ def labelPatches(patchmap, signMap):
         else:
             raise LookupError('This patch has no visual Sign!!')
 
-        patchname = 'patch' + ft.int2str(i, 2)
+        patchname = 'patch' + int2str(i, 2)
 
         patches.update({patchname: Patch(currPatch, currSign)})
 
@@ -419,6 +455,20 @@ def localMin(eccMap, binSize):
     return marker
 
 
+
+def is_adjacent(array1, array2, borderWidth = 2):
+    '''
+    decide if two patches are adjacent within border width
+    '''
+
+    p1d = ni.binary_dilation(array1, iterations = borderWidth-1).astype(np.int8)
+    p2d = ni.binary_dilation(array2, iterations = borderWidth-1).astype(np.int8)
+
+    if np.amax(p1d + p2d) > 1:
+        return True
+    else:
+        return False
+
 def adjacentPairs(patches, borderWidth=2):
     """
     return all the patch pairs with same visual sign and sharing border
@@ -431,7 +481,7 @@ def adjacentPairs(patches, borderWidth=2):
         patch1 = patches[pair[0]]
         patch2 = patches[pair[1]]
 
-        if (ia.is_adjacent(patch1.array, patch2.array, borderWidth=borderWidth)) and (patch1.sign == patch2.sign):
+        if (is_adjacent(patch1.array, patch2.array, borderWidth=borderWidth)) and (patch1.sign == patch2.sign):
             pairKeyList.append(pair)
 
     return pairKeyList
@@ -500,7 +550,7 @@ def sortPatches(patchDict):
     patches = sorted(patches, key=lambda a: a[1], reverse=True)
 
     for i, item in enumerate(patches):
-        patchName = 'patch' + ft.int2str(i + 1, 2)
+        patchName = 'patch' + int2str(i + 1, 2)
 
         newPatchDict.update({patchName: item[0]})
 
@@ -516,6 +566,7 @@ def plotPatches(patches, plotaxis=None, zoom=1, alpha=0.5, markersize=5):
         f = plt.figure()
         plotaxis = f.add_axes([1, 1, 1, 1])
 
+    currPatch = None
     imageHandle = {}
     for key, value in patches.items():
 
@@ -528,9 +579,10 @@ def plotPatches(patches, plotaxis=None, zoom=1, alpha=0.5, markersize=5):
         plotaxis.plot(currPatch.getCenter()[1], currPatch.getCenter()[0], '.k', markersize=markersize * zoom)
         imageHandle.update({'handle_' + key: h})
 
-    plotaxis.set_xlim([0, currPatch.array.shape[1] - 1])
-    plotaxis.set_ylim([currPatch.array.shape[0] - 1, 0])
-    # plotaxis.set_axis_off()
+    if currPatch is not None:
+        plotaxis.set_xlim([0, currPatch.array.shape[1] - 1])
+        plotaxis.set_ylim([currPatch.array.shape[0] - 1, 0])
+
     return imageHandle
 
 
@@ -1069,14 +1121,14 @@ class RetinotopicMappingTrial(object):
             f2 = plt.figure(figsize=(12, 4))
             f2_121 = f2.add_subplot(121)
             if altPowerMapf is not None:
-                currfig = f2_121.imshow(ia.array_nor(self.altPowerMap), cmap='hot', vmin=0, vmax=1,
+                currfig = f2_121.imshow(array_nor(self.altPowerMap), cmap='hot', vmin=0, vmax=1,
                                         interpolation='nearest')
                 f2.colorbar(currfig)
                 f2_121.set_title('alt power map')
                 f2_121.set_axis_off()
             f2_122 = f2.add_subplot(122)
             if aziPowerMapf is not None:
-                currfig = f2_122.imshow(ia.array_nor(self.aziPowerMap), cmap='hot', vmin=0, vmax=1,
+                currfig = f2_122.imshow(array_nor(self.aziPowerMap), cmap='hot', vmin=0, vmax=1,
                                         interpolation='nearest')
                 f2.colorbar(currfig)
                 f2_122.set_title('azi power map')
@@ -2245,7 +2297,7 @@ class RetinotopicMappingTrial(object):
         except AttributeError:
             finalPatches = self.finalPatches
 
-        vasMap = ia.array_nor(self.vasculatureMap)
+        vasMap = array_nor(self.vasculatureMap)
 
         # get V1 mean fluorscence
         try:
@@ -2294,10 +2346,10 @@ class RetinotopicMappingTrial(object):
             finalPatches = self.finalPatches
 
         try:
-            powerMap = ia.array_nor(np.mean([self.altPowerMapf, self.aziPowerMapf], axis=0))
+            powerMap = array_nor(np.mean([self.altPowerMapf, self.aziPowerMapf], axis=0))
         except AttributeError:
             _ = self._getSignMap()
-            powerMap = ia.array_nor(np.mean([self.altPowerMapf, self.aziPowerMapf], axis=0))
+            powerMap = array_nor(np.mean([self.altPowerMapf, self.aziPowerMapf], axis=0))
 
         # get V1 mean fluorscence
         try:
@@ -2946,7 +2998,7 @@ class Patch(object):
         plt.title('markers 2')
         plt.show()
 
-        eccMapNor = (np.round(ia.array_nor(eccMap) * 255)).astype(np.uint8)
+        eccMapNor = (np.round(array_nor(eccMap) * 255)).astype(np.uint8)
         eccMapRGB = cv2.cvtColor(eccMapNor, cv2.COLOR_GRAY2RGB)
         # eccMapRGB: image type for opencv watershed, RGB, [uint8, uint8, uint8]
 
@@ -3034,5 +3086,42 @@ class Patch(object):
 
 
 if __name__ == "__main__":
-    plt.ioff()
-    print('for debug ...')
+
+    params = {
+              'phaseMapFilterSigma': 2,
+              'signMapFilterSigma': 15.,
+              'signMapThr': 0.1,
+              'eccMapFilterSigma': 15.0,
+              'splitLocalMinCutStep': 5.,
+              'closeIter': 3,
+              'openIter': 3,
+              'dilationIter': 15,
+              'borderWidth': 1,
+              'smallPatchThr': 100,
+              'visualSpacePixelSize': 0.5,
+              'visualSpaceCloseIter': 15,
+              'splitOverlapThr': 1.1,
+              'mergeOverlapThr': 0.1
+              }
+
+
+    from analysis import build_trial_data
+
+    data = build_trial_data('/home/yann/DATA/2022_01_13/17-41-53/')
+
+    data['params'] = params
+    
+    trial = RetinotopicMappingTrial(**data)
+    
+    trial.processTrial(isPlot=True)
+    
+    # _ = trial._getSignMap(isPlot=True)
+    # _ = trial._getRawPatchMap(isPlot=True)
+    # _ = trial._getRawPatches(isPlot=True)
+    # _ = trial._getDeterminantMap(isPlot=True)
+    # _ = trial._getEccentricityMap(isPlot=True)
+    # _ = trial._splitPatches(isPlot=True)
+    # _ = trial._mergePatches(isPlot=True)
+
+    plt.show()    
+    
