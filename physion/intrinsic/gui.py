@@ -164,11 +164,11 @@ class MainWindow(NewWindow):
         self.freqBox.setText('10')
         self.add_widget(self.freqBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
-                        spec='large-left')
-        self.flickBox = QtWidgets.QLineEdit()
-        self.flickBox.setText('10')
-        self.add_widget(self.flickBox, spec='small-right')
+        # self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
+        #                 spec='large-left')
+        # self.flickBox = QtWidgets.QLineEdit()
+        # self.flickBox.setText('10')
+        # self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
@@ -284,7 +284,8 @@ class MainWindow(NewWindow):
         self.Nrepeat = int(self.repeatBox.text()) #
         self.period = float(self.periodBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
+        # self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
+        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.freqBox.text())
         
         xmin, xmax = 1.15*np.min(self.stim.x), 1.15*np.max(self.stim.x)
         zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
@@ -621,9 +622,17 @@ class AnalysisWindow(NewWindow):
         self.lastBox.setChecked((self.datafolder==''))
 
         self.add_widget(QtWidgets.QLabel(' '))
-        self.rdButton = QtWidgets.QPushButton(" ===== show raw data ===== ", self)
+        self.vdButton = QtWidgets.QPushButton("vasc. img", self)
+        self.vdButton.clicked.connect(self.show_vasc_pic)
+        self.add_widget(self.vdButton, 'small-left')
+        self.rdButton = QtWidgets.QPushButton(" === show raw data === ", self)
         self.rdButton.clicked.connect(self.show_raw_data)
-        self.add_widget(self.rdButton)
+        self.add_widget(self.rdButton, 'large-right')
+        self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
+                        spec='large-left')
+        self.hpBox = QtWidgets.QLineEdit()
+        self.hpBox.setText('0')
+        self.add_widget(self.hpBox, spec='small-right')
         self.add_widget(QtWidgets.QLabel('  - pixel loc. (x,y):'),
                         spec='large-left')
         self.pixBox = QtWidgets.QLineEdit()
@@ -643,10 +652,6 @@ class AnalysisWindow(NewWindow):
         self.pmButton.clicked.connect(self.compute_phase_maps)
         self.add_widget(self.pmButton)
         
-        self.add_widget(QtWidgets.QLabel(' '))
-        self.rmButton = QtWidgets.QPushButton(" === compute retinotopic maps === ", self)
-        self.rmButton.clicked.connect(self.compute_retinotopic_maps)
-        self.add_widget(self.rmButton)
         self.add_widget(QtWidgets.QLabel('  - direction:'),
                         spec='small-left')
         self.mapBox = QtWidgets.QComboBox(self)
@@ -656,6 +661,10 @@ class AnalysisWindow(NewWindow):
         self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
         self.twoPiBox.setStyleSheet("color: gray;")
         self.add_widget(self.twoPiBox, spec='small-right')
+
+        self.rmButton = QtWidgets.QPushButton(" === compute retinotopic maps === ", self)
+        self.rmButton.clicked.connect(self.compute_retinotopic_maps)
+        self.add_widget(self.rmButton)
         
         # self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
         #                 spec='large-left')
@@ -750,9 +759,18 @@ class AnalysisWindow(NewWindow):
             print(be)
             return 0, 0
 
-    
+
+    def show_vasc_pic(self):
+        pic = os.path.join(self.get_datafolder(), 'vasculature.npy')
+        print(pic)
+        if os.path.isfile(pic):
+            self.img1.setImage(np.load(pic))
+            self.img2.setImage(np.zeros((10,10)))
+            
+            
     def refresh(self):
         self.show_raw_data()
+
         
     def show_raw_data(self):
         
@@ -763,13 +781,18 @@ class AnalysisWindow(NewWindow):
 
         # load data
         p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
-                                            self.protocolBox.currentText(),
-                                            run_id=self.numBox.currentText())
+                                              self.protocolBox.currentText(),
+                                              run_id=self.numBox.currentText())
         self.img = data[0,:,:]
         print(self.img.shape)
         xpix, ypix = self.get_pixel_value()
 
         self.raw_trace.plot(t, data[:,xpix, ypix])
+        
+        if float(self.hpBox.text())>0:
+            self.raw_trace.plot(t, analysis.butter_highpass_filter(data[:,xpix, ypix],
+                                                                   float(self.hpBox.text()),
+                                                                   1./p['Nrepeat']), pen='r')
         
         self.img1.setLookupTable(signal_color_map)
         self.img2.setLookupTable(signal_color_map)

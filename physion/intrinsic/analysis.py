@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 from matplotlib import colorbar, colors
 from skimage import measure
 from scipy.interpolate import interp1d
-
+from analyz.processing.filters import butter_highpass_filter, butter_bandpass_filter
 
 
 def resample_data(array, old_time, time):
