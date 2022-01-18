@@ -784,22 +784,28 @@ class AnalysisWindow(NewWindow):
                                               self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
         self.img = data[0,:,:]
-        print(self.img.shape)
+        # print(self.img.shape)
         xpix, ypix = self.get_pixel_value()
 
-        self.raw_trace.plot(t, data[:,xpix, ypix])
         
+        
+        new_data = data[:,xpix, ypix]
         if float(self.hpBox.text())>0:
-            self.raw_trace.plot(t, analysis.butter_highpass_filter(data[:,xpix, ypix],
-                                                                   float(self.hpBox.text()),
-                                                                   1./p['Nrepeat']), pen='r')
-        
+            self.raw_trace.plot(t, new_data-new_data.mean())
+            new_data = analysis.butter_highpass_filter(new_data,
+                                                       float(self.hpBox.text()),
+                                                       1, order=5)
+            self.raw_trace.plot(t, new_data, pen='r')
+        else:
+            new_data = data[:,xpix, ypix]
+            self.raw_trace.plot(t, new_data)
+            
         self.img1.setLookupTable(signal_color_map)
         self.img2.setLookupTable(signal_color_map)
         self.img1.setImage(data[0, :, :])
         self.img2.setImage(data[-1, :, :])
 
-        spectrum = np.fft.fft(data[:,xpix, ypix])
+        spectrum = np.fft.fft(new_data)
         if self.twoPiBox.isChecked():
             power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
         else:
@@ -821,9 +827,10 @@ class AnalysisWindow(NewWindow):
         
     def compute_phase_maps(self):
         p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
-                                            self.protocolBox.currentText(),
+                                              self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
         power_map, phase_map = analysis.perform_fft_analysis(data, p['Nrepeat'],
+                                                             high_pass_filtering=float(self.hpBox.text()),
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
         xpix, ypix = self.get_pixel_value()

@@ -54,10 +54,15 @@ def load_raw_data(datafolder, protocol,
 
 
 def perform_fft_analysis(data, nrepeat,
+                         high_pass_filtering=0,
                          zero_two_pi_convention=False,
                          plus_one_convention=False):
 
-    spectrum = np.fft.fft(data, axis=0)
+    if high_pass_filtering>0:
+        spectrum = np.fft.fft(butter_highpass_filter(data, high_pass_filtering, 1., axis=0), axis=0)
+    else:
+        spectrum = np.fft.fft(data, axis=0)
+        
     if zero_two_pi_convention:
         power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
     else:
