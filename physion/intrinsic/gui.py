@@ -143,13 +143,13 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - stim. period (s):'),
                         spec='large-left')
         self.periodBox = QtWidgets.QLineEdit()
-        self.periodBox.setText('15')
+        self.periodBox.setText('10')
         self.add_widget(self.periodBox, spec='small-right')
         
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
                         spec='large-left')
         self.barBox = QtWidgets.QLineEdit()
-        self.barBox.setText('4')
+        self.barBox.setText('6')
         self.add_widget(self.barBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - spatial sub-sampling (px):'),
@@ -161,13 +161,13 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('3')
+        self.freqBox.setText('10')
         self.add_widget(self.freqBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
                         spec='large-left')
         self.flickBox = QtWidgets.QLineEdit()
-        self.flickBox.setText('20')
+        self.flickBox.setText('10')
         self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
@@ -212,6 +212,7 @@ class MainWindow(NewWindow):
         
         # save HQ image as tiff
         img = self.get_frame(force_HQ=True)
+        np.save(filename.replace('.tif', '.npy'), img)
         img = np.array(255*(img-img.min())/(img.max()-img.min()), dtype=np.uint8)
         im = PIL.Image.fromarray(img)
         im.save(filename)
@@ -292,15 +293,28 @@ class MainWindow(NewWindow):
         self.Npoints = int(self.period/self.dt_save)
 
         if self.protocolBox.currentText()=='ALL':
-            LABELS, self.label = ['up', 'left', 'down', 'right'], 'up'
+            self.STIM = {'angle_start':[zmin, xmax, zmax, xmin],
+                         'angle_stop':[zmax, xmin, zmin, xmax],
+                         'label': ['up', 'left', 'down', 'right'],
+                         'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
+            self.label = 'up' # starting point
         else:
-            LABELS, self.label = [self.protocolBox.currentText()], self.protocolBox.currentText()
+            self.STIM = {'label': [self.protocolBox.currentText()],
+                         'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
+            if self.protocolBox.currentText()=='up':
+                self.STIM['angle_start'] = [zmin]
+                self.STIM['angle_stop'] = [zmax]
+            if self.protocolBox.currentText()=='down':
+                self.STIM['angle_start'] = [zmax]
+                self.STIM['angle_stop'] = [zmin]
+            if self.protocolBox.currentText()=='left':
+                self.STIM['angle_start'] = [xmax]
+                self.STIM['angle_stop'] = [xmin]
+            if self.protocolBox.currentText()=='right':
+                self.STIM['angle_start'] = [xmin]
+                self.STIM['angle_stop'] = [xmax]
+            self.label = self.protocolBox.currentText()
             
-        self.STIM = {'angle_start':[zmin, xmax, zmax, xmin],
-                     'angle_stop':[zmax, xmin, zmin, xmax],
-                     'label': LABELS,
-                     'xmin':xmin, 'xmax':xmax, 'zmin':zmin, 'zmax':zmax}
-
         for il, label in enumerate(self.STIM['label']):
             self.STIM[label+'-times'] = np.arange(self.Npoints*self.Nrepeat)*self.dt_save
             self.STIM[label+'-angle'] = np.concatenate([np.linspace(self.STIM['angle_start'][il],
@@ -357,12 +371,11 @@ class MainWindow(NewWindow):
                 self.img += self.get_frame()
                 self.nSave+=1.0
 
-            if self.demoBox.isChecked():
-                # in demo case, ~no time frame grabbing time, so we wait the dt duration
-                time.sleep(max([self.dt-(time.time()-self.t), 0])) 
-                
-            self.flip = (False if self.flip else True) # flip the flag
+            # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
+            # self.flip = (False if self.flip else True) # flip the flag
             
+        self.flip = (False if self.flip else True) # flip the flag
+        
         if self.camBox.isChecked():
             self.save_img() # re-init image here
 

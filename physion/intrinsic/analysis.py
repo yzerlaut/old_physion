@@ -54,14 +54,18 @@ def load_raw_data(datafolder, protocol,
 
 
 def perform_fft_analysis(data, nrepeat,
-                         zero_two_pi_convention=False):
+                         zero_two_pi_convention=False,
+                         plus_one_convention=False):
 
     spectrum = np.fft.fft(data, axis=0)
     if zero_two_pi_convention:
         power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
     else:
         power, phase = np.abs(spectrum), -np.angle(spectrum)
-    return power[nrepeat, :, :], phase[nrepeat, :, :]
+    if plus_one_convention:
+        return power[nrepeat+1, :, :], phase[nrepeat+1, :, :]
+    else:
+        return power[nrepeat, :, :], phase[nrepeat, :, :]
 
 
 def get_retinotopic_maps(datafolder, map_type,
