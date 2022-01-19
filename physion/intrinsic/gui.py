@@ -739,9 +739,20 @@ class AnalysisWindow(NewWindow):
         self.mergeOverlapThrBox.setToolTip('Considering a patch pair (A and B) with same sign, A has visual coverage a deg2 and B has visual coverage b deg2 and the overlaping visual coverage between this pair is c deg2.\n Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged.\n FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0.\n Small "mergeOverlapThr" will merge less patches.\n Large "mergeOverlapThr" will merge more patches.')
         self.add_widget(self.mergeOverlapThrBox, spec='small-right')
         
+        self.pixROI = pg.ROI((10, 10), size=(2,2),
+                             pen=pg.mkPen((255,0,0,255)),
+                             rotatable=False,resizable=False)
+        self.img1B.addItem(self.pixROI)
+
+        
         
         self.show()
 
+    def set_pixROI(self, img=None):
+        if img is None:
+            img = self.img
+        return 
+    
     def get_pixel_value(self):
         self.pix1.clear()
         self.pix2.clear()
@@ -774,10 +785,9 @@ class AnalysisWindow(NewWindow):
         
     def show_raw_data(self):
         
-        if self.numBox.currentText()=='sum':
-            # clear previous plots when using the sum
-            for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
-                plot.clear()
+        # clear previous plots
+        for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
+            plot.clear()
 
         # load data
         p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
@@ -792,7 +802,7 @@ class AnalysisWindow(NewWindow):
         new_data = data[:,xpix, ypix]
         if float(self.hpBox.text())>0:
             self.raw_trace.plot(t, new_data-new_data.mean())
-            new_data = analysis.butter_highpass_filter(new_data,
+            new_data = analysis.butter_highpass_filter(new_data-new_data.mean(),
                                                        float(self.hpBox.text()),
                                                        1, order=5)
             self.raw_trace.plot(t, new_data, pen='r')
