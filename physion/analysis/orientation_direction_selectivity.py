@@ -291,7 +291,7 @@ def C_ROI_analysis(FullData,
     return fig, cell_resp
 
 
-def C_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
+def C_analysis_pdf(datafile, iprotocol=0, Nmax=1000000, roi=0):
 
     data = MultimodalData(datafile)
 
@@ -299,11 +299,16 @@ def C_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
         os.mkdir(summary_pdf_folder(datafile))
     
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-gratings-analysis.pdf' % data.protocols[iprotocol])
-    
+
+    if roi==0:
+        ROIs = np.arange(data.iscell.sum())[:Nmax]
+    else:
+        ROIs = [roi]
+        
     CELL_RESPS = []
     with PdfPages(pdf_filename) as pdf:
 
-        for roi in np.arange(data.iscell.sum())[:Nmax]:
+        for roi in ROIs:
 
             fig, cell_resp = C_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
             CELL_RESPS.append(cell_resp)
@@ -326,8 +331,9 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
     parser.add_argument("analysis", type=str, help='should be either "orientation"/"direction"')
-    parser.add_argument("--iprotocol", type=int, default=0, help='index for the protocol in case of multiprotocol in datafile')
+    parser.add_argument('-ip', "--iprotocol", type=int, default=0, help='index for the protocol in case of multiprotocol in datafile')
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
+    parser.add_argument('--roi', type=int, default=0)
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
