@@ -62,7 +62,7 @@ class MainWindow(NewWindow):
 
         # some initialisation
         self.running, self.stim, self.STIM = False, None, None
-        self.datafolder, self.vasculature_img = '', None
+        self.datafolder, self.img, self.vasculature_img = '', None, None
         
         self.t0, self.period = 0, 1
         
@@ -554,6 +554,8 @@ class AnalysisWindow(NewWindow):
         super(AnalysisWindow, self).__init__(i=2,
                                          title='intrinsic imaging analysis')
 
+        self.datafolder, self.img, self.vasculature_img = '', None, None
+        
         if args is not None:
             self.datafolder = args.datafile
         else:
@@ -598,12 +600,9 @@ class AnalysisWindow(NewWindow):
         self.img2 = pg.ImageItem()
         self.img2B.addItem(self.img2)
 
-        self.pix1 = pg.ScatterPlotItem()
-        self.pix2 = pg.ScatterPlotItem()
-        self.img1B.addItem(self.pix1)
-        self.img2B.addItem(self.pix2)
-        self.img1.setImage(np.random.randn(30,30))
-        self.img2.setImage(np.random.randn(30,30))
+        self.img = np.random.randn(30,30)
+        self.img1.setImage(self.img)
+        self.img2.setImage(self.img)
 
         for i in range(3):
             self.graphics_layout.ci.layout.setColumnStretchFactor(i, 1)
@@ -633,11 +632,6 @@ class AnalysisWindow(NewWindow):
         self.hpBox = QtWidgets.QLineEdit()
         self.hpBox.setText('0')
         self.add_widget(self.hpBox, spec='small-right')
-        self.add_widget(QtWidgets.QLabel('  - pixel loc. (x,y):'),
-                        spec='large-left')
-        self.pixBox = QtWidgets.QLineEdit()
-        self.pixBox.setText('150, 140')
-        self.add_widget(self.pixBox, spec='small-right')
         self.add_widget(QtWidgets.QLabel('  - protocol:'),
                         spec='small-left')
         self.protocolBox = QtWidgets.QComboBox(self)
@@ -678,6 +672,7 @@ class AnalysisWindow(NewWindow):
         # self.temporalSmoothingBox.setText('100')
         # self.add_widget(self.temporalSmoothingBox, spec='small-right')
 
+        
         self.add_widget(QtWidgets.QLabel(' '))
         self.pasButton = QtWidgets.QPushButton(" == perform area segmentation == ", self)
         self.pasButton.clicked.connect(self.perform_area_segmentation)
@@ -739,41 +734,27 @@ class AnalysisWindow(NewWindow):
         self.mergeOverlapThrBox.setToolTip('Considering a patch pair (A and B) with same sign, A has visual coverage a deg2 and B has visual coverage b deg2 and the overlaping visual coverage between this pair is c deg2.\n Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged.\n FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0.\n Small "mergeOverlapThr" will merge less patches.\n Large "mergeOverlapThr" will merge more patches.')
         self.add_widget(self.mergeOverlapThrBox, spec='small-right')
         
-        self.pixROI = pg.ROI((10, 10), size=(2,2),
+        self.pixROI = pg.ROI((10, 10), size=(10,10),
                              pen=pg.mkPen((255,0,0,255)),
                              rotatable=False,resizable=False)
         self.img1B.addItem(self.pixROI)
 
         
-        
         self.show()
 
     def set_pixROI(self, img=None):
-        if img is None:
+        if self.img is not None:
             img = self.img
+        self.pixROI.setSize((10,10))
         return 
     
     def get_pixel_value(self):
-        self.pix1.clear()
-        self.pix2.clear()
-        try:
-            x = min([self.img.shape[0]-1,
-                     int(self.pixBox.text().replace(' ', '').split(',')[1])])
-            y = min([self.img.shape[1]-1,
-                     int(self.pixBox.text().replace(' ', '').split(',')[0])])
-            self.pix1.setData([y], [x],
-                               size=10, brush=pg.mkBrush(255,0,0,255))
-            self.pix2.setData([y], [x],
-                               size=10, brush=pg.mkBrush(255,0,0,255))
-            return x, y
-        except BaseException as be:
-            print(be)
-            return 0, 0
-
+        y, x = int(self.pixROI.pos()[0]), int(self.pixROI.pos()[1])
+        return x, y
+        
 
     def show_vasc_pic(self):
         pic = os.path.join(self.get_datafolder(), 'vasculature.npy')
-        print(pic)
         if os.path.isfile(pic):
             self.img1.setImage(np.load(pic))
             self.img2.setImage(np.zeros((10,10)))
@@ -815,7 +796,7 @@ class AnalysisWindow(NewWindow):
         self.img1.setImage(data[0, :, :])
         self.img2.setImage(data[-1, :, :])
 
-        spectrum = np.fft.fft(new_data)
+        spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
         if self.twoPiBox.isChecked():
             power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
         else:
