@@ -41,12 +41,14 @@ def load_raw_data(datafolder, protocol,
 
     if run_id=='sum':
         data = np.zeros((len(params['STIM']['%s-times' % protocol]), *params['imgsize']))
-        i=1
-        while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
-            t, D = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
-            data += D
-            i+=1
-        data /= (1.0*(i-1))
+        n=0
+        for i in range(1, 15): # no more than 15 repeats...(but some can be removed, hence the "for" loop)
+            if os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
+                t, D = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
+                data += D
+                n+=1
+        if n>0:
+            data /= (1.0*n)
         return params, (t, data)
 
     elif os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
