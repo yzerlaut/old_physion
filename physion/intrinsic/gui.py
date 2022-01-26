@@ -764,7 +764,7 @@ class AnalysisWindow(NewWindow):
         self.show_raw_data()
 
         
-    def show_raw_data(self):
+    def show_raw_data(self, with_raw_img=False):
         
         # clear previous plots
         for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
@@ -790,11 +790,12 @@ class AnalysisWindow(NewWindow):
         else:
             new_data = data[:,xpix, ypix]
             self.raw_trace.plot(t, new_data)
-            
-        self.img1.setLookupTable(signal_color_map)
-        self.img2.setLookupTable(signal_color_map)
-        self.img1.setImage(data[0, :, :])
-        self.img2.setImage(data[-1, :, :])
+
+        if with_raw_img:
+            self.img1.setLookupTable(signal_color_map)
+            self.img2.setLookupTable(signal_color_map)
+            self.img1.setImage(data[0, :, :])
+            self.img2.setImage(data[-1, :, :])
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
         if self.twoPiBox.isChecked():
