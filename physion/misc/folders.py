@@ -6,7 +6,8 @@ python_path = 'python'
 possible_conda_dir_lists = [os.path.join(os.path.expanduser('~'), 'miniconda3'),
                             os.path.join(os.path.expanduser('~'), 'anaconda3'),
                             os.path.join(os.path.expanduser('~'), '.conda'),
-                            os.path.join(os.path.expanduser('~'), 'appdata', 'continuum', 'anaconda3')]
+                            os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Continuum', 'anaconda3'),
+                            os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Continuum', 'miniconda3')]
                        
 def check_path(env='physion'):
     i, success, path = 0, False, python_path
@@ -29,33 +30,47 @@ else:
 
         
 python_path_suite2p_env = check_path('suite2p')
-print(python_path)
-print(python_path_suite2p_env)
+
+
+FOLDERS = {}
+for key, val in zip(['~/DATA', '~/UNPROCESSED', '~/CURATED'],
+                    [os.path.join(os.path.expanduser('~'), 'DATA'),
+                     os.path.join(os.path.expanduser('~'), 'UNPROCESSED'),
+                     os.path.join(os.path.expanduser('~'), 'CURATED')]):
+    if os.path.isdir(val):
+        FOLDERS[key] = val
+
+for key, val in zip(['D-drive', 'E-drive', 'F-drive', 'G-drive', 'H-drive'],
+                    ['D:\\', 'E:\\', 'F:\\', 'G:\\', 'H:\\']):
+    if os.path.isdir(val):
+        FOLDERS[key] = val
+
+for user in ['yann', 'yann.zerlaut']:
+    for key, val in zip(['storage-curated', 
+                         'storage-data',
+                         'usb (YANN)',
+                         'usb (Yann)',
+                         'usb (code)'],
+                        ['/media/%s/DATADRIVE1/CURATED/' % user,
+                         '/media/%s/DATADRIVE1/DATA/' % user,
+                         '/media/%s/YANN/' % user,
+                         '/media/%s/Yann/' % user,
+                         '/media/%s/CODE_YANN/']):
+        if os.path.isdir(val):
+            FOLDERS[key] = val
+        
+FOLDERS['10.0.0.1:curated'] = 'yann@10.0.0.1:/media/yann/DATADRIVE1/CURATED'
+# FOLDERS['MsWin-data'] = '/media/yann/Windows/home/yann/DATA/'
+# FOLDERS['MsWin-cygwin'] = '/media/yann/Windows/Users/yann.zerlaut/DATA/'
+FOLDERS['10.0.0.1:~/DATA'] = 'yann@10.0.0.1:/home/yann/DATA/'
+FOLDERS['10.0.0.2:~/DATA'] = 'yann@10.0.0.2:/home/yann/DATA/'
+
 
     
-FOLDERS = {
-    '~/DATA':os.path.join(os.path.expanduser('~'), 'DATA'),
-    '~/UNPROCESSED':os.path.join(os.path.expanduser('~'), 'UNPROCESSED'),
-    '~/CURATED':os.path.join(os.path.expanduser('~'), 'CURATED')
-}
+if __name__=='__main__':
+    print('    == folders == ')
+    for key in FOLDERS:
+        print('  - %s: %s' % (key, FOLDERS[key]))
+    print('python_path: ', python_path)
+    print('python_path_suite2p_env:', python_path_suite2p_env)
 
-if os.name=='nt':
-    FOLDERS['D-drive'] = 'D:\\'
-    FOLDERS['E-drive'] = 'E:\\'
-    FOLDERS['F-drive'] = 'F:\\'
-    FOLDERS['G-drive'] = 'G:\\'
-else:
-    FOLDERS['storage-curated'] = '/media/yann/DATADRIVE1/CURATED/'
-    FOLDERS['storage-DATA'] = '/media/yann/DATADRIVE1/DATA/'
-    FOLDERS['10.0.0.1:curated'] = 'yann@10.0.0.1:/media/yann/DATADRIVE1/CURATED'
-    FOLDERS['MsWin-DATA'] = '/media/yann/Windows/Users/yann.zerlaut/DATA'
-    FOLDERS['usb (YANN)'] = '/media/yann/YANN/'
-    FOLDERS['usb (Yann)'] = '/media/yann/Yann/'
-    # FOLDERS['MsWin-data'] = '/media/yann/Windows/home/yann/DATA/'
-    # FOLDERS['MsWin-cygwin'] = '/media/yann/Windows/Users/yann.zerlaut/DATA/'
-    FOLDERS['usb (code)'] = '/media/yann/CODE_YANN/'
-    FOLDERS['10.0.0.1:~/DATA'] = 'yann@10.0.0.1:/home/yann/DATA/'
-    FOLDERS['10.0.0.2:~/DATA'] = 'yann@10.0.0.2:/home/yann/DATA/'
-
-
-    
