@@ -19,7 +19,8 @@ def strided_app(a, L, S ):  # Window len = L, Stride len/stepsize = S
     return np.lib.stride_tricks.as_strided(a, shape=(nrows,L), strides=(S*n,n))
 
 
-def sliding_percentile(array, percentile, Window):
+def sliding_percentile(array, percentile, Window,
+                       with_smoothing=True):
 
     x = np.zeros(len(array))
     y0 = strided_app(array, Window, 1)
@@ -29,10 +30,45 @@ def sliding_percentile(array, percentile, Window):
     x[:int(Window/2)] = y[0]
     x[int(Window/2):int(Window/2)+len(y)] = y
     x[-int(Window/2):] = y[-1]
-    return x
+    if with_smoothing:
+        return gaussian_filter1d(x, iTsm)
+    else:
+        return x
 
+
+def sliding_percentile_new(array, percentile, Window,
+                           with_smoothing=True):
+    """
+    trying numpy code for efficiently evaluating the distrib percentile over a sliding window
+    somehow making use of "stride tricks" for fast looping over the sliding window
+    
+        not really efficient so far... :(
+    
+    see: 
+    https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks.sliding_window_view.html
+    """
+    sliding_min = np.zeros(array.shape)
+    # using a sliding "view" of the array
+    view = np.lib.stride_tricks.sliding_window_view(array, Window, axis=-1)
+    smv = np.percentile(view, percentile, axis=-1)
+    # replacing values, N.B. need to deal with edges
+    iw = int(Window/2)+1
+    if len(array.shape)==1:
+        sliding_min[:iw] = smv[0]
+        sliding_min[-iw:] = smv[-1]
+        sliding_min[iw:iw+smv.shape[-1]] = smv
+    elif len(array.shape)==2:
+        sliding_min[:,:iw] = np.broadcast_to(smv[:,0], (iw, array.shape[0])).T
+        sliding_min[:,-iw:] = np.broadcast_to(smv[:,-1], (iw, array.shape[0])).T
+        sliding_min[:,iw:iw+smv.shape[-1]] = smv
+    if with_smoothing:
+        return gaussian_filter1d(sliding_min, Window, axis=-1)
+    else:
+        return sliding_min
+    
 def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
                             with_baseline=False,
+                            new_method=False,
                             T_sliding_min=T_SLIDING_MIN,
                             percentile_sliding_min=PERCENTILE_SLIDING_MIN):
     """
@@ -48,17 +84,23 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         """
         iTsm = int(T_sliding_min/data.CaImaging_dt)
 
-        DFoF, FMIN = [], []
-        for ROI in data.validROI_indices[np.array(roiIndices)]:
-            Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, iTsm) # sliding percentile
-            Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
-            if np.mean(Fmin)!=0:
-                DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
-            else:
-                DFoF.append(data.Fluorescence.data[ROI,:])
-                
-            if with_baseline:
-                FMIN.append(Fmin)
+        if not new_method:
+            DFoF, FMIN = [], []
+            for ROI in data.validROI_indices[np.array(roiIndices)]:
+                Fmin = sliding_percentile(data.Fluorescence.data[ROI,:], percentile_sliding_min, iTsm,
+                                          with_smoothing=True) # sliding percentile + smoothing
+                if np.sum(Fmin<=0)==0:
+                    DFoF.append((data.Fluorescence.data[ROI,:]-Fmin)/Fmin)
+                else:
+                    DFoF.append(0*data.Fluorescence.data[0,:]) # let's just put 0
+
+                if with_baseline:
+                    FMIN.append(Fmin)
+        else:
+            FMIN = sliding_percentile_new(data.Fluorescence.data[data.validROI_indices[np.array(roiIndices)],:], percentile_sliding_min, iTsm,
+                                          with_smoothing=True) # sliding percentile + smoothing
+            DFoF = (data.Fluorescence.data[data.validROI_indices[np.array(roiIndices)],:]-FMIN)/FMIN
+                    
         if with_baseline:
             return np.array(DFoF), np.array(FMIN)
         else:
@@ -78,8 +120,7 @@ def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
         DFoF, FMIN = [], []
         for ROI in data.validROI_indices[np.array(roiIndices)]:
             Fmin = sliding_percentile(data.Fluorescence.data[ROI,:]-coef*data.Neuropil.data[ROI,:],
-                                      percentile_sliding_min, iTsm) # sliding percentile
-            Fmin = gaussian_filter1d(Fmin, iTsm) # + smoothing
+                                      percentile_sliding_min, iTsm, with_smoothing=True) # sliding percentile + smoothing
             if np.sum(Fmin<0)>0:
                 print(' /!\ sliding percentile gets negative -> pb !  ')
 
