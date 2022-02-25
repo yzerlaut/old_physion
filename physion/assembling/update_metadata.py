@@ -57,7 +57,13 @@ def update_metadata(args):
     # save new
     if 'notes' not in metadata:
         metadata['notes'] = ''
-        
+
+    if (args.key!='') and (args.value!=''):
+        if args.key in metadata:
+            print('changing "%s" from  "%s" to  "%s" in metadata ' % (args.key, metadata[args.key], args.value))
+        else:
+            print('creating key "%s" with value  "%s" in metadata ' % (args.key, args.value))
+            
     np.save(fn, metadata)
 
 
@@ -65,15 +71,16 @@ if __name__=='__main__':
 
     import argparse
     parser=argparse.ArgumentParser(description="""
-    Building NWB file from mutlimodal experimental recordings
+    Update metadata before building the NWB file
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-df', "--datafolder", type=str, default='')
-    parser.add_argument('-c', "--config", type=str, default='', help='provide the full path !')
-    parser.add_argument('-p', "--protocol", type=str, default='', help='provide the full path !')
+    parser.add_argument('-c', "--config", type=str, default='', help='full path to a config file')
+    parser.add_argument('-k', "--key", type=str, default='metadata key to change')
+    parser.add_argument('-v', "--value", type=str, default='metadata value to change')
+    parser.add_argument('-p', "--protocol", type=str, default='', help='full path to a protocol file')
     parser.add_argument('-sf', "--subject_file", type=str,
-        default=os.path.join(base_path, 'exp', 'subjects', 'mice_fani.json'))
+                        default=os.path.join(base_path, 'exp', 'subjects', 'mice_fani.json'))
     parser.add_argument('-s', "--subject", type=str, default='', help='provide the subject name')
-    parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
 
     if args.datafolder!='':
