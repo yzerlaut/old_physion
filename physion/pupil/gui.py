@@ -395,9 +395,10 @@ class MainWindow(NewWindow):
             for b in settings['blanks']:
                 self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self,
                                                 pos=roi.ellipse_props_to_ROI(b)))
-            for r in settings['reflectors']:
-                self.reflectors.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self,
-                                                      pos=roi.ellipse_props_to_ROI(r), color='green'))
+            if 'reflectors' in settings:
+                for r in settings['reflectors']:
+                    self.reflectors.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self,
+                                                          pos=roi.ellipse_props_to_ROI(r), color='green'))
                 
             self.jump_to_frame()
         except FileNotFoundError:

@@ -21,5 +21,5 @@
     "protocols":["direction-selectivity-precise", "light-levels-3repeatsx5levelsx2min",
 		 "ff-drifting-grating-contrast-curve", "spatial-mapping-fast", "neurometric-task",
 		  "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "size-tuning-protocol", "secondary-receptive-field",
-		  "mismatch-negativity", "NDNF-protocol"]
+		  "mismatch-negativity", "NDNF-protocol", "NI+Scene-Exploration-2-SE-trajectories-10-repeats"]
 }

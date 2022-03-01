@@ -241,7 +241,7 @@ class MainWindow(NewWindow):
         self.l0.setRowStretch(istretch,1)
         self.l0.addWidget(self.currentTime, istretch+13,1,1,3)
         self.l0.addWidget(self.frameSlider, istretch+17,3,1,15)
-
+        
         # self.l0.addWidget(QtWidgets.QLabel(''),17,2,1,1)
         # self.l0.setRowStretch(16,2)
         # # self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
