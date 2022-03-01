@@ -147,7 +147,7 @@ class MainWindow(NewWindow):
         self.folderB.setMinimumWidth(150)
         self.folderB.addItems(FOLDERS.keys())
         
-        self.processBtn = QtWidgets.QPushButton('process data')
+        self.processBtn = QtWidgets.QPushButton('process data [Ctrl+P]')
         self.processBtn.clicked.connect(self.process)
 
         self.interpolate = QtGui.QPushButton('interpolate')
@@ -177,10 +177,13 @@ class MainWindow(NewWindow):
         self.TsamplingBox.setText(str(self.time_subsampling))
         self.TsamplingBox.setFixedWidth(30)
         
+        self.loadLastGUIsettings = QtWidgets.QPushButton("last GUI settings")
+        self.loadLastGUIsettings.clicked.connect(self.load_last_gui_settings)
+        
         self.addROI = QtWidgets.QPushButton("set ROI")
         self.addROI.clicked.connect(self.add_ROI)
 
-        self.saveData = QtWidgets.QPushButton('save data')
+        self.saveData = QtWidgets.QPushButton('save data [Ctrl+S]')
         self.saveData.clicked.connect(self.save_data)
 
         sampLabel3 = QtWidgets.QLabel("grooming threshold")
@@ -217,15 +220,15 @@ class MainWindow(NewWindow):
 
         for wdg, loc in zip([self.load,self.folderB,
                              sampLabel1, sampLabel2,
-                             self.addROI, self.saveData,
+                             self.loadLastGUIsettings, self.addROI, self.saveData,
                              sampLabel3, self.processGrooming,
                              self.motionCheckBox, self.processBtn, self.runAsSubprocess,
                              self.timeLabel],
                             [1,2,
                              8,9,
-                             12,14,
-                             19,20,
-                             23,24,26,
+                             11, 12,14,
+                             25,26,
+                             19,20,21,
                              istretch+13]):
             
             self.l0.addWidget(wdg,loc,0,1,3)
@@ -321,6 +324,23 @@ class MainWindow(NewWindow):
         self.cframe1, self.cframe2 = 0, -1
         self.data = None
 
+    def save_gui_settings(self):
+        
+        np.save(os.path.join(pathlib.Path(__file__).resolve().parent, '_gui_settings.npy'),
+                {'grooming_threshold':self.grooming_threshold, 'ROI':self.ROI.position(self)})
+
+    def load_last_gui_settings(self):
+
+        try:
+            settings = np.load(os.path.join(pathlib.Path(__file__).resolve().parent, '_gui_settings.npy'),
+                               allow_pickle=True).item()
+
+            self.ROI = roi.faceROI(moveable=True, parent=self,
+                                   pos=settings['ROI'])
+            self.groomingBox.setText(str(int(settings['grooming_threshold'])))
+        except FileNotFoundError:
+            print('\n /!\ last GUI settings not found ... \n')
+        
 
     def save_data(self):
 
@@ -331,11 +351,14 @@ class MainWindow(NewWindow):
             self.data['ROI'] = self.ROI.position(self)
 
         self.data['grooming_threshold'] = self.grooming_threshold
-        
+
         np.save(os.path.join(self.datafolder, 'facemotion.npy'), self.data)
+        self.save_gui_settings()
         
         print('data saved as: "%s"' % os.path.join(self.datafolder, 'facemotion.npy'))
-        
+
+    def save(self):
+        self.save_data()
         
     def go_to_frame(self):
         if self.FILES is not None:
@@ -393,6 +416,8 @@ class MainWindow(NewWindow):
 
     def process(self):
 
+        self.save_gui_settings()
+        
         process.set_ROI_area(self)
         frames, motion = process.compute_motion(self,
                                         time_subsampling=int(self.TsamplingBox.text()),
@@ -450,22 +475,26 @@ class MainWindow(NewWindow):
         print('cursor 2 set to: %i' % self.cframe2)
 
     def process_grooming(self):
-        
-        if not 'motion_before_grooming' in self.data:
-            self.data['motion_before_grooming'] = self.data['motion'].copy()
 
-        self.grooming_threshold = int(self.line.value())
-        up_cond = self.data['motion_before_grooming']>self.grooming_threshold
-        self.data['motion'][up_cond] = self.grooming_threshold
-        self.data['motion'][~up_cond] = self.data['motion_before_grooming'][~up_cond]
+        if self.data is not None:
+            if not 'motion_before_grooming' in self.data:
+                self.data['motion_before_grooming'] = self.data['motion'].copy()
 
-        if 'grooming' not in self.data:
-            self.data['grooming'] = 0*self.data['motion']
-            
-        self.data['grooming'][up_cond] = 1
-        self.data['grooming'][~up_cond] = 0
+            self.grooming_threshold = int(self.line.value())
+            up_cond = self.data['motion_before_grooming']>self.grooming_threshold
+            self.data['motion'][up_cond] = self.grooming_threshold
+            self.data['motion'][~up_cond] = self.data['motion_before_grooming'][~up_cond]
 
-        self.plot_motion_trace()
+            if 'grooming' not in self.data:
+                self.data['grooming'] = 0*self.data['motion']
+
+            self.data['grooming'][up_cond] = 1
+            self.data['grooming'][~up_cond] = 0
+
+            self.plot_motion_trace()
+        else:
+            print('\n /!\ Need to process data first ! \n')
+    
 
     def update_line(self):
         self.groomingBox.setText('%i' % self.line.value())

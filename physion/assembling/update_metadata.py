@@ -63,6 +63,7 @@ def update_metadata(args):
             print('changing "%s" from  "%s" to  "%s" in metadata ' % (args.key, metadata[args.key], args.value))
         else:
             print('creating key "%s" with value  "%s" in metadata ' % (args.key, args.value))
+        metadata[args.key] = args.value
             
     np.save(fn, metadata)
 
@@ -79,7 +80,7 @@ if __name__=='__main__':
     parser.add_argument('-v', "--value", type=str, default='metadata value to change')
     parser.add_argument('-p', "--protocol", type=str, default='', help='full path to a protocol file')
     parser.add_argument('-sf', "--subject_file", type=str,
-                        default=os.path.join(base_path, 'exp', 'subjects', 'mice_fani.json'))
+                        default=os.path.join(base_path, 'exp', 'subjects', 'mice_yann.json'))
     parser.add_argument('-s', "--subject", type=str, default='', help='provide the subject name')
     args = parser.parse_args()
 
