@@ -53,7 +53,10 @@ class MultimodalData(Data):
         ax.plot(t, ax_fraction_start+(signal-min_signal)*ax_fraction_extent/scale_range, color=color, lw=1)
         if scale_unit_string!='':
             ax.plot(self.shifted_start(tlim)*np.ones(2), ax_fraction_start+scale_bar*np.arange(2)*ax_fraction_extent/scale_range, color=color, lw=1)
+        if '%' in scale_unit_string:
             ge.annotate(ax, str(scale_unit_string+' ') % scale_bar, (self.shifted_start(tlim), ax_fraction_start), ha='right', color=color, va='center', xycoords='data')
+        elif scale_unit_string!='':
+            ge.annotate(ax, scale_unit_string, (self.shifted_start(tlim), ax_fraction_start), ha='right', color=color, va='center', xycoords='data')
 
     def add_name_annotation(self, ax, name, tlim, ax_fraction_extent, ax_fraction_start,
                             color='k', rotation=0):
@@ -192,11 +195,14 @@ class MultimodalData(Data):
             
             if (subquantity in ['dF/F', 'dFoF']):
                 y = self.dFoF[n, np.arange(i1,i2)][::subsampling]
+                self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
+                                        scale_unit_string=('%.0fdF/F' if (n==0) else ' '))
             else:
-                y = self.Fluorescence[n, np.arange(i1,i2)][::subsampling]
+                y = self.Fluorescence.data[n, np.arange(i1,i2)][::subsampling]
+                self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
+                                        scale_unit_string=('fluo (a.u.)' if (n==0) else ''))
 
-            self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
-                                    scale_unit_string=('%.0fdF/F' if ((n==0) and subquantity in ['dF/F', 'dFoF']) else ''))
+
 
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
@@ -218,7 +224,7 @@ class MultimodalData(Data):
         if (subquantity in ['dF/F', 'dFoF']):
             y = self.dFoF.sum(axis=0)[np.arange(i1,i2)][::subsampling]
         else:
-            y = self.Fluorescence[:,:].sum(axis=0)[np.arange(i1,i2)][::subsampling]
+            y = self.Fluorescence.data[:,:].sum(axis=0)[np.arange(i1,i2)][::subsampling]
 
         self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color,
                                 scale_unit_string=('%.0fdF/F' if subquantity in ['dF/F', 'dFoF'] else ''))

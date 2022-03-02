@@ -273,7 +273,7 @@ class Data:
         """
         creates self.nROIs, self.dFoF, self.t_dFoF
         """
-        compute_dFoF(data,
+        compute_dFoF(self,
                      neuropil_correction_factor=neuropil_correction_factor,
                      method_for_F0=method_for_F0,
                      verbose=verbose)
