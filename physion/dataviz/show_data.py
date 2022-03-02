@@ -11,9 +11,9 @@ from analysis import stat_tools, process_NWB
 from Ca_imaging.tools import compute_CaImaging_trace, compute_CaImaging_raster
 from visual_stim.psychopy_code.stimuli import build_stim
 # datavyz submodule
-sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent,
-                             'datavyz'))
-from dataviz.datavyz import graph_env_manuscript as ge
+sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
+print(sys.path)
+from datavyz import graph_env_manuscript as ge
 
 blue, orange, green, red, purple, brown, pink, grey, kaki, cyan = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 

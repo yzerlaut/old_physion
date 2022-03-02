@@ -12,11 +12,10 @@ from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.process_NWB import EpisodeResponse
 
-try:
-    from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
-    from datavyz import graph_env_manuscript as ge
-except ModuleNotFoundError:
-    print('"datavyz" module not found, get it with:\n                   `pip install git+https://github.com/yzerlaut/datavyz`  ')
+# datavyz submodule
+sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
+from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
+from datavyz import graph_env_manuscript as ge
 
 
 class FiguresWindow(NewWindow):

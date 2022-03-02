@@ -34,3 +34,4 @@ dependencies:
     - suite2p==0.10.2
     - psychopy==2021.1.1
     - opencv-python-headless==4.5.5.62
+    - svgutils
