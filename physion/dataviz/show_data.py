@@ -170,27 +170,34 @@ class MultimodalData(Data):
         
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
-                      quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
+                      quantity='CaImaging', subquantity='Fluorescence', roiIndices='all', dFoF_args={},
                       vicinity_factor=1, subsampling=1, name='[Ca] imaging'):
-        
+
+        if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
+            self.build_dFoF(**dFoF_args)
+            
         if (type(roiIndices)==str) and roiIndices=='all':
-            roiIndices = np.arange(np.sum(self.iscell))
+            roiIndices = self.valid_roiIndices
+            
         if color=='tab':
             COLORS = [plt.cm.tab10(n%10) for n in range(len(roiIndices))]
         else:
             COLORS = [str(color) for n in range(len(roiIndices))]
 
-        dF = compute_CaImaging_trace(self, subquantity, roiIndices) # validROI indices inside !!
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1)
         t = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)][::subsampling]
         
         for n, ir in zip(range(len(roiIndices))[::-1], roiIndices[::-1]):
             ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start # bottom position
-            y = dF[n, np.arange(i1,i2)][::subsampling]
+            
+            if (subquantity in ['dF/F', 'dFoF']):
+                y = self.dFoF[n, np.arange(i1,i2)][::subsampling]
+            else:
+                y = self.Fluorescence[n, np.arange(i1,i2)][::subsampling]
 
             self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
                                     scale_unit_string=('%.0fdF/F' if ((n==0) and subquantity in ['dF/F', 'dFoF']) else ''))
-            
+
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
         # ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
@@ -201,10 +208,17 @@ class MultimodalData(Data):
                          fig_fraction_start=0., fig_fraction=1., color='green',
                          quantity='CaImaging', subquantity='Fluorescence', subsampling=1,
                          name='Sum [Ca]'):
-        i1 = dv_tools.convert_time_to_index(tlim[0], self.Neuropil, axis=1)
-        i2 = dv_tools.convert_time_to_index(tlim[1], self.Neuropil, axis=1)
+        
+        if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
+            self.build_dFoF()
+            
+        i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1)
         t = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)][::subsampling]
-        y = compute_CaImaging_trace(self, subquantity, np.arange(np.sum(self.iscell))).sum(axis=0)[np.arange(i1,i2)][::subsampling]
+        
+        if (subquantity in ['dF/F', 'dFoF']):
+            y = self.dFoF.sum(axis=0)[np.arange(i1,i2)][::subsampling]
+        else:
+            y = self.Fluorescence[:,:].sum(axis=0)[np.arange(i1,i2)][::subsampling]
 
         self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction, fig_fraction_start, color=color,
                                 scale_unit_string=('%.0fdF/F' if subquantity in ['dF/F', 'dFoF'] else ''))

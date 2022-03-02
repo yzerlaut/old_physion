@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter1d # for gaussian smoothing
+from scipy.ndimage import filters
+
 
 ####################################
 # ---------------------------------
@@ -10,6 +11,147 @@ PERCENTILE_SLIDING_MIN = 5. # percent
 
 # ---------------------------------
 ####################################
+
+def fill_center_and_edges(N, Window, smv):
+    sliding_min = np.zeros(N)
+    iw = int(Window/2)+1
+    if len(smv.shape)==1:
+        sliding_min[:iw] = smv[0]
+        sliding_min[-iw:] = smv[-1]
+        sliding_min[iw:iw+smv.shape[-1]] = smv
+    elif len(smv.shape)==2:
+        sliding_min[:,:iw] = np.broadcast_to(smv[:,0], (iw, array.shape[0])).T
+        sliding_min[:,-iw:] = np.broadcast_to(smv[:,-1], (iw, array.shape[0])).T
+        sliding_min[:,iw:iw+smv.shape[-1]] = smv
+    return sliding_min
+
+def compute_sliding_percentile(array, percentile, Window,
+                              with_smoothing=True):
+    """
+    trying numpy code to evaluate efficiently the distrib percentile over a sliding window
+    making use of "stride tricks" for fast looping over the sliding window
+    
+        not really efficient so far... :(
+    
+    see: 
+    https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks.sliding_window_view.html
+    """
+    
+    # using a sliding "view" of the array
+    view = np.lib.stride_tricks.sliding_window_view(array, Window, axis=-1)
+    smv = np.percentile(view, percentile, axis=-1)
+    # replacing values, N.B. need to deal with edges
+    sliding_min = fill_center_and_edges(len(array), Window, smv)
+    if with_smoothing:
+        return filters.gaussian_filter1d(sliding_min, Window, axis=-1)
+    else:
+        return sliding_min
+
+def compute_sliding_mean(array, Window):
+    """ sliding average by convolution with unit array of length window
+    """
+    iw = int(Window/2)+1
+    return fill_center_and_edges(len(array), Window,
+                                 np.convolve(array, np.ones(Window), 'valid')/Window)
+
+
+def compute_sliding_minmax(array, Window, sig=10):
+    Flow = filters.gaussian_filter1d(array, sig)
+    Flow = filters.minimum_filter1d(Flow, Window, mode='wrap')
+    Flow = filters.maximum_filter1d(Flow, Window, mode='wrap')
+    return Flow
+
+
+def compute_sliding_F0(data, F,
+                       method='minmax',
+                       sliding_percentile=5.,
+                       sliding_window=60):
+    if method in ['maximin', 'minmax']:
+        return compute_sliding_minmax(F,
+                                      int(sliding_window/data.CaImaging_dt))
+    elif 'percentile' in method:
+        return compute_sliding_percentile(F, 
+                                          sliding_percentile,
+                                          int(sliding_window/data.CaImaging_dt))
+    else:
+        print('\n --- method not recognized --- \n ')
+        
+
+
+def compute_dFoF(data,  
+                 neuropil_correction_factor=0.,
+                 method_for_F0='maximin',
+                 sliding_percentile=5,
+                 sliding_window=60,
+                 return_corrected_F_and_F0=False,
+                 verbose=True):
+    """
+    compute fluorescence variation with a neuropil correction set by the 
+    factor neuropil_correction_factor
+    """
+
+    if verbose:
+        print('\ncalculating dFoF [...]')
+        
+    if (neuropil_correction_factor>1) or (neuropil_correction_factor<0):
+        print('/!\ neuropil_correction_factor has to be in the interval [0.,1]')
+        print('neuropil_correction_factor set to 0 !')
+        neuropil_correction_factor=0.
+
+    # performing correction 
+    F = data.Fluorescence.data[:,:]-neuropil_correction_factor*data.Neuropil.data[:,:]
+
+        
+    F0 = compute_sliding_F0(data, F,
+                            method=method_for_F0)
+
+    # exclude cells with negative F0
+    data.valid_roiIndices = np.min(F0, axis=1)>0
+
+    if np.sum(~data.valid_roiIndices)>0 and verbose:
+        print('\n  ** %i ROIs were discarded with the positive F0 criterion ** \n'\
+              % np.sum(~data.valid_roiIndices) )
+        
+    data.nROIs = np.sum(data.valid_roiIndices)
+    data.dFoF = (F[data.valid_roiIndices,:]-F0[data.valid_roiIndices,:])/F0[data.valid_roiIndices,:]
+    data.t_dFoF = data.Neuropil.timestamps[:]
+
+    if verbose:
+        print('-> dFoF calculus done !')
+    
+    if return_corrected_F_and_F0:
+        return F[data.valid_roiIndices,:], F0[data.valid_roiIndices,:]
+
+    
+#         F0 = self.compute_F0(new_F,
+#                              sliding_minmax_as_F0=sliding_minmax_as_F0,
+#                              sliding_mean_as_F0=sliding_mean_as_F0,
+#                              sliding_percentile=sliding_percentile,
+#                              sliding_window=sliding_window)
+            
+#         if np.sum(F0<=0)>1:
+#             if verbose:
+#                 print(' /! \ TOO STRONG NEUROPIL CORRECTION FOR FACTOR = %.2f')
+#                 print('           --> NEGATIVE FLUORESCENCE !!') 
+#                 print('    --> returning zero array') 
+#             return None, None
+#         else:
+#             if type(roi_index) in [list, range, np.array, np.ndarray]:
+#                 return (new_F-F0)/F0, F0
+#             else:
+#                 return (new_F-F0)/F0, F0
+#  def compute_dFoF(data,
+#                  neuropil_correction_factor=0.7,
+#                  neuropil_correction_factor=0.7):
+#     """
+    
+#     """
+
+
+
+########################################################################################    
+####################### old code, should be deprecated #################################
+########################################################################################    
 
 
 # numpy code for ~efficiently evaluating the distrib percentile over a sliding window
@@ -65,7 +207,7 @@ def sliding_percentile_new(array, percentile, Window,
         return gaussian_filter1d(sliding_min, Window, axis=-1)
     else:
         return sliding_min
-    
+
 def compute_CaImaging_trace(data, CaImaging_key, roiIndices,
                             with_baseline=False,
                             new_method=False,

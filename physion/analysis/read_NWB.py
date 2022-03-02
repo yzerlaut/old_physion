@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
 from visual_stim.psychopy_code.stimuli import build_stim
+from Ca_imaging.tools import compute_dFoF
 
 
 class Data:
@@ -169,7 +170,7 @@ class Data:
         self.pixel_masks = self.Segmentation.columns[1].data[:]
         # other ROI properties --- by default:
         self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
-        self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
+        self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0])) # POTENTIALLY UPDATED AT THE dF/F calculus point (because of the positive F0 criterion) 
         self.planeID = np.zeros(len(self.Fluorescence.data[:,0]), dtype=int)
         self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
         # looping over the table properties (0,1 -> rois locs) for the ROIS to overwrite the defaults:
@@ -266,14 +267,17 @@ class Data:
     #############################
 
     def build_dFoF(self,
-                   method='maxmin',
-                   specific_time_sampling=None,
-                   interpolation='linear'):
+                   neuropil_correction_factor=0.7,
+                   method_for_F0='maximin',
+                   verbose=False):
         """
-        TO BE WRITTEN
+        creates self.nROIs, self.dFoF, self.t_dFoF
         """
-        self.t_dFoF = None
-        self.dFoF = None
+        compute_dFoF(data,
+                     neuropil_correction_factor=neuropil_correction_factor,
+                     method_for_F0=method_for_F0,
+                     verbose=verbose)
+
         
     
     ################################################
@@ -396,7 +400,7 @@ if __name__=='__main__':
 
     data = Data(sys.argv[-1])
     # print(data.nwbfile.processing['ophys'])
-    print(data.iscell)
+    data.build_dFoF()
     
     
 
