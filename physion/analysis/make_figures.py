@@ -5,6 +5,7 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 
+# custom submodules
 from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData, format_key_value
 from dataviz import tools as dv_tools

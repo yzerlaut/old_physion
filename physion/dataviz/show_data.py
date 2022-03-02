@@ -10,9 +10,9 @@ from analysis.read_NWB import Data
 from analysis import stat_tools, process_NWB
 from Ca_imaging.tools import compute_CaImaging_trace, compute_CaImaging_raster
 from visual_stim.psychopy_code.stimuli import build_stim
+
 # datavyz submodule
 sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
-print(sys.path)
 from datavyz import graph_env_manuscript as ge
 
 blue, orange, green, red, purple, brown, pink, grey, kaki, cyan = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -40,7 +40,7 @@ class MultimodalData(Data):
         return tlim[0]-0.01*(tlim[1]-tlim[0])
     
     def plot_scaled_signal(self, ax, t, signal, tlim, scale_bar, ax_fraction_extent, ax_fraction_start,
-                           color=blue, scale_unit_string='%.1f'):
+                           color=ge.blue, scale_unit_string='%.1f'):
         # generic function to add scaled signal
 
         try:
@@ -81,7 +81,7 @@ class MultimodalData(Data):
     def add_Locomotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=2,
                        speed_scale_bar=1, # cm/s
-                       color=blue, name='run. speed'):
+                       color=ge.blue, name='run. speed'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
         y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
@@ -115,7 +115,7 @@ class MultimodalData(Data):
     def add_GazeMovement(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., subsampling=2,
                          gaze_scale_bar = 0.2, # scale bar in mm
-                         color=orange, name='gaze mov.'):
+                         color=ge.orange, name='gaze mov.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         if not hasattr(self, 'gaze_movement'):
             self.build_gaze_movement()
@@ -764,9 +764,9 @@ if __name__=='__main__':
                                              # quantity='CaImaging', subquantity='dF/F', color=green,
                                              quantity='CaImaging', subquantity='Fluorescence', color=green,
                                              roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), args.Nmax, replace=False))),
-                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=blue),
+                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
                             # 'Pupil':dict(fig_fraction=2, subsampling=1, color=red),
-                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=orange),
+                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
                             'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                             'VisualStim':dict(fig_fraction=.5, color='black')},
                             Tbar=5)
@@ -779,7 +779,7 @@ if __name__=='__main__':
                                           with_stat_test=True,
                                           with_annotation=True,
                                           with_screen_inset=True,                                          
-                                          fig_preset='raw-traces-preset', color=blue, label='test\n')
+                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
