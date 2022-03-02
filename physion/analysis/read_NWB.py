@@ -197,7 +197,7 @@ class Data:
             np.arange(self.nwbfile.acquisition['Running-Speed'].num_samples)/self.nwbfile.acquisition['Running-Speed'].rate
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling)
+            return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling, interpolation=interpolation)
 
     
     ######################
@@ -222,7 +222,7 @@ class Data:
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_pupil, self.pupil_diameter, specific_time_sampling)
+            return self.resample(self.t_pupil, self.pupil_diameter, specific_time_sampling, interpolation=interpolation)
 
 
     def build_gaze_movement(self,
@@ -237,7 +237,7 @@ class Data:
         self.gaze_movement = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_pupil, self.gaze_movement, specific_time_sampling)
+            return self.resample(self.t_pupil, self.gaze_movement, specific_time_sampling, interpolation=interpolation)
         
 
     #########################
@@ -259,12 +259,27 @@ class Data:
         self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_facemotion, self.facemotion, specific_time_sampling)
+            return self.resample(self.t_facemotion, self.facemotion, specific_time_sampling, interpolation=interpolation)
 
-    def close(self):
-        self.io.close()
+    #############################
+    #       Calcium Imaging     #
+    #############################
+
+    def build_dFoF(self,
+                   method='maxmin',
+                   specific_time_sampling=None,
+                   interpolation='linear'):
+        """
+        TO BE WRITTEN
+        """
+        self.t_dFoF = None
+        self.dFoF = None
         
-            
+    
+    ################################################
+    #       episodes and visual stim protocols     #
+    ################################################
+    
     def init_visual_stim(self):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
         self.visual_stim = build_stim(self.metadata, no_psychopy=True)
@@ -330,6 +345,13 @@ class Data:
             return -1
 
         
+    ###########################
+    #       other methods     #
+    ###########################
+    
+    def close(self):
+        self.io.close()
+        
     def list_subquantities(self, quantity):
         if quantity=='CaImaging':
             return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved',
@@ -337,6 +359,7 @@ class Data:
         else:
             return ['']
         
+            
         
 def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
