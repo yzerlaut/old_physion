@@ -263,7 +263,7 @@ if __name__=='__main__':
         episode = EpisodeResponse(data,
                                   quantities=['Pupil', 'CaImaging'],
                                   quantities_args=[{}, {'subquantity':'dF/F', 'roiIndices':np.arange(10)}])
-        print(episode)
+        print(episode['CaImaging_dFoF'].shape)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             
