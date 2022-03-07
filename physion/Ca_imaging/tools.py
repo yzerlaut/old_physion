@@ -100,7 +100,6 @@ def compute_dFoF(data,
 
     # performing correction 
     F = data.Fluorescence.data[:,:]-neuropil_correction_factor*data.Neuropil.data[:,:]
-
         
     F0 = compute_sliding_F0(data, F,
                             method=method_for_F0)

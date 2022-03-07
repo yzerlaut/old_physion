@@ -155,9 +155,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_notebook(self):
         import subprocess
         from physion.misc.folders import python_path
-        cmd = '%s notebook %s' % (python_path.replace('python', 'jupyter'),
-                                  os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),'notebooks'))
-        print(cmd)
+        nb_dir = os.path.expanduser('~')
+        nb_dirs = [os.path.join(os.path.expanduser('~'), 'physion', 'notebooks'),
+                   os.path.join(os.path.expanduser('~'),'work', 'physion', 'notebooks')]
+        for d in nb_dirs:
+            if os.path.isdir(d):
+                nb_dir = d
+        cmd = '%s notebook %s' % (python_path.replace('python', 'jupyter'), d)
         os.system(cmd)
         
     def quit(self):
