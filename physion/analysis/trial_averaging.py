@@ -175,14 +175,21 @@ class TrialAverageWindow(NewWindow):
     def compute_episodes(self):
         self.select_ROI()
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
+            # self.EPISODES = EpisodeResponse(self.data,
+            #                                 protocol_id=self.pbox.currentIndex()-1,
+            #                                 quantity=self.qbox.currentText(),
+            #                                 subquantity=self.sqbox.currentText(),
+            #                                 dt_sampling=self.samplingBox.value(), # ms
+            #                                 roiIndices=self.roiIndices,
+            #                                 interpolation='linear',
+            #                                 baseline_substraction=self.baselineCB.isChecked(),
+            #                                 verbose=True)
             self.EPISODES = EpisodeResponse(self.data,
                                             protocol_id=self.pbox.currentIndex()-1,
-                                            quantity=self.qbox.currentText(),
-                                            subquantity=self.sqbox.currentText(),
+                                            quantities=[self.qbox.currentText()],
+                                            quantities_args=[{'subquantity':self.sqbox.currentText()}],
                                             dt_sampling=self.samplingBox.value(), # ms
-                                            roiIndices=self.roiIndices,
                                             interpolation='linear',
-                                            baseline_substraction=self.baselineCB.isChecked(),
                                             verbose=True)
         else:
             print(' /!\ Pick a protocol an a quantity')
