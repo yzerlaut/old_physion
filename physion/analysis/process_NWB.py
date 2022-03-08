@@ -16,7 +16,7 @@ class EpisodeResponse:
     def __init__(self, full_data,
                  protocol_id=0,
                  quantities=['Photodiode-Signal'],
-                 quantities_args=[{}],
+                 quantities_args=None,
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
                  dt_sampling=1, # ms
                  interpolation='linear',
@@ -28,9 +28,12 @@ class EpisodeResponse:
         # choosing protocol (if multiprotocol)
         Pcond = full_data.get_protocol_cond(protocol_id)
 
+        if quantities_args is None:
+            quantities_args = [{} for q in quantities]
+            
         if verbose:
             print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
-            print('  building episodes [...]')
+            print('  building episodes with %i modalities [...]' % len(quantities))
 
         # find the parameter(s) varied within that specific protocol
         self.varied_parameters, self.fixed_parameters =  {}, {}
@@ -64,41 +67,57 @@ class EpisodeResponse:
                 QUANTITY_TIMES.append(tfull)
                 QUANTITIES.append('quant_%i' % iq)
                 
-            elif (quantity=='CaImaging') and (quantity_args['subquantity'] in ['dFoF', 'dF/F']):
+            elif quantity in ['dFoF', 'dF/F']:
                 if not hasattr(full_data, 'dFoF'):
                     full_data.build_dFoF(**quantity_args)
                 QUANTITY_VALUES.append(full_data.dFoF)
                 QUANTITY_TIMES.append(full_data.t_dFoF)
-                QUANTITIES.append('CaImaging_%s' % quantity_args['subquantity'])
+                QUANTITIES.append('dFoF')
 
-            elif quantity=='CaImaging':
-                QUANTITY_VALUES.append(Ca_imaging_tools.compute_CaImaging_trace(full_data, **quantity_args))
-                QUANTITY_TIMES.append(full_data.Neuropil.timestamps[:])
-                QUANTITIES.append('CaImaging_%s' % quantity_args['subquantity'])
+            elif quantity in ['Neuropil', 'neuropil']:
+                if not hasattr(full_data, 'Neuropil'):
+                    full_data.build_Neuropil(**quantity_args)
+                QUANTITY_VALUES.append(full_data.Neuropil)
+                QUANTITY_TIMES.append(full_data.t_Neuropil)
+                QUANTITIES.append('neuropil')
+
+            elif quantity in ['Fluorescence', 'rawFluo']:
+                if not hasattr(full_data, 'rawFluo'):
+                    full_data.build_rawFluo(**quantity_args)
+                QUANTITY_VALUES.append(full_data.rawFluo)
+                QUANTITY_TIMES.append(full_data.t_rawFluo)
+                QUANTITIES.append('rawFluo')
                 
             elif quantity in ['Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter', 'pupil']:
                 if not hasattr(full_data, 'pupil_diameter'):
                     full_data.build_pupil_diameter(**quantity_args)
                 QUANTITY_VALUES.append(full_data.pupil_diameter)
                 QUANTITY_TIMES.append(full_data.t_pupil)
-                QUANTITIES.append('pupil')
+                QUANTITIES.append('pupilSize')
 
-            elif quantity in ['facemotion', 'FaceMotion']:
+            elif quantity in ['gaze', 'Gaze', 'gaze_movement', 'gazeMovement', 'gazeDirection']:
+                if not hasattr(full_data, 'gaze_movement'):
+                    full_data.build_gaze_movement(**quantity_args)
+                QUANTITY_VALUES.append(full_data.gaze_movement)
+                QUANTITY_TIMES.append(full_data.t_pupil)
+                QUANTITIES.append('gazeDirection')
+                
+            elif quantity in ['facemotion', 'FaceMotion', 'faceMotion']:
                 if not hasattr(full_data, 'facemotion'):
                     full_data.build_facemotion(**quantity_args)
                 QUANTITY_VALUES.append(full_data.facemotion)
                 QUANTITY_TIMES.append(full_data.t_facemotion)
-                QUANTITIES.append('facemotion')
+                QUANTITIES.append('faceMotion')
                 
             else:
                 if quantity in full_data.nwbfile.acquisition:
                     QUANTITY_TIMES.append(np.arange(full_data.nwbfile.acquisition[quantity].data.shape[0])/full_data.nwbfile.acquisition[quantity].rate)
                     QUANTITY_VALUES.append(full_data.nwbfile.acquisition[quantity].data[:])
-                    QUANTITIES.append('quant_%i' % iq)
+                    QUANTITIES.append(full_data.nwbfile.acquisition[quantity].name.replace('-', '').replace('_', ''))
                 elif quantity in full_data.nwbfile.processing:
                     QUANTITY_TIMES.append(np.arange(full_data.nwbfile.processing[quantity].data.shape[0])/full_data.nwbfile.processing[quantity].rate)
                     QUANTITY_VALUES.append(full_data.nwbfile.processing[quantity].data[:])
-                    QUANTITIES.append('quant_%i' % iq)
+                    QUANTITIES.append(full_data.nwbfile.processing[quantity].name.replace('-', '').replace('_', ''))
                 else:
                     print(30*'-')
                     print(quantity, 'not recognized')
@@ -111,7 +130,6 @@ class EpisodeResponse:
         for q in QUANTITIES:
             setattr(self, q, [])
 
-            
         for iEp in np.arange(full_data.nwbfile.stimulus['time_start'].num_samples)[Pcond]:
             
             tstart = full_data.nwbfile.stimulus['time_start_realigned'].data[iEp]
@@ -152,7 +170,6 @@ class EpisodeResponse:
                     getattr(self, quantity).append(response)
                 for key in full_data.nwbfile.stimulus.keys():
                     getattr(self, key).append(full_data.nwbfile.stimulus[key].data[iEp])
-
 
         # transform stim params to np.array
         for key in full_data.nwbfile.stimulus.keys():
@@ -260,10 +277,14 @@ if __name__=='__main__':
         data = Data(filename)
         data.build_dFoF()
         # pupil_eps = EpisodeResponse(data, quantity='Pupil')
-        episode = EpisodeResponse(data,
-                                  quantities=['Pupil', 'CaImaging'],
-                                  quantities_args=[{}, {'subquantity':'dF/F', 'roiIndices':np.arange(10)}])
-        print(episode['CaImaging_dFoF'].shape)
+        episode = EpisodeResponse(data, quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+        from datavyz import ge
+        ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
+        ge.show()
+        # episode = EpisodeResponse(data,
+        #                           quantities=['Pupil', 'CaImaging', 'CaImaging'],
+        #                           quantities_args=[{}, {'subquantity':'Fluorescence'}, {'subquantity':'dFoF', 'roiIndices':np.arange(10)}])
+        # print(episode.CaImaging_dFoF.shape)
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             

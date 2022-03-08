@@ -105,21 +105,23 @@ def compute_dFoF(data,
                             method=method_for_F0)
 
     # exclude cells with negative F0
-    data.valid_roiIndices = np.min(F0, axis=1)>0
+    valid_roiIndices = np.min(F0, axis=1)>0
 
-    if np.sum(~data.valid_roiIndices)>0 and verbose:
+    if np.sum(~valid_roiIndices)>0 and verbose:
         print('\n  ** %i ROIs were discarded with the positive F0 criterion ** \n'\
-              % np.sum(~data.valid_roiIndices) )
+              % np.sum(~valid_roiIndices) )
         
-    data.nROIs = np.sum(data.valid_roiIndices)
-    data.dFoF = (F[data.valid_roiIndices,:]-F0[data.valid_roiIndices,:])/F0[data.valid_roiIndices,:]
+    
+    data.nROIs = np.sum(valid_roiIndices)
+    data.dFoF = (F[valid_roiIndices,:]-F0[valid_roiIndices,:])/F0[valid_roiIndices,:]
     data.t_dFoF = data.Neuropil.timestamps[:]
+    data.valid_roiIndices = np.arange(data.iscell.sum())[valid_roiIndices]
 
     if verbose:
         print('-> dFoF calculus done !')
     
     if return_corrected_F_and_F0:
-        return F[data.valid_roiIndices,:], F0[data.valid_roiIndices,:]
+        return F[valid_roiIndices,:], F0[valid_roiIndices,:]
 
     
 #         F0 = self.compute_F0(new_F,
