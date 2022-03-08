@@ -1,7 +1,7 @@
 {
   "Presentation": "multiprotocol",
-  "shuffling" :"none",
-  "shuffling-seed" :34,
+  "shuffling" :"full",
+  "shuffling-seed" :37,
   "Protocol-1": "spatial-mapping-fast.json",
   "Protocol-2": "gaussian-blobs-fast.json",
   "Protocol-3": "NI-fast.json",
