@@ -6,19 +6,22 @@ import matplotlib.pylab as plt
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools as dv_tools
-from analysis.read_NWB import Data
-from analysis import stat_tools, process_NWB
+from analysis import read_NWB, process_NWB, stat_tools
 from Ca_imaging.tools import compute_CaImaging_trace, compute_CaImaging_raster
 from visual_stim.psychopy_code.stimuli import build_stim
 
 # datavyz submodule
-sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
-from datavyz import graph_env_manuscript as ge
+try:
+    from datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    print('--------------------------------------------')
+    print('  "datavyz" submodule not found')
+    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
+    print('             (after a "git submodule init; git submodule update" if not already done) ')
 
-blue, orange, green, red, purple, brown, pink, grey, kaki, cyan = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 # we define a data object fitting this analysis purpose
-class MultimodalData(Data):
+class MultimodalData(read_NWB.Data):
     
     def __init__(self, filename, verbose=False, with_visual_stim=False):
         """ opens data file """
@@ -63,7 +66,7 @@ class MultimodalData(Data):
         ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=grey, name='photodiode'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Photodiode-Signal'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
@@ -85,23 +88,14 @@ class MultimodalData(Data):
                        fig_fraction_start=0., fig_fraction=1., subsampling=2,
                        speed_scale_bar=1, # cm/s
                        color=ge.blue, name='run. speed'):
+        if not hasattr(self, 'running_speed'):
+            self.build_running_speed()
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
-        t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Running-Speed'])[::subsampling]
-        y = self.nwbfile.acquisition['Running-Speed'].data[i1:i2][::subsampling]
+        x, y = self.t_running_speed[i1:i2][::subsampling], self.running_speed[i1:i2][::subsampling]
 
-        self.plot_scaled_signal(ax, t, y, tlim, speed_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fcm/s')        
+        self.plot_scaled_signal(ax, x, y, tlim, speed_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fcm/s')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
         
-    def add_FaceMotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=purple, name='facemotion'):
-        i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
-        t = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[i1:i2]
-        motion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[i1:i2]
-        x, y = t[::subsampling], motion[::subsampling]
-
-        self.plot_scaled_signal(ax, x, y, tlim, 1., fig_fraction, fig_fraction_start, color=color, scale_unit_string='') # no scale bar here
-        self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
-
     def add_Pupil(self, tlim, ax,
                   fig_fraction_start=0., fig_fraction=1., subsampling=2,
                   pupil_scale_bar = 0.5, # scale bar in mm
@@ -114,7 +108,6 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, x, y, tlim, pupil_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')        
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
-        
     def add_GazeMovement(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., subsampling=2,
                          gaze_scale_bar = 0.2, # scale bar in mm
@@ -128,22 +121,44 @@ class MultimodalData(Data):
         self.plot_scaled_signal(ax, x, y, tlim, gaze_scale_bar, fig_fraction, fig_fraction_start, color=color, scale_unit_string='%.1fmm')
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
+    def add_FaceMotion(self, tlim, ax,
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.purple, name='facemotion'):
+        if not hasattr(self, 'facemotion'):
+            self.build_facemotion()
+        i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
+        x, y = self.t_facemotion[i1:i2][::subsampling], self.facemotion[i1:i2][::subsampling]
+
+        self.plot_scaled_signal(ax, x, y, tlim, 1., fig_fraction, fig_fraction_start, color=color, scale_unit_string='') # no scale bar here
+        self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
+
         
     def add_CaImagingRaster(self, tlim, ax, raster=None,
                             fig_fraction_start=0., fig_fraction=1., color='green',
-                            quantity='CaImaging', subquantity='Fluorescence', roiIndices='all',
+                            subquantity='Fluorescence', roiIndices='all', subquantity_args={},
                             cmap=plt.cm.binary,
                             normalization='None', subsampling=1,
                             name='\nROIs'):
 
-        if raster is None:
-            raster = compute_CaImaging_raster(self, subquantity,
-                                              roiIndices=roiIndices,
-                                              normalization=normalization) # validROI indices inside !!
-        else:
-            if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
-                raster = np.array([(raster[i,:]-np.min(raster[i,:]))/(np.max(raster[i,:])-np.min(raster[i,:])) for i in range(raster.shape[0])])
+        if subquantity=='Fluorescence' and (raster is None):
+            if (roiIndices=='all'):
+                raster = self.Fluorescence.data[:,:]
+            else:
+                raster = self.Fluorescence.data[roiIndices,:]
+                
+        elif (subquantity in ['dFoF', 'dF/F']) and (raster is None):
+            if not hasattr(self, 'dFoF'):
+                self.build_dFoF(**subquantity_args)
+            if (roiIndices=='all'):
+                raster = self.dFoF[:,:]
+            else:
+                raster = self.dFoF[roiIndices,:]
+                
+            roiIndices = np.arange(self.iscell.sum())
+        elif (roiIndices=='all') and (subquantity in ['dFoF', 'dF/F']):
+            roiIndices = np.arange(self.nROIs)
             
+        if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
+            raster = np.array([(raster[i,:]-np.min(raster[i,:]))/(np.max(raster[i,:])-np.min(raster[i,:])) for i in range(raster.shape[0])])
             
         indices=np.arange(*dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1))[::subsampling]
         
@@ -154,7 +169,7 @@ class MultimodalData(Data):
                           fig_fraction_start, fig_fraction_start+fig_fraction))
 
         if normalization in ['per line', 'per-line', 'per cell', 'per-cell']:
-            ge.bar_legend(ax,
+            _, axb = ge.bar_legend(ax,
                           # X=[0,1], bounds=[0,1],
                           continuous=False, colormap=cmap,
                           colorbar_inset=dict(rect=[-.04,
@@ -162,8 +177,11 @@ class MultimodalData(Data):
                                            .01,
                                            .6*fig_fraction], facecolor=None),
                           color_discretization=100, no_ticks=True, labelpad=4.,
-                          label='norm F', fontsize='small')
-        
+                          label=('$\Delta$F/F' if (subquantity in ['dFoF', 'dF/F']) else ' fluo.'),
+                          fontsize='small')
+            ge.annotate(axb, ' max', (1,1), size='x-small')
+            ge.annotate(axb, ' min', (1,0), size='x-small', va='top')
+            
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, rotation=90)
 
         ge.annotate(ax, '1', (tlim[1], fig_fraction_start), xycoords='data')
@@ -173,7 +191,7 @@ class MultimodalData(Data):
         
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
-                      quantity='CaImaging', subquantity='Fluorescence', roiIndices='all', dFoF_args={},
+                      subquantity='Fluorescence', roiIndices='all', dFoF_args={},
                       vicinity_factor=1, subsampling=1, name='[Ca] imaging'):
 
         if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
@@ -196,13 +214,11 @@ class MultimodalData(Data):
             if (subquantity in ['dF/F', 'dFoF']):
                 y = self.dFoF[n, np.arange(i1,i2)][::subsampling]
                 self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
-                                        scale_unit_string=('%.0fdF/F' if (n==0) else ' '))
+                                        scale_unit_string=('%.0f$\Delta$F/F' if (n==0) else ' '))
             else:
                 y = self.Fluorescence.data[n, np.arange(i1,i2)][::subsampling]
                 self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
                                         scale_unit_string=('fluo (a.u.)' if (n==0) else ''))
-
-
 
             self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
@@ -326,15 +342,65 @@ class MultimodalData(Data):
         return fig, ax
 
     
-    ###------------------------------------------
-    ### ----- Trial Average plot components -----
-    ###------------------------------------------
+    ###-------------------------------------
+    ### ----- IMAGING PLOT components -----
+    ###-------------------------------------
 
+    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None, roiIndex=None, with_roi_zoom=False):
+        
+        if ax is None:
+            fig, ax = ge.figure()
+        else:
+            fig = None
+            
+        img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
+        img = (img-img.min())/(img.max()-img.min())
+        img = np.power(img, 1/NL)
+        ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none')
+        ax.axis('off')
+        
+        if roiIndex is not None:
+            indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
+                                (self.pixel_masks_index[roiIndex] if roiIndex<len(self.valid_roiIndices) else len(self.pixel_masks_index)))
+            x = np.mean([self.pixel_masks[ii][1] for ii in indices])
+            sx = np.std([self.pixel_masks[ii][1] for ii in indices])
+            y = np.mean([self.pixel_masks[ii][0] for ii in indices])
+            sy = np.std([self.pixel_masks[ii][1] for ii in indices])
+            # ellipse = plt.Circle((x, y), sx, sy)
+            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='r', facecolor='none', lw=3)
+            ax.add_patch(ellipse)
+            if with_roi_zoom:
+                ax.set_xlim([x-10*sx, x+10*sx])
+                ax.set_ylim([y-10*sy, y+10*sy])
+
+        ge.title(ax, key)
+        
+        return fig, ax
+
+
+    
+###------------------------------------------
+### ----- Trial Average plot components -----
+###------------------------------------------
+
+
+class EpisodeData(process_NWB.EpisodeResponse):
+
+    def __init__(self, filename, verbose=False, with_visual_stim=False):
+        """ opens data file """
+        super().__init__(filename, verbose=verbose)
+        if with_visual_stim:
+            self.init_visual_stim()
+        else:
+            self.visual_stim = None
+    
+    def __init__(self, args):
+        super().__init__(**args)
+        
     def plot_trial_average(self,
                            # episodes props
-                           EPISODES=None,
-                           protocol_id=0, quantity='Photodiode-Signal', subquantity='dF/F', roiIndex=0,
-                           dt_sampling=1, # ms
+                           episode_args=dict(protocol_id=0, quantities=['Photodiode-Signal'], quantities_args={}),
+                           quantity='dFoF', roiIndex=None, roiIndices='all',
                            interpolation='linear',
                            baseline_substraction=False,
                            prestim_duration=None,
@@ -356,56 +422,50 @@ class MultimodalData(Data):
                            ylim=None, xlim=None,
                            fig=None, AX=None, no_set=True, verbose=False):
 
-        # ----- protocol cond ------
-        Pcond = self.get_protocol_cond(protocol_id)
 
         if EPISODES is None:
             # ----- building episodes of cell response ------
-            EPISODES = process_NWB.EpisodeResponse(self,
-                                                   protocol_id=protocol_id,
-                                                   quantity=quantity,
-                                                   subquantity=subquantity,
-                                                   roiIndex=roiIndex,
-                                                   dt_sampling=dt_sampling,
-                                                   verbose=verbose)
+            EPISODES = process_NWB.EpisodeResponse(self, **episode_args)
+
+        response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices)
 
         if with_screen_inset and (self.visual_stim is None):
             print('initializing stim [...]')
             self.init_visual_stim()
         
         if condition is None:
-            condition = np.ones(np.sum(Pcond), dtype=bool)
-        elif len(condition)==len(Pcond):
-            condition = condition[Pcond]
+            condition = np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)
+        elif len(condition)==len(EPISODES.protocol_cond_in_full_data):
+            condition = condition[EPISODES.protocol_cond_in_full_data]
             
         # ----- building conditions ------
 
         # columns
         if column_key!='':
-            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[column_key].data[Pcond]))], [column_key], protocol_id)
+            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[column_key].data[EPISODES.protocol_cond_in_full_data]))], [column_key], EPISODES.protocol_id)
         elif len(column_keys)>0:
-            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in column_keys],
-                                                       column_keys, protocol_id)
+            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in column_keys],
+                                                       column_keys, EPISODES.protocol_id)
         elif (COL_CONDS is None):
-            COL_CONDS = [np.ones(np.sum(Pcond), dtype=bool)]
+            COL_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
 
         # rows
         if row_key!='':
-            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[Pcond]))], [row_key], protocol_id)
+            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[EPISODES.protocol_cond_in_full_data]))], [row_key], EPISODES.protocol_id)
         elif row_keys!='':
-            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in row_keys],
-                                                       row_keys, protocol_id)
+            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in row_keys],
+                                                       row_keys, EPISODES.protocol_id)
         elif (ROW_CONDS is None):
-            ROW_CONDS = [np.ones(np.sum(Pcond), dtype=bool)]
+            ROW_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
             
         # colors
         if color_key!='':
-            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[color_key].data[Pcond]))], [color_key], protocol_id)
+            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[color_key].data[EPISODES.protocol_cond_in_full_data]))], [color_key], EPISODES.protocol_id)
         elif color_keys!='':
-            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in color_keys],
-                                                       color_keys, protocol_id)
+            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in color_keys],
+                                                       color_keys, EPISODES.protocol_id)
         elif COLOR_CONDS is None:
-            COLOR_CONDS = [np.ones(np.sum(Pcond), dtype=bool)]
+            COLOR_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
 
         if (len(COLOR_CONDS)>1):
             COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
@@ -422,17 +482,20 @@ class MultimodalData(Data):
         else:
             no_set=no_set
 
+        response = EPISODES.get_response(**response_args)
+        
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
                     
-                    cond = np.array(condition & col_cond & row_cond & color_cond)[:EPISODES.resp.shape[0]]
+                    cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
                     
-                    if EPISODES.resp[cond,:].shape[0]>0:
-                        my = EPISODES.resp[cond,:].mean(axis=0)
+                    if response.shape[0]>0:
+
+                        my = response.mean(axis=0)
                         if with_std:
-                            sy = EPISODES.resp[cond,:].std(axis=0)
+                            sy = response.std(axis=0)
                             ge.plot(EPISODES.t, my, sy=sy,
                                     ax=AX[irow][icol], color=COLORS[icolor], lw=1)
                             self.ylim = [min([self.ylim[0], np.min(my-sy)]),
@@ -486,8 +549,9 @@ class MultimodalData(Data):
                 for icol, col_cond in enumerate(COL_CONDS):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
-                        cond = np.array(condition & col_cond & row_cond & color_cond)[:EPISODES.resp.shape[0]]
-                        results = EPISODES.stat_test_for_evoked_responses(episode_cond=cond, **stat_test_props)
+                        cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
+                        results = EPISODES.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
+
                         ps, size = results.pval_annot()
                         AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
                                                                  self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
@@ -530,8 +594,8 @@ class MultimodalData(Data):
 
         if with_annotation:
             S = ''
-            if quantity=='CaImaging':
-                S+='roi #%i' % (roiIndex+1)
+            if hasattr(EPISODES, 'rawFluo') or hasattr(EPISODES, 'dFoF') or hasattr(EPISODES, 'neuropil'):
+                S+='roi %s' % roiIndices
             # for i, key in enumerate(EPISODES.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
@@ -558,9 +622,6 @@ class MultimodalData(Data):
                              fig_preset='raster-preset',
                              fig=None, AX=None, verbose=False, Tbar=2):
 
-        # ----- protocol cond ------
-        Pcond = self.get_protocol_cond(protocol_id)
-
         ALL_ROIS = []
         for roi in np.arange(np.min([Nmax, np.sum(self.iscell)])):
             # ----- building episodes of single cell response ------
@@ -575,6 +636,8 @@ class MultimodalData(Data):
                                                         prestim_duration=2,
                                                         verbose=verbose))
         
+        # ----- protocol cond ------
+        Pcond = self.get_protocol_cond(EPISODES.protocol_id)
 
         # build column conditions
         if column_key is not None:
@@ -666,40 +729,6 @@ class MultimodalData(Data):
 
         return fig, AX
     
-    ###-------------------------------------
-    ### ----- IMAGING PLOT components -----
-    ###-------------------------------------
-
-    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None, roiIndex=None, with_roi_zoom=False):
-        
-        if ax is None:
-            fig, ax = ge.figure()
-        else:
-            fig = None
-            
-        img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
-        img = (img-img.min())/(img.max()-img.min())
-        img = np.power(img, 1/NL)
-        ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none')
-        ax.axis('off')
-        
-        if roiIndex is not None:
-            indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
-                                (self.pixel_masks_index[roiIndex] if roiIndex<len(self.validROI_indices) else len(self.pixel_masks_index)))
-            x = np.mean([self.pixel_masks[ii][1] for ii in indices])
-            sx = np.std([self.pixel_masks[ii][1] for ii in indices])
-            y = np.mean([self.pixel_masks[ii][0] for ii in indices])
-            sy = np.std([self.pixel_masks[ii][1] for ii in indices])
-            # ellipse = plt.Circle((x, y), sx, sy)
-            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='r', facecolor='none', lw=3)
-            ax.add_patch(ellipse)
-            if with_roi_zoom:
-                ax.set_xlim([x-10*sx, x+10*sx])
-                ax.set_ylim([y-10*sy, y+10*sy])
-
-        ge.title(ax, key)
-        
-        return fig, ax
 
 def format_key_value(key, value):
     if key in ['angle','direction']:
@@ -779,22 +808,33 @@ if __name__=='__main__':
                   settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                    roiIndices='all',
                                                    normalization='per-line',
-                                                   quantity='CaImaging', subquantity='Fluorescence'),
+                                                   subquantity='dF/F'),
                             'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                             # quantity='CaImaging', subquantity='dF/F', color=green,
-                                             quantity='CaImaging', subquantity='Fluorescence', color=green,
-                                             roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), args.Nmax, replace=False))),
+                                             subquantity='dF/F', color=ge.green,
+                                             roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), np.min([args.Nmax, data.iscell.sum()]), replace=False))),
                             'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
-                            # 'Pupil':dict(fig_fraction=2, subsampling=1, color=red),
-                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                            'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
+                            'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
                             'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                             'VisualStim':dict(fig_fraction=.5, color='black')},
                             Tbar=5)
         
     elif args.ops=='trial-average':
-        fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
-                                          protocol_id=3,
-                                          quantity='CaImaging', subquantity='dF/F', column_key='direction', 
+        fig, AX = data.plot_trial_average(roiIndices='all',
+                                          # roiIndex=args.roiIndex,
+                                          episode_args=dict(protocol_id=0, quantities=['dFoF']),
+                                          column_key='direction', 
+                                          xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+                                          with_stat_test=True,
+                                          with_annotation=True,
+                                          with_screen_inset=True,                                          
+                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+
+    elif args.ops=='raster-evoked':
+        fig, AX = data.plot_trial_average(roiIndices='all',
+                                          # roiIndex=args.roiIndex,
+                                          episode_args=dict(protocol_id=0, quantities=['dFoF']),
+                                          column_key='direction', 
                                           xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
                                           with_stat_test=True,
                                           with_annotation=True,

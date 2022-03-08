@@ -15,7 +15,7 @@ class StatTest:
         for key in ['pvalue', 'statistic']:
             setattr(self, key, 1)
         self.positive = positive # to evaluate positive only deflections
-        
+
         try:
             self.r = stats.pearsonr(x, y)[0] # Pearson's correlation coef
             self.sign = np.mean(y-x)>0 # sign of the effect
@@ -36,7 +36,13 @@ class StatTest:
             else:
                 print(' "%s" test not implemented ! ' % test)
         except ValueError:
-            pass
+            print(' -----------------   ')
+            print('x, y = ', x, y)
+            print('  statistical test failed   ')
+            print(' -----------------   ')
+            self.r, self.sign = 0, 0
+            self.pvalue, self.statistic = 1, 0
+
 
     def significant(self, threshold=0.01):
         """

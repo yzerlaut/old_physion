@@ -26,13 +26,13 @@ class EpisodeResponse:
         self.dt_sampling = dt_sampling
         
         # choosing protocol (if multiprotocol)
-        Pcond = full_data.get_protocol_cond(protocol_id)
-
+        self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
+        
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
             
         if verbose:
-            print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(Pcond), len(Pcond)))
+            print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(self.protocol_cond_in_full_data), len(self.protocol_cond_in_full_data)))
             print('  building episodes with %i modalities [...]' % len(quantities))
 
         # find the parameter(s) varied within that specific protocol
@@ -40,7 +40,7 @@ class EpisodeResponse:
         for key in full_data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
                            'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim']:
-                unique = np.unique(full_data.nwbfile.stimulus[key].data[Pcond])
+                unique = np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
                 elif len(unique)==1:
@@ -53,7 +53,7 @@ class EpisodeResponse:
             prestim_duration = 1 # still 1s is a minimum
         ipre = int(prestim_duration/dt_sampling*1e3)
 
-        duration = full_data.nwbfile.stimulus['time_stop'].data[Pcond][0]-full_data.nwbfile.stimulus['time_start'].data[Pcond][0]
+        duration = full_data.nwbfile.stimulus['time_stop'].data[self.protocol_cond_in_full_data][0]-full_data.nwbfile.stimulus['time_start'].data[self.protocol_cond_in_full_data][0]
         idur = int(duration/dt_sampling/1e-3)
         # -> time array:
         self.t = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
@@ -135,7 +135,7 @@ class EpisodeResponse:
         for q in QUANTITIES:
             setattr(self, q, [])
 
-        for iEp in np.arange(full_data.nwbfile.stimulus['time_start'].num_samples)[Pcond]:
+        for iEp in np.arange(full_data.nwbfile.stimulus['time_start'].num_samples)[self.protocol_cond_in_full_data]:
             
             tstart = full_data.nwbfile.stimulus['time_start_realigned'].data[iEp]
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
@@ -182,12 +182,37 @@ class EpisodeResponse:
         for q in QUANTITIES:
             setattr(self, q, np.array(getattr(self, q)))
 
-        self.index_from_start = np.arange(len(Pcond))[Pcond][:getattr(self, QUANTITIES[0]).shape[0]]
+        self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
+        self.quantities = QUANTITIES
+        self.protocol_id = protocol_id
         
         if verbose:
             print('  -> [ok] episodes ready !')
 
 
+    def get_response(self, quantity=None, roiIndex=None, roiIndices='all'):
+        """
+        to deal with the fact that single-episode responses can be multidimensional
+        """
+        if quantity is None:
+            if len(self.quantities)>1:
+                print('\n there are several modalities in that episode')
+                print('     -> need to define the desired quantity, here taking: "%s"' % self.quantities[0])
+            quantity = self.quantities[0]
+
+        if len(getattr(self, quantity).shape)>2:
+            if roiIndex is not None:
+                roiIndices = roiIndex
+            elif roiIndices=='all':
+                roiIndices = np.arange(getattr(self, quantity).shape[1])
+            response = getattr(self, quantity)[:,roiIndices,:]
+            if len(response.shape)>2:
+                response = response.mean(axis=1)
+            return response
+        else:
+            return getattr(self, quantity)
+
+        
     def compute_interval_cond(self, interval):
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
@@ -203,42 +228,46 @@ class EpisodeResponse:
 
     
     def stat_test_for_evoked_responses(self,
-                                       episode_cond=None,
-                                       interval_pre=[-2,0],
-                                       interval_post=[1,3],
+                                       episode_cond=None, response_args={},
+                                       interval_pre=[-2,0], interval_post=[1,3],
                                        test='wilcoxon',
                                        positive=True):
 
+        response = self.get_response(**response_args)
+        
         if episode_cond is None:
-            episode_cond = np.ones(self.resp.shape[0], dtype=bool)
+            episode_cond = np.ones(response.shape[0], dtype=bool)
 
         pre_cond  = self.compute_interval_cond(interval_pre)
         post_cond  = self.compute_interval_cond(interval_post)
 
-        return stat_tools.StatTest(self.resp[episode_cond,:][:,pre_cond].mean(axis=1),
-                                   self.resp[episode_cond,:][:,post_cond].mean(axis=1),
+        return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
+                                   response[episode_cond,:][:,post_cond].mean(axis=1),
                                    test=test, positive=positive)
 
     def compute_stats_over_repeated_trials(self, key, index,
+                                           response_args={},
                                            interval_cond=None,
                                            quantity='mean'):
         
         cond = self.find_episode_cond(key, index)
+        response = self.get_response(**response_args)
         
         if interval_cond is None:
             interval_cond = np.ones(len(self.t), dtype=bool)
 
         quantities = []
-        for i in np.arange(self.resp.shape[0])[cond]:
+        for i in np.arange(response.shape[0])[cond]:
             if quantity=='mean':
-                quantities.append(np.mean(self.resp[i, interval_cond]))
+                quantities.append(np.mean(response[i, interval_cond]))
             elif quantity=='integral':
-                quantities.append(np.trapz(self.resp[i, interval_cond]))
+                quantities.append(np.trapz(response[i, interval_cond]))
         return np.array(quantities)
 
 
     def compute_summary_data(self, stat_test_props,
                              exclude_keys=['repeat'],
+                             response_args={},
                              response_significance_threshold=0.01):
 
         VARIED_KEYS, VARIED_VALUES, VARIED_INDICES, Nfigs, VARIED_BINS = [], [], [], 1, []
@@ -260,6 +289,7 @@ class EpisodeResponse:
         for indices in itertools.product(*VARIED_INDICES):
             stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
                                                                                             list(indices)),
+                                                        response_args=response_args,
                                                         **stat_test_props)
             
             for key, index in zip(VARIED_KEYS, indices):

@@ -341,6 +341,7 @@ class Data:
             Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
             
         # limiting to available episodes
+
         Pcond[np.arange(len(Pcond))>=self.nwbfile.stimulus['time_start_realigned'].num_samples] = False
 
         return Pcond
@@ -350,6 +351,7 @@ class Data:
         """
         find the episodes where the keys "K" have the values "X"
         """
+        print(protocol_id)
         Pcond = self.get_protocol_cond(protocol_id)
         
         if len(K)>0:
