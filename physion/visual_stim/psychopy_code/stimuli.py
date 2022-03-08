@@ -573,7 +573,7 @@ class multiprotocol(visual_stim):
         super().__init__(protocol)
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
+            protocol['movie_refresh_freq'] = 10.
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
         self.frame_refresh = protocol['movie_refresh_freq']
@@ -1305,22 +1305,30 @@ class natural_image(visual_stim):
 
 
 def generate_VSE(duration=5,
-                 mean_saccade_duration=2.,# in s
-                 std_saccade_duration=1.,# in s
+                 min_saccade_duration=1.,# in s
+                 max_saccade_duration=3.,# in s
+                 # mean_saccade_duration=2.,# in s
+                 # std_saccade_duration=1.,# in s
                  saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
-                 seed=0):
+                 seed=0,
+                 verbose=True):
     """
     to do: clean up the VSE generator
     """
-    print('generating Virtual-Scene-Exploration [...]')
+    
+    if verbose:
+        print('generating Virtual-Scene-Exploration (with seed "%s") [...]' % seed)
     
     np.random.seed(seed)
     
-    tsaccades = np.cumsum(np.clip(np.abs(mean_saccade_duration+np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
-                                  mean_saccade_duration/4., 1.75*mean_saccade_duration))
+    tsaccades = np.cumsum(np.random.uniform(min_saccade_duration, max_saccade_duration,
+                                            size=int(3*duration/(max_saccade_duration-min_saccade_duration))))
 
-    x = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
-    y = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
+    # np.clip(np.abs(mean_saccade_duration+np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
+    #         mean_saccade_duration/4., 1.75*mean_saccade_duration))
+
+    x = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    y = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
     
     # x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     # y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
@@ -1339,7 +1347,7 @@ class natural_image_vse(visual_stim):
 
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID', 'VSE-seed',
-                                           'mean-saccade-duration', 'std-saccade-duration',
+                                           'min-saccade-duration', 'max-saccade-duration',
                                            'vary-VSE-with-Image', 'saccade-amplitude'],
                                 run_type='images_sequence')
 
@@ -1385,8 +1393,8 @@ class natural_image_vse(visual_stim):
         seed = self.get_seed(index, parent=cls)
 
         vse = generate_VSE(duration=cls.experiment['time_duration'][index],
-                           mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
-                           std_saccade_duration=cls.experiment['std-saccade-duration'][index],
+                           min_saccade_duration=cls.experiment['min-saccade-duration'][index],
+                           max_saccade_duration=cls.experiment['max-saccade-duration'][index],
                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
                            seed=seed)
 
@@ -1775,7 +1783,8 @@ class moving_dots_static_patch(visual_stim):
         
         super().init_experiment(protocol,
                                 ['speed', 'bg-color', 'ndots', 'spacing',
-                                 'direction', 'size', 'dotcolor', 'patch-delay',
+                                 'direction', 'size', 'dotcolor',
+                                 'patch-delay', 'patch-duration',
                                  'patch-radius', 'patch-contrast', 'patch-spatial-freq', 'patch-angle'],
                                 run_type='images_sequence')
 
@@ -1850,13 +1859,16 @@ class moving_dots_static_patch(visual_stim):
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
         X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
 
+        # center time (of the moving dot stim) is the half duration of the stimulus
+        center_time = interval/2.
+        
         bg_color = cls.experiment['bg-color'][index]
         
         itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
 
         times, FRAMES = [], []
-        for iframe, it in enumerate(np.arange(itend)):
-            time = it/cls.protocol['movie_refresh_freq']
+
+        for iframe, time in enumerate(np.arange(itend)/cls.protocol['movie_refresh_freq']):
             img = 2*bg_color-1.+0.*self.x
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
@@ -1864,7 +1876,8 @@ class moving_dots_static_patch(visual_stim):
                 self.add_dot(img, new_position,
                              cls.experiment['size'][index],
                              cls.experiment['dotcolor'][index])
-            if time>cls.experiment['patch-delay'][index]:
+            if (time>(interval/2.+cls.experiment['patch-delay'][index])) and\
+               (time<(interval/2.+cls.experiment['patch-delay'][index]+cls.experiment['patch-duration'][index])):
                 self.add_patch(img,
                                angle=cls.experiment['patch-angle'][index],
                                radius=cls.experiment['patch-radius'][index],
@@ -1936,7 +1949,9 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
     # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
     # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
-    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/NI+Scene-Exploration-2-SE-trajectories-10-repeats.json', 'r') as fp:
+    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True

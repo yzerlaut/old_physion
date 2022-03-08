@@ -1,0 +1,16 @@
+{
+  "Presentation": "multiprotocol",
+  "shuffling" :"full",
+  "shuffling-seed" :23,
+  "Protocol-1": "static-patch.json",
+  "Protocol-2": "moving-dots.json",
+  "Protocol-3": "mixed-moving-dots-static-patch.json",
+  "Protocol-4": "looming-stim.json",
+  "presentation-prestim-period": 3,
+  "presentation-poststim-period": 3,
+  "presentation-interstim-period": 3,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "presentation-interstim-screen": 0,
+  "Screen": "Dell-2020"
+}
