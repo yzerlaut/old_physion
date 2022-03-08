@@ -57,6 +57,11 @@ class EpisodeResponse:
         idur = int(duration/dt_sampling/1e-3)
         # -> time array:
         self.t = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
+
+
+        #############################################################################
+        ############ we do it modality by modality (quantity)  ######################
+        #############################################################################
         
         QUANTITIES, QUANTITY_VALUES, QUANTITY_TIMES = [], [], []
         

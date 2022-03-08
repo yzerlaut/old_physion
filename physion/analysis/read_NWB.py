@@ -298,12 +298,12 @@ class Data:
                      return_corrected_F_and_F0=return_corrected_F_and_F0,
                      verbose=verbose)
 
-    def build_Neuropil(self,
+    def build_neuropil(self,
                        roiIndex=None, roiIndices='all',
                        verbose=True):
-        self.Neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
+        self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
         if not hasattr(self, 't_Neuropil'):
-            self.t_Neuropil = self.Neuropil.timestamps[:]
+            self.t_neuropil = self.Neuropil.timestamps[:]
 
     def build_rawFluo(self,
                       roiIndex=None, roiIndices='all',
@@ -391,7 +391,7 @@ class Data:
         
     def list_subquantities(self, quantity):
         if quantity=='CaImaging':
-            return ['rawFluo', 'dF/F', 'Neuropil', 'Deconvolved',
+            return ['rawFluo', 'dFoF', 'neuropil', 'Deconvolved',
                     'F-0.7*Fneu', 'F-Fneu', 'd(F-Fneu)', 'd(F-0.7*Fneu)']
         else:
             return ['']
