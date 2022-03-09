@@ -355,7 +355,7 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.setCurrentIndex(1)
 
         if 'ophys' in self.data.nwbfile.processing:
-            self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.validROI_indices)-1))
+            self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.valid_roiIndices)-1))
             self.ophysSelect.setChecked(True)
 
         if ('Electrophysiological-Signal' in self.data.nwbfile.acquisition) or ('Vm' in self.data.nwbfile.acquisition) or ('LFP' in self.data.nwbfile.acquisition):

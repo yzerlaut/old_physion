@@ -384,22 +384,30 @@ class MultimodalData(read_NWB.Data):
 ###------------------------------------------
 
 
-class EpisodeData(process_NWB.EpisodeResponse):
+class EpisodeResponse(process_NWB.EpisodeResponse):
 
-    def __init__(self, filename, verbose=False, with_visual_stim=False):
-        """ opens data file """
-        super().__init__(filename, verbose=verbose)
-        if with_visual_stim:
-            self.init_visual_stim()
-        else:
-            self.visual_stim = None
-    
-    def __init__(self, args):
-        super().__init__(**args)
+    def __init__(self, filename,
+                 protocol_id=0,
+                 quantities=['dFoF'],
+                 quantities_args=[{}],
+                 verbose=False,
+                 with_visual_stim=False):
+        """ plot Episode Response """
+
+        # load data first
+        self.data = MultimodalData(filename,
+                                   with_visual_stim=with_visual_stim,
+                                   verbose=verbose)
+
+        # initialize episodes
+        super().__init__(self.data,
+                         protocol_id=protocol_id,
+                         quantities=quantities,
+                         quantities_args=quantities_args,
+                         verbose=verbose)
         
     def plot_trial_average(self,
                            # episodes props
-                           episode_args=dict(protocol_id=0, quantities=['Photodiode-Signal'], quantities_args={}),
                            quantity='dFoF', roiIndex=None, roiIndices='all',
                            interpolation='linear',
                            baseline_substraction=False,
@@ -415,57 +423,56 @@ class EpisodeData(process_NWB.EpisodeResponse):
                            with_screen_inset=False,
                            with_stim=True,
                            with_axis=False,
-                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
+                           with_stat_test=False, stat_test_props=dict(interval_pre=[-1,0],
+                                                                      interval_post=[1,2],
+                                                                      test='wilcoxon',
+                                                                      positive=True),
                            with_annotation=False,
                            color='k',
                            label='',
                            ylim=None, xlim=None,
                            fig=None, AX=None, no_set=True, verbose=False):
 
-
-        if EPISODES is None:
-            # ----- building episodes of cell response ------
-            EPISODES = process_NWB.EpisodeResponse(self, **episode_args)
-
         response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices)
 
-        if with_screen_inset and (self.visual_stim is None):
+
+        if with_screen_inset and (self.data.visual_stim is None):
             print('initializing stim [...]')
-            self.init_visual_stim()
+            self.data.init_visual_stim()
         
         if condition is None:
-            condition = np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)
-        elif len(condition)==len(EPISODES.protocol_cond_in_full_data):
-            condition = condition[EPISODES.protocol_cond_in_full_data]
+            condition = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+        elif len(condition)==len(self.protocol_cond_in_full_data):
+            condition = condition[self.protocol_cond_in_full_data]
             
         # ----- building conditions ------
 
         # columns
         if column_key!='':
-            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[column_key].data[EPISODES.protocol_cond_in_full_data]))], [column_key], EPISODES.protocol_id)
+            COL_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[column_key].data[self.protocol_cond_in_full_data]))], [column_key], self.protocol_id)
         elif len(column_keys)>0:
-            COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in column_keys],
-                                                       column_keys, EPISODES.protocol_id)
+            COL_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in column_keys],
+                                                       column_keys, self.protocol_id)
         elif (COL_CONDS is None):
-            COL_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
+            COL_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
 
         # rows
         if row_key!='':
-            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[EPISODES.protocol_cond_in_full_data]))], [row_key], EPISODES.protocol_id)
+            ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[row_key].data[self.protocol_cond_in_full_data]))], [row_key], self.protocol_id)
         elif row_keys!='':
-            ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in row_keys],
-                                                       row_keys, EPISODES.protocol_id)
+            ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in row_keys],
+                                                       row_keys, self.protocol_id)
         elif (ROW_CONDS is None):
-            ROW_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
+            ROW_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
             
         # colors
         if color_key!='':
-            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[color_key].data[EPISODES.protocol_cond_in_full_data]))], [color_key], EPISODES.protocol_id)
+            COLOR_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[color_key].data[self.protocol_cond_in_full_data]))], [color_key], self.protocol_id)
         elif color_keys!='':
-            COLOR_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[EPISODES.protocol_cond_in_full_data])) for key in color_keys],
-                                                       color_keys, EPISODES.protocol_id)
+            COLOR_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in color_keys],
+                                                       color_keys, self.protocol_id)
         elif COLOR_CONDS is None:
-            COLOR_CONDS = [np.ones(np.sum(EPISODES.protocol_cond_in_full_data), dtype=bool)]
+            COLOR_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
 
         if (len(COLOR_CONDS)>1):
             COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
@@ -482,7 +489,8 @@ class EpisodeData(process_NWB.EpisodeResponse):
         else:
             no_set=no_set
 
-        response = EPISODES.get_response(**response_args)
+        # response reshape in 
+        response = self.get_response(**response_args)
         
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -491,17 +499,17 @@ class EpisodeData(process_NWB.EpisodeResponse):
                     
                     cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
                     
-                    if response.shape[0]>0:
+                    if response[cond,:].shape[0]>0:
 
-                        my = response.mean(axis=0)
+                        my = response[cond, :].mean(axis=0)
                         if with_std:
-                            sy = response.std(axis=0)
-                            ge.plot(EPISODES.t, my, sy=sy,
+                            sy = response[cond, :].std(axis=0)
+                            ge.plot(self.t, my, sy=sy,
                                     ax=AX[irow][icol], color=COLORS[icolor], lw=1)
                             self.ylim = [min([self.ylim[0], np.min(my-sy)]),
                                          max([self.ylim[1], np.max(my+sy)])]
                         else:
-                            AX[irow][icol].plot(EPISODES.t, my,
+                            AX[irow][icol].plot(self.t, my,
                                                 color=COLORS[icolor], lw=1)
                             self.ylim = [min([self.ylim[0], np.min(my)]),
                                          max([self.ylim[1], np.max(my)])]
@@ -509,7 +517,7 @@ class EpisodeData(process_NWB.EpisodeResponse):
                             
                     if with_screen_inset:
                         inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
-                        self.visual_stim.plot_stim_picture(EPISODES.index_from_start[cond][0],
+                        self.data.visual_stim.plot_stim_picture(self.index_from_start[cond][0],
                                                            ax=inset)
                         
                     if with_annotation:
@@ -517,18 +525,18 @@ class EpisodeData(process_NWB.EpisodeResponse):
                         # column label
                         if (len(COL_CONDS)>1) and (irow==0) and (icolor==0):
                             s = ''
-                            for i, key in enumerate(EPISODES.varied_parameters.keys()):
+                            for i, key in enumerate(self.varied_parameters.keys()):
                                 if (key==column_key) or (key in column_keys):
-                                    s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+',' # should have a unique value
+                                    s+=format_key_value(key, getattr(self, key)[cond][0])+',' # should have a unique value
                             # ge.annotate(AX[irow][icol], s, (1, 1), ha='right', va='bottom', size='small')
                             ge.annotate(AX[irow][icol], s[:-1], (0.5, 1), ha='center', va='bottom', size='small')
                         # row label
                         if (len(ROW_CONDS)>1) and (icol==0) and (icolor==0):
                             s = ''
-                            for i, key in enumerate(EPISODES.varied_parameters.keys()):
+                            for i, key in enumerate(self.varied_parameters.keys()):
                                 if (key==row_key) or (key in row_keys):
                                     try:
-                                        s+=format_key_value(key, getattr(EPISODES, key)[cond][0])+', ' # should have a unique value
+                                        s+=format_key_value(key, getattr(self, key)[cond][0])+', ' # should have a unique value
                                     except IndexError:
                                         pass
                             ge.annotate(AX[irow][icol], s[:-2], (0, 0), ha='right', va='bottom', rotation=90, size='small')
@@ -539,9 +547,9 @@ class EpisodeData(process_NWB.EpisodeResponse):
                         # color label
                         if (len(COLOR_CONDS)>1) and (irow==0) and (icol==0):
                             s = ''
-                            for i, key in enumerate(EPISODES.varied_parameters.keys()):
+                            for i, key in enumerate(self.varied_parameters.keys()):
                                 if (key==color_key) or (key in color_keys):
-                                    s+=20*' '+icolor*18*' '+format_key_value(key, getattr(EPISODES, key)[cond][0])
+                                    s+=20*' '+icolor*18*' '+format_key_value(key, getattr(self, key)[cond][0])
                                     ge.annotate(fig, s, (0,0), color=COLORS[icolor], ha='left', va='bottom', size='small')
                     
         if with_stat_test:
@@ -550,7 +558,7 @@ class EpisodeData(process_NWB.EpisodeResponse):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
                         cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
-                        results = EPISODES.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
+                        results = self.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
 
                         ps, size = results.pval_annot()
                         AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
@@ -559,7 +567,7 @@ class EpisodeData(process_NWB.EpisodeResponse):
                         AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                             
         if xlim is None:
-            self.xlim = [EPISODES.t[0], EPISODES.t[-1]]
+            self.xlim = [self.t[0], self.t[-1]]
         else:
             self.xlim = xlim
             
@@ -577,7 +585,7 @@ class EpisodeData(process_NWB.EpisodeResponse):
                                 ylim=self.ylim, xlim=self.xlim)
 
                 if with_stim:
-                    AX[irow][icol].fill_between([0, np.mean(EPISODES.time_duration)],
+                    AX[irow][icol].fill_between([0, np.mean(self.time_duration)],
                                         self.ylim[0]*np.ones(2), self.ylim[1]*np.ones(2),
                                         color='grey', alpha=.2, lw=0)
 
@@ -594,9 +602,12 @@ class EpisodeData(process_NWB.EpisodeResponse):
 
         if with_annotation:
             S = ''
-            if hasattr(EPISODES, 'rawFluo') or hasattr(EPISODES, 'dFoF') or hasattr(EPISODES, 'neuropil'):
-                S+='roi %s' % roiIndices
-            # for i, key in enumerate(EPISODES.varied_parameters.keys()):
+            if hasattr(self, 'rawFluo') or hasattr(self, 'dFoF') or hasattr(self, 'neuropil'):
+                if roiIndex is not None:
+                    S+='roi #%i' % roiIndex
+                else:
+                    S+='mean: n=%i rois' % np.sum(self.data.valid_roiIndices)
+            # for i, key in enumerate(self.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
@@ -637,21 +648,21 @@ class EpisodeData(process_NWB.EpisodeResponse):
                                                         verbose=verbose))
         
         # ----- protocol cond ------
-        Pcond = self.get_protocol_cond(EPISODES.protocol_id)
+        Pcond = self.get_protocol_cond(self.protocol_id)
 
         # build column conditions
         if column_key is not None:
             column_keys = [column_key]
         if column_keys is None:
             column_keys = [k for k in ALL_ROIS[0].varied_parameters.keys() if k!='repeat']
-        COL_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[key].data[Pcond])) for key in column_keys],
+        COL_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[Pcond])) for key in column_keys],
                                                  column_keys, protocol_id)
 
         # build row conditions
-        ROW_CONDS = self.get_stimulus_conditions([np.sort(np.unique(self.nwbfile.stimulus[row_key].data[Pcond]))],
+        ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[row_key].data[Pcond]))],
                                                  [row_key], protocol_id)
 
-        if with_screen_inset and (self.visual_stim is None):
+        if with_screen_inset and (self.data.visual_stim is None):
             print('initializing stim [...]')
             self.init_visual_stim()
         
@@ -699,16 +710,16 @@ class EpisodeData(process_NWB.EpisodeResponse):
                         ge.annotate(AX[irow][icol], s[:-2], (1, 1), ha='right', va='bottom', size='small')
                         if with_screen_inset:
                             inset = ge.inset(AX[0][icol], [0.2, 1.2, .8, .8])
-                            if 'center-time' in self.nwbfile.stimulus:
-                                t0 = self.nwbfile.stimulus['center-time'].data[np.argwhere(cond)[0][0]]
+                            if 'center-time' in self.data.nwbfile.stimulus:
+                                t0 = self.data.nwbfile.stimulus['center-time'].data[np.argwhere(cond)[0][0]]
                             else:
                                 t0 = 0
-                            self.visual_stim.show_frame(ALL_ROIS[0].index_from_start[np.argwhere(cond)[0][0]],
-                                                        time_from_episode_start=t0,
-                                                        ax=inset,
-                                                        label=({'degree':15,
-                                                               'shift_factor':0.03,
-                                                               'lw':0.5, 'fontsize':7} if (icol==1) else None))
+                            self.data.visual_stim.show_frame(ALL_ROIS[0].index_from_start[np.argwhere(cond)[0][0]],
+                                                             time_from_episode_start=t0,
+                                                             ax=inset,
+                                                             label=({'degree':15,
+                                                                     'shift_factor':0.03,
+                                                                     'lw':0.5, 'fontsize':7} if (icol==1) else None))
                                             
                 AX[irow][icol].axis('off')
 
@@ -797,13 +808,15 @@ if __name__=='__main__':
     parser.add_argument('-nmax', "--Nmax", type=int, default=20)
     parser.add_argument("--Npanels", type=int, default=8)
     parser.add_argument('-roi', "--roiIndex", type=int, default=0)
+    parser.add_argument('-pid', "--protocol_id", type=int, default=0)
+    parser.add_argument('-q', "--quantity", type=str, default='dFoF')
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 
     args = parser.parse_args()
     
-    data = MultimodalData(args.datafile)
 
     if args.ops=='raw':
+        data = MultimodalData(args.datafile)
         data.plot_raw_data(args.tlim, 
                   settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                    roiIndices='all',
@@ -820,19 +833,21 @@ if __name__=='__main__':
                             Tbar=5)
         
     elif args.ops=='trial-average':
-        fig, AX = data.plot_trial_average(roiIndices='all',
-                                          # roiIndex=args.roiIndex,
-                                          episode_args=dict(protocol_id=0, quantities=['dFoF']),
-                                          column_key='direction', 
-                                          xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                                          with_stat_test=True,
-                                          with_annotation=True,
-                                          with_screen_inset=True,                                          
-                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+        episodes = EpisodeResponse(args.datafile,
+                                   protocol_id=args.protocol_id,
+                                   quantities=[args.quantity])
+        fig, AX = episodes.plot_trial_average(quantity=args.quantity,
+                                              roiIndex=args.roiIndex,
+                                              column_key=list(episodes.varied_parameters.keys())[0],
+                                              xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+                                              with_stat_test=True,
+                                              with_annotation=True,
+                                              with_screen_inset=True,                                          
+                                              fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
 
     elif args.ops=='raster-evoked':
-        fig, AX = data.plot_trial_average(roiIndices='all',
-                                          # roiIndex=args.roiIndex,
+        fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
+                                          # roiIndices='all',
                                           episode_args=dict(protocol_id=0, quantities=['dFoF']),
                                           column_key='direction', 
                                           xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',

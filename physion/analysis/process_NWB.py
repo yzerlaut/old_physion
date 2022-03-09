@@ -203,7 +203,7 @@ class EpisodeResponse:
         if len(getattr(self, quantity).shape)>2:
             if roiIndex is not None:
                 roiIndices = roiIndex
-            elif roiIndices=='all':
+            elif roiIndices in ['all', 'sum', 'mean']:
                 roiIndices = np.arange(getattr(self, quantity).shape[1])
             response = getattr(self, quantity)[:,roiIndices,:]
             if len(response.shape)>2:

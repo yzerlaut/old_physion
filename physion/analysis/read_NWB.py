@@ -283,20 +283,20 @@ class Data:
     def build_dFoF(self,
                    neuropil_correction_factor=0.7,
                    method_for_F0='maximin',
-                   sliding_percentile=5,
+                   percentile=5,
                    sliding_window=60,
                    return_corrected_F_and_F0=False,
                    verbose=False):
         """
         creates self.nROIs, self.dFoF, self.t_dFoF
         """
-        compute_dFoF(self,
-                     neuropil_correction_factor=neuropil_correction_factor,
-                     method_for_F0=method_for_F0,
-                     sliding_percentile=sliding_percentile,
-                     sliding_window=sliding_window,
-                     return_corrected_F_and_F0=return_corrected_F_and_F0,
-                     verbose=verbose)
+        return compute_dFoF(self,
+                            neuropil_correction_factor=neuropil_correction_factor,
+                            method_for_F0=method_for_F0,
+                            percentile=percentile,
+                            sliding_window=sliding_window,
+                            return_corrected_F_and_F0=return_corrected_F_and_F0,
+                            verbose=verbose)
 
     def build_neuropil(self,
                        roiIndex=None, roiIndices='all',
@@ -351,7 +351,6 @@ class Data:
         """
         find the episodes where the keys "K" have the values "X"
         """
-        print(protocol_id)
         Pcond = self.get_protocol_cond(protocol_id)
         
         if len(K)>0:

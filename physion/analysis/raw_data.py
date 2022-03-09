@@ -26,17 +26,16 @@ def raw_data_plot_settings(data,
     if 'ophys' in data.nwbfile.processing:
         settings['CaImaging'] = dict(fig_fraction=5,
                                      roiIndices=np.random.choice(np.arange(np.sum(data.iscell)), Nroi, replace=True), # picking 20 random non-redundant rois
-                                     quantity='CaImaging',
-                                     subquantity='dF/F', vicinity_factor=1., color='green', subsampling=subsampling_factor)
+                                     subquantity='dFoF', vicinity_factor=1., color='green', subsampling=subsampling_factor)
         settings['CaImagingRaster'] = dict(fig_fraction=5,
                                            roiIndices='all',
-                                           quantity='CaImaging', subquantity='Fluorescence', normalization='per-cell',
+                                           subquantity='dFoF', normalization='per-cell',
                                            subsampling=5*subsampling_factor)
     for signal in ['Electrophysiological-Signal', 'LFP', 'Vm']:
         if signal in data.nwbfile.acquisition:
             settings['Electrophy'] = dict(fig_fraction=1,
-                                          color='blue', subsampling=10*subsampling_factor)
-        
+                                          color='blue',
+                                          subsampling=10*subsampling_factor)
     if not (subsampling_factor>1):
         settings['VisualStim'] = dict(fig_fraction=0.01, color='black')
     return settings
