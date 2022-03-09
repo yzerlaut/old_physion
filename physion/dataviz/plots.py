@@ -4,7 +4,6 @@ from PyQt5 import QtGui, QtCore
 import os, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import roi, process
-from Ca_imaging.tools import compute_CaImaging_trace
 from dataviz.tools import *
 
 def raw_data_plot(self, tzoom,

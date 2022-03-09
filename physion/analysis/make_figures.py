@@ -9,7 +9,6 @@ from assembling.saving import day_folder
 from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData, format_key_value
 from dataviz import tools as dv_tools
-from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.process_NWB import EpisodeResponse
 
