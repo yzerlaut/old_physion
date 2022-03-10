@@ -311,15 +311,26 @@ if __name__=='__main__':
     if '.nwb' in sys.argv[-1]:
         data = Data(filename)
         data.build_dFoF()
-        # pupil_eps = EpisodeResponse(data, quantity='Pupil')
-        episode = EpisodeResponse(data, quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
-        from datavyz import ge
-        ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
-        ge.show()
+
+        # episode = EpisodeResponse(data,
+        #                           quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+        # from datavyz import ge
+        # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
+        # ge.show()
         # episode = EpisodeResponse(data,
         #                           quantities=['Pupil', 'CaImaging', 'CaImaging'],
         #                           quantities_args=[{}, {'subquantity':'Fluorescence'}, {'subquantity':'dFoF', 'roiIndices':np.arange(10)}])
         # print(episode.CaImaging_dFoF.shape)
+
+        # from datavyz import ge
+        episode = EpisodeResponse(data,
+                                  quantities=['dFoF'])
+        summary_data = episode.compute_summary_data(dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
+                                                    response_args={'quantity':'dFoF', 'roiIndex':2})
+
+        print(summary_data)
+
+        
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             

@@ -389,6 +389,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                  protocol_id=0,
                  quantities=['dFoF'],
                  quantities_args=[{}],
+                 prestim_duration=None,
                  verbose=False,
                  with_visual_stim=False):
         """ plot Episode Response """
@@ -403,6 +404,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                          protocol_id=protocol_id,
                          quantities=quantities,
                          quantities_args=quantities_args,
+                         prestim_duration=prestim_duration,
                          verbose=verbose)
         
     def plot_trial_average(self,
@@ -410,7 +412,6 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                            quantity='dFoF', roiIndex=None, roiIndices='all',
                            interpolation='linear',
                            baseline_substraction=False,
-                           prestim_duration=None,
                            condition=None,
                            COL_CONDS=None, column_keys=[], column_key='',
                            ROW_CONDS=None, row_keys=[], row_key='',
@@ -604,12 +605,14 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             if hasattr(self, 'rawFluo') or hasattr(self, 'dFoF') or hasattr(self, 'neuropil'):
                 if roiIndex is not None:
                     S+='roi #%i' % roiIndex
+                elif roiIndices in ['sum', 'mean', 'all']:
+                    S+='mean: n=%i rois' % len(self.data.valid_roiIndices)
                 else:
-                    S+='mean: n=%i rois' % np.sum(self.data.valid_roiIndices)
+                    S+='mean: n=%i rois\n' % len(roiIndices)
             # for i, key in enumerate(self.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
-            ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom')
+            ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom', size='small')
             
         return fig, AX
     
