@@ -315,7 +315,7 @@ class MainWindow(QtWidgets.QMainWindow):
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if 'time_stop' in self.stim.experiment:
-                max_time = int(3*np.max(self.stim.experiment['time_stop'])) # for security
+                max_time = min([4*60*60, int(3*np.max(self.stim.experiment['time_stop']))]) # 3 times for security, 4h max
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
         else:
