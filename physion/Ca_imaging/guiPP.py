@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(list(PREPROCESSING_SETTINGS.keys()))
+        self.cbc.addItems(['automated']+list(PREPROCESSING_SETTINGS.keys()))
 
         HEIGHT += 40
         QtWidgets.QLabel("   delay ?", self).move(10, HEIGHT)
@@ -107,7 +107,18 @@ class MainWindow(QtWidgets.QMainWindow):
         print(folder)
         return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
                                                                             self.process_script, folder, key)
-    
+
+    def find_suite2p_settings(self, folder):
+        settings = None
+        if self.cbc.currentText()=='automated':
+            potential_settings = folder.split('-')[-1]
+            if potential_settings in list(PREPROCESSING_SETTINGS.keys()):
+                settings = potential_settings
+        else:
+            self.cbc.currentText()
+                
+        return settings
+        
     def load_imaging(self):
 
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
@@ -115,16 +126,22 @@ class MainWindow(QtWidgets.QMainWindow):
                                     FOLDERS[self.folderI.currentText()])
         if folder!='':
             if ('Tseries' in str(folder)) or ('TSeries' in str(folder)):
-                self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
+                settings = self.find_suite2p_settings(str(folder))
+                if settings is not None:
+                    self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
+                else:
+                    print('settings note recognized !')
             else:
                 folders = get_TSeries_folders(folder, limit_to_subdirectories=False)
                 for f in folders:
-                    self.CMDS.append(self.build_cmd(f, self.cbc.currentText()))
+                    settings = self.find_suite2p_settings(str(f))
+                    if settings is not None:
+                        self.CMDS.append(self.build_cmd(f, settings))
             for cmd in self.CMDS:
                 print('"%s" added to command set' % cmd)
 
         if len(self.CMDS)==0:
-            print('\n /!\ no "TSeries" folder found, set of command is empty ! \n')
+            print('\n /!\ no "TSeries" folder found or added, set of command is empty ! \n')
                 
     def run(self):
         if len(self.CMDS)==0:
