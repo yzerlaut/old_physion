@@ -264,7 +264,7 @@ class MainWindow(guiparts.NewWindow):
     def init_panels(self):
 
         # screen panel
-        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=False, border=[1, 1, 1], colspan=2)
         self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
         # FaceCamera panel
         self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)

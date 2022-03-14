@@ -534,7 +534,9 @@ class visual_stim:
         ax.imshow(cls.get_image(episode,
                                  time_from_episode_start=time_from_episode_start,
                                  parent=cls),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
+                  cmap='gray', vmin=0, vmax=1,
+                  origin='lower',
+                  aspect='equal')
         
         ax.axis('off')
 

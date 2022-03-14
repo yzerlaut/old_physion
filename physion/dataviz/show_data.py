@@ -269,7 +269,8 @@ class MultimodalData(read_NWB.Data):
 
         
     def show_VisualStim(self, tlim,
-                        Npanels=8):
+                        Npanels=8,
+                        enhance=False):
         
         if self.visual_stim is None:
             self.init_visual_stim()
@@ -287,7 +288,8 @@ class MultimodalData(read_NWB.Data):
             if iEp>=0:
                 self.visual_stim.show_frame(iEp, ax=AX[i],
                                             time_from_episode_start=ti-tEp,
-                                            label=label)
+                                            label=label,
+                                            enhance=enhance)
             AX[i].set_title('%.1fs' % ti, fontsize=6)
             AX[i].axis('off')
             label=None
@@ -848,6 +850,7 @@ if __name__=='__main__':
                                               fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
 
     elif args.ops=='raster-evoked':
+        data = MultimodalData(args.datafile)
         fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
                                           # roiIndices='all',
                                           episode_args=dict(protocol_id=0, quantities=['dFoF']),
@@ -859,7 +862,8 @@ if __name__=='__main__':
                                           fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
         
     elif args.ops=='visual-stim':
-        fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
+        data = MultimodalData(args.datafile)
+        fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels, enhance=True)
         fig2 = data.visual_stim.plot_stim_picture(args.episode, enhance=True)
         print('interval [%.1f, %.1f] ' % (data.nwbfile.stimulus['time_start_realigned'].data[args.episode],
                                           data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
