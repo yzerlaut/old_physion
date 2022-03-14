@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 print('settings not found for', folder)
         else:
             settings = self.cbc.currentText()
-                
+        print(settings)
         return settings
         
     def load_imaging(self):
@@ -127,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                     "Choose datafolder",
                                     FOLDERS[self.folderI.currentText()])
         if folder!='':
-            if ('Tseries' in str(folder)):
+            if ('TSeries' in str(folder)):
                 settings = self.find_suite2p_settings(str(folder))
                 if settings is not None:
                     self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
