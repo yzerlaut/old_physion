@@ -82,7 +82,8 @@ ops0 = {
     'win_baseline': 60.0,
     'sig_baseline': 10.0,
     'prctile_baseline': 8.0,
-    'neucoeff': 0.7
+    'neucoeff': 0.7,
+    'cellprob_threshold':0.5
 }
 
 
