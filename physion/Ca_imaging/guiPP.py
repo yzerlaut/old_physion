@@ -111,11 +111,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def find_suite2p_settings(self, folder):
         settings = None
         if self.cbc.currentText()=='automated':
-            potential_settings = folder.split('-')[-1]
+            potential_settings = folder.split('-')[-2]
             if potential_settings in list(PREPROCESSING_SETTINGS.keys()):
                 settings = potential_settings
+            else:
+                print('settings not found for', folder)
         else:
-            self.cbc.currentText()
+            settings = self.cbc.currentText()
                 
         return settings
         
@@ -125,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                     "Choose datafolder",
                                     FOLDERS[self.folderI.currentText()])
         if folder!='':
-            if ('Tseries' in str(folder)) or ('TSeries' in str(folder)):
+            if ('Tseries' in str(folder)):
                 settings = self.find_suite2p_settings(str(folder))
                 if settings is not None:
                     self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
