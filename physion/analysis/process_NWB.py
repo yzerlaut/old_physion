@@ -66,7 +66,7 @@ class EpisodeResponse:
         QUANTITIES, QUANTITY_VALUES, QUANTITY_TIMES = [], [], []
         
         for iq, quantity, quantity_args in zip(range(len(quantities)), quantities, quantities_args):
-            
+
             if type(quantity)!=str and (tfull is not None):
                 QUANTITY_VALUES.append(quantity)
                 QUANTITY_TIMES.append(tfull)
@@ -127,7 +127,7 @@ class EpisodeResponse:
                     print(30*'-')
                     print(quantity, 'not recognized')
                     print(30*'-')
-
+                    
         # adding the parameters
         for key in full_data.nwbfile.stimulus.keys():
             setattr(self, key, [])
@@ -312,8 +312,9 @@ if __name__=='__main__':
         data = Data(filename)
         data.build_dFoF()
 
-        # episode = EpisodeResponse(data,
-        #                           quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+        episode = EpisodeResponse(data,
+                                  quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+        print(episode.quantities)
         # from datavyz import ge
         # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
         # ge.show()
@@ -323,12 +324,12 @@ if __name__=='__main__':
         # print(episode.CaImaging_dFoF.shape)
 
         # from datavyz import ge
-        episode = EpisodeResponse(data,
-                                  quantities=['dFoF'])
-        summary_data = episode.compute_summary_data(dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
-                                                    response_args={'quantity':'dFoF', 'roiIndex':2})
+        # episode = EpisodeResponse(data,
+        #                           quantities=['dFoF'])
+        # summary_data = episode.compute_summary_data(dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
+        #                                             response_args={'quantity':'dFoF', 'roiIndex':2})
 
-        print(summary_data)
+        # print(summary_data)
 
         
     else:

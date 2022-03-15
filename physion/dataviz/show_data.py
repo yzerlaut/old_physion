@@ -615,6 +615,41 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             ge.annotate(fig, S, (0,0), color='k', ha='left', va='bottom', size='small')
             
         return fig, AX
+
+    ####
+
+    def plot_evoked_pattern(self, 
+                            pattern_cond, 
+                            quantity='rawFluo',
+                            rois=np.arange(5)):
+
+        resp = np.array(getattr(self, quantity)).copy()
+        # resp -= resp.min(axis=(0,2)).reshape(1,resp.shape[1],1)
+
+        fig, [axR, axT] = ge.figure(axes_extents=[[[1,3]],
+                                                  [[1,4]]], 
+                                    figsize=(1.3,.3))
+
+        # raster
+        axR.imshow(resp[pattern_cond,:,:].mean(axis=0),
+                   cmap=ge.binary,
+                   aspect='auto', interpolation='none',
+                   #vmin=0, vmax=1, 
+                   #origin='lower',
+                   extent = (self.t[0], self.t[-1],
+                             0, resp.shape[1]))
+
+        ge.set_plot(axR, [], xlim=[self.t[0], self.t[-1]])
+
+        for r in rois:
+            shift = 4*r
+            ge.plot(self.t, shift+resp[pattern_cond, r, :].mean(axis=0), 
+                    sy=resp[pattern_cond, r, :].std(axis=0),ax=axT, no_set=True)
+            for iep in range(np.sum(pattern_cond)):
+                axT.plot(self.t, shift+resp[pattern_cond, r, :][iep,:], color=ge.tab10(iep), lw=.5)
+        ge.set_plot(axT, [], xlim=[self.t[0], self.t[-1]])
+
+        return fig
     
     ###-------------------------------------------
     ### ----- Single Trial population response  --
@@ -847,16 +882,15 @@ if __name__=='__main__':
                                               with_screen_inset=True,                                          
                                               fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
 
-    elif args.ops=='raster-evoked':
-        fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
-                                          # roiIndices='all',
-                                          episode_args=dict(protocol_id=0, quantities=['dFoF']),
-                                          column_key='direction', 
-                                          xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                                          with_stat_test=True,
-                                          with_annotation=True,
-                                          with_screen_inset=True,                                          
-                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+    elif args.ops=='evoked-raster':
+        episodes = EpisodeResponse(args.datafile,
+                                   protocol_id=args.protocol_id,
+                                   quantities=[args.quantity])
+
+        VP = [key for key in episodes.varied_parameters if key!='repeat'] # varied parameters except rpeat
+        episodes.plot_evoked_pattern(episodes.find_episode_cond(np.array(VP),
+                                                                np.zeros(len(VP), dtype=int)),
+                                     quantity=args.quantity)
         
     elif args.ops=='visual-stim':
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)

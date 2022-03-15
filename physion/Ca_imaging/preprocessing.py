@@ -35,7 +35,6 @@ PREPROCESSING_SETTINGS = {
                              'anatomical_only': 3, # using the mean image only for ROI detection
                              'high_pass': 1, 
                              'nonrigid':0,
-                             'threshold_scaling':0.5,
                              'cellprob_threshold':0.8,
                              'neucoeff': 0.7},
     'GCamp6s_5plane_A1':{'cell_diameter':20, # in um

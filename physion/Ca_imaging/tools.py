@@ -9,7 +9,7 @@ import time
 METHOD = 'maximin' # either 'maximin' or 'sliding_percentile'
 T_SLIDING_MIN = 60. # seconds
 PERCENTILE_SLIDING_MIN = 5. # percent
-NEUROPIL_CORRECTION_FACTOR = 0.1
+NEUROPIL_CORRECTION_FACTOR = 0.7
 
 # ---------------------------------
 ####################################
@@ -137,7 +137,7 @@ def compute_dFoF(data,
                             sliding_window=sliding_window)
 
     # exclude cells with negative F0
-    valid_roiIndices = np.min(F0, axis=1)>0
+    valid_roiIndices = (np.min(F0, axis=1)>0) & (F0.mean(axis=1)>F.std(axis=1))
 
     if verbose:
         if np.sum(~valid_roiIndices)>0:
