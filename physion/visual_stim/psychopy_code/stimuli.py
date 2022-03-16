@@ -477,13 +477,14 @@ class visual_stim:
     
     def plot_stim_picture(self, episode,
                           ax=None, parent=None,
-                          label=None, enhance=False):
+                          label=None, enhance=False, vse=False):
 
         cls = (parent if parent is not None else self)
         ax = self.show_frame(episode,
                              ax=ax,
                              label=label,
                              enhance=enhance,
+                             vse=vse,
                              parent=parent)
 
         return ax
@@ -504,7 +505,7 @@ class visual_stim:
                           'shift_factor':0.02,
                           'lw':2, 'fontsize':12},
                    arrow=None,
-                   vse=None,
+                   vse=False,
                    enhance=False,
                    ax=None):
         """
@@ -543,7 +544,10 @@ class visual_stim:
                   cmap='gray', vmin=0, vmax=1,
                   origin='lower',
                   aspect='equal')
-        
+
+        if vse:
+            self.add_vse(self.get_vse(episode, parent=cls), ax)
+            
         ax.axis('off')
 
         if label is not None:
@@ -565,9 +569,8 @@ class visual_stim:
                  width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
                  color=arrow['color'])
         
-    def add_vse(self, arrow, ax):
-        """ to be written """
-        pass
+    def add_vse(self, vse, ax):
+        ax.plot(vse['x'], vse['y'], 'o-', color=ge.red, lw=1)
 
     
 #####################################################
@@ -1233,7 +1236,7 @@ class gaussian_blobs(visual_stim):
         self.refresh_freq = protocol['movie_refresh_freq']
         
         super().init_experiment(self.protocol,
-                                ['x-center', 'y-center', 'radius','center-time', 'extent-time', 'contrast', 'bg-color'],
+                                ['x-center', 'y-center', 'radius', 'center-time', 'extent-time', 'contrast', 'bg-color'],
                                 run_type='images_sequence')
         
             
@@ -1285,18 +1288,37 @@ class gaussian_blobs(visual_stim):
 ##  ----    PRESENTING NATURAL IMAGES       --- #####
 #####################################################
 
-NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
-        
+
+def get_NaturalImages_as_array():
+    
+    NI_FOLDERS = [os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'physion', 'physion', 'visual_stim', 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'work', 'physion', 'physion', 'visual_stim', 'NI_bank')]
+    
+    NIarray = []
+
+    NI_directory = None
+    for d in NI_FOLDERS:
+        if os.path.isdir(d):
+            NI_directory = d
+
+    if NI_directory is not None:
+        for filename in os.listdir(NI_directory):
+            img = load(os.path.join(NI_directory, filename))
+            new_img = adapt_to_screen_resolution(img, self.screen)
+            NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        return NIarray
+    else:
+        print(' /!\  Natural Images folder not found !!! /!\  ')
+        return [np.ones(10,10)*0.5 for i in range(5)]
+    
 class natural_image(visual_stim):
 
     def __init__(self, protocol):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'], run_type='image')
-        self.NIarray = []
-        for filename in os.listdir(NI_directory):
-            img = load(os.path.join(NI_directory, filename))
-            new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        
+        self.NIarray = get_NaturalImages_as_array()
 
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1341,9 +1363,9 @@ def generate_VSE(duration=5,
     # x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     # y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     
-    return {'t':np.array([0]+list(tsaccades)),
-            'x':np.array([0]+list(x)),
-            'y':np.array([0]+list(y)),
+    return {'t':np.array(list(tsaccades)),
+            'x':np.array(list(x)),
+            'y':np.array(list(y)),
             'max_amplitude':saccade_amplitude}
 
             
@@ -1364,11 +1386,7 @@ class natural_image_vse(visual_stim):
         self.refresh_freq = protocol['movie_refresh_freq']
 
         # initializing set of NI
-        self.NIarray = []
-        for filename in os.listdir(NI_directory):
-            img = load(os.path.join(NI_directory, filename))
-            new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        self.NIarray = get_NaturalImages_as_array()
 
 
     def compute_shifted_image(self, img, ix, iy):
@@ -1421,6 +1439,17 @@ class natural_image_vse(visual_stim):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+
+    def get_vse(self, episode, parent=None):
+        cls = (parent if parent is not None else self)
+        seed = self.get_seed(episode, parent=cls)
+        vse = generate_VSE(duration=cls.experiment['time_duration'][episode],
+                           min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                           max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                           seed=seed)
+        return 
+        
 
     
 #####################################################
