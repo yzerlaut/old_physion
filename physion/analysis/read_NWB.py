@@ -5,7 +5,7 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
 from visual_stim.psychopy_code.stimuli import build_stim
-from Ca_imaging.tools import compute_dFoF
+from Ca_imaging.tools import compute_dFoF, METHOD, T_SLIDING_MIN, PERCENTILE_SLIDING_MIN, NEUROPIL_CORRECTION_FACTOR
 
 
 class Data:
@@ -281,12 +281,12 @@ class Data:
         
         
     def build_dFoF(self,
-                   neuropil_correction_factor=0.7,
-                   method_for_F0='maximin',
-                   percentile=5,
-                   sliding_window=60,
+                   neuropil_correction_factor=NEUROPIL_CORRECTION_FACTOR,
+                   method_for_F0=METHOD,
+                   percentile=PERCENTILE_SLIDING_MIN,
+                   sliding_window=T_SLIDING_MIN,
                    return_corrected_F_and_F0=False,
-                   verbose=False):
+                   verbose=True):
         """
         creates self.nROIs, self.dFoF, self.t_dFoF
         """

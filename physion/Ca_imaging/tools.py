@@ -9,7 +9,7 @@ import time
 METHOD = 'maximin' # either 'maximin' or 'sliding_percentile'
 T_SLIDING_MIN = 60. # seconds
 PERCENTILE_SLIDING_MIN = 5. # percent
-NEUROPIL_CORRECTION_FACTOR = 0.7
+NEUROPIL_CORRECTION_FACTOR = 0.
 
 # ---------------------------------
 ####################################
@@ -86,9 +86,9 @@ def compute_sliding_minmax(array, Window, sig=2):
 
 
 def compute_sliding_F0(data, F,
-                       method='minmax',
-                       percentile=5.,
-                       sliding_window=60):
+                       method=METHOD,
+                       percentile=PERCENTILE_SLIDING_MIN,
+                       sliding_window=T_SLIDING_MIN):
     if method in ['maximin', 'minmax']:
         return compute_sliding_minmax(F,
                                       int(sliding_window/data.CaImaging_dt))

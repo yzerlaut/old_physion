@@ -623,34 +623,94 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
     def plot_evoked_pattern(self, 
                             pattern_cond, 
                             quantity='rawFluo',
-                            rois=np.arange(5)):
+                            rois=None,
+                            with_stim_inset=True,
+                            with_mean_trace=False,
+                            factor_for_traces=2,
+                            raster_norm='full',
+                            Tbar=1, Nbar=None,
+                            min_dFof_range=2,
+                            figsize=(1.3,.3)):
 
         resp = np.array(getattr(self, quantity)).copy()
-        # resp -= resp.min(axis=(0,2)).reshape(1,resp.shape[1],1)
 
+        if Nbar is None:
+            Nbar = int(resp.shape[1]/4)
+        if rois is None:
+            rois = np.random.choice(np.arange(resp.shape[1]), 5, replace=False)
+            
         fig, [axR, axT] = ge.figure(axes_extents=[[[1,3]],
-                                                  [[1,4]]], 
-                                    figsize=(1.3,.3))
+                                                  [[1,int(3*factor_for_traces)]]], 
+                                    figsize=figsize, left=0.3,
+                                    top=(12 if with_stim_inset else 1),
+                                    right=3)
+
+        if with_stim_inset:
+            if self.data.visual_stim is None:
+                self.data.init_visual_stim()
+            stim_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
+            self.data.visual_stim.plot_stim_picture(0, ax=stim_inset, enhance=True)
+            
+        # mean response for raster
+        mean_resp = resp[pattern_cond,:,:].mean(axis=0)
+        if raster_norm=='full':
+            mean_resp = (mean_resp-mean_resp.min(axis=1).reshape(resp.shape[1],1))
+        else:
+            pass
 
         # raster
-        axR.imshow(resp[pattern_cond,:,:].mean(axis=0),
+        axR.imshow(mean_resp,
                    cmap=ge.binary,
                    aspect='auto', interpolation='none',
-                   #vmin=0, vmax=1, 
+                   vmin=0, vmax=2, 
                    #origin='lower',
                    extent = (self.t[0], self.t[-1],
                              0, resp.shape[1]))
 
         ge.set_plot(axR, [], xlim=[self.t[0], self.t[-1]])
+        axR.plot([self.t[0], self.t[0]], [0, Nbar], 'k-', lw=2)
+        ge.annotate(axR, '%i rois' % Nbar, (self.t[0], 0), rotation=90, xycoords='data', ha='right')
+        ge.annotate(axR, 'n=%i trials' % resp.shape[0], (self.t[-1], resp.shape[1]),
+                    xycoords='data', ha='right', size='x-small')
 
-        for r in rois:
-            shift = 4*r
-            ge.plot(self.t, shift+resp[pattern_cond, r, :].mean(axis=0), 
-                    sy=resp[pattern_cond, r, :].std(axis=0),ax=axT, no_set=True)
+        # raster_bar_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
+        ge.bar_legend(axR, 
+                      colorbar_inset=dict(rect=[1.1,.1,.04,.8], facecolor=None),
+                      colormap=ge.binary,
+                      bar_legend_args={},
+                      label='n. $\Delta$F/F',
+                      bounds=None,
+                      ticks = None,
+                      ticks_labels=None,
+                      no_ticks=False,
+                      orientation='vertical')
+
+        for ir, r in enumerate(rois):
+            roi_resp = resp[pattern_cond, r, :]
+            roi_resp = roi_resp-roi_resp.mean()
+            scale = max([min_dFof_range, np.max(roi_resp)])
+            roi_resp /= scale
+            axT.plot([self.t[-1], self.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=2)
+
+            if with_mean_trace:
+                ge.plot(self.t, ir+roi_resp.mean(axis=0), 
+                        sy=roi_resp.std(axis=0),ax=axT, no_set=True)
+            ge.annotate(axT, 'roi#%i' % (r+1), (self.t[0], ir), xycoords='data',
+                        rotation=90, ha='right', size='xx-small')
             for iep in range(np.sum(pattern_cond)):
-                axT.plot(self.t, shift+resp[pattern_cond, r, :][iep,:], color=ge.tab10(iep), lw=.5)
+                axT.plot(self.t, ir+roi_resp[iep,:], color=ge.tab10(iep), lw=.5)
+        ge.annotate(axT, '1$\Delta$F/F', (self.t[-1], 0), xycoords='data',
+                    rotation=90, size='small')
         ge.set_plot(axT, [], xlim=[self.t[0], self.t[-1]])
+        ge.draw_bar_scales(axT, Xbar=Tbar, Xbar_label=str(Tbar)+'s', Ybar=1e-12)
 
+        ge.bar_legend(axT, X=np.arange(10),
+                      colorbar_inset=dict(rect=[1.1,1-.8/factor_for_traces,
+                                                .04,.8/factor_for_traces], facecolor=None),
+                      colormap=ge.tab10,
+                      label='trial ID',
+                      no_ticks=True,
+                      orientation='vertical')
         return fig
     
     ###-------------------------------------------
@@ -884,7 +944,6 @@ if __name__=='__main__':
                                               with_screen_inset=True,                                          
                                               fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
 
-<<<<<<< HEAD
     elif args.ops=='evoked-raster':
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
@@ -894,19 +953,6 @@ if __name__=='__main__':
         episodes.plot_evoked_pattern(episodes.find_episode_cond(np.array(VP),
                                                                 np.zeros(len(VP), dtype=int)),
                                      quantity=args.quantity)
-=======
-    elif args.ops=='raster-evoked':
-        data = MultimodalData(args.datafile)
-        fig, AX = data.plot_trial_average(roiIndex=args.roiIndex,
-                                          # roiIndices='all',
-                                          episode_args=dict(protocol_id=0, quantities=['dFoF']),
-                                          column_key='direction', 
-                                          xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                                          with_stat_test=True,
-                                          with_annotation=True,
-                                          with_screen_inset=True,                                          
-                                          fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
->>>>>>> 5f2bbc292292c6444b70c46820fb117f146b2341
         
     elif args.ops=='visual-stim':
         data = MultimodalData(args.datafile)
