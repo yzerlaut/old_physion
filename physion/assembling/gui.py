@@ -121,8 +121,13 @@ class MainWindow(QtWidgets.QMainWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderB.currentText()])
+        
+        self.folders, self.folder = [], ''
+        
         if folder!='':
-            if not os.path.isfile(os.path.join(folder, 'metadata.npy')) or\
+            if len(folder.split(os.path.sep)[-1].split('_'))>1:
+                self.folders = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f, 'metadata.npy'))]
+            elif not os.path.isfile(os.path.join(folder, 'metadata.npy')) or\
                not os.path.isfile(os.path.join(folder, 'NIdaq.npy')):
                 print(' /!\ Data-folder missing either "metadata" or "NIdaq" datafiles /!\ ')
                 print('  --> nothing to assemble !')
@@ -152,6 +157,12 @@ class MainWindow(QtWidgets.QMainWindow):
             p = subprocess.Popen(self.build_cmd(),
                                  shell=True)
             print('"%s" launched as a subprocess' % self.build_cmd())
+        elif len(self.folders)>0:
+            for self.folder in self.folders:
+                p = subprocess.Popen(self.build_cmd(),
+                                     shell=True)
+                print('"%s" launched as a subprocess' % self.build_cmd())
+            self.folders = []
         else:
             print(' /!\ Need a valid folder !  /!\ ')
 
