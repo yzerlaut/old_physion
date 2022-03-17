@@ -407,7 +407,7 @@ class visual_stim:
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def single_array_sequence_presentation(self, parent, index):
-        time_indices, frames = self.get_frames_sequence(index)
+        time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         FRAMES = []
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
@@ -415,7 +415,16 @@ class visual_stim:
                                            units='pix', size=self.win.size))
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
-            iframe = int((clock.getTime()-start)*self.refresh_freq)
+            iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
+            if iframe>=len(time_indices):
+                print('for protocol:')
+                print(self.protocol)
+                print('for index:')
+                print(iframe, len(time_indices), len(frames), refresh_freq)
+                print(' /!\ Pb with time indices index  /!\ ')
+                
+                print('forcing lower values')
+                iframe = len(time_indices)-1
             FRAMES[time_indices[iframe]].draw()
             self.add_monitoring_signal(clock.getTime(), start)
             try:
@@ -1272,7 +1281,7 @@ class gaussian_blobs(visual_stim):
         FRAMES.append(2*bg_color-1.+0.*self.x)
         times[itend:] = len(FRAMES)-1
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
@@ -1289,7 +1298,7 @@ class gaussian_blobs(visual_stim):
 #####################################################
 
 
-def get_NaturalImages_as_array():
+def get_NaturalImages_as_array(screen):
     
     NI_FOLDERS = [os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank'),
                   os.path.join(os.path.expanduser('~'), 'physion', 'physion', 'visual_stim', 'NI_bank'),
@@ -1305,7 +1314,7 @@ def get_NaturalImages_as_array():
     if NI_directory is not None:
         for filename in os.listdir(NI_directory):
             img = load(os.path.join(NI_directory, filename))
-            new_img = adapt_to_screen_resolution(img, self.screen)
+            new_img = adapt_to_screen_resolution(img, screen)
             NIarray.append(2*img_after_hist_normalization(new_img)-1.)
         return NIarray
     else:
@@ -1318,7 +1327,7 @@ class natural_image(visual_stim):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'], run_type='image')
         
-        self.NIarray = get_NaturalImages_as_array()
+        self.NIarray = get_NaturalImages_as_array(self.screen)
 
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1386,7 +1395,7 @@ class natural_image_vse(visual_stim):
         self.refresh_freq = protocol['movie_refresh_freq']
 
         # initializing set of NI
-        self.NIarray = get_NaturalImages_as_array()
+        self.NIarray = get_NaturalImages_as_array(self.screen)
 
 
     def compute_shifted_image(self, img, ix, iy):
@@ -1434,7 +1443,7 @@ class natural_image_vse(visual_stim):
             FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
             times[Times>=t] = int(i)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
@@ -1540,6 +1549,8 @@ class line_moving_dots(visual_stim):
             
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 15.
+        ## /!\ here always use self.refresh_freq not the parent cls.refresh_freq ##
+        # when the parent multiprotocol will have ~10Hz refresh rate, the random case should remain 2-3Hz
         self.refresh_freq = protocol['movie_refresh_freq']
 
         print('line dots', self.randomize, self.refresh_freq)
@@ -1603,7 +1614,7 @@ class line_moving_dots(visual_stim):
 
         bg_color = cls.experiment['bg-color'][index]
         
-        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+        itstart, itend = 0, int(1.2*interval*self.refresh_freq)
 
         order = np.arange(itend)
         if self.randomize:
@@ -1612,7 +1623,6 @@ class line_moving_dots(visual_stim):
             np.random.shuffle(order)
             
         times, FRAMES = [], []
-
             
         for iframe in range(itend):
             time = order[iframe]/self.refresh_freq
@@ -1626,7 +1636,7 @@ class line_moving_dots(visual_stim):
             FRAMES.append(img)
             times.append(iframe)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
@@ -1880,7 +1890,7 @@ class center_grating_stim_image(visual_stim):
             FRAMES.append(img)
             times.append(iframe)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
@@ -2039,7 +2049,7 @@ class mixed_moving_dots_static_patch(visual_stim):
             FRAMES.append(img)
             times.append(iframe)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):

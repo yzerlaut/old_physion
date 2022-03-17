@@ -632,7 +632,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             min_dFof_range=2,
                             figsize=(1.3,.3)):
 
-        resp = np.array(getattr(self, quantity)).copy()
+        resp = np.array(getattr(self, quantity))
 
         if Nbar is None:
             Nbar = int(resp.shape[1]/4)
@@ -650,7 +650,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                 self.data.init_visual_stim()
             stim_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
             self.data.visual_stim.plot_stim_picture(0, ax=stim_inset, enhance=True)
-            
+
         # mean response for raster
         mean_resp = resp[pattern_cond,:,:].mean(axis=0)
         if raster_norm=='full':
@@ -711,6 +711,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                       label='trial ID',
                       no_ticks=True,
                       orientation='vertical')
+
         return fig
     
     ###-------------------------------------------

@@ -121,18 +121,19 @@ class MainWindow(QtWidgets.QMainWindow):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderB.currentText()])
-        
+
         self.folders, self.folder = [], ''
         
         if folder!='':
-            if len(folder.split(os.path.sep)[-1].split('_'))>1:
+            if (len(folder.split(os.path.sep)[-1].split('-'))<2) and (len(folder.split(os.path.sep)[-1].split('_'))>2):
+                print('"%s" is recognized as a day folder' % folder)
                 self.folders = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f, 'metadata.npy'))]
-            elif not os.path.isfile(os.path.join(folder, 'metadata.npy')) or\
-               not os.path.isfile(os.path.join(folder, 'NIdaq.npy')):
+            elif os.path.isfile(os.path.join(folder, 'metadata.npy')) and os.path.isfile(os.path.join(folder, 'NIdaq.npy')):
+                print('"%s" is a valid recording folder' % folder)
+                self.folder = folder
+            else:
                 print(' /!\ Data-folder missing either "metadata" or "NIdaq" datafiles /!\ ')
                 print('  --> nothing to assemble !')
-            else:
-                self.folder = folder
             
 
     def build_cmd(self):
@@ -152,6 +153,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                               self.folder,
                                               self.cbc.currentText())
     def run(self):
+        print(self.folder)
+        print(self.folders)
         if self.folder != '':
             print(self.build_cmd())
             p = subprocess.Popen(self.build_cmd(),

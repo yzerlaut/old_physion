@@ -216,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def get_config_list(self):
         files = os.listdir(os.path.join(base_path, 'configs'))
-        self.config_list = [f.replace('.json', '') for f in files if f.endswith('.json')]
+        self.config_list = [f.replace('.json', '') for f in files[::-1] if f.endswith('.json')]
         self.cbc.addItems(self.config_list)
         self.update_config()
         
