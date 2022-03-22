@@ -28,14 +28,14 @@
      showgrid="false"
      units="px"
      inkscape:zoom="0.82935656"
-     inkscape:cx="124.19266"
-     inkscape:cy="355.09456"
+     inkscape:cx="124.79554"
+     inkscape:cy="355.69743"
      inkscape:window-width="1920"
-     inkscape:window-height="1020"
+     inkscape:window-height="1135"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g82547"
+     inkscape:current-layer="g1295"
      width="1920px"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -2277,11 +2277,11 @@
          y="0"><tspan
            x="43.339844"
            y="40.141458"
-           id="tspan2413">blinking signal
+           id="tspan2807">blinking signal
 </tspan><tspan
            x="43.339844"
            y="61.560956"
-           id="tspan2415">+ photodiode</tspan></text>
+           id="tspan2809">+ photodiode</tspan></text>
       <g
          id="g82429"
          transform="matrix(0.76912433,-0.2461986,0.2461986,0.76912433,-5.3796683,67.788688)"
@@ -2462,17 +2462,17 @@
          y="0"><tspan
            x="43.339844"
            y="40.141458"
-           id="tspan2417">IR camera</tspan></text>
+           id="tspan2811">IR camera</tspan></text>
       <text
          xml:space="preserve"
-         transform="matrix(0.39678796,0,0,0.39678796,103.56628,173.13048)"
+         transform="matrix(0.39678796,0,0,0.39678796,114.14962,173.13048)"
          id="text82433"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.0035px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82557);display:inline;fill:#000000"
          x="95.124329"
          y="0"><tspan
            x="43.339844"
            y="39.139815"
-           id="tspan2419">disk w. rotoencoder</tspan></text>
+           id="tspan2813">rotating disk</tspan></text>
       <text
          xml:space="preserve"
          transform="matrix(0.37057301,0,0,0.37057301,15.201867,188.41172)"
@@ -2482,7 +2482,7 @@
          y="0"><tspan
            x="43.339844"
            y="40.141458"
-           id="tspan2421">IR LEDs</tspan></text>
+           id="tspan2815">IR LEDs</tspan></text>
       <g
          id="g82477"
          transform="matrix(0.55658214,0.641195,-0.641195,0.55658214,153.43995,63.304028)">
@@ -2591,7 +2591,7 @@
          y="0"><tspan
            x="43.339844"
            y="40.141458"
-           id="tspan2423">screen</tspan></text>
+           id="tspan2817">screen</tspan></text>
       <text
          xml:space="preserve"
          transform="matrix(0.37057301,0,0,0.37057301,91.231846,93.991957)"
@@ -2601,7 +2601,7 @@
          y="0"><tspan
            x="43.339844"
            y="40.141458"
-           id="tspan2425">2-photon imaging</tspan></text>
+           id="tspan2819">2-photon imaging</tspan></text>
       <path
          style="fill:#4d4d4d;stroke:#000000;stroke-width:0.274226;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 120.35841,138.07518 4.42249,-2.85593 4.08828,-0.0802 0.0934,5.33885 -8.56505,0.16794 z"
