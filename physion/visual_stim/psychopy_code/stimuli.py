@@ -555,7 +555,9 @@ class visual_stim:
                   aspect='equal')
 
         if vse:
-            self.add_vse(self.get_vse(episode, parent=cls), ax)
+            if not hasattr(self, 'vse'):
+                vse = self.get_vse(episode, parent=cls)
+            self.add_vse(ax, vse)
             
         ax.axis('off')
 
@@ -578,8 +580,10 @@ class visual_stim:
                  width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
                  color=arrow['color'])
         
-    def add_vse(self, vse, ax):
-        ax.plot(vse['x'], vse['y'], 'o-', color=ge.red, lw=1)
+    def add_vse(self, ax, vse):
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+        ax.plot(vse['x'], vse['y'], 'o-', color='#d62728', lw=0.5, ms=2)
 
     
 #####################################################
@@ -1312,7 +1316,7 @@ def get_NaturalImages_as_array(screen):
             NI_directory = d
 
     if NI_directory is not None:
-        for filename in os.listdir(NI_directory):
+        for filename in np.sort(os.listdir(NI_directory)):
             img = load(os.path.join(NI_directory, filename))
             new_img = adapt_to_screen_resolution(img, screen)
             NIarray.append(2*img_after_hist_normalization(new_img)-1.)
@@ -1425,14 +1429,9 @@ class natural_image_vse(visual_stim):
         
     def get_frames_sequence(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        seed = self.get_seed(index, parent=cls)
-
-        vse = generate_VSE(duration=cls.experiment['time_duration'][index],
-                           min_saccade_duration=cls.experiment['min-saccade-duration'][index],
-                           max_saccade_duration=cls.experiment['max-saccade-duration'][index],
-                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
-                           seed=seed)
-
+        
+        vse = self.get_vse(index, parent=cls)
+        
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
@@ -1452,12 +1451,11 @@ class natural_image_vse(visual_stim):
     def get_vse(self, episode, parent=None):
         cls = (parent if parent is not None else self)
         seed = self.get_seed(episode, parent=cls)
-        vse = generate_VSE(duration=cls.experiment['time_duration'][episode],
-                           min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
-                           max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
-                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
-                           seed=seed)
-        return 
+        return generate_VSE(duration=cls.experiment['time_duration'][episode],
+                            min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                            max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                            seed=seed)
         
 
     
@@ -2120,7 +2118,8 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
-    with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
+    # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
+    with open('physion/exp/protocols/NI-VSE-2images-2vse.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True

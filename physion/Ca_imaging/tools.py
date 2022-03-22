@@ -9,7 +9,7 @@ import time
 METHOD = 'maximin' # either 'maximin' or 'sliding_percentile'
 T_SLIDING_MIN = 60. # seconds
 PERCENTILE_SLIDING_MIN = 5. # percent
-NEUROPIL_CORRECTION_FACTOR = 0.
+NEUROPIL_CORRECTION_FACTOR = 0.7
 
 # ---------------------------------
 ####################################

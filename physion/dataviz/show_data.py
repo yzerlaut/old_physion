@@ -629,8 +629,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             factor_for_traces=2,
                             raster_norm='full',
                             Tbar=1, Nbar=None,
-                            min_dFof_range=2,
-                            figsize=(1.3,.3)):
+                            min_dFof_range=4,
+                            figsize=(1.3,.3), axR=None, axT=None):
 
         resp = np.array(getattr(self, quantity))
 
@@ -638,18 +638,28 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             Nbar = int(resp.shape[1]/4)
         if rois is None:
             rois = np.random.choice(np.arange(resp.shape[1]), 5, replace=False)
-            
-        fig, [axR, axT] = ge.figure(axes_extents=[[[1,3]],
-                                                  [[1,int(3*factor_for_traces)]]], 
-                                    figsize=figsize, left=0.3,
-                                    top=(12 if with_stim_inset else 1),
-                                    right=3)
 
+        if (axR is None) or (axT is None):
+            fig, [axR, axT] = ge.figure(axes_extents=[[[1,3]],
+                                                      [[1,int(3*factor_for_traces)]]], 
+                                        figsize=figsize, left=0.3,
+                                        top=(12 if with_stim_inset else 1),
+                                        right=3)
+        else:
+            fig = None
+
+        
+        first_pattern_resp_index = np.arange(len(pattern_cond))[pattern_cond][0]
         if with_stim_inset:
             if self.data.visual_stim is None:
                 self.data.init_visual_stim()
             stim_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
-            self.data.visual_stim.plot_stim_picture(0, ax=stim_inset, enhance=True)
+            self.data.visual_stim.plot_stim_picture(first_pattern_resp_index,
+                                                    ax=stim_inset,
+                                                    enhance=True,
+                                                    vse=True)
+            if hasattr(self.data.visual_stim, 'get_vse'):
+                vse = self.data.visual_stim.get_vse(first_pattern_resp_index)
 
         # mean response for raster
         mean_resp = resp[pattern_cond,:,:].mean(axis=0)
@@ -670,7 +680,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         ge.set_plot(axR, [], xlim=[self.t[0], self.t[-1]])
         axR.plot([self.t[0], self.t[0]], [0, Nbar], 'k-', lw=2)
         ge.annotate(axR, '%i rois' % Nbar, (self.t[0], 0), rotation=90, xycoords='data', ha='right')
-        ge.annotate(axR, 'n=%i trials' % resp.shape[0], (self.t[-1], resp.shape[1]),
+        ge.annotate(axR, 'n=%i trials' % np.sum(pattern_cond), (self.t[-1], resp.shape[1]),
                     xycoords='data', ha='right', size='x-small')
 
         # raster_bar_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
@@ -698,7 +708,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             ge.annotate(axT, 'roi#%i' % (r+1), (self.t[0], ir), xycoords='data',
                         rotation=90, ha='right', size='xx-small')
             for iep in range(np.sum(pattern_cond)):
-                axT.plot(self.t, ir+roi_resp[iep,:], color=ge.tab10(iep), lw=.5)
+                axT.plot(self.t, ir+roi_resp[iep,:], color=ge.tab10(iep/(np.sum(pattern_cond)-1)), lw=.5)
         ge.annotate(axT, '1$\Delta$F/F', (self.t[-1], 0), xycoords='data',
                     rotation=90, size='small')
         ge.set_plot(axT, [], xlim=[self.t[0], self.t[-1]])
@@ -712,6 +722,11 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                       no_ticks=True,
                       orientation='vertical')
 
+        if hasattr(self.data.visual_stim, 'get_vse'):
+            for t in [0]+vse['t']:
+                axR.plot([t,t], axR.get_ylim(), 'r-', lw=0.3)
+                axT.plot([t,t], axT.get_ylim(), 'r-', lw=0.3)
+                
         return fig
     
     ###-------------------------------------------
@@ -951,9 +966,12 @@ if __name__=='__main__':
                                    quantities=[args.quantity])
 
         VP = [key for key in episodes.varied_parameters if key!='repeat'] # varied parameters except rpeat
+
+        # single stim
         episodes.plot_evoked_pattern(episodes.find_episode_cond(np.array(VP),
                                                                 np.zeros(len(VP), dtype=int)),
                                      quantity=args.quantity)
+        
         
     elif args.ops=='visual-stim':
         data = MultimodalData(args.datafile)

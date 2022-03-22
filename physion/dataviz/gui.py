@@ -243,6 +243,11 @@ class MainWindow(guiparts.NewWindow):
         self.minView = False
         self.showwindow()
 
+        if (args is not None) and hasattr(args, 'datafile') and os.path.isfile(args.datafile):
+            self.datafile=args.datafile
+            self.load_file(self.datafile)
+            plots.raw_data_plot(self, self.tzoom)
+            
 
     def init_panel_imgs(self):
         
@@ -780,6 +785,7 @@ if __name__=='__main__':
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-df', "--datafile", type=str, default='')
     parser.add_argument('-v', "--visualization", action="store_true")
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
