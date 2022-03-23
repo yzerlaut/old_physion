@@ -27,15 +27,15 @@
      inkscape:document-units="mm"
      showgrid="false"
      units="px"
-     inkscape:zoom="0.82935656"
-     inkscape:cx="365.34347"
-     inkscape:cy="358.71182"
+     inkscape:zoom="1.1728873"
+     inkscape:cx="451.87632"
+     inkscape:cy="251.94237"
      inkscape:window-width="1553"
      inkscape:window-height="972"
      inkscape:window-x="82"
-     inkscape:window-y="452"
+     inkscape:window-y="164"
      inkscape:window-maximized="0"
-     inkscape:current-layer="g1295"
+     inkscape:current-layer="g1295-0"
      width="1920px"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -3681,8 +3681,8 @@
     <rect
        x="43.340809"
        y="24.980873"
-       width="200.9877"
-       height="67.426819"
+       width="179.67876"
+       height="43.748733"
        id="rect82557-2" />
     <rect
        x="43.340809"
@@ -4440,11 +4440,11 @@
              y="0"><tspan
                x="120.51338"
                y="40.141458"
-               id="tspan4210">blinking signal
+               id="tspan17713">blinking signal
 </tspan><tspan
                x="116.66456"
                y="61.560956"
-               id="tspan4212">+ photodiode   </tspan></text>
+               id="tspan17715">+ photodiode   </tspan></text>
           <g
              id="g82429-9"
              transform="matrix(0.76912433,-0.2461986,0.2461986,0.76912433,-5.3796683,67.788688)"
@@ -4625,17 +4625,17 @@
              y="0"><tspan
                x="43.339844"
                y="40.141458"
-               id="tspan4214">IR camera</tspan></text>
+               id="tspan17717">IR camera</tspan></text>
           <text
              xml:space="preserve"
-             transform="matrix(0.39678796,0,0,0.39678796,114.14962,173.13048)"
+             transform="matrix(0.39678796,0,0,0.39678796,91.289824,171.97257)"
              id="text82433-6"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.0035px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000"
-             x="95.124329"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.0035px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000"
+             x="164.43637"
              y="0"><tspan
-               x="43.339844"
+               x="87.443006"
                y="39.139815"
-               id="tspan4216">rotating disk</tspan></text>
+               id="tspan17719">circular treadmill</tspan></text>
           <text
              xml:space="preserve"
              transform="matrix(0.37057301,0,0,0.37057301,15.201867,188.41172)"
@@ -4645,7 +4645,7 @@
              y="0"><tspan
                x="43.339844"
                y="40.141458"
-               id="tspan4218">IR LEDs</tspan></text>
+               id="tspan17721">IR LEDs</tspan></text>
           <g
              id="g82477-5"
              transform="matrix(0.55658214,0.641195,-0.641195,0.55658214,153.43995,63.304028)">
@@ -4754,7 +4754,7 @@
              y="0"><tspan
                x="43.339844"
                y="40.141458"
-               id="tspan4220">screen</tspan></text>
+               id="tspan17723">screen</tspan></text>
           <text
              xml:space="preserve"
              transform="matrix(0.37057301,0,0,0.37057301,91.231846,93.991957)"
@@ -4764,7 +4764,7 @@
              y="0"><tspan
                x="43.339844"
                y="40.141458"
-               id="tspan4222">2-photon imaging</tspan></text>
+               id="tspan17725">2-photon imaging</tspan></text>
           <path
              style="fill:#4d4d4d;stroke:#000000;stroke-width:0.274226;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
              d="m 120.35841,138.07518 4.42249,-2.85593 4.08828,-0.0802 0.0934,5.33885 -8.56505,0.16794 z"
