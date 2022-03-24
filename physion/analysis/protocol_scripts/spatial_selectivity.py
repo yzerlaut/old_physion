@@ -7,14 +7,12 @@ from matplotlib.backends.backend_pdf import PdfPages
 from datavyz import graph_env_manuscript as ge
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from dataviz.show_data import MultimodalData, format_key_value
+from dataviz.show_data import EpisodeResponse, format_key_value, MultimodalData
 from analysis.tools import summary_pdf_folder
-from analysis.process_NWB import EpisodeResponse
 from analysis import stat_tools
 
-def ROI_analysis(FullData,
-                 roiIndex=0,
-                 iprotocol=0,
+def ROI_analysis(EPISODES,
+                 quantity='dFoF', roiIndex=None, roiIndices='all',
                  verbose=False,
                  response_significance_threshold=0.01,
                  radius_threshold_for_center=20.,
@@ -26,19 +24,10 @@ def ROI_analysis(FullData,
     direction selectivity ROI analysis
     """
 
-    EPISODES = EpisodeResponse(FullData,
-                               protocol_id=iprotocol,
-                               quantity='CaImaging', subquantity='dF/F',
-                               roiIndex = roiIndex)
-
-    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
-                                          protocol_id=iprotocol,
-                                          quantity='CaImaging', subquantity='dF/F',
-                                          roiIndex = roiIndex,
+    fig, AX = EPISODES.plot_trial_average(quantity=quantity, roiIndex=roiIndex, roiIndices=roiIndices,
                                           column_key='x-center', row_key='y-center', color_key='angle',
-                                          ybar=1., ybarlabel='1dF/F',
+                                          ybar=0.5, ybarlabel='0.5dF/F',
                                           xbar=1., xbarlabel='1s',
-                                          # fig_preset='raw-traces-preset',
                                           with_annotation=True,
                                           with_std=False,
                                           with_stat_test=True, stat_test_props=stat_test_props,
@@ -80,6 +69,9 @@ def ROI_analysis(FullData,
 def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
 
     data = MultimodalData(datafile)
+    EPISODES = EpisodeResponse(datafile,
+                               protocol_id=iprotocol,
+                               quantities=['dFoF'])
 
     pdf_filename = os.path.join(summary_pdf_folder(datafile), '%s-spatial_selectivity.pdf' % data.protocols[iprotocol])
     
@@ -87,10 +79,15 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
     
     with PdfPages(pdf_filename) as pdf:
 
+        # mean first
+        fig, resp = ROI_analysis(EPISODES, roiIndex=None, roiIndices='mean')
+        pdf.savefig(fig)
+        plt.close(fig)
+        
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
             print('   - spatial-selectivity analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
-            fig, resp = ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            fig, resp = ROI_analysis(EPISODES, roiIndex=roi)
             
             significant_cond, label = (resp['significant']==True), '  -> max resp.: '
             if np.sum(significant_cond)>0:
@@ -113,9 +110,9 @@ def analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
             if ('-bins' in key):
                 results[key] = resp[key]
                 
-        fig = summary_fig(results)
-        pdf.savefig(fig)  # saves the current figure into a pdf page
-        plt.close(fig)
+        # fig = summary_fig(results)
+        # pdf.savefig(fig)  # saves the current figure into a pdf page
+        # plt.close(fig)
 
     print('[ok] spatial-selectivity analysis saved as: "%s" ' % pdf_filename)
 

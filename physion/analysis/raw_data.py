@@ -6,7 +6,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.show_data import MultimodalData
 from dataviz import tools
-from Ca_imaging.tools import compute_CaImaging_trace
 from analysis.tools import *
 
 
