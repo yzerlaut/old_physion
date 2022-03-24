@@ -127,32 +127,32 @@ def make_summary_pdf(filename, Nmax=1000000,
 
         # --- analysis of multi-protocols ---
         if data.metadata['protocol']=='NDNF-protocol':
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'ndnf_protocol.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         elif data.metadata['protocol']=='mismatch-negativity':
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'mismatch_negativity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         elif ('surround-suppression' in data.metadata['protocol']) or ('size-tuning' in data.metadata['protocol']):
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
-        elif ('spatial-location' in data.metadata['protocol']) or ('spatial-mapping' in data.metadata['protocol']):
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+        elif 'spatial-location' in data.metadata['protocol']:
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'spatial_selectivity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         elif 'contrast-curve' in data.metadata['protocol']:
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'contrast_curves.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
         elif ('secondary' in data.metadata['protocol']):
-            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'secondary_RF.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
             
@@ -166,38 +166,38 @@ def make_summary_pdf(filename, Nmax=1000000,
 
                 # orientation selectivity analyis
                 if protocol in ['Pakan-et-al-static']:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s orientation --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
 
                 if protocol in ['Pakan-et-al-drifting']:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s direction --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
 
                 if 'dg-' in protocol:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'orientation_direction_selectivity.py')
                     p = subprocess.Popen('%s %s %s gratings --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
                     
                 if 'looming-' in protocol:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'looming_stim.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i --Nmax %i' % (python_path, process_script, filename, ip, Nmax), shell=True)
                     
                 if 'gaussian-blobs' in protocol:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'gaussian_blobs.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
 
                 if 'noise' in protocol:
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'receptive_field_mapping.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
 
 
                 if ('dot-stim' in protocol) or ('moving-dot' in protocol):
-                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]),
+                    process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'moving_dot_selectivity.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
                     
