@@ -106,7 +106,7 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
         self.pbox.addItem('-> draw figures')
-        self.pbox.addItem('-> produce PDF summary')
+        self.pbox.addItem('-> build PDF summary')
         self.pbox.addItem('-> open PDF summary')
         self.pbox.setCurrentIndex(0)
 
@@ -567,7 +567,7 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> draw figures':
             self.windowFG = FiguresWindow(self.datafile, parent=self)
             self.windowFG.show()
-        elif self.pbox.currentText()=='-> produce PDF summary':
+        elif self.pbox.currentText()=='-> build PDF summary':
             cmd = '%s %s %s --verbose' % (python_path,
                             os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
                                      'analysis', 'summary_pdf.py'), self.datafile)

@@ -286,14 +286,20 @@ class EpisodeResponse:
             summary_data[key] = []
             summary_data[key+'-bins'] = bins
 
-        for indices in itertools.product(*VARIED_INDICES):
-            stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
-                                                                                            list(indices)),
-                                                        response_args=response_args,
+        if len(VARIED_KEYS)>0:
+            for indices in itertools.product(*VARIED_INDICES):
+                stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
+                                                                                                list(indices)),
+                                                            response_args=response_args,
+                                                            **stat_test_props)
+
+                for key, index in zip(VARIED_KEYS, indices):
+                    summary_data[key].append(self.varied_parameters[key][index])
+                summary_data['value'].append(np.mean(stats.y-stats.x))
+                summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+        else:
+            stats = self.stat_test_for_evoked_responses(response_args=response_args,
                                                         **stat_test_props)
-            
-            for key, index in zip(VARIED_KEYS, indices):
-                summary_data[key].append(self.varied_parameters[key][index])
             summary_data['value'].append(np.mean(stats.y-stats.x))
             summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
 

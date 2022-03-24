@@ -123,6 +123,7 @@ def make_summary_pdf(filename, Nmax=1000000,
         
     if 'protocols' in include:
 
+        print(data.metadata['protocol'])
         print('* looping over protocols for analysis [...]')
 
         # --- analysis of multi-protocols ---
@@ -155,6 +156,11 @@ def make_summary_pdf(filename, Nmax=1000000,
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'secondary_RF.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
+
+        elif ('motion-contour-interaction' in data.metadata['protocol']):
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
+                                          'motion-contour-interaction.py')
+            p = subprocess.Popen('%s %s %s' % (python_path, process_script, filename), shell=True)
             
         else:
             # --- looping over protocols individually ---
@@ -200,7 +206,7 @@ def make_summary_pdf(filename, Nmax=1000000,
                     process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                                   'moving_dot_selectivity.py')
                     p = subprocess.Popen('%s %s %s --iprotocol %i' % (python_path, process_script, filename, ip), shell=True)
-                    
+
     print('subprocesses to analyze "%s" were launched !' % filename)
     
 
@@ -211,9 +217,9 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
     parser.add_argument('-o', "--ops", type=str, nargs='*',
-                        default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
+                        # default=['exp', 'raw', 'behavior', 'rois', 'protocols'],
                         # default=['raw'],
-                        # default=['protocols'],
+                        default=['protocols'],
                         help='')
     parser.add_argument("--remove_all_pdfs", help="remove all pdfs of previous analysis in folder", action="store_true")
     parser.add_argument('-nmax', "--Nmax", type=int, default=1000000)
