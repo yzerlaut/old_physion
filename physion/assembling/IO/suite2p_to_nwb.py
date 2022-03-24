@@ -85,8 +85,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml,
     )
     ophys_module = nwbfile.create_processing_module(
         name='ophys', 
-        description='optical physiology processed data'
-    )
+        description='optical physiology processed data\n TSeries-folder=%s' % save_folder)
     ophys_module.add(img_seg)
 
     file_strs = ['F.npy', 'Fneu.npy', 'spks.npy']

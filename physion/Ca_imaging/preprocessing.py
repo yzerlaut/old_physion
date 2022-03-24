@@ -12,6 +12,7 @@ PREPROCESSING_SETTINGS = {
                       'connected':True,
                       'nonrigid':0,
                       'threshold_scaling':0.5,
+                      'cellprob_threshold':0.8,
                       'neucoeff': 0.7},
     'GCamp6s_1plane_A1':{'cell_diameter':20, # in um
                          'tau':1.3,
@@ -22,6 +23,7 @@ PREPROCESSING_SETTINGS = {
                          'connected':True,
                          'nonrigid':0,
                          'threshold_scaling':0.5,
+                         'cellprob_threshold':0.8,
                          'neucoeff': 0.7},
     'INT_GCamp6s_1plane_A1':{'cell_diameter':20, # in um
                              'tau':1.3,
@@ -33,7 +35,7 @@ PREPROCESSING_SETTINGS = {
                              'anatomical_only': 3, # using the mean image only for ROI detection
                              'high_pass': 1, 
                              'nonrigid':0,
-                             'threshold_scaling':0.5,
+                             'cellprob_threshold':0.8,
                              'neucoeff': 0.7},
     'GCamp6s_5plane_A1':{'cell_diameter':20, # in um
                          'nplanes': 5,
@@ -83,12 +85,24 @@ PREPROCESSING_SETTINGS = {
                                'tau':1.3,
                                'nchannels':2,
                                'functional_chan':2,
-                               'align_by_chan':1,
+                               'align_by_chan':2,
                                'sparse_mode':False,
-                               # 'nonrigid':0,
+                               'nonrigid':0,
                                'connected':True,
                                'threshold_scaling':0.5,
                                'neucoeff': 0.7},
+    'INT_GCamp6s_1plane_2chan_A1':{'do_registration': 1,
+                                   'cell_diameter':20, # in um
+                                   'tau':1.3,
+                                   'nchannels':2,
+                                   'functional_chan':2,
+                                   'align_by_chan':1,
+                                   'sparse_mode':False,
+                                   'nonrigid':0,
+                                   'connected':True,
+                                   'anatomical_only': 3, # using the mean image only for ROI detection
+                                   'threshold_scaling':0.5,
+                                   'neucoeff': 0.7},
     'NDNF+_1plane':{'cell_diameter':20, # in um
                     'sparse_mode':True,
                     'connected':True,

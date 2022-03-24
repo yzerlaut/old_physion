@@ -2,6 +2,7 @@ import sys, time, tempfile, os, pathlib, datetime, string, pynwb, subprocess
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder, generate_filename_path, list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
@@ -105,7 +106,7 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.addItem('-> Show Raw Data')
         self.pbox.addItem('-> Trial-average')
         self.pbox.addItem('-> draw figures')
-        self.pbox.addItem('-> produce PDF summary')
+        self.pbox.addItem('-> build PDF summary')
         self.pbox.addItem('-> open PDF summary')
         self.pbox.setCurrentIndex(0)
 
@@ -242,6 +243,11 @@ class MainWindow(guiparts.NewWindow):
         self.minView = False
         self.showwindow()
 
+        if (args is not None) and hasattr(args, 'datafile') and os.path.isfile(args.datafile):
+            self.datafile=args.datafile
+            self.load_file(self.datafile)
+            plots.raw_data_plot(self, self.tzoom)
+            
 
     def init_panel_imgs(self):
         
@@ -263,7 +269,7 @@ class MainWindow(guiparts.NewWindow):
     def init_panels(self):
 
         # screen panel
-        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
+        self.pScreen = self.win1.addViewBox(lockAspect=True, invertY=False, border=[1, 1, 1], colspan=2)
         self.pScreenimg = pg.ImageItem(np.ones((10,12))*50)
         # FaceCamera panel
         self.pFace = self.win1.addViewBox(lockAspect=True, invertY=True, border=[1, 1, 1], colspan=2)
@@ -354,7 +360,7 @@ class MainWindow(guiparts.NewWindow):
         self.pbox.setCurrentIndex(1)
 
         if 'ophys' in self.data.nwbfile.processing:
-            self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.validROI_indices)-1))
+            self.roiPick.setText(' [select ROI: %i-%i]' % (0, len(self.data.valid_roiIndices)-1))
             self.ophysSelect.setChecked(True)
 
         if ('Electrophysiological-Signal' in self.data.nwbfile.acquisition) or ('Vm' in self.data.nwbfile.acquisition) or ('LFP' in self.data.nwbfile.acquisition):
@@ -561,7 +567,7 @@ class MainWindow(guiparts.NewWindow):
         elif self.pbox.currentText()=='-> draw figures':
             self.windowFG = FiguresWindow(self.datafile, parent=self)
             self.windowFG.show()
-        elif self.pbox.currentText()=='-> produce PDF summary':
+        elif self.pbox.currentText()=='-> build PDF summary':
             cmd = '%s %s %s --verbose' % (python_path,
                             os.path.join(str(pathlib.Path(__file__).resolve().parents[1]),
                                      'analysis', 'summary_pdf.py'), self.datafile)
@@ -779,6 +785,7 @@ if __name__=='__main__':
                        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=os.path.join(os.path.expanduser('~'), 'DATA'))
+    parser.add_argument('-df', "--datafile", type=str, default='')
     parser.add_argument('-v', "--visualization", action="store_true")
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)

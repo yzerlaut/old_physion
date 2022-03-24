@@ -5,18 +5,17 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 
+# custom submodules
 from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData, format_key_value
 from dataviz import tools as dv_tools
-from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from analysis.process_NWB import EpisodeResponse
 
-try:
-    from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
-    from datavyz import graph_env_manuscript as ge
-except ModuleNotFoundError:
-    print('"datavyz" module not found, get it with:\n                   `pip install git+https://github.com/yzerlaut/datavyz`  ')
+# datavyz submodule
+sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
+from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
+from datavyz import graph_env_manuscript as ge
 
 
 class FiguresWindow(NewWindow):
@@ -114,7 +113,7 @@ class FiguresWindow(NewWindow):
             Layouts[-1].addWidget(self.fovPlotBtn)
             Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'FOV type:', self)) # SEPARATOR
             self.fovType = QtWidgets.QComboBox(self)
-            self.fovType.addItems(['meanImg', 'meanImgE', 'max_proj', 'meanImg_ch2'])
+            self.fovType.addItems(['meanImg', 'meanImgE', 'max_proj'])
             Layouts[-1].addWidget(self.fovType)
             Layouts[-1].addWidget(QtWidgets.QLabel(10*' '+'NL:', self)) # SEPARATOR
             self.fovNL = QtWidgets.QSpinBox(self)

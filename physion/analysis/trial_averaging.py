@@ -6,7 +6,6 @@ import pyqtgraph as pg
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import day_folder
 from misc.guiparts import NewWindow, smallfont
-from Ca_imaging.tools import compute_CaImaging_trace
 from scipy.interpolate import interp1d
 from misc.colors import build_colors_from_array
 from analysis.process_NWB import EpisodeResponse
@@ -175,15 +174,13 @@ class TrialAverageWindow(NewWindow):
     def compute_episodes(self):
         self.select_ROI()
         if (self.qbox.currentIndex()>0) and (self.pbox.currentIndex()>0):
+            self.cQ = (self.qbox.currentText() if (self.sqbox.currentText()=='') else self.sqbox.currentText()) # CURRENT QUANTITY
             self.EPISODES = EpisodeResponse(self.data,
                                             protocol_id=self.pbox.currentIndex()-1,
-                                            quantity=self.qbox.currentText(),
-                                            subquantity=self.sqbox.currentText(),
+                                            quantities=[self.cQ],
                                             dt_sampling=self.samplingBox.value(), # ms
-                                            roiIndices=self.roiIndices,
-                                            interpolation='linear',
-                                            baseline_substraction=self.baselineCB.isChecked(),
                                             verbose=True)
+            self.cQ = self.cQ.replace('-', '').replace('_', '') # CURRENT QUANTITY
         else:
             print(' /!\ Pick a protocol an a quantity')
 
@@ -200,13 +197,16 @@ class TrialAverageWindow(NewWindow):
         
     def select_ROI(self):
         """ see dataviz/gui.py """
-        try:
-            self.roiIndices = [int(self.roiPick.text())]
-            self.statusBar.showMessage('ROIs set to %s' % self.roiIndices)
-        except BaseException:
-            self.roiIndices = [0]
-            self.roiPick.setText('0')
-            self.statusBar.showMessage('/!\ ROI string not recognized /!\ --> ROI set to [0]')
+        if self.roiPick.text() in ['sum', 'all']:
+            self.roiIndices = np.arange(self.data.iscell.sum())
+        else:
+            try:
+                self.roiIndices = [int(self.roiPick.text())]
+                self.statusBar.showMessage('ROIs set to %s' % self.roiIndices)
+            except BaseException:
+                self.roiIndices = [0]
+                self.roiPick.setText('0')
+                self.statusBar.showMessage('/!\ ROI string not recognized /!\ --> ROI set to [0]')
 
             
     def keyword_update2(self):
@@ -238,14 +238,21 @@ class TrialAverageWindow(NewWindow):
             for icol, col_cond in enumerate(COL_CONDS):
                 self.AX[irow].append(self.l.addPlot())
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    cond = np.array(col_cond & row_cond & color_cond)[:self.EPISODES.resp.shape[0]]
+                    ep_cond = np.array(col_cond & row_cond & color_cond)[:getattr(self.EPISODES, self.cQ).shape[0]]
                     pen = pg.mkPen(color=COLORS[icolor], width=2)
-                    if self.EPISODES.resp[cond,:].shape[0]>0:
-                        my = self.EPISODES.resp[cond,:].mean(axis=0)
-                        if np.sum(cond)>1:
+                    if getattr(self.EPISODES, self.cQ)[ep_cond,:].shape[0]>0:
+                        if len(getattr(self.EPISODES, self.cQ).shape)>2:
+                            # meaning
+                            signal = getattr(self.EPISODES, self.cQ)[:,self.roiIndices,:][ep_cond, :, :]
+                            if len(signal.shape)>2:
+                                signal = signal.mean(axis=1)
+                        else:
+                            signal = getattr(self.EPISODES, self.cQ)[ep_cond,:]
+                        my = signal.mean(axis=0)
+                        if np.sum(ep_cond)>1:
                             spen = pg.mkPen(color=(0,0,0,0), width=0)
                             spenbrush = pg.mkBrush(color=(*COLORS[icolor][:3], 100))
-                            sy = self.EPISODES.resp[cond,:].std(axis=0)
+                            sy = signal.std(axis=0)
                             phigh = pg.PlotCurveItem(self.EPISODES.t, my+sy, pen = spen)
                             plow = pg.PlotCurveItem(self.EPISODES.t, my-sy, pen = spen)
                             pfill = pg.FillBetweenItem(phigh, plow, brush=spenbrush)

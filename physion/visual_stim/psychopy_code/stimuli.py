@@ -2,10 +2,10 @@
 N.B. there is a mix of "grey screen" corresponding to bg-color=0 and bg-color=0.5 (see in individual protocols) TO BE FIXED
 """
 import numpy as np
-import itertools, os, sys, pathlib, time, json
+import itertools, os, sys, pathlib, time, json, tempfile
 try:
     from psychopy import visual, core, event, clock, monitors # We actually do it below so that we can use the code without psychopy
-except (ModuleNotFoundError, ImportError):
+except ModuleNotFoundError:
     pass
  
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
@@ -31,6 +31,8 @@ def build_stim(protocol, no_psychopy=False):
         return oddball_full_field_grating_stim(protocol)
     elif (protocol['Stimulus']=='center-grating'):
         return center_grating_stim(protocol)
+    elif (protocol['Stimulus']=='center-grating-image'):
+        return center_grating_stim_image(protocol)
     elif (protocol['Stimulus']=='off-center-grating'):
         return off_center_grating_stim(protocol)
     elif (protocol['Stimulus']=='surround-grating'):
@@ -52,7 +54,7 @@ def build_stim(protocol, no_psychopy=False):
     elif (protocol['Stimulus']=='looming-stim'):
         return looming_stim(protocol)
     elif (protocol['Stimulus']=='mixed-moving-dots-static-patch'):
-        return moving_dots_static_patch(protocol)
+        return mixed_moving_dots_static_patch(protocol)
     elif (protocol['Stimulus']=='sparse-noise'):
         if protocol['Presentation']=='Single-Stimulus':
             return sparse_noise(protocol)
@@ -106,7 +108,11 @@ class visual_stim:
                 self.screen['resolution'] = (600,int(600*self.screen['resolution'][1]/self.screen['resolution'][0]))
                 self.screen['screen_id'] = 0
                 self.screen['fullscreen'] = False
-                self.protocol['movie_refresh_freq'] = 5.
+                if 'movie_refresh_freq' not in protocol:
+                    self.protocol['movie_refresh_freq'] = 5.
+                else:
+                    self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq']
+                
 
             self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
 
@@ -401,7 +407,7 @@ class visual_stim:
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def single_array_sequence_presentation(self, parent, index):
-        time_indices, frames = self.get_frames_sequence(index)
+        time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         FRAMES = []
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
@@ -409,7 +415,16 @@ class visual_stim:
                                            units='pix', size=self.win.size))
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
-            iframe = int((clock.getTime()-start)*self.frame_refresh)
+            iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
+            if iframe>=len(time_indices):
+                print('for protocol:')
+                print(self.protocol)
+                print('for index:')
+                print(iframe, len(time_indices), len(frames), refresh_freq)
+                print(' /!\ Pb with time indices index  /!\ ')
+                
+                print('forcing lower values')
+                iframe = len(time_indices)-1
             FRAMES[time_indices[iframe]].draw()
             self.add_monitoring_signal(clock.getTime(), start)
             try:
@@ -471,13 +486,14 @@ class visual_stim:
     
     def plot_stim_picture(self, episode,
                           ax=None, parent=None,
-                          label=None, enhance=False):
+                          label=None, enhance=False, vse=False):
 
         cls = (parent if parent is not None else self)
         ax = self.show_frame(episode,
                              ax=ax,
                              label=label,
                              enhance=enhance,
+                             vse=vse,
                              parent=parent)
 
         return ax
@@ -498,7 +514,7 @@ class visual_stim:
                           'shift_factor':0.02,
                           'lw':2, 'fontsize':12},
                    arrow=None,
-                   vse=None,
+                   vse=False,
                    enhance=False,
                    ax=None):
         """
@@ -534,8 +550,15 @@ class visual_stim:
         ax.imshow(cls.get_image(episode,
                                  time_from_episode_start=time_from_episode_start,
                                  parent=cls),
-                  cmap='gray', vmin=0, vmax=1, aspect='equal', origin='lower')
-        
+                  cmap='gray', vmin=0, vmax=1,
+                  origin='lower',
+                  aspect='equal')
+
+        if vse:
+            if not hasattr(self, 'vse'):
+                vse = self.get_vse(episode, parent=cls)
+            self.add_vse(ax, vse)
+            
         ax.axis('off')
 
         if label is not None:
@@ -557,9 +580,10 @@ class visual_stim:
                  width=self.angle_to_pix(arrow['length'])*arrow['width_factor'],
                  color=arrow['color'])
         
-    def add_vse(self, arrow, ax):
-        """ to be written """
-        pass
+    def add_vse(self, ax, vse):
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+        ax.plot(vse['x'], vse['y'], 'o-', color='#d62728', lw=0.5, ms=2)
 
     
 #####################################################
@@ -573,10 +597,10 @@ class multiprotocol(visual_stim):
         super().__init__(protocol)
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
+            protocol['movie_refresh_freq'] = 10.
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
-        self.frame_refresh = protocol['movie_refresh_freq']
+        self.refresh_freq = protocol['movie_refresh_freq']
         
         self.STIM, i = [], 1
 
@@ -1219,13 +1243,13 @@ class gaussian_blobs(visual_stim):
         super().__init__(protocol)
         
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
+            protocol['movie_refresh_freq'] = 15.
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
-        self.frame_refresh = protocol['movie_refresh_freq']
+        self.refresh_freq = protocol['movie_refresh_freq']
         
         super().init_experiment(self.protocol,
-                                ['x-center', 'y-center', 'radius','center-time', 'extent-time', 'contrast', 'bg-color'],
+                                ['x-center', 'y-center', 'radius', 'center-time', 'extent-time', 'contrast', 'bg-color'],
                                 run_type='images_sequence')
         
             
@@ -1261,7 +1285,7 @@ class gaussian_blobs(visual_stim):
         FRAMES.append(2*bg_color-1.+0.*self.x)
         times[itend:] = len(FRAMES)-1
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
@@ -1277,18 +1301,37 @@ class gaussian_blobs(visual_stim):
 ##  ----    PRESENTING NATURAL IMAGES       --- #####
 #####################################################
 
-NI_directory = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank')
-        
+
+def get_NaturalImages_as_array(screen):
+    
+    NI_FOLDERS = [os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'physion', 'physion', 'visual_stim', 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'work', 'physion', 'physion', 'visual_stim', 'NI_bank')]
+    
+    NIarray = []
+
+    NI_directory = None
+    for d in NI_FOLDERS:
+        if os.path.isdir(d):
+            NI_directory = d
+
+    if NI_directory is not None:
+        for filename in np.sort(os.listdir(NI_directory)):
+            img = load(os.path.join(NI_directory, filename))
+            new_img = adapt_to_screen_resolution(img, screen)
+            NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        return NIarray
+    else:
+        print(' /!\  Natural Images folder not found !!! /!\  ')
+        return [np.ones(10,10)*0.5 for i in range(5)]
+    
 class natural_image(visual_stim):
 
     def __init__(self, protocol):
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID'], run_type='image')
-        self.NIarray = []
-        for filename in os.listdir(NI_directory):
-            img = load(os.path.join(NI_directory, filename))
-            new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        
+        self.NIarray = get_NaturalImages_as_array(self.screen)
 
     def get_frame(self, index, parent=None):
         cls = (parent if parent is not None else self)
@@ -1305,29 +1348,37 @@ class natural_image(visual_stim):
 
 
 def generate_VSE(duration=5,
-                 mean_saccade_duration=2.,# in s
-                 std_saccade_duration=1.,# in s
+                 min_saccade_duration=1.,# in s
+                 max_saccade_duration=3.,# in s
+                 # mean_saccade_duration=2.,# in s
+                 # std_saccade_duration=1.,# in s
                  saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
-                 seed=0):
+                 seed=0,
+                 verbose=True):
     """
     to do: clean up the VSE generator
     """
-    print('generating Virtual-Scene-Exploration [...]')
+    
+    if verbose:
+        print('generating Virtual-Scene-Exploration (with seed "%s") [...]' % seed)
     
     np.random.seed(seed)
     
-    tsaccades = np.cumsum(np.clip(np.abs(mean_saccade_duration+np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
-                                  mean_saccade_duration/4., 1.75*mean_saccade_duration))
+    tsaccades = np.cumsum(np.random.uniform(min_saccade_duration, max_saccade_duration,
+                                            size=int(3*duration/(max_saccade_duration-min_saccade_duration))))
 
-    x = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
-    y = np.random.uniform(1, 2*saccade_amplitude, size=len(tsaccades))
+    # np.clip(np.abs(mean_saccade_duration+np.random.randn(int(1.5*duration/mean_saccade_duration))*std_saccade_duration),
+    #         mean_saccade_duration/4., 1.75*mean_saccade_duration))
+
+    x = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    y = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
     
     # x = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     # y = np.array(np.clip((np.random.randn(len(tsaccades))+1)*saccade_amplitude, 1, 2*saccade_amplitude), dtype=int)
     
-    return {'t':np.array([0]+list(tsaccades)),
-            'x':np.array([0]+list(x)),
-            'y':np.array([0]+list(y)),
+    return {'t':np.array(list(tsaccades)),
+            'x':np.array(list(x)),
+            'y':np.array(list(y)),
             'max_amplitude':saccade_amplitude}
 
             
@@ -1339,20 +1390,16 @@ class natural_image_vse(visual_stim):
 
         super().__init__(protocol)
         super().init_experiment(protocol, ['Image-ID', 'VSE-seed',
-                                           'mean-saccade-duration', 'std-saccade-duration',
+                                           'min-saccade-duration', 'max-saccade-duration',
                                            'vary-VSE-with-Image', 'saccade-amplitude'],
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
-        self.frame_refresh = protocol['movie_refresh_freq']
+            protocol['movie_refresh_freq'] = 15.
+        self.refresh_freq = protocol['movie_refresh_freq']
 
         # initializing set of NI
-        self.NIarray = []
-        for filename in os.listdir(NI_directory):
-            img = load(os.path.join(NI_directory, filename))
-            new_img = adapt_to_screen_resolution(img, self.screen)
-            self.NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        self.NIarray = get_NaturalImages_as_array(self.screen)
 
 
     def compute_shifted_image(self, img, ix, iy):
@@ -1382,14 +1429,9 @@ class natural_image_vse(visual_stim):
         
     def get_frames_sequence(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        seed = self.get_seed(index, parent=cls)
-
-        vse = generate_VSE(duration=cls.experiment['time_duration'][index],
-                           mean_saccade_duration=cls.experiment['mean-saccade-duration'][index],
-                           std_saccade_duration=cls.experiment['std-saccade-duration'][index],
-                           saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][index]),
-                           seed=seed)
-
+        
+        vse = self.get_vse(index, parent=cls)
+        
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
@@ -1400,11 +1442,21 @@ class natural_image_vse(visual_stim):
             FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
             times[Times>=t] = int(i)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+
+    def get_vse(self, episode, parent=None):
+        cls = (parent if parent is not None else self)
+        seed = self.get_seed(episode, parent=cls)
+        return generate_VSE(duration=cls.experiment['time_duration'][episode],
+                            min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                            max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                            seed=seed)
+        
 
     
 #####################################################
@@ -1488,13 +1540,22 @@ class line_moving_dots(visual_stim):
 
         super().__init__(protocol)
 
+        if ('randomize' in protocol) and (protocol['randomize']=="True"):
+            self.randomize = True
+        else:
+            self.randomize = False
+            
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
-        self.frame_refresh = protocol['movie_refresh_freq']
+            protocol['movie_refresh_freq'] = 15.
+        ## /!\ here always use self.refresh_freq not the parent cls.refresh_freq ##
+        # when the parent multiprotocol will have ~10Hz refresh rate, the random case should remain 2-3Hz
+        self.refresh_freq = protocol['movie_refresh_freq']
+
+        print('line dots', self.randomize, self.refresh_freq)
         
         super().init_experiment(protocol,
                                 ['speed', 'bg-color', 'ndots', 'spacing',
-                                 'direction', 'size', 'dotcolor'],
+                                 'direction', 'size', 'dotcolor', 'seed'],
                                 run_type='images_sequence')
 
     def add_dot(self, image, pos, size, color, type='square'):
@@ -1551,11 +1612,18 @@ class line_moving_dots(visual_stim):
 
         bg_color = cls.experiment['bg-color'][index]
         
-        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+        itstart, itend = 0, int(1.2*interval*self.refresh_freq)
 
+        order = np.arange(itend)
+        if self.randomize:
+            # we randomize the order of the time sequence here !!
+            np.random.seed(int(cls.experiment['seed'][index]))
+            np.random.shuffle(order)
+            
         times, FRAMES = [], []
-        for iframe, it in enumerate(np.arange(itend)):
-            time = it/cls.protocol['movie_refresh_freq']
+            
+        for iframe in range(itend):
+            time = order[iframe]/self.refresh_freq
             img = 2*bg_color-1.+0.*self.x
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
@@ -1566,7 +1634,7 @@ class line_moving_dots(visual_stim):
             FRAMES.append(img)
             times.append(iframe)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
@@ -1608,6 +1676,7 @@ class line_moving_dots(visual_stim):
         return ax
     
         
+    
 class random_dots(visual_stim):
     """
     draft, to be improved
@@ -1654,8 +1723,8 @@ class looming_stim(visual_stim):
         super().__init__(protocol)
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
-        self.frame_refresh = protocol['movie_refresh_freq']
+            protocol['movie_refresh_freq'] = 15.
+        self.refresh_freq = protocol['movie_refresh_freq']
         
         super().init_experiment(protocol,
                                 ['radius-start', 'radius-end',
@@ -1708,7 +1777,7 @@ class looming_stim(visual_stim):
 
         t, angles = self.compute_looming_trajectory(duration=cls.experiment['looming-duration'][index],
                                                     nonlinearity=cls.experiment['looming-nonlinearity'][index],
-                                                    dt=1./self.frame_refresh,
+                                                    dt=1./self.refresh_freq,
                                                     start_size=cls.experiment['radius-start'][index],
                                                     end_size=cls.experiment['radius-end'][index])
 
@@ -1762,20 +1831,113 @@ class looming_stim(visual_stim):
             self.add_arrow(arrow, ax)
             
         return ax
+
+class center_grating_stim_image(visual_stim):
     
-class moving_dots_static_patch(visual_stim):
+    def __init__(self, protocol):
+        super().__init__(protocol)
+        super().init_experiment(protocol,
+                                ['bg-color', 'x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'],
+                                run_type='images_sequence')
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 15.
+        self.refresh_freq = protocol['movie_refresh_freq']
+        
+    def add_patch(self, image,
+                  angle=0,
+                  radius=10,
+                  spatial_freq=0.1,
+                  contrast=1.,
+                  time_phase=0.,
+                  xcenter=0, zcenter=0):
+
+        xrot = compute_xrot(self.x, self.z, angle,
+                            xcenter=xcenter, zcenter=zcenter)
+
+        cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
+        image[cond] = 2*compute_grating(xrot[cond],
+                                        spatial_freq=spatial_freq,
+                                        contrast=contrast,
+                                        time_phase=time_phase)-1
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        bg = np.ones(cls.screen['resolution'])*cls.experiment['bg-color'][index]
+
+        bg_color = cls.experiment['bg-color'][index]
+        
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+
+        times, FRAMES = [], []
+
+        for iframe, time in enumerate(np.arange(itend)/cls.protocol['movie_refresh_freq']):
+            img = 2*bg_color-1.+0.*self.x
+            self.add_patch(img,
+                           angle=cls.experiment['angle'][index],
+                           radius=cls.experiment['radius'][index],
+                           spatial_freq=cls.experiment['spatial-freq'][index],
+                           contrast=cls.experiment['contrast'][index],
+                           xcenter=cls.experiment['x-center'][index],
+                           zcenter=cls.experiment['y-center'][index])
+            
+            FRAMES.append(img)
+            times.append(iframe)
+            
+        return times, FRAMES, self.refresh_freq
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = 0*cls.x+cls.experiment['bg-color'][episode]
+        self.add_patch(img,
+                       angle=cls.experiment['angle'][episode],
+                       radius=cls.experiment['radius'][episode],
+                       spatial_freq=cls.experiment['spatial-freq'][episode],
+                       contrast=cls.experiment['patch-contrast'][episode],
+                       xcenter=cls.experiment['x-center'][episode],
+                       zcenter=cls.experiment['y-center'][episode])
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+        return ax
+    
+class mixed_moving_dots_static_patch(visual_stim):
 
     def __init__(self, protocol):
 
         super().__init__(protocol)
 
+        if ('randomize' in protocol) and (protocol['randomize']=="True"):
+            self.randomize = True
+        else:
+            self.randomize = False
+            
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 30.
-        self.frame_refresh = protocol['movie_refresh_freq']
-        
+            protocol['movie_refresh_freq'] = 15.
+        self.refresh_freq = protocol['movie_refresh_freq']
+
+        print('mixed mv dots', self.randomize, self.refresh_freq)
+
         super().init_experiment(protocol,
                                 ['speed', 'bg-color', 'ndots', 'spacing',
-                                 'direction', 'size', 'dotcolor', 'patch-delay',
+                                 'direction', 'size', 'dotcolor', 'seed',
+                                 'patch-delay', 'patch-duration',
                                  'patch-radius', 'patch-contrast', 'patch-spatial-freq', 'patch-angle'],
                                 run_type='images_sequence')
 
@@ -1793,9 +1955,9 @@ class moving_dots_static_patch(visual_stim):
 
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
         image[cond] = 2*compute_grating(xrot[cond],
-                                      spatial_freq=spatial_freq,
-                                      contrast=contrast,
-                                      time_phase=time_phase)-1
+                                        spatial_freq=spatial_freq,
+                                        contrast=contrast,
+                                        time_phase=time_phase)-1
 
         
     def add_dot(self, image, pos, size, color, type='square'):
@@ -1850,13 +2012,23 @@ class moving_dots_static_patch(visual_stim):
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
         X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(index, cls)
 
+        # center time (of the moving dot stim) is the half duration of the stimulus
+        center_time = interval/2.
+        
         bg_color = cls.experiment['bg-color'][index]
         
         itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
 
+        order = np.arange(itend)
+        if self.randomize:
+            # we randomize the order of the time sequence here !!
+            np.random.seed(int(cls.experiment['seed'][index]))
+            np.random.shuffle(order)
+            
         times, FRAMES = [], []
-        for iframe, it in enumerate(np.arange(itend)):
-            time = it/cls.protocol['movie_refresh_freq']
+
+        for iframe in range(itend):
+            time = order[iframe]/self.refresh_freq
             img = 2*bg_color-1.+0.*self.x
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
@@ -1864,7 +2036,8 @@ class moving_dots_static_patch(visual_stim):
                 self.add_dot(img, new_position,
                              cls.experiment['size'][index],
                              cls.experiment['dotcolor'][index])
-            if time>cls.experiment['patch-delay'][index]:
+            if (time>(interval/2.+cls.experiment['patch-delay'][index])) and\
+               (time<(interval/2.+cls.experiment['patch-delay'][index]+cls.experiment['patch-duration'][index])):
                 self.add_patch(img,
                                angle=cls.experiment['patch-angle'][index],
                                radius=cls.experiment['patch-radius'][index],
@@ -1874,7 +2047,7 @@ class moving_dots_static_patch(visual_stim):
             FRAMES.append(img)
             times.append(iframe)
             
-        return times, FRAMES
+        return times, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
@@ -1887,6 +2060,11 @@ class moving_dots_static_patch(visual_stim):
             self.add_dot(img, new_position,
                          cls.experiment['size'][episode],
                          cls.experiment['dotcolor'][episode])
+        self.add_patch(img,
+                       angle=cls.experiment['angle'][episode],
+                       radius=cls.experiment['radius'][episode],
+                       spatial_freq=cls.experiment['spatial-freq'][episode],
+                       contrast=cls.experiment['patch-contrast'][episode])
         return img
 
     def plot_stim_picture(self, episode,
@@ -1915,6 +2093,18 @@ class moving_dots_static_patch(visual_stim):
 
         return ax
     
+
+class dummy_datafolder:
+    def __init__(self):
+        pass
+    def get(self):
+        # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+        return tempfile.gettempdir()
+
+class dummy_parent:
+    def __init__(self):
+        self.stop_flag = False
+        self.datafolder = dummy_datafolder()
     
 if __name__=='__main__':
 
@@ -1924,22 +2114,16 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/CB1-project-protocol.json', 'r') as fp:
     # with open('physion/exp/protocols/ff-drifting-grating-contrast-curve-log-spaced.json', 'r') as fp:
     # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
-    # with open('physion/exp/protocols/looming-stim.json', 'r') as fp:
+    # with open('physion/exp/protocols/NI+Scene-Exploration-2-SE-trajectories-10-repeats.json', 'r') as fp:
+    # with open('physion/exp/protocols/NI-VSE-2images-2vse.json', 'r') as fp:
+    # with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
+    # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
+    # with open('physion/exp/protocols/random-mixed-moving-dots-static-patch.json', 'r') as fp:
     with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True
-    
-    class df:
-        def __init__(self):
-            pass
-        def get(self):
-            return tempfile.gettempdir()
-        
-    class dummy_parent:
-        def __init__(self):
-            self.stop_flag = False
-            self.datafolder = df()
 
     stim = build_stim(protocol)
     parent = dummy_parent()

@@ -165,6 +165,7 @@ def build_NWB(args,
                                                   unit='seconds',
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
+                
             for key in VisualStim:
                 None_cond = np.array([isinstance(e, type(None)) for e in VisualStim[key]]) # just checks for 'None' values
                 if key in ['protocol_id', 'index']:
@@ -181,6 +182,7 @@ def build_NWB(args,
                                                   unit='NA',
                                                   timestamps=timestamps)
                 nwbfile.add_stimulus(VisualStimProp)
+                
         else:
             print(' /!\ No VisualStim metadata found /!\ ')
         #     # print('   -----> Not able to build NWB file for "%s" ' % args.datafolder)

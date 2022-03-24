@@ -35,10 +35,20 @@ The software is organized into several modules to perform the acquisition, the p
    ```
    For an installation on an acquisition setup, see the [dedicated instructions](physion/hardware_control/#Installation)
 
+3. *Optional* Install submodule dependencies to benefit from the full analysis and data-visualization features
+
+   ```
+   git submodule init
+   git submodule update
+   pip install physion/dataviz/datavyz/.  # datavyz sub-module, see  
+   pip install physion/analysis/analyz/.   # analyz sub-module
+   ```
+
 ## Getting started
 
 After the installation, the program is the launched from the [Anaconda prompt](https://docs.anaconda.com/anaconda/user-guide/getting-started/#write-a-python-program-using-anaconda-prompt-or-terminal) by typing:
    ```
+   conda activate physion	
    python -m physion
    ```
 
@@ -48,6 +58,7 @@ The different modules of the software are documented in the following links:
 
 - [Visual stimulation](physion/visual_stim/README.md) -- relying on [PsychoPy](https://psychopy.org)
 - [Performing multimodal recordings](physion/exp/README.md)
+- [Intrinsic Imaging](physion/intrinsic/README.md)
 - [Electrophysiology](physion/electrophy/README.md)
 - [Calcium imaging](physion/Ca_imaging/README.md) -- pipeline based on [Suite2P](https://github.com/MouseLand/suite2p)
 - [Pupil tracking](physion/pupil/README.md)

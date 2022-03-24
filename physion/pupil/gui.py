@@ -194,6 +194,9 @@ class MainWindow(NewWindow):
         self.load = QtWidgets.QPushButton('  load data [Ctrl+O]  \u2b07')
         self.load.clicked.connect(self.load_data)
 
+        self.loadLastGUIsettings = QtWidgets.QPushButton("last GUI settings")
+        self.loadLastGUIsettings.clicked.connect(self.load_last_gui_settings)
+        
         sampLabel = QtWidgets.QLabel("Subsampling (frame)")
         sampLabel.setStyleSheet("color: gray;")
         self.samplingBox = QtWidgets.QLineEdit()
@@ -243,6 +246,7 @@ class MainWindow(NewWindow):
         for x in [self.process, self.cursor1, self.cursor2, self.runAsSubprocess, self.load,
                   self.saverois, self.addROI, self.interpBtn, self.processOutliers,
                   self.stdBox, self.wdthBox, self.excludeOutliers, self.printSize, cursorLabel,
+                  self.loadLastGUIsettings,
                   sampLabel, smoothLabel, stdLabel, wdthLabel, self.smoothBox, self.samplingBox]:
             x.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         
@@ -265,6 +269,7 @@ class MainWindow(NewWindow):
 
         self.l0.addWidget(self.folderB,1,0,1,3)
         self.l0.addWidget(self.load,2,0,1,3)
+        self.l0.addWidget(self.loadLastGUIsettings, 7, 0, 1, 3)
         self.l0.addWidget(sampLabel, 8, 0, 1, 3)
         self.l0.addWidget(self.samplingBox, 8, 2, 1, 3)
         self.l0.addWidget(smoothLabel, 9, 0, 1, 3)
@@ -360,6 +365,46 @@ class MainWindow(NewWindow):
                 self.movieLabel.setText(folder)
 
 
+    def save_gui_settings(self):
+
+        settings = {'gaussian_smoothing':int(self.smoothBox.text())}
+        if len(self.bROI)>0:
+            settings['blanks'] = [r.extract_props() for r in self.bROI]
+        if len(self.reflectors)>0:
+            settings['reflectors'] = [r.extract_props() for r in self.reflectors]
+        if self.ROI is not None:
+            settings['ROIellipse'] = self.ROI.extract_props()
+        if self.pupil is not None:
+            settings['ROIpupil'] = self.pupil.extract_props()
+        settings['ROIsaturation'] = self.sl.value()
+        
+        np.save(os.path.join(pathlib.Path(__file__).resolve().parent, '_gui_settings.npy'), settings)
+
+    def load_last_gui_settings(self):
+
+        try:
+            settings = np.load(os.path.join(pathlib.Path(__file__).resolve().parent, '_gui_settings.npy'),
+                               allow_pickle=True).item()
+
+            self.smoothBox.setText('%i' % settings['gaussian_smoothing'])
+            self.sl.setValue(int(settings['ROIsaturation']))
+            self.ROI = roi.sROI(parent=self,
+                                pos=roi.ellipse_props_to_ROI(settings['ROIellipse']))
+
+            self.bROI, self.reflectors = [], [] # blanks & reflectors
+            for b in settings['blanks']:
+                self.bROI.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self,
+                                                pos=roi.ellipse_props_to_ROI(b)))
+            if 'reflectors' in settings:
+                for r in settings['reflectors']:
+                    self.reflectors.append(roi.reflectROI(len(self.bROI), moveable=True, parent=self,
+                                                          pos=roi.ellipse_props_to_ROI(r), color='green'))
+                
+            self.jump_to_frame()
+        except FileNotFoundError:
+            print('\n /!\ last GUI settings not found ... \n')
+
+            
     def reset(self):
         for r in self.bROI:
             r.remove(self)
@@ -602,18 +647,22 @@ class MainWindow(NewWindow):
             # self.data = process.clip_to_finite_values(self.data, ['cx', 'cy', 'sx', 'sy', 'residual', 'angle'])
             np.save(os.path.join(self.datafolder, 'pupil.npy'), self.data)
             print('Data successfully saved as "%s"' % os.path.join(self.datafolder, 'pupil.npy'))
+            self.save_gui_settings()
         else:
             print('Need to pre-process data ! ')
             
         
     def process(self):
         self.process_ROIs()
+        self.save_gui_settings()
         
     def process_ROIs(self):
 
-        self.data = {}
-        self.extract_ROI(self.data)
-        
+        if (self.data is None) or ('frame' in self.data):
+            self.data = {}
+            self.extract_ROI(self.data)
+
+            
         self.subsampling = int(self.samplingBox.text())
 
         print('processing pupil size over the whole recording [...]')

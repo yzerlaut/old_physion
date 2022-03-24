@@ -67,7 +67,6 @@ def bruker_xml_parser(filename):
                                                     depths[g.attrib['description']].append(float(g.attrib['value']))
                                                 except ValueError:
                                                     pass
-                                                    # print(g.attrib['description'], g.attrib['value'])
 
 
     # dealing with depth  --- MANUAL for piezo plane-scanning mode because the bruker xml files don't hold this info...

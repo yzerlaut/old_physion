@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
 from visual_stim.psychopy_code.stimuli import build_stim
+from Ca_imaging.tools import compute_dFoF, METHOD, T_SLIDING_MIN, PERCENTILE_SLIDING_MIN, NEUROPIL_CORRECTION_FACTOR
 
 
 class Data:
@@ -113,7 +114,7 @@ class Data:
                 try:
                     self.tlim = [self.nwbfile.acquisition[key].starting_time,
                                  self.nwbfile.acquisition[key].starting_time+\
-                                 self.nwbfile.acquisition[key].data.shape[0]/self.nwbfile.acquisition[key].rate]
+                                 (self.nwbfile.acquisition[key].data.shape[0]-1)/self.nwbfile.acquisition[key].rate]
                 except BaseException as be:
                     pass
         if self.tlim is None:
@@ -126,7 +127,7 @@ class Data:
             self.read_and_format_ophys_data()
         else:
             for key in ['Segmentation', 'Fluorescence', 'iscell', 'redcell', 'plane',
-                        'validROI_indices', 'Neuropil', 'Deconvolved']:
+                        'valid_roiIndices', 'Neuropil', 'Deconvolved']:
                 setattr(self, key, None)
                 
         if 'Pupil' in self.nwbfile.processing:
@@ -137,20 +138,20 @@ class Data:
             
     def resample(self, x, y, new_time_sampling,
                  interpolation='linear'):
-        """
-        linear interpolation by default
-        switch to "nearest neightbor" interpolation if you want to remove boundary errors
-        """
-        if interpolation=='linear':
+        try:
             func = interp1d(x, y,
-                            kind='linear')
-        elif interpolation=='nearest':
+                            kind=interpolation)
+            return func(new_time_sampling)
+        except ValueError:
+            print(' /!\ ValueError: A value in x_new is above the interpolation range /!\ ' )
+            print('   -->  interpolated at boundaries with mean value ' )
             func = interp1d(x, y,
-                            kind='nearest',
+                            kind=interpolation,
                             bounds_error=False,
-                            fill_value='extrapolate')
-        return func(new_time_sampling)
-
+                            fill_value=np.mean(y))
+            return func(new_time_sampling)
+            
+   
     #########################################################
     #       CALCIUM IMAGING DATA (from suite2p output)      #
     #########################################################
@@ -169,41 +170,37 @@ class Data:
         self.pixel_masks = self.Segmentation.columns[1].data[:]
         # other ROI properties --- by default:
         self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
-        self.validROI_indices = np.arange(len(self.Fluorescence.data[:,0]))
+        self.valid_roiIndices = np.arange(len(self.Fluorescence.data[:,0])) # POTENTIALLY UPDATED AT THE dF/F calculus point (because of the positive F0 criterion) 
         self.planeID = np.zeros(len(self.Fluorescence.data[:,0]), dtype=int)
         self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
         # looping over the table properties (0,1 -> rois locs) for the ROIS to overwrite the defaults:
         for i in range(2, len(self.Segmentation.columns)):
             if self.Segmentation.columns[i].name=='iscell': # DEPRECATED
                 self.iscell = self.Segmentation.columns[i].data[:,0].astype(bool)
-                self.validROI_indices = np.arange(len(self.iscell))[self.iscell]
+                self.valid_roiIndices = np.arange(len(self.iscell))[self.iscell]
             if self.Segmentation.columns[i].name=='plane':
                 self.planeID = self.Segmentation.columns[i].data[:].astype(int)
             if self.Segmentation.columns[i].name=='redcell':
                 self.redcell = self.Segmentation.columns[2].data[:,0].astype(bool)
                 
-
-    def build_time_from_rate(self, quantity):
-        return np.arange(quantity.data.shape[0])/quantity.rate
-    
-    ##########################
-    #       Running-Speed
-    ##########################
-
-    def build_running_speed(self,
-                           specific_time_sampling=None,
-                           interpolation='linear'):
-        """
-        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
-        """
-        self.t_runningSpeed = self.build_time_from_rate(self.nwbfile.acquisition['Running-Speed'])
-        self.runningSpeed = self.nwbfile.acquisition['Running-Speed'].data[:]
         
+    ######################
+    #    LOCOMOTION
+    ######################
+    def build_running_speed(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.running_speed = self.nwbfile.acquisition['Running-Speed'].data[:]
+        self.t_running_speed = self.nwbfile.acquisition['Running-Speed'].starting_time+\
+            np.arange(self.nwbfile.acquisition['Running-Speed'].num_samples)/self.nwbfile.acquisition['Running-Speed'].rate
+
         if specific_time_sampling is not None:
-            return self.resample(self.t_runningSpeed, self.runningSpeed,
-                                 specific_time_sampling, interpolation=interpolation)
+            return self.resample(self.t_running_speed, self.running_speed, specific_time_sampling, interpolation=interpolation)
 
-
+    
     ######################
     #       PUPIL 
     ######################        
@@ -221,16 +218,28 @@ class Data:
         """
         build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
         """
-        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps[:]
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
         self.pupil_diameter =  2*np.max([self.nwbfile.processing['Pupil'].data_interfaces['sx'].data[:],
                                          self.nwbfile.processing['Pupil'].data_interfaces['sy'].data[:]], axis=0)
 
         if specific_time_sampling is not None:
-            return self.resample(self.t_pupil, self.pupil_diameter,
-                                 specific_time_sampling, interpolation=interpolation)
+            return self.resample(self.t_pupil, self.pupil_diameter, specific_time_sampling, interpolation=interpolation)
 
 
-    # TODO add Gaze here !!
+    def build_gaze_movement(self,
+                            specific_time_sampling=None,
+                            interpolation='linear'):
+        """
+        build distance from mean (x,y) position of pupil
+        """
+        self.t_pupil = self.nwbfile.processing['Pupil'].data_interfaces['cx'].timestamps
+        cx = self.nwbfile.processing['Pupil'].data_interfaces['cx'].data[:]
+        cy = self.nwbfile.processing['Pupil'].data_interfaces['cy'].data[:]
+        self.gaze_movement = np.sqrt((cx-np.mean(cx))**2+(cy-np.mean(cy))**2)
+
+        if specific_time_sampling is not None:
+            return self.resample(self.t_pupil, self.gaze_movement, specific_time_sampling, interpolation=interpolation)
+        
 
     #########################
     #       FACEMOTION  
@@ -245,20 +254,69 @@ class Data:
                          specific_time_sampling=None,
                          interpolation='linear'):
         """
-        build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
+        build facemotion
         """
-        self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps[:]
+        self.t_facemotion = self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].timestamps
         self.facemotion =  self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'].data[:]
-        
+
         if specific_time_sampling is not None:
-            return self.resample(self.t_facemotion, self.facemotion,
-                                 specific_time_sampling, interpolation=interpolation)
+            return self.resample(self.t_facemotion, self.facemotion, specific_time_sampling, interpolation=interpolation)
 
+    #############################
+    #       Calcium Imaging     #
+    #############################
 
-    def close(self):
-        self.io.close()
+    def compute_ROI_indices(self,
+                            roiIndex=None, roiIndices='all',
+                            verbose=True):
+        if not hasattr(self, 'nROIs'):
+            print(' /!\ ROIs did not go through the "positive F0" criterion /!\ \n       --> need to call "data.build_dFoF()" first !  ')
+
+        if roiIndex is not None:
+            return roiIndex
+        elif roiIndices=='all':
+            return np.array(self.valid_roiIndices, dtype=int)
+        else:
+            return np.array(self.valid_roiIndices[np.array(roiIndices)], dtype=int)
         
-            
+        
+    def build_dFoF(self,
+                   neuropil_correction_factor=NEUROPIL_CORRECTION_FACTOR,
+                   method_for_F0=METHOD,
+                   percentile=PERCENTILE_SLIDING_MIN,
+                   sliding_window=T_SLIDING_MIN,
+                   return_corrected_F_and_F0=False,
+                   verbose=True):
+        """
+        creates self.nROIs, self.dFoF, self.t_dFoF
+        """
+        return compute_dFoF(self,
+                            neuropil_correction_factor=neuropil_correction_factor,
+                            method_for_F0=method_for_F0,
+                            percentile=percentile,
+                            sliding_window=sliding_window,
+                            return_corrected_F_and_F0=return_corrected_F_and_F0,
+                            verbose=verbose)
+
+    def build_neuropil(self,
+                       roiIndex=None, roiIndices='all',
+                       verbose=True):
+        self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
+        if not hasattr(self, 't_Neuropil'):
+            self.t_neuropil = self.Neuropil.timestamps[:]
+
+    def build_rawFluo(self,
+                      roiIndex=None, roiIndices='all',
+                      verbose=True):
+        self.rawFluo = self.Fluorescence.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
+        if not hasattr(self, 't_rawFluo'):
+            self.t_rawFluo = self.Neuropil.timestamps[:]
+        
+    
+    ################################################
+    #       episodes and visual stim protocols     #
+    ################################################
+    
     def init_visual_stim(self):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
         self.visual_stim = build_stim(self.metadata, no_psychopy=True)
@@ -283,6 +341,7 @@ class Data:
             Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
             
         # limiting to available episodes
+
         Pcond[np.arange(len(Pcond))>=self.nwbfile.stimulus['time_start_realigned'].num_samples] = False
 
         return Pcond
@@ -324,13 +383,21 @@ class Data:
             return -1
 
         
+    ###########################
+    #       other methods     #
+    ###########################
+    
+    def close(self):
+        self.io.close()
+        
     def list_subquantities(self, quantity):
         if quantity=='CaImaging':
-            return ['dF/F', 'Fluorescence', 'Neuropil', 'Deconvolved',
+            return ['rawFluo', 'dFoF', 'neuropil', 'Deconvolved',
                     'F-0.7*Fneu', 'F-Fneu', 'd(F-Fneu)', 'd(F-0.7*Fneu)']
         else:
             return ['']
         
+            
         
 def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
 
@@ -367,9 +434,7 @@ if __name__=='__main__':
 
     data = Data(sys.argv[-1])
     # print(data.nwbfile.processing['ophys'])
-    t = data.Neuropil.timestamps[:]
-    running = data.build_running_speed(specific_time_sampling=t)
-    print(running)
+    data.build_dFoF()
     
     
 

@@ -11,15 +11,18 @@
 				   "onset": 0.1,
 				   "duration":0.3,
 				   "value":5.0},
-    "rotating-disk":{"radius-position-on-disk-cm":7.5,
-		     "roto-encoder-value-per-rotation": -25800.0},
+    "rotating-disk":{"radius-position-on-disk-cm":9.0,
+		     "roto-encoder-value-per-rotation": -25300.0},
     "root_datafolder":"DATA",
     "subjects_file":"mice_yann.json",
     "experimenter":"Yann Zerlaut",
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
     "protocols":["direction-selectivity-precise", "light-levels-3repeatsx5levelsx2min",
-		 "ff-drifting-grating-contrast-curve", "spatial-mapping-fast", "neurometric-task",
-		  "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "size-tuning-protocol", "secondary-receptive-field",
-		  "mismatch-negativity", "NDNF-protocol"]
+		 "ff-drifting-grating-contrast-curve", "spatial-mapping-precise",
+		 "spatial-mapping-fast", "neurometric-task", "neurometric-task-fast",
+		 "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "size-tuning-protocol", "secondary-receptive-field",
+		 "mismatch-negativity", "NDNF-protocol", 
+		 "NI+Scene-Exploration-2-SE-trajectories-10-repeats","NI-VSE-2images-2vse",
+		 "motion-contour-interaction"]
 }

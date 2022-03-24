@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.app, self.args, self.CHILDREN_PROCESSES = app, args, []
         
-        self.setGeometry(400, 470, 300, 380)
+        self.setGeometry(350, 470, 300, 350)
         # adding a "quit" and "load" keyboard shortcuts
         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
         self.quitSc.activated.connect(self.quit)
@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(list(PREPROCESSING_SETTINGS.keys()))
+        self.cbc.addItems(['automated']+list(PREPROCESSING_SETTINGS.keys()))
 
         HEIGHT += 40
         QtWidgets.QLabel("   delay ?", self).move(10, HEIGHT)
@@ -66,12 +66,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                 '1h', '2h', '3h', '5h', '10h', '20h', '40h'])
         
         HEIGHT +=40 
-        self.rmBox = QtWidgets.QCheckBox(' remove prev. "./suite2p/" ', self)
-        self.rmBox.setStyleSheet("color: gray;")
-        self.rmBox.setMinimumWidth(200)
-        self.rmBox.move(50, HEIGHT)
-        
-        HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
         self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.gen.clicked.connect(self.run)
@@ -79,25 +73,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.gen.move(50, HEIGHT)
         
         HEIGHT +=40 
-        self.suite2p = QtWidgets.QPushButton(' open Suite2p ', self)
-        self.suite2p.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.suite2p.clicked.connect(self.open_suite2p)
-        self.suite2p.setMinimumWidth(200)
-        self.suite2p.move(50, HEIGHT)
+        self.gen = QtWidgets.QPushButton(' open Suite2p ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.open_suite2p)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
         
         HEIGHT +=40 
-        self.red = QtWidgets.QPushButton('red-cell selection GUI ', self)
-        self.red.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.red.clicked.connect(self.red_cell_selection)
-        self.red.setMinimumWidth(200)
-        self.red.move(50, HEIGHT)
+        self.gen = QtWidgets.QPushButton('red-cell selection GUI ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.red_cell_selection)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
 
         HEIGHT +=40 
-        self.zstack = QtWidgets.QPushButton('Zstack cell selection GUI ', self)
-        self.zstack.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
-        self.zstack.clicked.connect(self.zstack_selection)
-        self.zstack.setMinimumWidth(200)
-        self.zstack.move(50, HEIGHT)
+        self.gen = QtWidgets.QPushButton('Zstack cell selection GUI ', self)
+        self.gen.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.gen.clicked.connect(self.zstack_selection)
+        self.gen.setMinimumWidth(200)
+        self.gen.move(50, HEIGHT)
         
         self.CMDS = []
         self.show()
@@ -107,38 +101,49 @@ class MainWindow(QtWidgets.QMainWindow):
         print('command set is reset !')
     
     def build_cmd(self, folder, key):
-        
         delay = ''
         if self.delayBox.currentText()!='None':
             delay = 'sleep %s; ' % self.delayBox.currentText()
+        print(folder)
+        return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
+                                                                            self.process_script, folder, key)
 
-        if self.rmBox.isChecked():
-            return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v %s' % (python_path_suite2p_env,
-                                                                                   self.process_script,
-                                                                                   folder, key,
-                                                                                   '--remove_previous')
+    def find_suite2p_settings(self, folder):
+        settings = None
+        if self.cbc.currentText()=='automated':
+            potential_settings = folder.split('-')[-2]
+            if potential_settings in list(PREPROCESSING_SETTINGS.keys()):
+                settings = potential_settings
+            else:
+                print('settings not found for', folder)
         else:
-            return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
-                                                                                self.process_script,
-                                                                                folder, key)
-    
+            settings = self.cbc.currentText()
+        print(settings)
+        return settings
+        
     def load_imaging(self):
 
         folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderI.currentText()])
         if folder!='':
-            if ('Tseries' in str(folder)) or ('TSeries' in str(folder)):
-                self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
+            if ('TSeries' in str(folder)):
+                settings = self.find_suite2p_settings(str(folder))
+                if settings is not None:
+                    self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
+                else:
+                    print('settings note recognized !')
             else:
                 folders = get_TSeries_folders(folder, limit_to_subdirectories=False)
                 for f in folders:
-                    self.CMDS.append(self.build_cmd(f, self.cbc.currentText()))
+                    settings = self.find_suite2p_settings(str(f))
+                    if settings is not None:
+                        self.CMDS.append(self.build_cmd(f, settings))
             for cmd in self.CMDS:
                 print('"%s" added to command set' % cmd)
 
         if len(self.CMDS)==0:
-            print('\n /!\ no "TSeries" folder found, set of command is empty ! \n')
+            print('\n /!\ no "TSeries" folder found or added, set of command is empty ! \n')
                 
     def run(self):
         if len(self.CMDS)==0:

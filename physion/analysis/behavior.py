@@ -3,10 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from datavyz import graph_env_manuscript as ge
+# datavyz submodule
+try:
+    from datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    print('--------------------------------------------')
+    print('  "datavyz" submodule not found')
+    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
+    print('             (after a "git submodule init; git submodule update" if not already done) ')
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from dataviz.show_data import Data, MultimodalData
+from dataviz.show_data import MultimodalData
 from dataviz import tools
 
 from analysis.tools import *
@@ -221,7 +228,7 @@ def population_analysis(FILES,
         
     for f in FILES:
 
-        data = Data(f)
+        data = MultimodalData(f)
         if (data.nwbfile is not None) and ('Running-Speed' in data.nwbfile.acquisition):
             speed = data.nwbfile.acquisition['Running-Speed'].data[:]
             max_time = len(speed)/data.nwbfile.acquisition['Running-Speed'].rate
