@@ -109,7 +109,7 @@ class visual_stim:
                 self.screen['screen_id'] = 0
                 self.screen['fullscreen'] = False
                 if 'movie_refresh_freq' not in protocol:
-                    self.protocol['movie_refresh_freq'] = 5.
+                    self.protocol['movie_refresh_freq'] = 10.
                 else:
                     self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq']
                 
@@ -409,6 +409,8 @@ class visual_stim:
     def single_array_sequence_presentation(self, parent, index):
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         FRAMES = []
+        if 'protocol_id' in self.experiment:
+            print('protocol_id: ', self.experiment['protocol_id'][index])
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
                                            image=self.gamma_corrected_lum(frame),
@@ -417,8 +419,8 @@ class visual_stim:
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
             if iframe>=len(time_indices):
-                print('for protocol:')
-                print(self.protocol)
+                # print('for protocol:')
+                # print(self.protocol[''])
                 print('for index:')
                 print(iframe, len(time_indices), len(frames), refresh_freq)
                 print(' /!\ Pb with time indices index  /!\ ')
@@ -1243,7 +1245,7 @@ class gaussian_blobs(visual_stim):
         super().__init__(protocol)
         
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
         self.refresh_freq = protocol['movie_refresh_freq']
@@ -1268,17 +1270,17 @@ class gaussian_blobs(visual_stim):
         bg_color = cls.experiment['bg-color'][index]
         
         t0, sT = cls.experiment['center-time'][index], cls.experiment['extent-time'][index]
-        itstart = np.max([0, int((t0-cls.protocol['appearance_threshold']*sT)*cls.protocol['movie_refresh_freq'])])
-        itend = np.min([int(interval*cls.protocol['movie_refresh_freq']),
-                        int((t0+cls.protocol['appearance_threshold']*sT)*cls.protocol['movie_refresh_freq'])])
+        itstart = np.max([0, int((t0-cls.protocol['appearance_threshold']*sT)*self.refresh_freq)])
+        itend = np.min([int(interval*self.refresh_freq),
+                        int((t0+cls.protocol['appearance_threshold']*sT)*self.refresh_freq)])
 
-        times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
+        times, FRAMES = np.zeros(int(1.2*interval*self.refresh_freq), dtype=int), []
         # the pre-time
         FRAMES.append(2*bg_color-1.+0.*self.x)
         times[:itstart] = 0
         for iframe, it in enumerate(np.arange(itstart, itend)):
             img = 2*(np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
-                     contrast*np.exp(-(it/cls.protocol['movie_refresh_freq']-t0)**2/2./sT**2)+bg_color)-1.
+                     contrast*np.exp(-(it/self.refresh_freq-t0)**2/2./sT**2)+bg_color)-1.
             FRAMES.append(img)
             times[it] = iframe
         # the post-time
@@ -1395,7 +1397,7 @@ class natural_image_vse(visual_stim):
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
 
         # initializing set of NI
@@ -1435,8 +1437,8 @@ class natural_image_vse(visual_stim):
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        times, FRAMES = np.zeros(int(1.2*interval*cls.protocol['movie_refresh_freq']), dtype=int), []
-        Times = np.arange(int(1.2*interval*cls.protocol['movie_refresh_freq']))/cls.protocol['movie_refresh_freq']
+        times, FRAMES = np.zeros(int(1.2*interval*self.refresh_freq), dtype=int), []
+        Times = np.arange(int(1.2*interval*self.refresh_freq))/self.refresh_freq
 
         for i, t in enumerate(vse['t']):
             FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
@@ -1546,7 +1548,7 @@ class line_moving_dots(visual_stim):
             self.randomize = False
             
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         ## /!\ here always use self.refresh_freq not the parent cls.refresh_freq ##
         # when the parent multiprotocol will have ~10Hz refresh rate, the random case should remain 2-3Hz
         self.refresh_freq = protocol['movie_refresh_freq']
@@ -1723,7 +1725,7 @@ class looming_stim(visual_stim):
         super().__init__(protocol)
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
         
         super().init_experiment(protocol,
@@ -1781,7 +1783,7 @@ class looming_stim(visual_stim):
                                                     start_size=cls.experiment['radius-start'][index],
                                                     end_size=cls.experiment['radius-end'][index])
 
-        itend = int(1.2*interval*cls.protocol['movie_refresh_freq'])
+        itend = int(1.2*interval*self.refresh_freq)
 
         times_index_to_frames, FRAMES = [0], [bg.copy()]
         for it in range(len(t))[1:]:
@@ -1792,7 +1794,7 @@ class looming_stim(visual_stim):
             FRAMES.append(img)
             times_index_to_frames.append(it)
         it = len(t)-1
-        while it<len(t)+int(cls.experiment['end-duration'][index]*cls.protocol['movie_refresh_freq']):
+        while it<len(t)+int(cls.experiment['end-duration'][index]*self.refresh_freq):
             times_index_to_frames.append(len(FRAMES)-1) # the last one
             it+=1
         while it<itend:
@@ -1841,7 +1843,7 @@ class center_grating_stim_image(visual_stim):
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
         
     def add_patch(self, image,
@@ -1871,11 +1873,11 @@ class center_grating_stim_image(visual_stim):
         bg_color = cls.experiment['bg-color'][index]
         
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+        itstart, itend = 0, int(1.2*interval*self.refresh_freq)
 
         times, FRAMES = [], []
 
-        for iframe, time in enumerate(np.arange(itend)/cls.protocol['movie_refresh_freq']):
+        for iframe, time in enumerate(np.arange(itend)/self.refresh_freq):
             img = 2*bg_color-1.+0.*self.x
             self.add_patch(img,
                            angle=cls.experiment['angle'][index],
@@ -1929,7 +1931,7 @@ class mixed_moving_dots_static_patch(visual_stim):
             self.randomize = False
             
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 15.
+            protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
 
         print('mixed mv dots', self.randomize, self.refresh_freq)
@@ -2017,7 +2019,7 @@ class mixed_moving_dots_static_patch(visual_stim):
         
         bg_color = cls.experiment['bg-color'][index]
         
-        itstart, itend = 0, int(1.2*interval*cls.protocol['movie_refresh_freq'])
+        itstart, itend = 0, int(1.2*interval*self.refresh_freq)
 
         order = np.arange(itend)
         if self.randomize:
@@ -2028,11 +2030,12 @@ class mixed_moving_dots_static_patch(visual_stim):
         times, FRAMES = [], []
 
         for iframe in range(itend):
-            time = order[iframe]/self.refresh_freq
+            rdm_time = order[iframe]/self.refresh_freq
+            time = np.arange(itend)[iframe]
             img = 2*bg_color-1.+0.*self.x
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
-                new_position = (x0+dx_per_time*time, y0+dy_per_time*time)
+                new_position = (x0+dx_per_time*rdm_time, y0+dy_per_time*rdm_time)
                 self.add_dot(img, new_position,
                              cls.experiment['size'][index],
                              cls.experiment['dotcolor'][index])
@@ -2116,11 +2119,11 @@ if __name__=='__main__':
     # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
     # with open('physion/exp/protocols/NI+Scene-Exploration-2-SE-trajectories-10-repeats.json', 'r') as fp:
     # with open('physion/exp/protocols/NI-VSE-2images-2vse.json', 'r') as fp:
-    # with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
     # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
+    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-mixed-moving-dots-static-patch.json', 'r') as fp:
-    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True

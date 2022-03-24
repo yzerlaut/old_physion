@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+from physion.analysis.read_NWB import Data
 from physion.dataviz.show_data import MultimodalData, EpisodeResponse
 from physion.analysis.tools import summary_pdf_folder
 from datavyz import graph_env_screen as ge
@@ -112,32 +113,44 @@ def run_analysis_and_save_figs(datafile,
 
     pdf_filename = os.path.join(summary_pdf_folder(datafile), 'motion-contour-interaction.pdf')
 
-    # computing episodes
-    episode_static_patch = EpisodeResponse(datafile, protocol_id=0, quantities=['dFoF'],
-                                           prestim_duration=3)
-    episode_moving_dots = EpisodeResponse(datafile, protocol_id=1, quantities=['dFoF'],
-                                           prestim_duration=3)
-    if len(episode_static_patch.data.protocols)<5:
-        episode_mixed = EpisodeResponse(datafile, protocol_id=2, quantities=['dFoF'],
-                                        prestim_duration=3)
-        episode_random_dots = None
-        episode_mixed_random_dots = None
-    else:
-        episode_random_dots = EpisodeResponse(datafile, protocol_id=2, quantities=['dFoF'],
-                                              prestim_duration=3)
-        episode_mixed = EpisodeResponse(datafile, protocol_id=3, quantities=['dFoF'],
-                                              prestim_duration=3)
-        episode_mixed_random_dots = EpisodeResponse(datafile, protocol_id=4, quantities=['dFoF'],
-                                               prestim_duration=3)
-        
+    data = Data(datafile, metadata_only=True)
     
+    # computing episodes
+    episode_static_patch = EpisodeResponse(datafile,
+                                           protocol_id=data.get_protocol_id('static-patch'),
+                                           quantities=['dFoF'],
+                                           prestim_duration=3)
+    episode_moving_dots = EpisodeResponse(datafile,
+                                          protocol_id=data.get_protocol_id('moving-dots'),
+                                          protocol_id=1, quantities=['dFoF'],
+                                          prestim_duration=3)
+
+    episode_mixed = EpisodeResponse(datafile,
+                                    protocol_id=data.get_protocol_id('mixed-moving-dots-static-patch'),
+                                    quantities=['dFoF'],
+                                    prestim_duration=3)
+    
+    episode_random_dots, episode_mixed_random_dots = None, None
+    if 'random-line-dots' in data.protocosl:
+        episode_random_dots = EpisodeResponse(datafile,
+                                              protocol_id=data.get_protocol_id('random-line-dots'),
+                                              quantities=['dFoF'],
+                                              prestim_duration=3)
+        
+    if 'random-mixed-moving-dots-static-patch' in data.protocosl:
+        episode_mixed_random_dots = EpisodeResponse(datafile,
+                                                    protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'),
+                                                    quantities=['dFoF'],
+                                                    prestim_duration=3)
+
+        
     with PdfPages(pdf_filename) as pdf:
         # static patches
         fig, AX = episode_static_patch.plot_trial_average(roiIndices='sum', 
-                                                           column_key=('angle' if ('angle' in episode_static_patch.varied_parameters) else ''),
-                                                           with_annotation=True,
-                                                           with_std=False, ybar=0.2, ybarlabel='0.2dF/F', 
-                                                           xbar=1, xbarlabel='1s')
+                                                          column_key=('angle' if ('angle' in episode_static_patch.varied_parameters) else ''),
+                                                          with_annotation=True,
+                                                          with_std=False, ybar=0.2, ybarlabel='0.2dF/F', 
+                                                          xbar=1, xbarlabel='1s')
         fig.suptitle('static patches\n\n', fontsize=9)
         pdf.savefig(fig);plt.close(fig)
         
@@ -185,9 +198,12 @@ def run_analysis_and_save_figs(datafile,
         if 'angle' in episode_static_patch.varied_parameters:
             contour_param_key = 'angle'
             contour_param_values = episode_static_patch.varied_parameters['angle']
+        elif 'radius' in episode_static_patch.varied_parameters:
+            contour_param_key = 'radius'
+            contour_param_values = episode_static_patch.varied_parameters['radius']
         else:
-            contour_param_key = 'angle'
-            contour_param_values = [episode_static_patch.data.metadata['Protocol-1-angle-1']]
+            contour_param_key = ''
+            contour_param_values = [episode_static_patch.data.metadata['Protocol-%i-angle-1' % data.get_protocol_id('static-patch')]]
 
         SUMMARY_DATA, significant_rois = [], {}
         for v in contour_param_values:
@@ -213,7 +229,7 @@ def run_analysis_and_save_figs(datafile,
 
             if len(significant_rois['%ideg' % v])>0:
                 fig, AX = episode_static_patch.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
-                                                                  column_key=('angle' if ('angle' in episode_static_patch.varied_parameters) else ''),
+                                                                  column_key=contour_param_key,
                                                                   with_annotation=True,
                                                                   with_std=False, ybar=0.2, ybarlabel='0.2dF/F', 
                                                                   xbar=1, xbarlabel='1s')
@@ -231,7 +247,7 @@ def run_analysis_and_save_figs(datafile,
                 fig, AX = episode_mixed.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
                                                        column_key='patch-delay',
                                                        row_key='direction',
-                                                       color_key='patch-angle',
+                                                       color_key=('patch-%s'%contour_param_key if (contour_param_key!='') else ''),
                                                        with_annotation=True,
                                                        with_std=False, ybar=0.2, ybarlabel='0.2dF/F', 
                                                        xbar=1, xbarlabel='1s')
