@@ -552,7 +552,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             for i, key in enumerate(self.varied_parameters.keys()):
                                 if (key==color_key) or (key in color_keys):
                                     s+=20*' '+icolor*18*' '+format_key_value(key, getattr(self, key)[cond][0])
-                                    ge.annotate(fig, s, (0,0), color=COLORS[icolor], ha='left', va='bottom', size='small')
+                                    ge.annotate(fig, s+'  ', (1,0), color=COLORS[icolor], ha='right', va='bottom', size='small')
                     
         if with_stat_test:
             for irow, row_cond in enumerate(ROW_CONDS):

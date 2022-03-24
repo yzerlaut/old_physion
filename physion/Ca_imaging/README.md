@@ -40,5 +40,7 @@ Each entry will be a default settings appearing in the GUI.
 N.B. we extract the available information form the `xml` Bruker file, see here [an example file](./Bruker_xml/TSeries-190620-250-00-002.xml).
 
 ## Preprocessing and analysis
-	
-The preprocessing step and some analysis are documented in the [demo notebooks](../../notebooks)
+
+The fluorescence variations "dF/F0" were computed as followed. "dF" was the raw fluorescence corrected by the neuropil. "F0" was the sliding raw fluorescence (not corected by the neuropil), this setting impedes that the few ROIs with weak intrinsic signals and high neuropil signal would ge a F0 close to 0 and thus potentially high "dF/F0" values. This settings leads to relatively low values for the "dF/F0" variations (compared to the setting where "F0" also has the neuropil substraction).
+
+The preprocessing step and some analysis are illustrated in the [demo notebooks](../../notebooks).

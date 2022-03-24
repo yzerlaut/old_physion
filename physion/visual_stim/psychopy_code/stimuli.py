@@ -488,7 +488,7 @@ class visual_stim:
     
     def plot_stim_picture(self, episode,
                           ax=None, parent=None,
-                          label=None, enhance=False, vse=False):
+                          label=None, enhance=True, vse=False):
 
         cls = (parent if parent is not None else self)
         ax = self.show_frame(episode,
