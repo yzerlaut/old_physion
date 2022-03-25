@@ -76,7 +76,7 @@ ops0 = {
     'use_builtin_classifier': False,
     'inner_neuropil_radius': 2,
     'min_neuropil_pixels': 350,
-    'allow_overlap': True, # otherwise when we re-draw ROIS on top of detected ROIS -> 0 act.
+    'allow_overlap': False, # back to False (25/03/22), True before because when we re-draw ROIS on top of detected ROIS -> 0 act.
     'chan2_thres': 0.5,
     'baseline': 'maximin',
     'win_baseline': 60.0,
