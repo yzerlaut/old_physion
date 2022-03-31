@@ -6,13 +6,15 @@ from scipy.ndimage.filters import gaussian_filter1d
 def realign_from_photodiode(signal,
                             metadata,
                             sampling_rate=None,
+                            photodiode_rise_time=0.01,
                             shift_time=0.3, # MODIFY IT HERE IN CASE NEEDED
                             debug=False, istart_debug=0,
                             verbose=True, n_vis=5):
     """
     
 
-    shift_time is to handle
+    - shift_time is to handle the fact that there might be a delay in stopping the protocol 
+    without this, the start of the next one is put as the end of the previous...
     """
     if verbose:
         print('---> Realigning data with respect to photodiode signal [...] ')
@@ -41,7 +43,7 @@ def realign_from_photodiode(signal,
     # compute signal boundaries to evaluate threshold crossing of photodiode signal
     H, bins = np.histogram(smooth_signal, bins=100)
     baseline = bins[np.argmax(H)+1]
-    threshold = (np.max(smooth_signal)-baseline)/2.
+    threshold = (np.max(smooth_signal)-baseline)/4. # reaching 25% of peak level
 
     # looping over episodes
     i=0
@@ -51,7 +53,7 @@ def realign_from_photodiode(signal,
         # print(tstart, i, success)
         if np.sum(cond_thresh)>0:
             # success
-            tshift = t[:-2][cond_thresh][0] - tstart
+            tshift = t[:-2][cond_thresh][0] - tstart - photodiode_rise_time
             
             if debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
                 cond = (t[:-1]>=tstart+shift_time-5) & (t[:-1]<=tstart+tshift+10)
