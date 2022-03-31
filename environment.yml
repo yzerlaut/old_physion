@@ -35,3 +35,4 @@ dependencies:
     - psychopy==2021.1.1
     - opencv-python-headless==4.5.5.62
     - svgutils
+    - pygame==2.1.2

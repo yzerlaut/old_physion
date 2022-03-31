@@ -19,6 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         super(MainWindow, self).__init__()
         self.app, self.args, self.CHILDREN_PROCESSES = app, args, []
+        self.folder=''
         
         self.setGeometry(350, 470, 300, 350)
         # adding a "quit" and "load" keyboard shortcuts
@@ -62,8 +63,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delayBox = QtWidgets.QComboBox(self)
         self.delayBox.setMinimumWidth(150)
         self.delayBox.move(100, HEIGHT)
-        self.delayBox.addItems(['None', '10min', '30min',
-                                '1h', '2h', '3h', '5h', '10h', '20h', '40h'])
+        self.delayBox.addItems(['None', '10s', '10min', '30min',
+                                '1h', '2h', '3h', '5h', '10h', '1d', '2d'])
         
         HEIGHT +=40 
         self.gen = QtWidgets.QPushButton('-=- Run -=-', self)
@@ -101,12 +102,11 @@ class MainWindow(QtWidgets.QMainWindow):
         print('command set is reset !')
     
     def build_cmd(self, folder, key):
-        delay = ''
-        if self.delayBox.currentText()!='None':
-            delay = 'sleep %s; ' % self.delayBox.currentText()
-        print(folder)
-        return delay+'%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
-                                                                            self.process_script, folder, key)
+        # delay = ''
+        # if self.delayBox.currentText()!='None':
+        #     delay = 'sleep %s; ' % self.delayBox.currentText()
+        return '%s %s --CaImaging_folder "%s" --setting_key %s -v' % (python_path_suite2p_env,
+                                                                      self.process_script, folder, key)
 
     def find_suite2p_settings(self, folder):
         settings = None
@@ -123,22 +123,23 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def load_imaging(self):
 
-        folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
+        self.folder = QtWidgets.QFileDialog.getExistingDirectory(self,\
                                     "Choose datafolder",
                                     FOLDERS[self.folderI.currentText()])
-        if folder!='':
-            if ('TSeries' in str(folder)):
-                settings = self.find_suite2p_settings(str(folder))
+        if self.folder!='':
+            if ('TSeries' in str(self.folder)):
+                settings = self.find_suite2p_settings(str(self.folder))
                 if settings is not None:
-                    self.CMDS.append(self.build_cmd(folder, self.cbc.currentText()))
+                    self.CMDS.append(self.build_cmd(self.folder, self.cbc.currentText()))
                 else:
                     print('settings note recognized !')
             else:
-                folders = get_TSeries_folders(folder, limit_to_subdirectories=False)
+                folders = get_TSeries_folders(self.folder, limit_to_subdirectories=False)
                 for f in folders:
                     settings = self.find_suite2p_settings(str(f))
                     if settings is not None:
                         self.CMDS.append(self.build_cmd(f, settings))
+                        
             for cmd in self.CMDS:
                 print('"%s" added to command set' % cmd)
 
@@ -146,8 +147,22 @@ class MainWindow(QtWidgets.QMainWindow):
             print('\n /!\ no "TSeries" folder found or added, set of command is empty ! \n')
                 
     def run(self):
-        if len(self.CMDS)==0:
+        if len(self.CMDS)==0 and self.delayBox.currentText()!='None':
+            # delaying the run by a delay
+            delay = eval(self.delayBox.currentText().replace('s', '').replace('m', '*60').replace('h', '*3600').replace('d', '*86400'))
+            print('sleeping for %is' % delay)
+            time.sleep(delay)
+            print('sleeping time over !')
+            # looping over folder after the delay (in case the transfer was done)
+            folders = get_TSeries_folders(self.folder, limit_to_subdirectories=False)
+            for f in folders:
+                settings = self.find_suite2p_settings(str(f))
+                if settings is not None:
+                    self.CMDS.append(self.build_cmd(f, settings))
+        elif len(self.CMDS)==0:
             print('\n /!\ set of command is empty /!\  \n')
+
+        # running commands
         for cmd in self.CMDS:
             p = subprocess.Popen(cmd, shell=True)
             print('"%s" launched as a subprocess' % cmd)
