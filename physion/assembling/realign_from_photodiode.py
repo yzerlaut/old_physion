@@ -76,28 +76,23 @@ def realign_from_photodiode(signal,
         else:
             success = False
             # we don't do anything, we just increment the episode id
-            print('episode #%i was not realigned' % i)
+            print('realignment stopped from episode #%i !' % i)
+        
+    # transform to numpy array
+    metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])
+    metadata['time_stop_realigned'] = metadata['time_start_realigned']+\
+        metadata['time_duration'][:len(metadata['time_start_realigned'])]
+    
+    # if the protocol is not complete, the last one might be truncated, we remove it !
+    if len(metadata['time_start_realigned'])<len(metadata['time_start']):
+        metadata['time_start_realigned'] = metadata['time_start_realigned'][:-1]
+        metadata['time_stop_realigned'] = metadata['time_stop_realigned'][:-1]
         
     if verbose:
-        if success:
-            print('[ok]          --> succesfully realigned')
-            print('                  found n=%i episodes over the %i of the protocol ' % (len(metadata['time_start_realigned']), len(metadata['time_start'])))
-        else:
-            print('[X]          --> realignement failed')
+        print('[ok]          --> succesfully realigned')
+        print('                  found n=%i episodes over the %i of the protocol ' % (len(metadata['time_start_realigned']), len(metadata['time_start'])))
             
-    if success:
-        # transform to numpy array
-        metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])
-        metadata['time_stop_realigned'] = metadata['time_start_realigned']+\
-            metadata['time_duration'][:len(metadata['time_start_realigned'])]
-        # if the protocol is not complete, the last one might be truncated, we remove it !
-        if len(metadata['time_start_realigned'])<len(metadata['time_start']):
-            metadata['time_start_realigned'] = metadata['time_start_realigned'][:-1]
-            metadata['time_stop_realigned'] = metadata['time_stop_realigned'][:-1]
-    else:
-        metadata['time_start_realigned'] = np.array([])
-        metadata['time_stop_realigned'] = np.array([])
-    return success, metadata
+    return True, metadata
 
 
 def find_onset_time(t, photodiode_signal,
