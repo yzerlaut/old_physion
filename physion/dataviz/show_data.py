@@ -42,7 +42,7 @@ class MultimodalData(read_NWB.Data):
         return tlim[0]-0.01*(tlim[1]-tlim[0])
     
     def plot_scaled_signal(self, ax, t, signal, tlim, scale_bar, ax_fraction_extent, ax_fraction_start,
-                           color=ge.blue, scale_unit_string='%.1f'):
+                           color='#1f77b4', scale_unit_string='%.1f'):
         # generic function to add scaled signal
 
         try:
@@ -65,7 +65,7 @@ class MultimodalData(read_NWB.Data):
         ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color=ge.grey, name='photodiode'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='#808080', name='photodiode'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Photodiode-Signal'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
@@ -86,7 +86,7 @@ class MultimodalData(read_NWB.Data):
     def add_Locomotion(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., subsampling=2,
                        speed_scale_bar=1, # cm/s
-                       color=ge.blue, name='run. speed'):
+                       color='#1f77b4', name='run. speed'):
         if not hasattr(self, 'running_speed'):
             self.build_running_speed()
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Running-Speed'])
@@ -110,7 +110,7 @@ class MultimodalData(read_NWB.Data):
     def add_GazeMovement(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., subsampling=2,
                          gaze_scale_bar = 0.2, # scale bar in mm
-                         color=ge.orange, name='gaze mov.'):
+                         color='#ff7f0e', name='gaze mov.'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['Pupil'].data_interfaces['cx'])
         if not hasattr(self, 'gaze_movement'):
             self.build_gaze_movement()
@@ -121,7 +121,7 @@ class MultimodalData(read_NWB.Data):
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, color=color)
 
     def add_FaceMotion(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color=ge.purple, name='facemotion'):
+                       fig_fraction_start=0., fig_fraction=1., subsampling=2, color='#9467bd', name='facemotion'):
         if not hasattr(self, 'facemotion'):
             self.build_facemotion()
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.processing['FaceMotion'].data_interfaces['face-motion'])
@@ -938,11 +938,11 @@ if __name__=='__main__':
                                                    normalization='per-line',
                                                    subquantity='dF/F'),
                             'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                             subquantity='dF/F', color=ge.green,
+                                             subquantity='dF/F', color='#2ca02c',
                                              roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), np.min([args.Nmax, data.iscell.sum()]), replace=False))),
-                            'Locomotion':dict(fig_fraction=1, subsampling=1, color=ge.blue),
-                            'Pupil':dict(fig_fraction=2, subsampling=1, color=ge.red),
-                            'GazeMovement':dict(fig_fraction=1, subsampling=1, color=ge.orange),
+                            'Locomotion':dict(fig_fraction=1, subsampling=1, color='#1f77b4'),
+                            'Pupil':dict(fig_fraction=2, subsampling=1, color='#d62728'),
+                            'GazeMovement':dict(fig_fraction=1, subsampling=1, color='#ff7f0e'),
                             'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                             'VisualStim':dict(fig_fraction=.5, color='black')},
                             Tbar=5)
@@ -958,7 +958,7 @@ if __name__=='__main__':
                                               with_stat_test=True,
                                               with_annotation=True,
                                               with_screen_inset=True,                                          
-                                              fig_preset='raw-traces-preset', color=ge.blue, label='test\n')
+                                              fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
 
     elif args.ops=='evoked-raster':
         episodes = EpisodeResponse(args.datafile,
