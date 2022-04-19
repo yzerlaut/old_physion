@@ -1841,60 +1841,93 @@ class looming_stim(visual_stim):
             
         return ax
 
-class center_grating_stim_image(visual_stim):
+class vis_stim_image_built(visual_stim):
 
+    """
+    in this object we do not use the psychopy pre-built functions
+    we just build the image manually (with numpy) and we show a sequence of ImageStim
+    """
 
     def __init__(self, protocol,
-		 keys=['bg-color', 'x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast']):
+		 keys=['bg-color', 'contrast']):
+
         super().__init__(protocol)
+
         super().init_experiment(protocol, keys,
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
+
         self.refresh_freq = protocol['movie_refresh_freq']
 
 
-    def add_patch(self, image,
-                  angle=0,
-                  radius=10,
-                  spatial_freq=0.1,
-                  contrast=1.,
-                  time_phase=0.,
-                  xcenter=0, zcenter=0):
+    def init_image(self, index):
+        """ initializing an empty image"""
+        return 2*self.experiment['bg-color'][index]-1.+0.*self.x
+
+    def init_times_frames(self, cls, security_factor=1.2):
+        """ we use this function for each protocol initialisation"""
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        itend = int(security_factor*interval*self.refresh_freq)
+        return np.arange(itend), np.arange(itend)/self.refresh_freq, []
+
+    def image_to_frame(self, img):
+        """ need to transpose given the current coordinate system"""
+        return img.T
+
+
+    def add_static_grating_patch(self, image,
+                                 angle=0,
+                                 radius=10,
+                                 spatial_freq=0.1,
+                                 contrast=1.,
+                                 time_phase=0.,
+                                 xcenter=0,
+                                 zcenter=0):
 
         xrot = self.compute_rotated_coords(angle,
                                            xcenter=xcenter,
                                            zcenter=zcenter)
+
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
+
         image[cond] = 2*self.compute_grating(xrot[cond],
                                              spatial_freq=spatial_freq,
                                              contrast=contrast,
                                              time_phase=time_phase)-1
 
 
+class center_grating_stim_image(vis_stim_image_built):
+
+
+    def __init__(self, protocol, parent=None):
+
+        super().__init__(protocol,
+                         keys=['bg-color', 
+                               'x-center', 'y-center', 
+                               'radius','spatial-freq', 
+                               'angle', 'contrast'],
+                         parent=parent)
+
     def get_frames_sequence(self, index, parent=None):
         """
         """
         cls = (parent if parent is not None else self)
 
-        bg_color = cls.experiment['bg-color'][index]
-        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        itstart, itend = 0, int(1.2*interval*self.refresh_freq)
+        time_indices, times, FRAMES = self.init_time_indices_frames(cls)
 
-        time_indices, FRAMES = [], []
-
-        for iframe, time in enumerate(np.arange(itend)/self.refresh_freq):
-            img = 2*bg_color-1.+0.*self.x
-            self.add_patch(img,
+        for iframe, t in enumerate(times):
+            img = cls.init_image(index)
+            self.add_static_grating_patch(img,
                            angle=cls.experiment['angle'][index],
                            radius=cls.experiment['radius'][index],
                            spatial_freq=cls.experiment['spatial-freq'][index],
                            contrast=cls.experiment['contrast'][index],
                            xcenter=cls.experiment['x-center'][index],
                            zcenter=cls.experiment['y-center'][index])
-            FRAMES.append(img.T)
-            time_indices.append(iframe)
+            FRAMES.append(cls.image_to_frame(img))
+
         return time_indices, FRAMES, self.refresh_freq
 
 
