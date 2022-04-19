@@ -2135,10 +2135,10 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/NI-VSE-2images-2vse.json', 'r') as fp:
     # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
-    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-mixed-moving-dots-static-patch.json', 'r') as fp:
-    # with open('physion/exp/protocols/size-tuning-protocol-dep.json', 'r') as fp:
-    with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
+    # with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
+    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    with open('physion/exp/protocols/size-tuning-protocol.json', 'r') as fp:
         protocol = json.load(fp)
 
     protocol['demo'] = True
