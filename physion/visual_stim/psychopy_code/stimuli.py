@@ -2115,7 +2115,8 @@ class dummy_datafolder:
     def __init__(self):
         pass
     def get(self):
-        # Path(os.path.join(tempfile.gettempdir(), 'screen-frames')).mkdir(parents=True, exist_ok=True)
+        # Path(os.path.join(tempfile.gettempdir(), 
+	#		'screen-frames')).mkdir(parents=True, exist_ok=True)
         return tempfile.gettempdir()
 
 class dummy_parent:
@@ -2133,11 +2134,11 @@ if __name__=='__main__':
     # with open('physion/intrinsic/vis_stim/up.json', 'r') as fp:
     # with open('physion/exp/protocols/NI+Scene-Exploration-2-SE-trajectories-10-repeats.json', 'r') as fp:
     # with open('physion/exp/protocols/NI-VSE-2images-2vse.json', 'r') as fp:
-    # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
     # with open('physion/exp/protocols/random-mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
     # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     with open('physion/exp/protocols/size-tuning-protocol.json', 'r') as fp:
         protocol = json.load(fp)
 
