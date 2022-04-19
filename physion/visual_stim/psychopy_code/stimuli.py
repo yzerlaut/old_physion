@@ -256,7 +256,7 @@ class visual_stim:
             for vec in itertools.product(*VECS):
                 for i, key in enumerate(keys):
                     FULL_VECS[key].append(vec[i])
-                    
+
             self.experiment['index'], self.experiment['repeat'] = [], []
             self.experiment['time_start'], self.experiment['time_stop'] = [], []
             self.experiment['interstim'], self.experiment['time_duration'] = [], [] # relevant for multi-protocols
@@ -271,11 +271,11 @@ class visual_stim:
                 np.random.seed(protocol['shuffling-seed']) # initialize random seed
 
             for r in range(Nrepeats):
-                
+
                 # shuffling if necessary !
                 if (protocol['Presentation']=='Randomized-Sequence'):
                     np.random.shuffle(index_no_repeat)
-                
+
                 for n, i in enumerate(index_no_repeat):
                     for key in keys:
                         self.experiment[key].append(FULL_VECS[key][i])
@@ -1845,7 +1845,8 @@ class vis_stim_image_built(visual_stim):
 
     """
     in this object we do not use the psychopy pre-built functions
-    we just build the image manually (with numpy) and we show a sequence of ImageStim
+    to present stimuli
+    we rather build the image manually (with numpy) and we show a sequence of ImageStim
     """
 
     def __init__(self, protocol,
@@ -1856,20 +1857,31 @@ class vis_stim_image_built(visual_stim):
         super().init_experiment(protocol, keys,
                                 run_type='images_sequence')
 
+        # dealing with refresh rate
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
-
         self.refresh_freq = protocol['movie_refresh_freq']
 
+        # in case the protocol has a "control" condition where we randomize
+        # stimulus presentation
+        if ('randomize' in protocol) and (protocol['randomize']=="True"):
+            self.randomize = True
+        else:
+            self.randomize = False
 
-    def init_image(self, index):
+
+    def init_image(self, index, parent=None):
         """ initializing an empty image"""
-        return 2*self.experiment['bg-color'][index]-1.+0.*self.x
+        cls = (parent if parent is not None else self)
+        return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
 
-    def init_times_frames(self, cls, security_factor=1.2):
+    def init_times_frames(self, index, parent=None, security_factor=1.2):
         """ we use this function for each protocol initialisation"""
+        cls = (parent if parent is not None else self)
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        itend = int(security_factor*interval*self.refresh_freq)
+        # the refresh rate remains a property of the child class, not
+        # inhierited from the parent class 
+        itend = int(security_factor*interval*self.refresh_freq) 
         return np.arange(itend), np.arange(itend)/self.refresh_freq, []
 
     def image_to_frame(self, img):
@@ -1877,15 +1889,15 @@ class vis_stim_image_built(visual_stim):
         return img.T
 
 
-    def add_static_grating_patch(self, image,
-                                 angle=0,
-                                 radius=10,
-                                 spatial_freq=0.1,
-                                 contrast=1.,
-                                 time_phase=0.,
-                                 xcenter=0,
-                                 zcenter=0):
-
+    def add_grating_patch(self, image,
+                          angle=0,
+                          radius=10,
+                          spatial_freq=0.1,
+                          contrast=1.,
+                          time_phase=0.,
+                          xcenter=0,
+                          zcenter=0):
+        """ add a grating patch, drifting when varying the time phase"""
         xrot = self.compute_rotated_coords(angle,
                                            xcenter=xcenter,
                                            zcenter=zcenter)
@@ -1896,49 +1908,53 @@ class vis_stim_image_built(visual_stim):
                                              spatial_freq=spatial_freq,
                                              contrast=contrast,
                                              time_phase=time_phase)-1
+    def add_dot(self, image, pos, size, color, type='square'):
+        """
+        add dot, either square or circle
+        """
+        if type=='square':
+            cond = (self.x>(pos[0]-size/2)) & (self.x<(pos[0]+size/2)) & (self.z>(pos[1]-size/2)) & (self.z<(pos[1]+size/2))
+        else:
+            cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
+        image[cond] = color
+
+    def new(self):
+        pass
 
 
 class center_grating_stim_image(vis_stim_image_built):
 
 
-    def __init__(self, protocol, parent=None):
+    def __init__(self, protocol):
 
         super().__init__(protocol,
                          keys=['bg-color', 
                                'x-center', 'y-center', 
                                'radius','spatial-freq', 
-                               'angle', 'contrast'],
-                         parent=parent)
+                               'angle', 'contrast'])
 
     def get_frames_sequence(self, index, parent=None):
         """
         """
-        cls = (parent if parent is not None else self)
 
-        time_indices, times, FRAMES = self.init_time_indices_frames(cls)
+        time_indices, times, FRAMES = self.init_times_frames(index,
+                                                             parent=parent)
 
         for iframe, t in enumerate(times):
-            img = cls.init_image(index)
-            self.add_static_grating_patch(img,
-                           angle=cls.experiment['angle'][index],
-                           radius=cls.experiment['radius'][index],
-                           spatial_freq=cls.experiment['spatial-freq'][index],
-                           contrast=cls.experiment['contrast'][index],
-                           xcenter=cls.experiment['x-center'][index],
-                           zcenter=cls.experiment['y-center'][index])
-            FRAMES.append(cls.image_to_frame(img))
+            FRAMES.append(self.image_to_frame(self.get_image(index,
+                                                             parent=parent)))
 
         return time_indices, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = 0*cls.x+cls.experiment['bg-color'][episode]
-        self.add_patch(img,
+        img = cls.init_image(episode)
+        self.add_grating_patch(img,
                        angle=cls.experiment['angle'][episode],
                        radius=cls.experiment['radius'][episode],
                        spatial_freq=cls.experiment['spatial-freq'][episode],
-                       contrast=cls.experiment['patch-contrast'][episode],
+                       contrast=cls.experiment['contrast'][episode],
                        xcenter=cls.experiment['x-center'][episode],
                        zcenter=cls.experiment['y-center'][episode])
         return img
@@ -1967,21 +1983,6 @@ class mixed_moving_dots_static_patch(center_grating_stim_image):
                           'direction', 'size', 'dotcolor', 'seed',
                           'patch-delay', 'patch-duration',
                           'patch-radius', 'patch-contrast', 'patch-spatial-freq', 'patch-angle'])
-
-        if ('randomize' in protocol) and (protocol['randomize']=="True"):
-            self.randomize = True
-        else:
-            self.randomize = False
-
-    def add_dot(self, image, pos, size, color, type='square'):
-        """
-        add dot
-        """
-        if type=='square':
-            cond = (self.x>(pos[0]-size/2)) & (self.x<(pos[0]+size/2)) & (self.z>(pos[1]-size/2)) & (self.z<(pos[1]+size/2))
-        else:
-            cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
-        image[cond] = color
 
 
     def get_frames_sequence(self, index, parent=None):
@@ -2133,7 +2134,8 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/size-tuning-protocol.json', 'r') as fp:
     # with open('physion/exp/protocols/moving-dots.json', 'r') as fp:
-    with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
+    with open('physion/exp/protocols/size-tuning-protocol.json', 'r') as fp:
         protocol = json.load(fp)
     protocol['demo'] = True
 
