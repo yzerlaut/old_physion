@@ -95,26 +95,26 @@ class visual_stim:
         self.screen = SCREENS[self.protocol['Screen']]
 
         # we can initialize the angle
-        self.x, self.z = self.angle_meshgrid()
+        self.set_angle_meshgrid()
 
         if not ('no-window' in self.protocol):
 
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             
+            self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
+
             if demo or (('demo' in self.protocol) and self.protocol['demo']):
+
                 # we override the parameters
                 self.screen['monitoring_square']['size'] = int(600*self.screen['monitoring_square']['size']/self.screen['resolution'][0])
-                self.screen['resolution'] = (600,int(600*self.screen['resolution'][1]/self.screen['resolution'][0]))
+                self.screen['resolution'] = (800,int(800*self.screen['resolution'][1]/self.screen['resolution'][0]))
                 self.screen['screen_id'] = 0
                 self.screen['fullscreen'] = False
                 if 'movie_refresh_freq' not in protocol:
                     self.protocol['movie_refresh_freq'] = 10.
                 else:
                     self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq']
-                
-
-            self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
 
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
                                      screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
@@ -180,22 +180,27 @@ class visual_stim:
     def pix_to_angle(self, value):
         return self.cm_to_angle(value/self.screen['resolution'][0]*self.screen['width'])
     
-    def angle_meshgrid(self):
-        x = np.linspace(self.cm_to_angle(-self.screen['width']/2.),
-                        self.cm_to_angle(self.screen['width']/2.),
-                        self.screen['resolution'][0])
-        z = np.linspace(self.cm_to_angle(-self.screen['width']/2.)*self.screen['resolution'][1]/self.screen['resolution'][0],
-                        self.cm_to_angle(self.screen['width']/2.)*self.screen['resolution'][1]/self.screen['resolution'][0],
-                        self.screen['resolution'][1])
-        # X, Z = np.meshgrid(x, z)
-        # return np.rot90(X, k=3).T, np.rot90(Z, k=3).T
-        return np.meshgrid(x, z)
-
     def angle_to_cm(self, value):
         return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
     
+    def set_angle_meshgrid(self):
+        # x, z = np.meshgrid(np.linspace(-self.cm_to_angle(self.screen['width']/2.), self.cm_to_angle(self.screen['width']/2.),self.screen['resolution'][0]),
+        #                    np.linspace(-self.cm_to_angle(self.screen['height']/2.), self.cm_to_angle(self.screen['height']/2.),self.screen['resolution'][1]),            
+        #                    indexing='xy')
+        # self.x, self.z = x.T, z.T
+        ####################################
+        #  ------- for simplicity -------  #
+        # we linearize the arctan function #
+        dAngle_per_pix = self.pix_to_angle(1.)
+        x, z = np.meshgrid(dAngle_per_pix*(np.arange(self.screen['resolution'][0])-self.screen['resolution'][0]/2.),
+                           dAngle_per_pix*(np.arange(self.screen['resolution'][1])-self.screen['resolution'][1]/2.),
+                           indexing='xy')
+        self.x, self.z = x.T, z.T
+    
     def angle_to_pix(self, value, from_x_center=False, from_z_center=False, starting_angle=0):
         """
+        CHECK MAYBE DEPRECTAED
+
         We deal here with the non-linear transformation of angle to distance on the screen (see "tan" function toward 90deg)
         we introduce a "starting_angle" so that a size-on-screen can be taken 
         """
@@ -212,6 +217,15 @@ class visual_stim:
             return np.abs(pix2-pix1)
 
                            
+    # some general grating functions
+    def compute_rotated_coords(self, angle,
+                               xcenter=0, zcenter=0):     
+        return (self.x-xcenter)*np.cos(angle/180.*np.pi)+(self.z-zcenter)*np.sin(angle/180.*np.pi)
+
+    def compute_grating(self, xrot,
+                        spatial_freq=0.1, contrast=1, time_phase=0.):
+        return contrast*(1+np.cos(2*np.pi*(spatial_freq*xrot-time_phase)))/2.
+
     ################################
     #  ---     Experiment      --- #
     ################################
@@ -540,12 +554,12 @@ class visual_stim:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
 
-        if enhance:
-            width=80 # degree
-            self.x, self.z = np.meshgrid(np.linspace(-width, width, self.screen['resolution'][0]),
-                                         np.linspace(-width*self.screen['resolution'][1]/self.screen['resolution'][0],
-                                                     width*self.screen['resolution'][1]/self.screen['resolution'][0],
-                                                     self.screen['resolution'][1]))
+        # if enhance:
+        #     width=80 # degree
+        #     self.x, self.z = np.meshgrid(np.linspace(-width, width, self.screen['resolution'][0]),
+        #                                  np.linspace(-width*self.screen['resolution'][1]/self.screen['resolution'][0],
+        #                                              width*self.screen['resolution'][1]/self.screen['resolution'][0],
+        #                                              self.screen['resolution'][1]))
 
         cls = (parent if parent is not None else self)
 
@@ -1841,7 +1855,7 @@ class center_grating_stim_image(visual_stim):
         super().init_experiment(protocol,
                                 ['bg-color', 'x-center', 'y-center', 'radius','spatial-freq', 'angle', 'contrast'],
                                 run_type='images_sequence')
-
+        
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
@@ -1854,14 +1868,14 @@ class center_grating_stim_image(visual_stim):
                   time_phase=0.,
                   xcenter=0, zcenter=0):
 
-        xrot = compute_xrot(self.x, self.z, angle,
-                            xcenter=xcenter, zcenter=zcenter)
-
+        xrot = self.compute_rotated_coords(angle,
+                                           xcenter=xcenter,
+                                           zcenter=zcenter)
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
-        image[cond] = 2*compute_grating(xrot[cond],
-                                        spatial_freq=spatial_freq,
-                                        contrast=contrast,
-                                        time_phase=time_phase)-1
+        image[cond] = 2*self.compute_grating(xrot[cond],
+                                             spatial_freq=spatial_freq,
+                                             contrast=contrast,
+                                             time_phase=time_phase)-1
         
     def get_frames_sequence(self, index, parent=None):
         """
@@ -1887,7 +1901,7 @@ class center_grating_stim_image(visual_stim):
                            xcenter=cls.experiment['x-center'][index],
                            zcenter=cls.experiment['y-center'][index])
             
-            FRAMES.append(img)
+            FRAMES.append(img.T)
             times.append(iframe)
             
         return times, FRAMES, self.refresh_freq
@@ -2123,6 +2137,7 @@ if __name__=='__main__':
     # with open('physion/exp/protocols/random-line-dots.json', 'r') as fp:
     # with open('physion/exp/protocols/mixed-moving-dots-static-patch.json', 'r') as fp:
     # with open('physion/exp/protocols/random-mixed-moving-dots-static-patch.json', 'r') as fp:
+    # with open('physion/exp/protocols/size-tuning-protocol-dep.json', 'r') as fp:
     with open('physion/exp/protocols/motion-contour-interaction.json', 'r') as fp:
         protocol = json.load(fp)
 
