@@ -585,7 +585,7 @@ class multiprotocol(visual_stim):
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
-                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]), 'exp', 'protocols', protocol['Protocol-%i'%i])
+                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'exp', 'protocols', protocol['Protocol-%i'%i])
                 if not os.path.isfile(Ppath):
                     print(' /!\ "%s" not found in Protocol folder /!\  ' % protocol['Protocol-%i'%i])
                 with open(Ppath, 'r') as fp:
@@ -711,6 +711,17 @@ class vis_stim_image_built(visual_stim):
         # inherited from the parent class
         itend = int(security_factor*interval*self.refresh_freq)
         return np.arange(itend), np.arange(itend)/self.refresh_freq, []
+
+    def compute_frame_order(self, times, index):
+        order = np.arange(len(times))
+        if self.randomize:
+            # we randomize the order of the time sequence here !!
+            if ('randomize-per-trial' in self.protocol) and (self.protocol['randomize-per-trial']=="True"):
+                np.random.seed(int(self.experiment['seed'][index]+1000*index))
+            else:
+                np.random.seed(int(self.experiment['seed'][index]))
+            np.random.shuffle(order) # by shuffling
+        return order
 
     def image_to_frame(self, img):
         """ need to transpose given the current coordinate system"""
@@ -869,11 +880,7 @@ class line_moving_dots(vis_stim_image_built):
         time_indices, times, FRAMES = self.init_times_frames(index,
                                                              parent=parent)
 
-        order = np.arange(len(times))
-        if self.randomize:
-            # we randomize the order of the time sequence here !!
-            np.random.seed(int(cls.experiment['seed'][index]))
-            np.random.shuffle(order)
+        order = self.compute_frame_order(times, index) # shuffling inside if self.randomize !!
 
         for iframe, t in enumerate(times):
             new_t = order[iframe]/self.refresh_freq
@@ -951,11 +958,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
         time_indices, times, FRAMES = self.init_times_frames(index,
                                                              parent=parent)
 
-        order = np.arange(len(times))
-        if self.randomize:
-            # we randomize the order of the time sequence here !!
-            np.random.seed(int(cls.experiment['seed'][index]))
-            np.random.shuffle(order)
+        order = self.compute_frame_order(times, index) # shuffling inside if self.randomize !!
 
         for iframe, t in enumerate(times):
             new_t = order[iframe]/self.refresh_freq
