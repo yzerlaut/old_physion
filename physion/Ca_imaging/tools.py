@@ -128,16 +128,47 @@ def compute_dFoF(data,
         print('neuropil_correction_factor set to 0 !')
         neuropil_correction_factor=0.
 
-    # performing correction 
-    F = data.Fluorescence.data[:,:]-neuropil_correction_factor*data.Neuropil.data[:,:]
+    data.t_dFoF = data.Neuropil.timestamps[:]
+    
+    # ## ------------------------------------ ##
+    # ############# classic way ################
+    # ## ------------------------------------ ##
+    # # performing correction 
+    # F = data.Fluorescence.data[:,:]-neuropil_correction_factor*data.Neuropil.data[:,:]
         
-    F0 = compute_sliding_F0(data, F,
+    # F0 = compute_sliding_F0(data, F,
+    #                         method=method_for_F0,
+    #                         percentile=percentile,
+    #                         sliding_window=sliding_window)
+
+    # # exclude cells with negative F0
+    # valid_roiIndices = (np.min(F0, axis=1)>0) & (F0.mean(axis=1)>F.std(axis=1))
+
+    # if verbose:
+    #     if np.sum(~valid_roiIndices)>0:
+    #         print('\n  ** %i ROIs were discarded with the positive F0 criterion (%.1f%%) ** \n'\
+    #               % (np.sum(~valid_roiIndices), 100*np.sum(~valid_roiIndices)/F0.shape[0]))
+    #     else:
+    #         print('\n  ** all ROIs passed the positive F0 criterion ** \n')
+            
+    # data.nROIs = np.sum(valid_roiIndices)
+    # data.dFoF = (F[valid_roiIndices,:]-F0[valid_roiIndices,:])/F0[valid_roiIndices,:]
+    # data.valid_roiIndices = np.arange(data.iscell.sum())[valid_roiIndices]
+
+    ## ----------------------------------------------------------- ##
+    ############# simple way to insure F0 far from 0 ################
+    ## ----------------------------------------------------------- ##
+
+    # F0 on raw fluorescence (uncorrected)
+    F0 = compute_sliding_F0(data, data.Fluorescence.data[:,:],
                             method=method_for_F0,
                             percentile=percentile,
                             sliding_window=sliding_window)
 
-    # exclude cells with negative F0
-    valid_roiIndices = (np.min(F0, axis=1)>0) & (F0.mean(axis=1)>F.std(axis=1))
+    dF = data.Fluorescence.data[:,:]-neuropil_correction_factor*data.Neuropil.data[:,:]
+
+    # exclude cells with negative dF
+    valid_roiIndices = (np.mean(dF, axis=1)>0)
 
     if verbose:
         if np.sum(~valid_roiIndices)>0:
@@ -147,15 +178,14 @@ def compute_dFoF(data,
             print('\n  ** all ROIs passed the positive F0 criterion ** \n')
             
     data.nROIs = np.sum(valid_roiIndices)
-    data.dFoF = (F[valid_roiIndices,:]-F0[valid_roiIndices,:])/F0[valid_roiIndices,:]
-    data.t_dFoF = data.Neuropil.timestamps[:]
+    data.dFoF = dF[valid_roiIndices,:]/F0[valid_roiIndices,:]
     data.valid_roiIndices = np.arange(data.iscell.sum())[valid_roiIndices]
-
+    
     if verbose:
         print('-> dFoF calculus done !  (calculation took %.1fs)' % (time.time()-tick))
     
     if return_corrected_F_and_F0:
-        return F[valid_roiIndices,:], F0[valid_roiIndices,:]
+        return dF[valid_roiIndices,:], F0[valid_roiIndices,:]
     else:
         return None
 

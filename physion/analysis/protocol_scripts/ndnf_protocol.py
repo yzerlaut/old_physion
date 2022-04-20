@@ -6,10 +6,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from datavyz import graph_env_manuscript as ge
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from dataviz.show_data import EpisodeResponse
-from analysis.tools import summary_pdf_folder
-from analysis import stat_tools
+from physion.analysis.read_NWB import Data
+from physion.dataviz.show_data import MultimodalData, EpisodeResponse, format_key_value
+from physion.analysis.tools import summary_pdf_folder
+from physion.analysis import stat_tools
 
 
 class ROI_fig:
@@ -45,7 +45,7 @@ class ROI_fig:
 
         for iax in [0,5,7,12]:
             self.AX[0][iax].axis('off')
-            ge.draw_bar_scales(self.AX[0][iax], Xbar=1, Xbar_label='1s', Ybar=1,  Ybar_label='1dF/F',
+            ge.draw_bar_scales(self.AX[0][iax], Xbar=1, Xbar_label='1s', Ybar=0.2,  Ybar_label='0.2dF/F',
                                loc='top-left')
 
     def close(self):
@@ -64,11 +64,11 @@ class NDNF_protocol:
         # static patches
         # -------------------
         self.static_patches_episodes = EpisodeResponse(datafile,
-                                                  protocol_id=0, **options)
+                                                       protocol_id=0, **options)
         # looming stim
         # -------------------
         self.looming_stim_episodes = EpisodeResponse(datafile,
-                                                protocol_id=1, **options)
+                                                     protocol_id=1, **options)
 
         # drifting gratings
         # -------------------
@@ -96,27 +96,53 @@ class NDNF_protocol:
             # static patches
             # -------------------
             self.static_patches_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
-                                                       column_key='angle', AX=[ROI_fig.AX[0][:4]], **plot_options)
+                                                            column_key='angle', AX=[ROI_fig.AX[0][:4]], **plot_options)
 
             # looming stim
             # -------------------
             self.looming_stim_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
-                                                     AX=[[ROI_fig.AX[0][5]]], **plot_options)
+                                                          AX=[[ROI_fig.AX[0][5]]], **plot_options)
 
 
             # drifting gratings
             # -------------------
             self.drifting_gratings_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
-                                                          column_key='angle', AX=[ROI_fig.AX[0][7:12]], **plot_options)
+                                                               column_key='angle', AX=[ROI_fig.AX[0][7:12]], **plot_options)
 
             # moving dots
             # -------------------
             self.moving_dots_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
-                                                    column_key='direction', AX=[ROI_fig.AX[0][12:16]], **plot_options)
+                                                         column_key='direction', AX=[ROI_fig.AX[0][12:16]], **plot_options)
 
             ROI_fig.set_common_ylim()
 
+    def summary_analysis(self):
+
+        for roi in np.arange(self.nROIs)[:Nmax]:
+
+            # static patches
+            # -------------------
+            self.static_patches_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
+                                                            column_key='angle', AX=[ROI_fig.AX[0][:4]], **plot_options)
+
+            # looming stim
+            # -------------------
+            self.looming_stim_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
+                                                          AX=[[ROI_fig.AX[0][5]]], **plot_options)
+
+
+            # drifting gratings
+            # -------------------
+            self.drifting_gratings_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
+                                                               column_key='angle', AX=[ROI_fig.AX[0][7:12]], **plot_options)
+
+            # moving dots
+            # -------------------
+            self.moving_dots_episodes.plot_trial_average(roiIndex=roiIndex, roiIndices=roiIndices,
+                                                         column_key='direction', AX=[ROI_fig.AX[0][12:16]], **plot_options)
+
             
+
     def analysis_pdf(self,
                      Nmax=1000000,
                      verbose=False):
@@ -140,9 +166,9 @@ class NDNF_protocol:
                     print('   - ndnf-protocol analysis for ROI #%i / %i' % (roi+1, self.nROIs))
                 fig = ROI_fig()
                 self.roi_analysis_on_fig(roi, fig)
+
                 pdf.savefig(fig.fig)
                 fig.close()
-
 
         if verbose:
             print('[ok] ndnf protocol analysis saved as: "%s" ' % pdf_filename)

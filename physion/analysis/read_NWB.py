@@ -322,9 +322,14 @@ class Data:
         self.visual_stim = build_stim(self.metadata, no_psychopy=True)
 
         
-    def get_protocol_id(protocol_name):
-        # TO BE DONE
-        return 0
+    def get_protocol_id(self, protocol_name):
+        cond = np.argwhere(self.protocols==protocol_name).flatten()
+        if len(cond)==1:
+            return cond[0]
+        else:
+            print(' /!\ protocol "%s" not found in data with protocols:' % protocol_name)
+            print(self.protocols)
+            return None
 
     
     def get_protocol_cond(self, protocol_id):
@@ -432,9 +437,11 @@ if __name__=='__main__':
     #     print(f, d, s)
     # print(np.unique(SUBJECTS))
 
-    data = Data(sys.argv[-1])
+    data = Data(sys.argv[-1], metadata_only=True)
     # print(data.nwbfile.processing['ophys'])
-    data.build_dFoF()
+    # data.build_dFoF()
+    print(data.get_protocol_id('static-patch'))
+    print(data.get_protocol_id('bleble'))
     
     
 
