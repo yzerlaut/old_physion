@@ -7,8 +7,9 @@ except ModuleNotFoundError:
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from screens import SCREENS
-from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
-from psychopy_code.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+#from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
+from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+
 
 def build_stim(protocol, no_psychopy=False):
     """
@@ -175,9 +176,6 @@ class visual_stim:
     def pix_to_angle(self, value):
         return self.cm_to_angle(value/self.screen['resolution'][0]*self.screen['width'])
 
-    def angle_to_cm(self, value):
-        return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
-
     def set_angle_meshgrid(self):
         """
         #  ------- for simplicity -------  #
@@ -188,6 +186,10 @@ class visual_stim:
                            dAngle_per_pix*(np.arange(self.screen['resolution'][1])-self.screen['resolution'][1]/2.),
                            indexing='xy')
         self.x, self.z = x.T, z.T
+
+    def angle_to_pix(self, angle):
+        # using the above linear approx, the relationship is just the inverse:
+        return angle/self.pix_to_angle(1.)
 
     # some general grating functions
     def compute_rotated_coords(self, angle,
@@ -386,8 +388,6 @@ class visual_stim:
     def single_array_sequence_presentation(self, parent, index):
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         FRAMES = []
-        if 'protocol_id' in self.experiment:
-            print('protocol_id: ', self.experiment['protocol_id'][index])
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
                                            image=self.gamma_corrected_lum(frame),
@@ -434,8 +434,9 @@ class visual_stim:
             if stop_signal(parent):
                 break
             t = time.time()-t0
-            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i' % (t/3600, (t%3600)/60, (t%60),
-                                                                       i+1, len(self.experiment['index'])))
+            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i                                protocol-ID:%i' % (t/3600,
+                (t%3600)/60, (t%60), i+1, len(self.experiment['index']),
+                 self.experiment['protocol_id'][i] if 'protocol_id' in self.experiment else 0))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
                 self.inter_screen(parent,
@@ -672,7 +673,7 @@ def init_bg_image(cls, index):
     """ initializing an empty image"""
     return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
 
-def init_times_frames(cls, index, refresh_rate, security_factor=1.5):
+def init_times_frames(cls, index, refresh_freq, security_factor=1.5):
     """ we use this function for each protocol initialisation"""
     interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
     itend = int(security_factor*interval*refresh_freq)
@@ -1013,10 +1014,157 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
         return ax
 
 
+
 #####################################################
-##  ----   NATURAL IMAGES (WITH VSE)    ----     ####
+##  ----    PRESENTING NATURAL IMAGES       --- #####
 #####################################################
 
+
+def get_NaturalImages_as_array(screen):
+    
+    NI_FOLDERS = [os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'physion', 'physion', 'visual_stim', 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'work', 'physion', 'physion', 'visual_stim', 'NI_bank')]
+    
+    NIarray = []
+
+    NI_directory = None
+    for d in NI_FOLDERS:
+        if os.path.isdir(d):
+            NI_directory = d
+
+    if NI_directory is not None:
+        for filename in np.sort(os.listdir(NI_directory)):
+            img = load(os.path.join(NI_directory, filename))
+            new_img = adapt_to_screen_resolution(img, screen)
+            NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        return NIarray
+    else:
+        print(' /!\  Natural Images folder not found !!! /!\  ')
+        return [np.ones(10,10)*0.5 for i in range(5)]
+    
+class natural_image(visual_stim):
+
+    def __init__(self, protocol):
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID'], run_type='image')
+        
+        self.NIarray = get_NaturalImages_as_array(self.screen)
+
+    def get_frame(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+                       
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+            
+#####################################################
+##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
+#####################################################
+
+
+def generate_VSE(duration=5,
+                 min_saccade_duration=1.,# in s
+                 max_saccade_duration=3.,# in s
+                 # mean_saccade_duration=2.,# in s
+                 # std_saccade_duration=1.,# in s
+                 saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
+                 seed=0,
+                 verbose=False):
+    """
+    A simple 'Virtual-Saccadic-Eye' (VSE) generator
+    based on temporal and spatial shifts drown form a uniform random distribution
+    """
+    
+    if verbose:
+        print('generating Virtual-Scene-Exploration (with seed "%s") [...]' % seed)
+    
+    np.random.seed(seed)
+    
+    tsaccades = np.cumsum(np.random.uniform(min_saccade_duration, max_saccade_duration,
+                                            size=int(3*duration/(max_saccade_duration-min_saccade_duration))))
+
+    x = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    y = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    
+    return {'t':np.array(list(tsaccades)),
+            'x':np.array(list(x)),
+            'y':np.array(list(y)),
+            'max_amplitude':saccade_amplitude}
+
+            
+
+class natural_image_vse(visual_stim):
+
+    
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID', 'VSE-seed',
+                                           'min-saccade-duration', 'max-saccade-duration',
+                                           'vary-VSE-with-Image', 'saccade-amplitude'],
+                                run_type='images_sequence')
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 10.
+        self.refresh_freq = protocol['movie_refresh_freq']
+
+        # initializing set of NI
+        self.NIarray = get_NaturalImages_as_array(self.screen)
+
+
+    def compute_shifted_image(self, img, ix, iy):
+        sx, sy = img.shape
+        new_im = np.zeros(img.shape)
+        new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+        new_im[:ix,:] = img[sx-ix:,:]
+        new_im[:,:iy] = img[:,sy-iy:]
+        new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
+        return new_im
+    
+
+    def get_seed(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        if cls.experiment['vary-VSE-with-Image'][index]==1:
+            return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
+            return int(cls.experiment['VSE-seed'][index])
+
+        
+    def get_frames_sequence(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        
+        vse = self.get_vse(index, parent=cls)
+        
+        img = self.NIarray[int(cls.experiment['Image-ID'][index])]
+            
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        time_indices, FRAMES = np.zeros(int(1.2*interval*self.refresh_freq), dtype=int), []
+        Times = np.arange(int(1.2*interval*self.refresh_freq))/self.refresh_freq
+
+        for i, t in enumerate(vse['t']):
+            FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
+            time_indices[Times>=t] = int(i)
+            
+        return time_indices, FRAMES, self.refresh_freq
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+
+    def get_vse(self, episode, parent=None):
+        """
+        translate saccades in degree in pixels here
+        """
+        cls = (parent if parent is not None else self)
+        seed = self.get_seed(episode, parent=cls)
+        return generate_VSE(duration=cls.experiment['time_duration'][episode],
+                            min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                            max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                            seed=seed)
 
 
 #####################################################
