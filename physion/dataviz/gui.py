@@ -8,12 +8,19 @@ from assembling.saving import day_folder, generate_filename_path, list_dayfolder
 from assembling.dataset import Dataset, MODALITIES
 from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
-from analysis.make_figures import FiguresWindow
 from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
 from misc import guiparts
 from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
+
+try:
+    from analysis.make_figures import FiguresWindow
+except ModuleNotFoundError:
+    print('--------------------------------------------')
+    print('  "datavyz" submodule not found')
+    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
+    print('             (after a "git submodule init; git submodule update" if not already done) ')
 
 settings = {
     'window_size':(1000,600),
