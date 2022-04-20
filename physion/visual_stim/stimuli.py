@@ -750,7 +750,10 @@ class vis_stim_image_built(visual_stim):
         pass
 
 
-## --- === grating stimuli === --- ##
+#####################################################
+##  ----      PRESENTING GRATING STIMS      --- #####
+#####################################################
+
 
 class center_grating_stim_image(vis_stim_image_built):
     """
@@ -926,6 +929,100 @@ class line_moving_dots(vis_stim_image_built):
 
         return ax
 
+class mixed_moving_dots_static_patch(vis_stim_image_built):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         ['speed', 'bg-color', 'ndots', 'spacing',
+                          'direction', 'size', 'dotcolor', 'seed',
+                          'patch-delay', 'patch-duration',
+                          'patch-radius', 'patch-contrast',
+                          'patch-spatial-freq', 'patch-angle'])
+
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        get frame seq
+        """
+        cls = (parent if parent is not None else self)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(index, cls)
+
+        time_indices, times, FRAMES = self.init_times_frames(index,
+                                                             parent=parent)
+
+        order = np.arange(len(times))
+        if self.randomize:
+            # we randomize the order of the time sequence here !!
+            np.random.seed(int(cls.experiment['seed'][index]))
+            np.random.shuffle(order)
+
+        for iframe, t in enumerate(times):
+            new_t = order[iframe]/self.refresh_freq
+            img = self.init_image(index, parent=parent)
+            for x0, y0 in zip(X0, Y0):
+                # adding the dots one by one
+                new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
+                self.add_dot(img, new_position,
+                             cls.experiment['size'][index],
+                             cls.experiment['dotcolor'][index])
+            if (t>=(cls.experiment['patch-delay'][index])) and\
+                        (t<=(cls.experiment['patch-delay'][index]+cls.experiment['patch-duration'][index])):
+                 self.add_grating_patch(img,
+                                angle=cls.experiment['patch-angle'][index],
+                                radius=cls.experiment['patch-radius'][index],
+                                spatial_freq=cls.experiment['patch-spatial-freq'][index],
+                                contrast=cls.experiment['patch-contrast'][index])
+
+            FRAMES.append(self.image_to_frame(img))
+
+        return time_indices, FRAMES, self.refresh_freq
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = 0*cls.x+cls.experiment['bg-color'][episode]
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
+        for x0, y0 in zip(X0, Y0):
+            new_position = (x0+dx_per_time*time_from_episode_start,
+                            y0+dy_per_time*time_from_episode_start)
+            self.add_dot(img, new_position,
+                         cls.experiment['size'][episode],
+                         cls.experiment['dotcolor'][episode])
+        self.add_grating_patch(img,
+                       angle=cls.experiment['patch-angle'][episode],
+                       radius=cls.experiment['patch-radius'][episode],
+                       spatial_freq=cls.experiment['patch-spatial-freq'][episode],
+                       contrast=cls.experiment['patch-contrast'][episode])
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+
+        direction = cls.experiment['direction'][episode]
+
+        # print(direction)
+        arrow['direction'] = ((direction+180)%180)+180
+        # print(arrow['direction'])
+
+        for shift in [-.5, 0, .5]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
+                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+            self.add_arrow(arrow, ax)
+
+        return ax
+
+
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
 #####################################################
@@ -963,4 +1060,3 @@ if __name__=='__main__':
             stim.close()
     else:
         print('need to provide a ".json" protocol file as argument !')
-
