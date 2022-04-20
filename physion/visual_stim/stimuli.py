@@ -668,6 +668,16 @@ class multiprotocol(visual_stim):
 #####################################
 ##  ----  BUILDING STIMULI  --- #####
 #####################################
+def init_bg_image(cls, index):
+    """ initializing an empty image"""
+    return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
+
+def init_times_frames(cls, index, refresh_rate, security_factor=1.5):
+    """ we use this function for each protocol initialisation"""
+    interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+    itend = int(security_factor*interval*refresh_freq)
+    return np.arange(itend), np.arange(itend)/refresh_freq, []
+
 
 class vis_stim_image_built(visual_stim):
 
@@ -690,37 +700,18 @@ class vis_stim_image_built(visual_stim):
             protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
 
-        # in case the protocol has a "control" condition where we randomize
-        # stimulus presentation
-        if ('randomize' in protocol) and (protocol['randomize']=="True"):
-            self.randomize = True
-        else:
-            self.randomize = False
 
-
-    def init_image(self, index, parent=None):
-        """ initializing an empty image"""
-        cls = (parent if parent is not None else self)
-        return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
-
-    def init_times_frames(self, index, parent=None, security_factor=1.2):
-        """ we use this function for each protocol initialisation"""
-        cls = (parent if parent is not None else self)
-        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        # the refresh rate remains a property of the child class, not
-        # inherited from the parent class
-        itend = int(security_factor*interval*self.refresh_freq)
-        return np.arange(itend), np.arange(itend)/self.refresh_freq, []
-
-    def compute_frame_order(self, times, index):
+    def compute_frame_order(self, cls, times, index):
+        """
+        """   
         order = np.arange(len(times))
-        if self.randomize:
+        if ('randomize' in self.protocol) and (self.protocol['randomize']=="True"):
             # we randomize the order of the time sequence here !!
             if ('randomize-per-trial' in self.protocol) and (self.protocol['randomize-per-trial']=="True"):
-                np.random.seed(int(self.experiment['seed'][index]+1000*index))
+                np.random.seed(int(cls.experiment['seed'][index]+1000*index))
             else:
-                np.random.seed(int(self.experiment['seed'][index]))
-            np.random.shuffle(order) # by shuffling
+                np.random.seed(int(cls.experiment['seed'][index]))
+            np.random.shuffle(order) # shuffling
         return order
 
     def image_to_frame(self, img):
@@ -780,20 +771,17 @@ class center_grating_stim_image(vis_stim_image_built):
     def get_frames_sequence(self, index, parent=None):
         """
         """
-
-        time_indices, times, FRAMES = self.init_times_frames(index,
-                                                             parent=parent)
-
+        cls = (parent if parent is not None else self)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
         for iframe, t in enumerate(times):
             FRAMES.append(self.image_to_frame(self.get_image(index,
                                                              parent=parent)))
-
         return time_indices, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = cls.init_image(episode)
+        img = init_bg_image(cls, episode)
         self.add_grating_patch(img,
                        angle=cls.experiment['angle'][episode],
                        radius=cls.experiment['radius'][episode],
@@ -822,7 +810,7 @@ class center_grating_stim_image(vis_stim_image_built):
 ##  ----    PRESENTING MOVING DOTS          --- #####
 #####################################################
 
-def get_starting_point_and_direction_mv_dots(index, cls):
+def get_starting_point_and_direction_mv_dots(cls, index):
 
     interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
     line = np.arange(int(cls.experiment['ndots'][index]))*cls.experiment['spacing'][index]
@@ -875,16 +863,15 @@ class line_moving_dots(vis_stim_image_built):
         """
         cls = (parent if parent is not None else self)
 
-        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(index, cls)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
 
-        time_indices, times, FRAMES = self.init_times_frames(index,
-                                                             parent=parent)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        order = self.compute_frame_order(times, index) # shuffling inside if self.randomize !!
+        order = self.compute_frame_order(cls, times, index) # shuffling inside if randomize !!
 
         for iframe, t in enumerate(times):
             new_t = order[iframe]/self.refresh_freq
-            img = self.init_image(index, parent=parent)
+            img = init_bg_image(cls, index)
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
                 new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
@@ -899,7 +886,7 @@ class line_moving_dots(vis_stim_image_built):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = self.init_image(index, parent=parent)
+        img = init_bg_image(cls, index)
         X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
@@ -953,16 +940,16 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
         get frame seq
         """
         cls = (parent if parent is not None else self)
-        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(index, cls)
 
-        time_indices, times, FRAMES = self.init_times_frames(index,
-                                                             parent=parent)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
 
-        order = self.compute_frame_order(times, index) # shuffling inside if self.randomize !!
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+
+        order = self.compute_frame_order(cls, times, index) # shuffling inside if randomize !!
 
         for iframe, t in enumerate(times):
             new_t = order[iframe]/self.refresh_freq
-            img = self.init_image(index, parent=parent)
+            img = init_bg_image(cls, index)
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
                 new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
@@ -984,7 +971,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = 0*cls.x+cls.experiment['bg-color'][episode]
+        img = init_bg_image(cls, index)
         X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
@@ -1027,7 +1014,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
 
 
 #####################################################
-##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
+##  ----   NATURAL IMAGES (WITH VSE)    ----     ####
 #####################################################
 
 
