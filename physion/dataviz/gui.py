@@ -66,7 +66,7 @@ class MainWindow(guiparts.NewWindow):
         self.cwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.cwidget)
 
-        self.statusBar.showMessage('open file [Ctrl+O],    refresh plot [Ctrl+R],    play/pause [Ctrl+Space],    initial-view [Ctrl-I],    max-window [Ctrl+M] ' )
+        self.statusBar.showMessage('open file [O],    refresh plot [R],    play/pause [Space],    initial-view [I],    max-window [M] ' )
 
         mainLayout = QtWidgets.QVBoxLayout()
 

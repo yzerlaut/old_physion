@@ -172,34 +172,34 @@ class NewWindow(QtWidgets.QMainWindow):
         ##############################
 
         # adding a few general keyboard shortcut
-        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+O'), self)
+        self.openSc = QtWidgets.QShortcut(QtGui.QKeySequence('O'), self)
         self.openSc.activated.connect(self.open_file)
         
-        self.spaceSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Space'), self)
+        self.spaceSc = QtWidgets.QShortcut(QtGui.QKeySequence('Space'), self)
         self.spaceSc.activated.connect(self.hitting_space)
 
-        self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+S'), self)
+        self.saveSc = QtWidgets.QShortcut(QtGui.QKeySequence('S'), self)
         self.saveSc.activated.connect(self.save)
         
-        self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+B'), self)
+        self.add2Bash = QtWidgets.QShortcut(QtGui.QKeySequence('B'), self)
         self.add2Bash.activated.connect(self.add_to_bash_script)
         
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self)
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self)
         self.quitSc.activated.connect(self.quit)
         
-        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+R'), self)
+        self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self)
         self.refreshSc.activated.connect(self.refresh)
         
-        self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+I'), self)
+        self.homeSc = QtWidgets.QShortcut(QtGui.QKeySequence('I'), self)
         self.homeSc.activated.connect(self.back_to_initial_view)
         
-        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+M'), self)
+        self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
         self.maxSc.activated.connect(self.showwindow)
         
-        self.processSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+P'), self)
+        self.processSc = QtWidgets.QShortcut(QtGui.QKeySequence('P'), self)
         self.processSc.activated.connect(self.process)
 
-        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+F'), self)
+        self.fitSc = QtWidgets.QShortcut(QtGui.QKeySequence('F'), self)
         self.fitSc.activated.connect(self.fit)
         
         ########################
@@ -416,9 +416,9 @@ class NewWindow(QtWidgets.QMainWindow):
 #         super(TrialAverageWindow, self).__init__()
 
 #         # adding a "quit" keyboard shortcut
-#         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
+#         self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Q'
 #         self.quitSc.activated.connect(self.close)
-#         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Ctrl+Q'
+#         self.refreshSc = QtWidgets.QShortcut(QtGui.QKeySequence('R'), self) # or 'Q'
 #         self.refreshSc.activated.connect(self.refresh)
 #         self.maxSc = QtWidgets.QShortcut(QtGui.QKeySequence('M'), self)
 #         self.maxSc.activated.connect(self.showwindow)
