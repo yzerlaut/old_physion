@@ -557,6 +557,22 @@ class visual_stim:
 
 
 #####################################################
+##  ----      MOVIE STIMULATION REPLAY      --- #####
+#####################################################
+
+class movie_replay(visual_stim):
+    """ TO BE IMPLEMENTED """
+
+    def __init__(self, protocol, no_psychopy=False):
+
+        super().__init__(protocol)
+
+    def run(self, parent):
+        pass
+
+
+
+#####################################################
 ##  ----         MULTI-PROTOCOLS            --- #####
 #####################################################
 
@@ -1191,7 +1207,7 @@ class gaussian_blobs(vis_stim_image_built):
     def __init__(self, protocol):
 
         super().__init__(protocol,
-                         ['x-center', 'y-center', 'radius',i
+                         ['x-center', 'y-center', 'radius',
                           'center-time', 'extent-time',
                           'contrast', 'bg-color'])
 
@@ -1208,7 +1224,7 @@ class gaussian_blobs(vis_stim_image_built):
             img = init_bg_image(cls, index)
             self.add_gaussian(img,
                               t=t, 
-                              contrast = cls.experiment['contrast'][index]
+                              contrast = cls.experiment['contrast'][index],
                               xcenter=cls.experiment['x-center'][index],
                               zcenter=cls.experiment['y-center'][index],
                               radius = cls.experiment['radius'][index],
