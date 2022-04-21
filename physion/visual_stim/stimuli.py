@@ -700,6 +700,9 @@ class vis_stim_image_built(visual_stim):
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
+        # adding a appearance threshold (see blob stim)
+        if 'appearance_threshold' not in protocol:
+            protocol['appearance_threshold'] = 2.5 # 
 
 
     def compute_frame_order(self, cls, times, index):
@@ -739,6 +742,19 @@ class vis_stim_image_built(visual_stim):
                                              spatial_freq=spatial_freq,
                                              contrast=contrast,
                                              time_phase=time_phase)-1
+    def add_gaussian(self, image,
+                     t=0, t0=0, sT=1.,
+                     radius=10,
+                     contrast=1.,
+                     xcenter=0,
+                     zcenter=0):
+        """ add a gaussian luminosity increase
+        N.B. when contrast=1, you need black background, otherwise it will saturate
+             when contrast=0.5, you can start from the grey background to reach white in the center
+        """
+        image += 2*np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
+                     contrast*np.exp(-(t-t0)**2/2./sT**2)
+
     def add_dot(self, image, pos, size, color, type='square'):
         """
         add dot, either square or circle
@@ -1166,6 +1182,51 @@ class natural_image_vse(visual_stim):
                             saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
                             seed=seed)
 
+#####################################################
+##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
+#####################################################
+
+class gaussian_blobs(vis_stim_image_built):
+    
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         ['x-center', 'y-center', 'radius',i
+                          'center-time', 'extent-time',
+                          'contrast', 'bg-color'])
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
+        random samples of sin([0, 2pi]).
+        """
+        cls = (parent if parent is not None else self)
+
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+
+        for iframe, t in enumerate(times):
+            img = init_bg_image(cls, index)
+            self.add_gaussian(img,
+                              t=t, 
+                              contrast = cls.experiment['contrast'][index]
+                              xcenter=cls.experiment['x-center'][index],
+                              zcenter=cls.experiment['y-center'][index],
+                              radius = cls.experiment['radius'][index],
+                              t0=cls.experiment['center-time'][index],
+                              sT=cls.experiment['extent-time'][index])
+            FRAMES.append(img)
+
+        return time_indices, FRAMES, self.refresh_freq
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
+        radius = cls.experiment['radius'][episode]
+        t0, sT = cls.experiment['center-time'][episode], cls.experiment['extent-time'][episode]
+        return np.exp(-((cls.x-xcenter)**2+(cls.z-zcenter)**2)/2./radius**2)*\
+            np.exp(-(time_from_episode_start-t0)**2/2./sT**2)*\
+            cls.experiment['contrast'][episode]+cls.experiment['bg-color'][episode]
+    
 
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
