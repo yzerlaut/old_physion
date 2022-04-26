@@ -4,7 +4,8 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
-from visual_stim.psychopy_code.stimuli import build_stim
+#from visual_stim.psychopy_code.stimuli import build_stim
+from visual_stim.stimuli import build_stim
 from Ca_imaging.tools import compute_dFoF, METHOD, T_SLIDING_MIN, PERCENTILE_SLIDING_MIN, NEUROPIL_CORRECTION_FACTOR
 
 
