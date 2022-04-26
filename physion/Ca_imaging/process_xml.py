@@ -29,8 +29,8 @@ def build_suite2p_options(folder,
     bruker_data = bruker_xml_parser(xml_file)
     ops = ops0.copy()
 
-    # acquisition frequency
-    ops['fs'] = 1./float(bruker_data['settings']['framePeriod'])
+    # acquisition frequency per plane - (bruker framePeriod i already per plane, CHECK)
+    ops['fs'] = 1./float(bruker_data['settings']['framePeriod']) 
 
     # hints for the size of the ROI
     um_per_pixel = float(bruker_data['settings']['micronsPerPixel']['XAxis'])

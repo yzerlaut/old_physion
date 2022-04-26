@@ -48,6 +48,17 @@ PREPROCESSING_SETTINGS = {
                          # 'nonrigid':0,
                          'threshold_scaling':0.5,
                          'neucoeff': 0.7},
+    'GCamp6s_7plane_A1':{'cell_diameter':20, # in um
+                         'nplanes': 7,
+                         'nchannels':1,
+                         'functional_chan':2,
+                         'align_by_chan':2,
+                         'tau':1.3,
+                         'sparse_mode':False,
+                         'connected':True,
+                         # 'nonrigid':0,
+                         'threshold_scaling':0.5,
+                         'neucoeff': 0.7},
     'INT_GCamp6s_5plane_A1':{'cell_diameter':20, # in um
                              'nplanes': 5,
                              'nchannels':1,
