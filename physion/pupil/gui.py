@@ -30,15 +30,15 @@ class MainWindow(NewWindow):
         ##### keyboard shortcuts #####
         ##############################
 
-        self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+1'), self)
+        self.refc1 = QtWidgets.QShortcut(QtGui.QKeySequence('1'), self)
         self.refc1.activated.connect(self.set_cursor_1)
-        self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+2'), self)
+        self.refc2 = QtWidgets.QShortcut(QtGui.QKeySequence('2'), self)
         self.refc2.activated.connect(self.set_cursor_2)
-        self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+3'), self)
+        self.refc3 = QtWidgets.QShortcut(QtGui.QKeySequence('3'), self)
         self.refc3.activated.connect(self.process_outliers)
-        self.refc4 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+4'), self)
+        self.refc4 = QtWidgets.QShortcut(QtGui.QKeySequence('4'), self)
         self.refc4.activated.connect(self.interpolate)
-        self.refc5 = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+E'), self)
+        self.refc5 = QtWidgets.QShortcut(QtGui.QKeySequence('E'), self)
         self.refc5.activated.connect(self.find_outliers)
         
         #############################
