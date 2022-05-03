@@ -165,7 +165,7 @@ def run_analysis_and_save_figs(datafile,
         contour_param_values = episode_static_patch.varied_parameters['radius']
     else:
         contour_param_key = ''
-        contour_param_values = [episode_static_patch.data.metadata['Protocol-%i-angle-1' % data.get_protocol_id('static-patch')]]
+        contour_param_values = [0]
 
     with PdfPages(pdf_filename) as pdf:
         # static patches
@@ -190,7 +190,7 @@ def run_analysis_and_save_figs(datafile,
         fig, AX = episode_mixed.plot_trial_average(roiIndices='mean', 
                                                    column_key='patch-delay',
                                                    row_key='direction',
-                                                   color_key='patch-%s' % contour_param_key,
+                                                   color_key=('patch-%s'%contour_param_key if (contour_param_key!='') else ''),
                                                    with_annotation=True,
                                                    with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                    xbar=1, xbarlabel='1s')
@@ -209,7 +209,7 @@ def run_analysis_and_save_figs(datafile,
         if episode_mixed_random_dots is not None:
             fig, AX = episode_mixed_random_dots.plot_trial_average(roiIndices='mean', 
                                                                    column_key='direction',
-                                                                   color_key='patch-%s' % contour_param_key,
+                                                                   color_key=('patch-%s'%contour_param_key if (contour_param_key!='') else ''),
                                                                    with_annotation=True,
                                                                    with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                    xbar=1, xbarlabel='1s')
@@ -256,7 +256,7 @@ def run_analysis_and_save_figs(datafile,
                                                                   xbar=1, xbarlabel='1s')
                 fig.suptitle('moving-dots --> cells resp. to %i$^o$\n\n\n' % v, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
-
+                print(contour_param_key)
                 fig, AX = episode_mixed.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
                                                        column_key='patch-delay',
                                                        row_key='direction',
