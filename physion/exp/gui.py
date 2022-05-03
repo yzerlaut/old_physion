@@ -1,18 +1,18 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 import sys, time, tempfile, os, pathlib, json, subprocess
 import multiprocessing # for the camera streams !!
-from ctypes import c_char_p 
+from ctypes import c_char_p
 import numpy as np
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import *
 
 if not sys.argv[-1]=='no-stim':
-    from visual_stim.psychopy_code.stimuli import build_stim
+    from visual_stim.stimuli import build_stim
     from visual_stim.screens import SCREENS
 else:
     SCREENS = []
-    
+
 from misc.style import set_app_icon, set_dark_style
 try:
     from hardware_control.NIdaq.main import Acquisition
@@ -31,12 +31,12 @@ base_path = str(pathlib.Path(__file__).resolve().parents[0])
 settings_filename = os.path.join(base_path, 'settings.npy')
 
 class MainWindow(QtWidgets.QMainWindow):
-    
+
     def __init__(self, app, args=None):
         """
         """
         super(MainWindow, self).__init__()
-        
+
         self.setWindowTitle('Experimental module')
         self.setGeometry(400, 50, 550, 400)
 
@@ -51,7 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.quit_event.clear()
         self.manager = multiprocessing.Manager() # Useful to share a string across processes :
         self.datafolder = self.manager.Value(c_char_p, str(os.path.join(os.path.expanduser('~'), 'DATA', 'trash')))
-        
+
         ##########################################################
         ######## class values
         ##########################################################
@@ -301,13 +301,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                                with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
                                                with_screen_frames_folder=self.metadata['VisualStim'])
         self.datafolder.set(os.path.dirname(self.filename))
-            
+
         if self.metadata['protocol']!='None':
             with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
                 self.protocol = json.load(fp)
         else:
                 self.protocol = {}
-                
+
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
             self.protocol['screen'] = self.metadata['Screen']
@@ -323,7 +323,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.stim = None
 
         print('max_time of NIdaq recording: %.2dh:%.2dm:%.2ds' % (max_time/3600, (max_time%3600)/60, (max_time%60)))
-        
+
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
@@ -341,7 +341,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for LFP 
         elif self.metadata['Vm']:
             self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
-            
+
         try:
             self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
                                    Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
@@ -356,18 +356,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.init = True
         self.save_experiment() # saving all metadata after full initialization
-        
+
         if self.cbp.currentText()=='None':
             self.statusBar.showMessage('Acquisition ready !')
         else:
             self.statusBar.showMessage('Acquisition & Stimulation ready !')
 
 
-        
     def run(self):
         self.stop_flag=False
         self.run_event.set() # start the run flag for the facecamera
-        
+
         if ((self.acq is None) and (self.stim is None)) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
         elif self.stim is None and self.acq is not None:

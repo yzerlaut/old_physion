@@ -7,8 +7,9 @@ except ModuleNotFoundError:
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from screens import SCREENS
-from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
-from psychopy_code.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+#from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
+from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+
 
 def build_stim(protocol, no_psychopy=False):
     """
@@ -175,9 +176,6 @@ class visual_stim:
     def pix_to_angle(self, value):
         return self.cm_to_angle(value/self.screen['resolution'][0]*self.screen['width'])
 
-    def angle_to_cm(self, value):
-        return self.screen['distance_from_eye']*np.tan(np.pi/180.*value)
-
     def set_angle_meshgrid(self):
         """
         #  ------- for simplicity -------  #
@@ -188,6 +186,10 @@ class visual_stim:
                            dAngle_per_pix*(np.arange(self.screen['resolution'][1])-self.screen['resolution'][1]/2.),
                            indexing='xy')
         self.x, self.z = x.T, z.T
+
+    def angle_to_pix(self, angle):
+        # using the above linear approx, the relationship is just the inverse:
+        return angle/self.pix_to_angle(1.)
 
     # some general grating functions
     def compute_rotated_coords(self, angle,
@@ -384,14 +386,16 @@ class visual_stim:
     #####################################################
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def single_array_sequence_presentation(self, parent, index):
+        tick = time.time()
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
+        print('array init took %.1fs' % (time.time()-tick))
+        toc = time.time()
         FRAMES = []
-        if 'protocol_id' in self.experiment:
-            print('protocol_id: ', self.experiment['protocol_id'][index])
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
                                            image=self.gamma_corrected_lum(frame),
                                            units='pix', size=self.win.size))
+        print('array buffering took %.1fs' % (time.time()-toc))
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
@@ -434,8 +438,9 @@ class visual_stim:
             if stop_signal(parent):
                 break
             t = time.time()-t0
-            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i' % (t/3600, (t%3600)/60, (t%60),
-                                                                       i+1, len(self.experiment['index'])))
+            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i                                protocol-ID:%i' % (t/3600,
+                (t%3600)/60, (t%60), i+1, len(self.experiment['index']),
+                 self.experiment['protocol_id'][i] if 'protocol_id' in self.experiment else 0))
             self.single_episode_run(parent, i)
             if i<(len(self.experiment['index'])-1):
                 self.inter_screen(parent,
@@ -556,6 +561,22 @@ class visual_stim:
 
 
 #####################################################
+##  ----      MOVIE STIMULATION REPLAY      --- #####
+#####################################################
+
+class movie_replay(visual_stim):
+    """ TO BE IMPLEMENTED """
+
+    def __init__(self, protocol, no_psychopy=False):
+
+        super().__init__(protocol)
+
+    def run(self, parent):
+        pass
+
+
+
+#####################################################
 ##  ----         MULTI-PROTOCOLS            --- #####
 #####################################################
 
@@ -585,7 +606,7 @@ class multiprotocol(visual_stim):
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
-                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]), 'exp', 'protocols', protocol['Protocol-%i'%i])
+                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'exp', 'protocols', protocol['Protocol-%i'%i])
                 if not os.path.isfile(Ppath):
                     print(' /!\ "%s" not found in Protocol folder /!\  ' % protocol['Protocol-%i'%i])
                 with open(Ppath, 'r') as fp:
@@ -668,6 +689,16 @@ class multiprotocol(visual_stim):
 #####################################
 ##  ----  BUILDING STIMULI  --- #####
 #####################################
+def init_bg_image(cls, index):
+    """ initializing an empty image"""
+    return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
+
+def init_times_frames(cls, index, refresh_freq, security_factor=1.5):
+    """ we use this function for each protocol initialisation"""
+    interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+    itend = int(security_factor*interval*refresh_freq)
+    return np.arange(itend), np.arange(itend)/refresh_freq, []
+
 
 class vis_stim_image_built(visual_stim):
 
@@ -689,28 +720,23 @@ class vis_stim_image_built(visual_stim):
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
         self.refresh_freq = protocol['movie_refresh_freq']
-
-        # in case the protocol has a "control" condition where we randomize
-        # stimulus presentation
-        if ('randomize' in protocol) and (protocol['randomize']=="True"):
-            self.randomize = True
-        else:
-            self.randomize = False
+        # adding a appearance threshold (see blob stim)
+        if 'appearance_threshold' not in protocol:
+            protocol['appearance_threshold'] = 2.5 # 
 
 
-    def init_image(self, index, parent=None):
-        """ initializing an empty image"""
-        cls = (parent if parent is not None else self)
-        return 2*cls.experiment['bg-color'][index]-1.+0.*cls.x
-
-    def init_times_frames(self, index, parent=None, security_factor=1.2):
-        """ we use this function for each protocol initialisation"""
-        cls = (parent if parent is not None else self)
-        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        # the refresh rate remains a property of the child class, not
-        # inherited from the parent class
-        itend = int(security_factor*interval*self.refresh_freq)
-        return np.arange(itend), np.arange(itend)/self.refresh_freq, []
+    def compute_frame_order(self, cls, times, index):
+        """
+        """   
+        order = np.arange(len(times))
+        if ('randomize' in self.protocol) and (self.protocol['randomize']=="True"):
+            # we randomize the order of the time sequence here !!
+            if ('randomize-per-trial' in self.protocol) and (self.protocol['randomize-per-trial']=="True"):
+                np.random.seed(int(cls.experiment['seed'][index]+1000*index))
+            else:
+                np.random.seed(int(cls.experiment['seed'][index]))
+            np.random.shuffle(order) # shuffling
+        return order
 
     def image_to_frame(self, img):
         """ need to transpose given the current coordinate system"""
@@ -736,6 +762,19 @@ class vis_stim_image_built(visual_stim):
                                              spatial_freq=spatial_freq,
                                              contrast=contrast,
                                              time_phase=time_phase)-1
+    def add_gaussian(self, image,
+                     t=0, t0=0, sT=1.,
+                     radius=10,
+                     contrast=1.,
+                     xcenter=0,
+                     zcenter=0):
+        """ add a gaussian luminosity increase
+        N.B. when contrast=1, you need black background, otherwise it will saturate
+             when contrast=0.5, you can start from the grey background to reach white in the center
+        """
+        image += 2*np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
+                     contrast*np.exp(-(t-t0)**2/2./sT**2)
+
     def add_dot(self, image, pos, size, color, type='square'):
         """
         add dot, either square or circle
@@ -750,7 +789,10 @@ class vis_stim_image_built(visual_stim):
         pass
 
 
-## --- === grating stimuli === --- ##
+#####################################################
+##  ----      PRESENTING GRATING STIMS      --- #####
+#####################################################
+
 
 class center_grating_stim_image(vis_stim_image_built):
     """
@@ -766,20 +808,17 @@ class center_grating_stim_image(vis_stim_image_built):
     def get_frames_sequence(self, index, parent=None):
         """
         """
-
-        time_indices, times, FRAMES = self.init_times_frames(index,
-                                                             parent=parent)
-
+        cls = (parent if parent is not None else self)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
         for iframe, t in enumerate(times):
             FRAMES.append(self.image_to_frame(self.get_image(index,
                                                              parent=parent)))
-
         return time_indices, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = cls.init_image(episode)
+        img = init_bg_image(cls, episode)
         self.add_grating_patch(img,
                        angle=cls.experiment['angle'][episode],
                        radius=cls.experiment['radius'][episode],
@@ -808,7 +847,7 @@ class center_grating_stim_image(vis_stim_image_built):
 ##  ----    PRESENTING MOVING DOTS          --- #####
 #####################################################
 
-def get_starting_point_and_direction_mv_dots(index, cls):
+def get_starting_point_and_direction_mv_dots(cls, index):
 
     interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
     line = np.arange(int(cls.experiment['ndots'][index]))*cls.experiment['spacing'][index]
@@ -861,20 +900,15 @@ class line_moving_dots(vis_stim_image_built):
         """
         cls = (parent if parent is not None else self)
 
-        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(index, cls)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
 
-        time_indices, times, FRAMES = self.init_times_frames(index,
-                                                             parent=parent)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        order = np.arange(len(times))
-        if self.randomize:
-            # we randomize the order of the time sequence here !!
-            np.random.seed(int(cls.experiment['seed'][index]))
-            np.random.shuffle(order)
+        order = self.compute_frame_order(cls, times, index) # shuffling inside if randomize !!
 
         for iframe, t in enumerate(times):
             new_t = order[iframe]/self.refresh_freq
-            img = self.init_image(index, parent=parent)
+            img = init_bg_image(cls, index)
             for x0, y0 in zip(X0, Y0):
                 # adding the dots one by one
                 new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
@@ -889,7 +923,7 @@ class line_moving_dots(vis_stim_image_built):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = self.init_image(index, parent=parent)
+        img = init_bg_image(cls, index)
         X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
@@ -926,11 +960,293 @@ class line_moving_dots(vis_stim_image_built):
 
         return ax
 
+class mixed_moving_dots_static_patch(vis_stim_image_built):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         ['speed', 'bg-color', 'ndots', 'spacing',
+                          'direction', 'size', 'dotcolor', 'seed',
+                          'patch-delay', 'patch-duration',
+                          'patch-radius', 'patch-contrast',
+                          'patch-spatial-freq', 'patch-angle'])
+
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        get frame seq
+        """
+        cls = (parent if parent is not None else self)
+
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
+
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+
+        order = self.compute_frame_order(cls, times, index) # shuffling inside if randomize !!
+
+        for iframe, t in enumerate(times):
+            new_t = order[iframe]/self.refresh_freq
+            img = init_bg_image(cls, index)
+            for x0, y0 in zip(X0, Y0):
+                # adding the dots one by one
+                new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
+                self.add_dot(img, new_position,
+                             cls.experiment['size'][index],
+                             cls.experiment['dotcolor'][index])
+            if (t>=(cls.experiment['patch-delay'][index])) and\
+                        (t<=(cls.experiment['patch-delay'][index]+cls.experiment['patch-duration'][index])):
+                 self.add_grating_patch(img,
+                                angle=cls.experiment['patch-angle'][index],
+                                radius=cls.experiment['patch-radius'][index],
+                                spatial_freq=cls.experiment['patch-spatial-freq'][index],
+                                contrast=cls.experiment['patch-contrast'][index])
+
+            FRAMES.append(self.image_to_frame(img))
+
+        return time_indices, FRAMES, self.refresh_freq
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = init_bg_image(cls, index)
+        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
+        for x0, y0 in zip(X0, Y0):
+            new_position = (x0+dx_per_time*time_from_episode_start,
+                            y0+dy_per_time*time_from_episode_start)
+            self.add_dot(img, new_position,
+                         cls.experiment['size'][episode],
+                         cls.experiment['dotcolor'][episode])
+        self.add_grating_patch(img,
+                       angle=cls.experiment['patch-angle'][episode],
+                       radius=cls.experiment['patch-radius'][episode],
+                       spatial_freq=cls.experiment['patch-spatial-freq'][episode],
+                       contrast=cls.experiment['patch-contrast'][episode])
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+
+        direction = cls.experiment['direction'][episode]
+
+        # print(direction)
+        arrow['direction'] = ((direction+180)%180)+180
+        # print(arrow['direction'])
+
+        for shift in [-.5, 0, .5]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
+                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+            self.add_arrow(arrow, ax)
+
+        return ax
+
+
+
 #####################################################
-##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
+##  ----    PRESENTING NATURAL IMAGES       --- #####
 #####################################################
 
 
+def get_NaturalImages_as_array(screen):
+    
+    NI_FOLDERS = [os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'physion', 'physion', 'visual_stim', 'NI_bank'),
+                  os.path.join(os.path.expanduser('~'), 'work', 'physion', 'physion', 'visual_stim', 'NI_bank')]
+    
+    NIarray = []
+
+    NI_directory = None
+    for d in NI_FOLDERS:
+        if os.path.isdir(d):
+            NI_directory = d
+
+    if NI_directory is not None:
+        for filename in np.sort(os.listdir(NI_directory)):
+            img = load(os.path.join(NI_directory, filename))
+            new_img = adapt_to_screen_resolution(img, screen)
+            NIarray.append(2*img_after_hist_normalization(new_img)-1.)
+        return NIarray
+    else:
+        print(' /!\  Natural Images folder not found !!! /!\  ')
+        return [np.ones(10,10)*0.5 for i in range(5)]
+    
+class natural_image(visual_stim):
+
+    def __init__(self, protocol):
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID'], run_type='image')
+        
+        self.NIarray = get_NaturalImages_as_array(self.screen)
+
+    def get_frame(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+                       
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+            
+#####################################################
+##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
+#####################################################
+
+
+def generate_VSE(duration=5,
+                 min_saccade_duration=1.,# in s
+                 max_saccade_duration=3.,# in s
+                 # mean_saccade_duration=2.,# in s
+                 # std_saccade_duration=1.,# in s
+                 saccade_amplitude=100, # in pixels, TO BE PUT IN DEGREES
+                 seed=0,
+                 verbose=False):
+    """
+    A simple 'Virtual-Saccadic-Eye' (VSE) generator
+    based on temporal and spatial shifts drown form a uniform random distribution
+    """
+    
+    if verbose:
+        print('generating Virtual-Scene-Exploration (with seed "%s") [...]' % seed)
+    
+    np.random.seed(seed)
+    
+    tsaccades = np.cumsum(np.random.uniform(min_saccade_duration, max_saccade_duration,
+                                            size=int(3*duration/(max_saccade_duration-min_saccade_duration))))
+
+    x = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    y = np.random.uniform(saccade_amplitude/5., 2*saccade_amplitude, size=len(tsaccades))
+    
+    return {'t':np.array(list(tsaccades)),
+            'x':np.array(list(x)),
+            'y':np.array(list(y)),
+            'max_amplitude':saccade_amplitude}
+
+            
+
+class natural_image_vse(visual_stim):
+
+    
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+        super().init_experiment(protocol, ['Image-ID', 'VSE-seed',
+                                           'min-saccade-duration', 'max-saccade-duration',
+                                           'vary-VSE-with-Image', 'saccade-amplitude'],
+                                run_type='images_sequence')
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 10.
+        self.refresh_freq = protocol['movie_refresh_freq']
+
+        # initializing set of NI
+        self.NIarray = get_NaturalImages_as_array(self.screen)
+
+
+    def compute_shifted_image(self, img, ix, iy):
+        sx, sy = img.shape
+        new_im = np.zeros(img.shape)
+        new_im[ix:,iy:] = img[:sx-ix,:sy-iy]
+        new_im[:ix,:] = img[sx-ix:,:]
+        new_im[:,:iy] = img[:,sy-iy:]
+        new_im[:ix,:iy] = img[sx-ix:,sy-iy:]
+        return new_im
+    
+
+    def get_seed(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        if cls.experiment['vary-VSE-with-Image'][index]==1:
+            return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
+            return int(cls.experiment['VSE-seed'][index])
+
+        
+    def get_frames_sequence(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        
+        vse = self.get_vse(index, parent=cls)
+        
+        img = self.NIarray[int(cls.experiment['Image-ID'][index])]
+            
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+        time_indices, FRAMES = np.zeros(int(1.2*interval*self.refresh_freq), dtype=int), []
+        Times = np.arange(int(1.2*interval*self.refresh_freq))/self.refresh_freq
+
+        for i, t in enumerate(vse['t']):
+            FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
+            time_indices[Times>=t] = int(i)
+            
+        return time_indices, FRAMES, self.refresh_freq
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
+
+    def get_vse(self, episode, parent=None):
+        """
+        translate saccades in degree in pixels here
+        """
+        cls = (parent if parent is not None else self)
+        seed = self.get_seed(episode, parent=cls)
+        return generate_VSE(duration=cls.experiment['time_duration'][episode],
+                            min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                            max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                            seed=seed)
+
+#####################################################
+##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
+#####################################################
+
+class gaussian_blobs(vis_stim_image_built):
+    
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         ['x-center', 'y-center', 'radius',
+                          'center-time', 'extent-time',
+                          'contrast', 'bg-color'])
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
+        random samples of sin([0, 2pi]).
+        """
+        cls = (parent if parent is not None else self)
+
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+
+        for iframe, t in enumerate(times):
+            img = init_bg_image(cls, index)
+            self.add_gaussian(img,
+                              t=t, 
+                              contrast = cls.experiment['contrast'][index],
+                              xcenter=cls.experiment['x-center'][index],
+                              zcenter=cls.experiment['y-center'][index],
+                              radius = cls.experiment['radius'][index],
+                              t0=cls.experiment['center-time'][index],
+                              sT=cls.experiment['extent-time'][index])
+            FRAMES.append(img)
+
+        return time_indices, FRAMES, self.refresh_freq
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
+        radius = cls.experiment['radius'][episode]
+        t0, sT = cls.experiment['center-time'][episode], cls.experiment['extent-time'][episode]
+        return np.exp(-((cls.x-xcenter)**2+(cls.z-zcenter)**2)/2./radius**2)*\
+            np.exp(-(time_from_episode_start-t0)**2/2./sT**2)*\
+            cls.experiment['contrast'][episode]+cls.experiment['bg-color'][episode]
+    
 
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
@@ -963,4 +1279,3 @@ if __name__=='__main__':
             stim.close()
     else:
         print('need to provide a ".json" protocol file as argument !')
-

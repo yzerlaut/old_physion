@@ -12,7 +12,7 @@ from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
 from misc import guiparts
-from visual_stim.psychopy_code.stimuli import build_stim # we'll load it without psychopy
+from visual_stim.stimuli import build_stim # we'll load it without psychopy
 
 try:
     from analysis.make_figures import FiguresWindow

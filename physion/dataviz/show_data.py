@@ -7,7 +7,7 @@ import matplotlib.pylab as plt
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools as dv_tools
 from analysis import read_NWB, process_NWB, stat_tools
-from visual_stim.psychopy_code.stimuli import build_stim
+from visual_stim.stimuli import build_stim
 
 # datavyz submodule
 try:
