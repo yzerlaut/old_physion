@@ -923,7 +923,7 @@ class line_moving_dots(vis_stim_image_built):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = init_bg_image(cls, index)
+        img = init_bg_image(cls, episode)
         X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
@@ -1008,7 +1008,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        img = init_bg_image(cls, index)
+        img = init_bg_image(cls, episode)
         X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,

@@ -350,7 +350,7 @@ class MainWindow(guiparts.NewWindow):
         self.data = Data(filename)
             
         self.tzoom = self.data.tlim
-        self.notes.setText(self.data.description)
+        self.notes.setText(self.data.description.replace('/', '\n'))
 
         self.cal.setSelectedDate(self.data.nwbfile.session_start_time.date())
         if self.dbox.currentIndex()<1:
