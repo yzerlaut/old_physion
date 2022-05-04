@@ -32,12 +32,13 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
                     roiIndices=[0],
                     moving_dot_direction_index = 0, moving_dot_label='moving-dots',
                     contour_param_key = 'angle', contour_param_index = 0, 
+                    fixed_delay=None,
                     Ybar=0.1):
 
     if 'patch-delay' in episode_mixed.varied_parameters:
         delays = episode_mixed.varied_parameters['patch-delay']
     else:
-        delays = [0] # centered by default
+        delays = [fixed_delay] # centered by default
 
     fig, AX = ge.figure(axes=(2+len(delays), 1), figsize=(1.,1), wspace=0.5)
 
@@ -256,7 +257,6 @@ def run_analysis_and_save_figs(datafile,
                                                                   xbar=1, xbarlabel='1s')
                 fig.suptitle('moving-dots --> cells resp. to %i$^o$\n\n\n' % v, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
-                print(contour_param_key)
                 fig, AX = episode_mixed.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
                                                        column_key='patch-delay',
                                                        row_key='direction',
@@ -276,10 +276,12 @@ def run_analysis_and_save_figs(datafile,
                                               contour_param_index = i)
                     pdf.savefig(fig);plt.close(fig)
                     if (episode_random_dots is not None) and (episode_mixed_random_dots is not None):
+                        patch_delay= episode_mixed.data.metadata['Protocol-%i-patch-delay-1' % (episode_mixed.data.get_protocol_id('random-mixed-moving-dots-static-patch')+1)]
                         fig, AX = interaction_fig(episode_static_patch, episode_random_dots, episode_mixed_random_dots,
                                                   roiIndices=significant_rois['%ideg' % v],
                                                   moving_dot_direction_index = j, moving_dot_label='random-line-dots',
                                                   contour_param_key=contour_param_key,
+                                                  fixed_delay = patch_delay,
                                                   contour_param_index = i)
                         pdf.savefig(fig);plt.close(fig)
 
