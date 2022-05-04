@@ -460,13 +460,12 @@ class visual_stim:
 
     def plot_stim_picture(self, episode,
                           ax=None, parent=None,
-                          label=None, enhance=True, vse=False):
+                          label=None, vse=False):
 
         cls = (parent if parent is not None else self)
         ax = self.show_frame(episode,
                              ax=ax,
                              label=label,
-                             enhance=enhance,
                              vse=vse,
                              parent=parent)
 
@@ -480,6 +479,15 @@ class visual_stim:
     def get_poststim_image(self):
         return (1+self.protocol['presentation-poststim-screen'])/2.+0*self.x
 
+    def image_to_frame(self, img, norm=False, psychopy_to_numpy=False):
+        """ need to transpose given the current coordinate system"""
+        if psychopy_to_numpy:
+            return img.T/2.+0.5
+        if norm:
+            return (img.T-np.min(img))/(np.max(img)-np.min(img)+1e-6)
+        else:
+            return img.T
+
     def show_frame(self, episode,
                    time_from_episode_start=0,
                    parent=None,
@@ -488,7 +496,6 @@ class visual_stim:
                           'lw':2, 'fontsize':12},
                    arrow=None,
                    vse=False,
-                   enhance=False,
                    ax=None):
         """
 
@@ -511,18 +518,11 @@ class visual_stim:
             import matplotlib.pylab as plt
             fig, ax = plt.subplots(1)
 
-        # if enhance:
-        #     width=80 # degree
-        #     self.x, self.z = np.meshgrid(np.linspace(-width, width, self.screen['resolution'][0]),
-        #                                  np.linspace(-width*self.screen['resolution'][1]/self.screen['resolution'][0],
-        #                                              width*self.screen['resolution'][1]/self.screen['resolution'][0],
-        #                                              self.screen['resolution'][1]))
-
         cls = (parent if parent is not None else self)
 
-        ax.imshow(cls.get_image(episode,
-                                 time_from_episode_start=time_from_episode_start,
-                                 parent=cls),
+        ax.imshow(cls.image_to_frame(cls.get_image(episode,
+                                                   time_from_episode_start=time_from_episode_start,
+                                                   parent=cls), psychopy_to_numpy=True),
                   cmap='gray', vmin=0, vmax=1,
                   origin='lower',
                   aspect='equal')
@@ -685,8 +685,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
-    def plot_stim_picture(self, episode, ax=None, parent=None, enhance=False):
-        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self, enhance=enhance)
+    def plot_stim_picture(self, episode, ax=None, parent=None):
+        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self)
 
 
 
@@ -741,10 +741,6 @@ class vis_stim_image_built(visual_stim):
                 np.random.seed(int(cls.experiment['seed'][index]))
             np.random.shuffle(order) # shuffling
         return order
-
-    def image_to_frame(self, img):
-        """ need to transpose given the current coordinate system"""
-        return img.T
 
 
     def add_grating_patch(self, image,
@@ -833,16 +829,13 @@ class center_grating_stim_image(vis_stim_image_built):
         return img
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None, enhance=False,
+                          ax=None, parent=None, label=None,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
 
         cls = (parent if parent is not None else self)
-        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
-                             cls.experiment['time_start'][episode])
         ax = self.show_frame(episode, ax=ax, label=label,
-                             time_from_episode_start=tcenter_minus,
                              parent=parent)
         return ax
 
@@ -939,15 +932,15 @@ class line_moving_dots(vis_stim_image_built):
 
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None, enhance=False,
+                          ax=None, parent=None, label=None,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
 
         cls = (parent if parent is not None else self)
-        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+        tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
                              cls.experiment['time_start'][episode])
-        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+        ax = self.show_frame(episode, ax=ax, label=label,
                              time_from_episode_start=tcenter_minus,
                              parent=parent)
 
@@ -958,8 +951,8 @@ class line_moving_dots(vis_stim_image_built):
         # print(arrow['direction'])
 
         for shift in [-.5, 0, .5]:
-            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
-                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(x)/3.,
+                               shift*np.cos(np.pi/180.*direction)*np.max(y)/3.]
             self.add_arrow(arrow, ax)
 
         return ax
@@ -1028,27 +1021,29 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
         return img
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None, enhance=False,
+                          ax=None, parent=None, label=None, 
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
 
         cls = (parent if parent is not None else self)
-        tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
+        tcenter_minus = .3*(cls.experiment['time_stop'][episode]-\
                              cls.experiment['time_start'][episode])
-        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+        ax = self.show_frame(episode, ax=ax, label=label, 
                              time_from_episode_start=tcenter_minus,
                              parent=parent)
 
         direction = cls.experiment['direction'][episode]
 
-        # print(direction)
-        arrow['direction'] = ((direction+180)%180)+180
+        print(direction)
+        arrow['direction'] = direction
+        # arrow['direction'] = ((direction+180)%180)+180
         # print(arrow['direction'])
+        print(cls.screen, cls.x)
 
-        for shift in [-.5, 0, .5]:
-            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*cls.screen['width'],
-                               shift*np.cos(np.pi/180.*direction)*cls.screen['height']]
+        for shift in [-1, 0, 1]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
+                               shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
             self.add_arrow(arrow, ax)
 
         return ax

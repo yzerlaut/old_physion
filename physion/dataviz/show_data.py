@@ -269,8 +269,7 @@ class MultimodalData(read_NWB.Data):
 
         
     def show_VisualStim(self, tlim,
-                        Npanels=8,
-                        enhance=False):
+                        Npanels=8):
         
         if self.visual_stim is None:
             self.init_visual_stim()
@@ -288,8 +287,7 @@ class MultimodalData(read_NWB.Data):
             if iEp>=0:
                 self.visual_stim.show_frame(iEp, ax=AX[i],
                                             time_from_episode_start=ti-tEp,
-                                            label=label,
-                                            enhance=enhance)
+                                            label=label)
             AX[i].set_title('%.1fs' % ti, fontsize=6)
             AX[i].axis('off')
             label=None
@@ -656,7 +654,6 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             stim_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
             self.data.visual_stim.plot_stim_picture(first_pattern_resp_index,
                                                     ax=stim_inset,
-                                                    enhance=True,
                                                     vse=True)
             if hasattr(self.data.visual_stim, 'get_vse'):
                 vse = self.data.visual_stim.get_vse(first_pattern_resp_index)
@@ -975,8 +972,8 @@ if __name__=='__main__':
         
     elif args.ops=='visual-stim':
         data = MultimodalData(args.datafile)
-        fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels, enhance=True)
-        fig2 = data.visual_stim.plot_stim_picture(args.episode, enhance=True)
+        fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
+        fig2 = data.visual_stim.plot_stim_picture(args.episode)
         print('interval [%.1f, %.1f] ' % (data.nwbfile.stimulus['time_start_realigned'].data[args.episode],
                                           data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
