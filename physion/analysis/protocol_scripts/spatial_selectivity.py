@@ -11,65 +11,6 @@ from physion.dataviz.show_data import MultimodalData, EpisodeResponse, format_ke
 from physion.analysis.tools import summary_pdf_folder
 from physion.analysis import stat_tools
 
-def ROI_analysis(EPISODES,
-                 quantity='dFoF', roiIndex=None, roiIndices='all',
-                 verbose=False,
-                 response_significance_threshold=0.01,
-                 radius_threshold_for_center=20.,
-                 with_responsive_angles = False,
-                 stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                      test='wilcoxon', positive=True),
-                 Npanels=4):
-    """
-    direction selectivity ROI analysis
-    """
-
-    # fig, AX = EPISODES.plot_trial_average(quantity=quantity, roiIndex=roiIndex, roiIndices=roiIndices,
-    #                                       column_key='x-center', row_key='y-center', color_key='angle',
-    #                                       ybar=0.5, ybarlabel='0.5dF/F',
-    #                                       xbar=1., xbarlabel='1s',
-    #                                       with_annotation=True,
-    #                                       with_std=False,
-    #                                       with_stat_test=True, stat_test_props=stat_test_props,
-    #                                       with_screen_inset=True,
-    #                                       verbose=verbose)
-    fig, AX = None, None
-    
-    if roiIndex is not None:
-        # look for the parameters varied 
-        KEYS, VALUES, INDICES, Nfigs, BINS = [], [], [], 1, []
-        for key in ['x-center', 'y-center', 'angle', 'contrast']:
-            if key in EPISODES.varied_parameters:
-                KEYS.append(key)
-                VALUES.append(EPISODES.varied_parameters[key])
-                INDICES.append(np.arange(len(EPISODES.varied_parameters[key])))
-                Nfigs *= len(EPISODES.varied_parameters[key]) # ADD ONE FIG PER ADDITIONAL PARAMETER IF NEEDED !
-                x = np.unique(EPISODES.varied_parameters[key])
-                BINS.append(np.concatenate([[x[0]-.5*(x[1]-x[0])], .5*(x[1:]+x[:-1]), [x[-1]+.5*(x[-1]-x[-2])]]))
-
-        significant, resp = False, {'value':[], 'significant':[]}
-        for key, bins in zip(KEYS, BINS):
-            resp[key] = []
-            resp[key+'-bins'] = bins
-
-        for indices in itertools.product(*INDICES):
-
-            for key, index in zip(KEYS, indices):
-                resp[key].append(EPISODES.varied_parameters[key][index])
-
-            stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond(KEYS, indices),
-                                                            **stat_test_props)
-
-            resp['value'].append(np.mean(stats.y-stats.x))
-            resp['significant'].append(stats.significant(threshold=response_significance_threshold))
-
-        for key in resp:
-            resp[key] = np.array(resp[key])
-
-        return fig, resp
-    else:
-        return fig, None
-        
 
 def summary_fig(results):
 

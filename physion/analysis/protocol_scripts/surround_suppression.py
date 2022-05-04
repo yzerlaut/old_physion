@@ -6,7 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from datavyz import graph_env_manuscript as ge
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from dataviz.show_data import MultimodalData, format_key_value
 from analysis.tools import summary_pdf_folder
 from analysis.process_NWB import EpisodeResponse

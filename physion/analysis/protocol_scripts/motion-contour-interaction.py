@@ -38,7 +38,7 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
     if 'patch-delay' in episode_mixed.varied_parameters:
         delays = episode_mixed.varied_parameters['patch-delay']
     else:
-        delays = [fixed_delay] # centered by default
+        delays = [fixed_delay] # will throw an error if fixed_delay is not specified
 
     fig, AX = ge.figure(axes=(2+len(delays), 1), figsize=(1.,1), wspace=0.5)
 

@@ -388,14 +388,14 @@ class visual_stim:
     def single_array_sequence_presentation(self, parent, index):
         tick = time.time()
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
-        print('array init took %.1fs' % (time.time()-tick))
+        print('  array init took %.1fs' % (time.time()-tick))
         toc = time.time()
         FRAMES = []
         for frame in frames:
             FRAMES.append(visual.ImageStim(self.win,
                                            image=self.gamma_corrected_lum(frame),
                                            units='pix', size=self.win.size))
-        print('array buffering took %.1fs' % (time.time()-toc))
+        print('  array buffering took %.1fs' % (time.time()-toc))
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
