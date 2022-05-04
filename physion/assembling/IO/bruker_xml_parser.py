@@ -68,15 +68,19 @@ def bruker_xml_parser(filename):
                                                 except ValueError:
                                                     pass
 
-
     # dealing with depth  --- MANUAL for piezo plane-scanning mode because the bruker xml files don't hold this info...
     if np.sum(['Piezo' in key for key in depths.keys()]):
         Ndepth = len(np.unique(data['Ch2']['depth_index'])) # SHOULD ALWAYS BE ODD
-        for key in depths.keys():
-            if 'Piezo' in key:
-                depth_start_piezo = depths[key][0]
-        depth_middle_piezo = 200 # SHOULD BE ALWAYS CENTER AT 200um
-        data['depth_shift'] = np.linspace(-1, 1, Ndepth)*(depth_middle_piezo-depth_start_piezo)
+        try:
+            for key in depths.keys():
+                if 'Piezo' in key:
+                    depth_start_piezo = depths[key][0]
+            depth_middle_piezo = 200 # SHOULD BE ALWAYS CENTER AT 200um
+            data['depth_shift'] = np.linspace(-1, 1, Ndepth)*(depth_middle_piezo-depth_start_piezo)
+        except BaseException as be:
+            print(be)
+            print(' /!\ plane info was not found /!\ ')
+            data['depth_shift'] = np.arange(1, Ndepth+1)
     else:
         data['depth_shift'] = np.zeros(1)
 

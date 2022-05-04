@@ -88,7 +88,19 @@ class visual_stim:
         self.protocol = protocol
         self.screen = SCREENS[self.protocol['Screen']]
 
-        # we can initialize the angle
+            
+        self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq'] if 'movie_refresh_freq' in protocol else 10.
+
+        if demo or (('demo' in self.protocol) and self.protocol['demo']):
+            # --------------------- #
+            ## ---- DEMO MODE ---- ##    we override the parameters
+            # --------------------- #
+            self.screen['monitoring_square']['size'] = int(600*self.screen['monitoring_square']['size']/self.screen['resolution'][0])
+            self.screen['resolution'] = (800,int(800*self.screen['resolution'][1]/self.screen['resolution'][0]))
+            self.screen['screen_id'] = 0
+            self.screen['fullscreen'] = False
+
+        # then we can initialize the angle
         self.set_angle_meshgrid()
 
         if not ('no-window' in self.protocol):
@@ -96,19 +108,6 @@ class visual_stim:
             self.monitor = monitors.Monitor(self.screen['name'])
             self.monitor.setDistance(self.screen['distance_from_eye'])
             self.k, self.gamma = self.screen['gamma_correction']['k'], self.screen['gamma_correction']['gamma']
-
-            if demo or (('demo' in self.protocol) and self.protocol['demo']):
-                # --------------------- #
-                ## ---- DEMO MODE ---- ##    we override the parameters
-                # --------------------- #
-                self.screen['monitoring_square']['size'] = int(600*self.screen['monitoring_square']['size']/self.screen['resolution'][0])
-                self.screen['resolution'] = (800,int(800*self.screen['resolution'][1]/self.screen['resolution'][0]))
-                self.screen['screen_id'] = 0
-                self.screen['fullscreen'] = False
-                if 'movie_refresh_freq' not in protocol:
-                    self.protocol['movie_refresh_freq'] = 10.
-                else:
-                    self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq']
 
             self.win = visual.Window(self.screen['resolution'], monitor=self.monitor,
                                      screen=self.screen['screen_id'], fullscr=self.screen['fullscreen'],
@@ -582,9 +581,12 @@ class movie_replay(visual_stim):
 
 class multiprotocol(visual_stim):
 
-    def __init__(self, protocol, no_psychopy=False):
+    def __init__(self, protocol, 
+                 no_psychopy=False):
 
-        super().__init__(protocol)
+        super().__init__(protocol, 
+                         demo=(('demo' in protocol) and protocol['demo']))
+
 
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
@@ -598,6 +600,7 @@ class multiprotocol(visual_stim):
             while 'Protocol-%i'%i in protocol:
                 subprotocol = {'Screen':protocol['Screen'],
                                'Presentation':'',
+                               'demo':(('demo' in protocol) and protocol['demo']),
                                'no-window':True}
                 for key in protocol:
                     if ('Protocol-%i-'%i in key):
@@ -613,6 +616,7 @@ class multiprotocol(visual_stim):
                     subprotocol = json.load(fp)
                     subprotocol['Screen'] = protocol['Screen']
                     subprotocol['no-window'] = True
+                    subprotocol['demo'] = (('demo' in protocol) and protocol['demo'])
                     self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))
                     for key, val in subprotocol.items():
                         protocol['Protocol-%i-%s'%(i,key)] = val
@@ -837,7 +841,7 @@ class center_grating_stim_image(vis_stim_image_built):
         cls = (parent if parent is not None else self)
         tcenter_minus = .43*(cls.experiment['time_stop'][episode]-\
                              cls.experiment['time_start'][episode])
-        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+        ax = self.show_frame(episode, ax=ax, label=label,
                              time_from_episode_start=tcenter_minus,
                              parent=parent)
         return ax
@@ -924,10 +928,10 @@ class line_moving_dots(vis_stim_image_built):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         img = init_bg_image(cls, episode)
-        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction(episode, cls)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
         for x0, y0 in zip(X0, Y0):
-            new_position = (x0+dx_per_time*time_from_episode_start,
-                            y0+dy_per_time*time_from_episode_start)
+            new_position = (X0+dx_per_time*time_from_episode_start,
+                            Y0+dy_per_time*time_from_episode_start)
             self.add_dot(img, new_position,
                          cls.experiment['size'][episode],
                          cls.experiment['dotcolor'][episode])
@@ -1009,7 +1013,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         img = init_bg_image(cls, episode)
-        X0, Y0, dx_per_time, dy_per_time = self.get_starting_point_and_direction(episode, cls)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, episode)
         for x0, y0 in zip(X0, Y0):
             new_position = (x0+dx_per_time*time_from_episode_start,
                             y0+dy_per_time*time_from_episode_start)
