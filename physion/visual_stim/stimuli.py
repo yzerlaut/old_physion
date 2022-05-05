@@ -839,6 +839,57 @@ class center_grating_stim_image(vis_stim_image_built):
                              parent=parent)
         return ax
 
+class center_drifting_grating_stim_image(vis_stim_image_built):
+    """
+    """
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         keys=['bg-color', 'speed',
+                               'x-center', 'y-center',
+                               'radius','spatial-freq',
+                               'angle', 'contrast'])
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        """
+        cls = (parent if parent is not None else self)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+        for iframe, t in enumerate(times):
+            FRAMES.append(self.image_to_frame(self.get_image(index,
+                                                             time_from_episode_start=t,
+                                                             parent=parent)))
+        return time_indices, FRAMES, self.refresh_freq
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = init_bg_image(cls, episode)
+        self.add_grating_patch(img,
+                       angle=cls.experiment['angle'][episode],
+                       radius=cls.experiment['radius'][episode],
+                       spatial_freq=cls.experiment['spatial-freq'][episode],
+                       contrast=cls.experiment['contrast'][episode],
+                       xcenter=cls.experiment['x-center'][episode],
+                       zcenter=cls.experiment['y-center'][episode],
+                       time_phase=cls.experiment['speed'][episode]*time_from_episode_start)
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax, label=label,
+                             parent=parent)
+        arrow['direction'] = cls.experiment['direction'][episode]
+        arrow['center'] = [cls.experiment['x-center'][episode],
+                           cls.experiment['y-center'][episode]]
+        self.add_arrow(arrow, ax)
+        return ax
+
 
 #####################################################
 ##  ----    PRESENTING MOVING DOTS          --- #####
