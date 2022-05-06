@@ -32,7 +32,7 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
                     roiIndices=[0],
                     moving_dot_direction_index = 0, moving_dot_label='moving-dots',
                     contour_param_key = 'angle', contour_param_index = 0, 
-                    fixed_delay=None,
+                    fixed_delay=None, suffix='',
                     Ybar=0.1):
 
     if 'patch-delay' in episode_mixed.varied_parameters:
@@ -101,8 +101,8 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
     ge.set_common_ylims(AX)
     ge.set_common_xlims(AX)
 
-    patch_duration = episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (episode_mixed.data.get_protocol_id('static-patch')+1)]
-    dot_duration = episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (episode_mixed.data.get_protocol_id('moving-dots')+1)]
+    patch_duration = episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (episode_mixed.data.get_protocol_id('static-patch'+suffix)+1)]
+    dot_duration = episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (episode_mixed.data.get_protocol_id('moving-dots'+suffix)+1)]
     center = dot_duration/2.
     center = 0
     
@@ -121,6 +121,7 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
     return fig, AX
 
 def run_analysis_and_save_figs(datafile,
+                               suffix='',
                                folder='./',
                                Ybar=0.1):
 
@@ -131,29 +132,29 @@ def run_analysis_and_save_figs(datafile,
     
     # computing episodes
     episode_static_patch = EpisodeResponse(datafile,
-                                           protocol_id=data.get_protocol_id('static-patch'),
+                                           protocol_id=data.get_protocol_id('static-patch'+suffix),
                                            quantities=['dFoF'],
                                            prestim_duration=3)
     episode_moving_dots = EpisodeResponse(datafile,
-                                          protocol_id=data.get_protocol_id('moving-dots'),
+                                          protocol_id=data.get_protocol_id('moving-dots'+suffix),
                                           quantities=['dFoF'],
                                           prestim_duration=3)
 
     episode_mixed = EpisodeResponse(datafile,
-                                    protocol_id=data.get_protocol_id('mixed-moving-dots-static-patch'),
+                                    protocol_id=data.get_protocol_id('mixed-moving-dots-static-patch'+suffix),
                                     quantities=['dFoF'],
                                     prestim_duration=3)
     
     episode_random_dots, episode_mixed_random_dots = None, None
-    if 'random-line-dots' in data.protocols:
+    if 'random-line-dots'+suffix in data.protocols:
         episode_random_dots = EpisodeResponse(datafile,
-                                              protocol_id=data.get_protocol_id('random-line-dots'),
+                                              protocol_id=data.get_protocol_id('random-line-dots'+suffix),
                                               quantities=['dFoF'],
                                               prestim_duration=3)
         
-    if 'random-mixed-moving-dots-static-patch' in data.protocols:
+    if 'random-mixed-moving-dots-static-patch'+suffix in data.protocols:
         episode_mixed_random_dots = EpisodeResponse(datafile,
-                                                    protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'),
+                                                    protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'+suffix),
                                                     quantities=['dFoF'],
                                                     prestim_duration=3)
 
@@ -273,15 +274,17 @@ def run_analysis_and_save_figs(datafile,
                                               roiIndices=significant_rois['%ideg' % v],
                                               moving_dot_direction_index = j,
                                               contour_param_key=contour_param_key,
+                                              suffix=suffix,
                                               contour_param_index = i)
                     pdf.savefig(fig);plt.close(fig)
                     if (episode_random_dots is not None) and (episode_mixed_random_dots is not None):
-                        patch_delay= episode_mixed.data.metadata['Protocol-%i-patch-delay-1' % (episode_mixed.data.get_protocol_id('random-mixed-moving-dots-static-patch')+1)]
+                        patch_delay= episode_mixed.data.metadata['Protocol-%i-patch-delay-1' % (episode_mixed.data.get_protocol_id('random-mixed-moving-dots-static-patch'+suffix)+1)]
                         fig, AX = interaction_fig(episode_static_patch, episode_random_dots, episode_mixed_random_dots,
                                                   roiIndices=significant_rois['%ideg' % v],
                                                   moving_dot_direction_index = j, moving_dot_label='random-line-dots',
                                                   contour_param_key=contour_param_key,
                                                   fixed_delay = patch_delay,
+                                                  suffix=suffix,
                                                   contour_param_index = i)
                         pdf.savefig(fig);plt.close(fig)
 
@@ -294,7 +297,9 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument('-s', "--suffix", default='', type=str)
 
     args = parser.parse_args()
 
-    run_analysis_and_save_figs(args.datafile)
+    run_analysis_and_save_figs(args.datafile, 
+                               suffix=('-'+args.suffix if args.suffix!='' else ''))

@@ -4,9 +4,9 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension
-#from visual_stim.psychopy_code.stimuli import build_stim
 from visual_stim.stimuli import build_stim
-from Ca_imaging.tools import compute_dFoF, METHOD, T_SLIDING_MIN, PERCENTILE_SLIDING_MIN, NEUROPIL_CORRECTION_FACTOR
+from Ca_imaging.tools import compute_dFoF, METHOD,\
+        T_SLIDING_MIN, PERCENTILE_SLIDING_MIN, NEUROPIL_CORRECTION_FACTOR
 
 
 class Data:
@@ -78,7 +78,8 @@ class Data:
                 # self.description += '- %s \n' % self.protocols[ii-1]
                 self.description += '%s / ' % self.protocols[ii-1]
                 ii+=1
-            self.description = self.description[:-2]+'\n'
+                if ii%2==1:
+                    self.description += '\n'
         else:
             self.protocols = [self.metadata['protocol']]
             self.description += '- %s \n' % self.metadata['protocol']

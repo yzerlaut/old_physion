@@ -159,7 +159,7 @@ def make_summary_pdf(filename, Nmax=1000000,
 
         elif ('motion-contour-interaction' in data.metadata['protocol']):
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
-                                          'motion-contour-interaction.py')
+                                          'motion_contour_interaction.py')
             p = subprocess.Popen('%s %s %s' % (python_path, process_script, filename), shell=True)
             
         else:
