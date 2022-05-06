@@ -1185,7 +1185,6 @@ def generate_VSE(duration=5,
 
 class natural_image_vse(visual_stim):
 
-    
     def __init__(self, protocol):
 
         super().__init__(protocol)
@@ -1260,6 +1259,11 @@ class natural_image_vse(visual_stim):
 class gaussian_blobs(vis_stim_image_built):
     
     def __init__(self, protocol):
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 5.
+        self.refresh_freq = protocol['movie_refresh_freq']
+        print('refresh freq', self.refresh_freq)
 
         super().__init__(protocol,
                          ['x-center', 'y-center', 'radius',
