@@ -609,7 +609,8 @@ class multiprotocol(visual_stim):
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
-                Ppath = os.path.join(str(pathlib.Path(__file__).resolve().parents[1]), 'exp', 'protocols', protocol['Protocol-%i'%i])
+                path_list = [pathlib.Path(__file__).resolve().parents[1], 'exp', 'protocols']+protocol['Protocol-%i'%i].split('/')
+                Ppath = os.path.join(*path_list)
                 if not os.path.isfile(Ppath):
                     print(' /!\ "%s" not found in Protocol folder /!\  ' % protocol['Protocol-%i'%i])
                 with open(Ppath, 'r') as fp:
