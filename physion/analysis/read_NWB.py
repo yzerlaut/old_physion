@@ -74,7 +74,7 @@ class Data:
         if ('Presentation' in self.metadata) and (self.metadata['Presentation']=='multiprotocol'):
             self.protocols, ii = [], 1
             while ('Protocol-%i' % ii) in self.metadata:
-                self.protocols.append(self.metadata['Protocol-%i' % ii].replace('.json',''))
+                self.protocols.append(self.metadata['Protocol-%i' % ii].split('/')[-1].replace('.json','').replace('-many',''))
                 # self.description += '- %s \n' % self.protocols[ii-1]
                 self.description += '%s / ' % self.protocols[ii-1]
                 ii+=1
