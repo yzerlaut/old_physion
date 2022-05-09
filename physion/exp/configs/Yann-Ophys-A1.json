@@ -19,12 +19,12 @@
     "lab":"Rebola and Bacci labs",
     "institution":"Institut du Cerveau et de la Moelle, Paris",
     "protocols":["direction-selectivity-precise", "light-levels-3repeatsx5levelsx2min",
-		 "ff-drifting-grating-contrast-curve",
+		 "ff-drifting-grating-contrast-curve", "gaussian-blobs",
 		 "spatial-mapping-many",
 		 "spatial-mapping", "neurometric-task", "neurometric-task-fast",
 		 "sparse-noise-1h", "RF-mapping-full", "surround-suppression-static", "size-tuning-protocol", "secondary-receptive-field",
 		 "mismatch-negativity", "NDNF-protocol", 
 		 "NI+Scene-Exploration-2-SE-trajectories-10-repeats", "NI+Scene-Exploration-1-SE-trajectories-20-repeats",
 		 "NI-VSE-2images-2vse", "NI-VSE-4images-1vse-40trials",
-		 "motion-contour-interaction", "motion-contour-interaction-many"]
+		 "motion-contour-interaction", "motion-contour-interaction-many", "motion-contour-interaction-fast"]
 }

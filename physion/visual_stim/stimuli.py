@@ -82,7 +82,10 @@ def stop_signal(parent):
 
 class visual_stim:
 
-    def __init__(self, protocol, demo=False):
+    def __init__(self,
+                 protocol,
+                 demo=False,
+                 pre_buffer_stim=False):
         """
         """
         self.protocol = protocol
@@ -152,6 +155,10 @@ class visual_stim:
             self.Ton = int(1e3*self.screen['monitoring_square']['time-on'])
             self.Toff = int(1e3*self.screen['monitoring_square']['time-off'])
             self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
+
+            if pre_buffer_stim:
+                pass
+
 
     ################################
     #  ---   Gamma correction  --- #
