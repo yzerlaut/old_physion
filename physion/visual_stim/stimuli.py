@@ -16,55 +16,12 @@ def build_stim(protocol, no_psychopy=False):
     """
     if not no_psychopy:
         from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
-
+    protocol_name = protocol['Stimulus'].replace('-', '_')
+    print(protocol_name)
     if (protocol['Presentation']=='multiprotocol'):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
-    elif (protocol['Stimulus']=='light-level'):
-        return light_level_single_stim(protocol)
-    elif (protocol['Stimulus']=='bar'):
-        return bar_stim(protocol)
-    elif (protocol['Stimulus']=='full-field-grating'):
-        return full_field_grating_stim(protocol)
-    elif (protocol['Stimulus']=='oddball-full-field-grating'):
-        return oddball_full_field_grating_stim(protocol)
-    elif (protocol['Stimulus']=='center-grating'):
-        return center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='center-grating-image'):
-        return center_grating_stim_image(protocol)
-    elif (protocol['Stimulus']=='off-center-grating'):
-        return off_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='surround-grating'):
-        return surround_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-full-field-grating'):
-        return drifting_full_field_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-center-grating'):
-        return drifting_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-off-center-grating'):
-        return drifting_off_center_grating_stim(protocol)
-    elif (protocol['Stimulus']=='drifting-surround-grating'):
-        return drifting_surround_grating_stim(protocol)
-    elif (protocol['Stimulus']=='Natural-Image'):
-        return natural_image(protocol)
-    elif (protocol['Stimulus']=='Natural-Image+VSE'):
-        return natural_image_vse(protocol)
-    elif (protocol['Stimulus']=='line-moving-dots'):
-        return line_moving_dots(protocol)
-    elif (protocol['Stimulus']=='looming-stim'):
-        return looming_stim(protocol)
-    elif (protocol['Stimulus']=='mixed-moving-dots-static-patch'):
-        return mixed_moving_dots_static_patch(protocol)
-    elif (protocol['Stimulus']=='sparse-noise'):
-        if protocol['Presentation']=='Single-Stimulus':
-            return sparse_noise(protocol)
-        else:
-            print('Noise stim have to be done as "Single-Stimulus" !')
-    elif (protocol['Stimulus']=='dense-noise'):
-        if protocol['Presentation']=='Single-Stimulus':
-            return dense_noise(protocol)
-        else:
-            print('Noise stim have to be done as "Single-Stimulus" !')
-    elif (protocol['Stimulus']=='gaussian-blobs'):
-        return gaussian_blobs(protocol)
+    elif hasattr(sys.modules[__name__], protocol_name):
+        return getattr(sys.modules[__name__], protocol_name)(protocol)
     else:
         print('Protocol not recognized !')
         return None
