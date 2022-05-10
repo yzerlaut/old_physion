@@ -409,9 +409,9 @@ class visual_stim:
                 self.array_sequence_presentation(parent, i) # non-buffered version
 
             if i<(len(self.experiment['index'])-1):
+                print(self.experiment['interstim'][i])
                 self.inter_screen(parent,
-                                  #duration=np.max([1, self.experiment['interstim'][i]-self.buffer_delay]),
-                                  duration=self.experiment['interstim'][i],
+                                  duration=1.*self.experiment['interstim'][i],
                                   color=self.experiment['interstim-screen'][i])
         self.end_screen(parent)
         if not parent.stop_flag and hasattr(parent, 'statusBar'):
