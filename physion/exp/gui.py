@@ -32,13 +32,15 @@ settings_filename = os.path.join(base_path, 'settings.npy')
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, app, args=None):
+    def __init__(self, app, args=None, demo=False):
         """
         """
         super(MainWindow, self).__init__()
 
         self.setWindowTitle('Experimental module')
-        self.setGeometry(400, 50, 550, 400)
+        self.setGeometry(400, 50, 550, 430)
+
+        Y = 5 # coordinates of the current buttons
 
         ##########################################################
         ######## Multiprocessing quantities
@@ -64,58 +66,73 @@ class MainWindow(QtWidgets.QMainWindow):
         ####### GUI settings
         ##########################################################
         rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
-        rml.move(30, 5)
+        rml.move(30, Y)
         rml.setMinimumWidth(500)
+        Y+=35
         self.VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
-        self.VisualStimButton.move(30, 40)
+        self.VisualStimButton.move(30, Y)
         self.LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
-        self.LocomotionButton.move(130, 40)
+        self.LocomotionButton.move(130, Y)
         self.LFPButton = QtWidgets.QPushButton("LFP", self)
-        self.LFPButton.move(230, 40)
+        self.LFPButton.move(230, Y)
         self.LFPButton.setFixedWidth(50)
         self.VmButton = QtWidgets.QPushButton("Vm", self)
-        self.VmButton.move(280, 40)
+        self.VmButton.move(280, Y)
         self.VmButton.setFixedWidth(50)
         self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
         self.FaceCameraButton.clicked.connect(self.toggle_FaceCamera_process)
-        self.FaceCameraButton.move(330, 40)
+        self.FaceCameraButton.move(330, Y)
         self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
-        self.CaImagingButton.move(430, 40)
+        self.CaImagingButton.move(430, Y)
         for button in [self.VisualStimButton, self.LocomotionButton, self.LFPButton, self.VmButton,
                        self.FaceCameraButton, self.CaImagingButton]:
             button.setCheckable(True)
         for button in [self.VisualStimButton, self.LocomotionButton]:
             button.setChecked(True)
             
+        Y+=50
         # screen choice
-        QtWidgets.QLabel(" Screen :", self).move(250, 90)
+        QtWidgets.QLabel(" Screen :", self).move(250, Y)
         self.cbsc = QtWidgets.QComboBox(self)
         self.cbsc.setMinimumWidth(200)
-        self.cbsc.move(320, 90)
+        self.cbsc.move(320, Y)
         self.cbsc.activated.connect(self.update_screen)
         self.cbsc.addItems(SCREENS.keys())
         
+        Y+=35
         # config choice
-        QtWidgets.QLabel("  => Config :", self).move(160, 125)
+        QtWidgets.QLabel("  => Config :", self).move(160, Y)
         self.cbc = QtWidgets.QComboBox(self)
         self.cbc.setMinimumWidth(270)
-        self.cbc.move(250, 125)
+        self.cbc.move(250, Y)
         self.cbc.activated.connect(self.update_config)
 
+        Y+=35
         # subject choice
-        QtWidgets.QLabel("-> Subject :", self).move(100, 160)
+        QtWidgets.QLabel("-> Subject :", self).move(100, Y)
         self.cbs = QtWidgets.QComboBox(self)
         self.cbs.setMinimumWidth(340)
-        self.cbs.move(180, 160)
+        self.cbs.move(180, Y)
         self.cbs.activated.connect(self.update_subject)
         
+        Y+=35
         # protocol choice
-        QtWidgets.QLabel(" Visual Protocol :", self).move(20, 195)
+        QtWidgets.QLabel(" Visual Protocol :", self).move(20, Y)
         self.cbp = QtWidgets.QComboBox(self)
         self.cbp.setMinimumWidth(390)
-        self.cbp.move(130, 195)
+        self.cbp.move(130, Y)
         self.cbp.activated.connect(self.update_protocol)
+       
+        Y+=45
+        for ik, k in enumerate(['demo', 'buffer-stim', 'photostim         ']):
+            key = k.replace(' ', '').replace('-','')
+            setattr(self, key+'W', QtWidgets.QCheckBox(k, self))
+            getattr(self, key+'W').setMinimumWidth(390)
+            getattr(self, key+'W').move(40+ik*120+len(k), Y)
+        if demo:
+            self.demoW.setChecked(True)
         
+        Y+=45
         # buttons and functions
         LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
         FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
@@ -131,15 +148,16 @@ class MainWindow(QtWidgets.QMainWindow):
             btn = QtWidgets.QPushButton(label, self)
             btn.clicked.connect(func)
             btn.setMinimumWidth(110)
-            btn.move(50+shift, 250)
+            btn.move(50+shift, Y)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
             
-        QtWidgets.QLabel("Notes: ", self).move(40, 300)
+        Y+=45
+        QtWidgets.QLabel("Notes: ", self).move(25, Y+10)
         self.qmNotes = QtWidgets.QTextEdit('', self)
-        self.qmNotes.move(90, 300)
+        self.qmNotes.move(90, Y)
         self.qmNotes.setMinimumWidth(250)
         self.qmNotes.setMinimumHeight(60)
         
@@ -147,7 +165,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btn.clicked.connect(self.save_settings)
         btn.setMinimumWidth(70)
         btn.setMinimumHeight(50)
-        btn.move(380,310)
+        btn.move(380,Y+5)
 
         ##########################################################
         ##########################################################
@@ -310,14 +328,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # init visual stimulation
         if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
+
             self.protocol['screen'] = self.metadata['Screen']
+
+            if self.demoW.isChecked():
+                self.protocol['demo'] = True
+            else:
+                self.protocol['demo'] = False
+
             self.stim = build_stim(self.protocol)
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
+
             if 'time_stop' in self.stim.experiment:
                 max_time = min([4*60*60, int(3*np.max(self.stim.experiment['time_stop']))]) # 3 times for security, 4h max
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
+            if self.bufferstimW.isChecked():
+                self.stim.buffer_stim(self)
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
@@ -342,17 +370,18 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.metadata['Vm']:
             self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
 
-        try:
-            self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
-                                   Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
-                                   Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
-                                   max_time=max_time,
-                                   output_steps=output_steps,
-                                   filename= self.filename.replace('metadata', 'NIdaq'))
-        except BaseException as e:
-            print(e)
-            print(' /!\ PB WITH NI-DAQ /!\ ')
-            self.acq = None
+        if not self.demoW.isChecked():
+            try:
+                self.acq = Acquisition(dt=1./self.metadata['NIdaq-acquisition-frequency'],
+                                       Nchannel_analog_in=self.metadata['NIdaq-analog-input-channels'],
+                                       Nchannel_digital_in=self.metadata['NIdaq-digital-input-channels'],
+                                       max_time=max_time,
+                                       output_steps=output_steps,
+                                       filename= self.filename.replace('metadata', 'NIdaq'))
+            except BaseException as e:
+                print(e)
+                print(' /!\ PB WITH NI-DAQ /!\ ')
+                self.acq = None
 
         self.init = True
         self.save_experiment() # saving all metadata after full initialization
@@ -369,7 +398,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if ((self.acq is None) and (self.stim is None)) or not self.init:
             self.statusBar.showMessage('Need to initialize the stimulation !')
-        elif self.stim is None and self.acq is not None:
+        elif (self.stim is None) and (self.acq is not None):
             self.acq.launch()
             self.statusBar.showMessage('Acquisition running [...]')
         else:
@@ -443,10 +472,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
 
         
-def run(app, args=None):
-    return MainWindow(app, args)
+def run(app, demo=False):
+    return MainWindow(app, demo=demo)
     
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app)
+    main = run(app, demo='demo' in sys.argv)
     sys.exit(app.exec_())
