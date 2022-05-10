@@ -1,6 +1,7 @@
 {
   "Presentation": "multiprotocol",
   "shuffling" :"full",
+  "buffer":"True",
   "shuffling-seed" :8,
   "Protocol-1": "subprotocols/MCI/moving-dots.json",
   "Protocol-2": "subprotocols/MCI/random-line-dots.json",

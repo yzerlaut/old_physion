@@ -2,7 +2,7 @@
   "Presentation": "Stimuli-Sequence",
   "Stimulus": "mixed-moving-dots-static-patch",
   "Screen": "Dell-2020",
-  "movie_refresh_freq":10,
+  "movie_refresh_freq":20,
   "shuffling-seed": 23,
   "presentation-duration": 3.0,
   "presentation-prestim-period": 1.0,

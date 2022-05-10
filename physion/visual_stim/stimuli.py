@@ -14,17 +14,20 @@ from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_re
 def build_stim(protocol, no_psychopy=False):
     """
     """
+
     if not no_psychopy:
         from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
-    protocol_name = protocol['Stimulus'].replace('-', '_')
-    print(protocol_name)
+        
     if (protocol['Presentation']=='multiprotocol'):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
-    elif hasattr(sys.modules[__name__], protocol_name):
-        return getattr(sys.modules[__name__], protocol_name)(protocol)
     else:
-        print('Protocol not recognized !')
-        return None
+        protocol_name = protocol['Stimulus'].replace('-', '_')
+        if hasattr(sys.modules[__name__], protocol_name):
+            return getattr(sys.modules[__name__], protocol_name)(protocol) # e.g. returns "center_grating_image_stim(protocol)"
+        else:
+            print(protocol)
+            print('Protocol not recognized !')
+            return None
 
 
 def stop_signal(parent):
@@ -41,8 +44,7 @@ class visual_stim:
 
     def __init__(self,
                  protocol,
-                 demo=False,
-                 pre_buffer_stim=False):
+                 demo=False):
         """
         """
         self.protocol = protocol
@@ -113,9 +115,6 @@ class visual_stim:
             self.Toff = int(1e3*self.screen['monitoring_square']['time-off'])
             self.Tfull, self.Tfull_first = int(self.Ton+self.Toff), int((self.Ton+self.Toff)/2.)
 
-            if pre_buffer_stim:
-                pass
-
 
     ################################
     #  ---   Gamma correction  --- #
@@ -172,6 +171,7 @@ class visual_stim:
         self.experiment, self.PATTERNS = {}, []
 
         if protocol['Presentation']=='Single-Stimulus':
+            # single stimulus type
             for key in protocol:
                 if key.split(' (')[0] in keys:
                     self.experiment[key.split(' (')[0]] = [protocol[key]]
@@ -183,7 +183,9 @@ class visual_stim:
                     self.experiment['time_duration'] = [protocol['presentation-duration']]
                     self.experiment['interstim'] = [protocol['presentation-interstim-period'] if 'presentation-interstim-period' in protocol else 0]
                     self.experiment['interstim-screen'] = [protocol['presentation-interstim-screen'] if 'presentation-interstim-screen' in protocol else 0]
-        else: # MULTIPLE STIMS
+
+        else:
+            # ------------  MULTIPLE STIMS ------------
             VECS, FULL_VECS = [], {}
             for key in keys:
                 FULL_VECS[key], self.experiment[key] = [], []
@@ -197,10 +199,9 @@ class visual_stim:
                 for i, key in enumerate(keys):
                     FULL_VECS[key].append(vec[i])
 
-            self.experiment['index'], self.experiment['repeat'] = [], []
-            self.experiment['time_start'], self.experiment['time_stop'] = [], []
-            self.experiment['interstim'], self.experiment['time_duration'] = [], [] # relevant for multi-protocols
-            self.experiment['interstim-screen'], self.experiment['frame_run_type'] = [], []
+            for k in ['index', 'repeat','time_start', 'time_stop',
+                    'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
+                self.experiment[k] = []
 
             index_no_repeat = np.arange(len(FULL_VECS[key]))
 
@@ -229,6 +230,10 @@ class visual_stim:
                     self.experiment['interstim-screen'].append(protocol['presentation-interstim-screen'])
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
+
+        for k in ['index', 'repeat','time_start', 'time_stop',
+                    'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
+            self.experiment[k] = np.array(self.experiment[k]) 
 
     # the close function
     def close(self):
@@ -363,8 +368,6 @@ class visual_stim:
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*refresh_freq) # refresh_freq can be stimulus dependent !
             if iframe>=len(time_indices):
-                # print('for protocol:')
-                # print(self.protocol[''])
                 print('for index:')
                 print(iframe, len(time_indices), len(frames), refresh_freq)
                 print(' /!\ Pb with time indices index  /!\ ')
@@ -378,12 +381,65 @@ class visual_stim:
                 pass
 
 
+    #####################################################
+    # adding a run purely define by an array -- NOW BUFFERED 
+    def buffer_stim(self, parent):
+
+        cls = (parent if parent is not None else self)
+        win = cls.win if hasattr(cls, 'win') else self.win
+        self.buffer = []
+        if 'protocol_id' in self.experiment:
+            protocol_ids = self.experiment['protocol_id']
+        else:
+            protocol_ids = np.zeros(len(self.experiment['index']), dtype=int)
+
+        print(' --> buffering stimuli [...] ') 
+        for protocol_id in np.unique(protocol_ids):
+            self.buffer.append([]) # adding a new set of buffers
+            cond = (protocol_ids==protocol_id) & (self.experiment['repeat']==0)
+            tick = time.time()
+            print('    - protocol #%i  (t=%.2f)' % (protocol_id+1, time.time()-tick)) 
+            for i, index in enumerate(self.experiment['index'][cond]):
+                tok = time.time()
+                time_indices, frames, refresh_freq = self.get_frames_sequence(index)
+                self.buffer[protocol_id].append({'time_indices':time_indices,
+                                                 'frames':frames,
+                                                 'FRAMES':[],
+                                                  'refresh_freq':refresh_freq})
+                for frame in self.buffer[protocol_id][i]['frames']:
+                    self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
+                                                                 image=self.gamma_corrected_lum(frame),
+                                                                 units='pix', size=win.size))
+                print('        index #%i   (%.2fs)' % (i+1, time.time()-tok)) 
+   
+        print(' --> buffering done ! (t=%.2fs)' % (time.time()-tick)) 
+
+    def single_array_sequence_buffered_presentation(self, parent, index):
+
+        protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
+        stim_index = self.experiment['index'][index]
+        # now fetching infos based on protocol_id and index
+        refresh_freq = self.buffer[protocol_id][stim_index]['refresh_freq']
+
+        start = clock.getTime()
+        while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
+            iframe = int((clock.getTime()-start)*self.buffer[protocol_id][stim_index]['refresh_freq'])
+            self.buffer[protocol_id][stim_index]['FRAMES'][self.buffer[protocol_id][stim_index]['time_indices'][iframe]].draw()
+            self.add_monitoring_signal(clock.getTime(), start)
+            try:
+                self.win.flip()
+            except AttributeError:
+                pass
+
+
     def single_episode_run(self, parent, index):
 
         if self.experiment['frame_run_type'][index]=='drifting':
             self.single_dynamic_grating_presentation(parent, index)
         elif self.experiment['frame_run_type'][index]=='image':
             self.single_array_presentation(parent, index)
+        elif self.experiment['frame_run_type'][index]=='images_sequence_buffered':
+            self.single_array_sequence_buffered_presentation(parent, index)
         elif self.experiment['frame_run_type'][index]=='images_sequence':
             self.single_array_sequence_presentation(parent, index)
         else: # static by defaults
@@ -396,12 +452,17 @@ class visual_stim:
         except FileNotFoundError:
             print(str(parent.datafolder.get()), 'NIdaq.start.npy', 'not found !')
             t0 = time.time()
+
         self.start_screen(parent)
+
+        if ('buffer' in self.protocol) and (self.protocol['buffer']=="True"):
+            self.buffer_stim(parent)
+        
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
             t = time.time()-t0
-            print('t=%.2dh:%.2dm:%.2ds - Running protocol of index %i/%i                                protocol-ID:%i' % (t/3600,
+            print('t=%.2dh:%.2dm:%.2fs - Running protocol of index %i/%i                                protocol-ID:%i' % (t/3600,
                 (t%3600)/60, (t%60), i+1, len(self.experiment['index']),
                  self.experiment['protocol_id'][i] if 'protocol_id' in self.experiment else 0))
             self.single_episode_run(parent, i)
@@ -638,8 +699,8 @@ class multiprotocol(visual_stim):
             self.experiment['time_start'][i] = self.experiment['time_stop'][i-1]+self.experiment['interstim'][i]
             self.experiment['time_stop'][i] = self.experiment['time_start'][i]+self.experiment['time_duration'][i]
 
-        # for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
-        #     print(self.experiment[key], key)
+        for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
+            self.experiment[key] = np.array(self.experiment[key])
 
     # functions implemented in child class
     def get_frame(self, index):
@@ -682,12 +743,18 @@ class vis_stim_image_built(visual_stim):
 
         super().__init__(protocol)
 
-        super().init_experiment(protocol, keys,
-                                run_type='images_sequence')
+        if ('buffer' in self.protocol) and (self.protocol['buffer']=="True"):
+            super().init_experiment(protocol, keys,
+                                    run_type='images_sequence_buffered')
+        else:
+            super().init_experiment(protocol, keys,
+                                    run_type='images_sequence')
+
 
         # dealing with refresh rate
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 10.
+
         self.refresh_freq = protocol['movie_refresh_freq']
         # adding a appearance threshold (see blob stim)
         if 'appearance_threshold' not in protocol:
@@ -750,6 +817,8 @@ class vis_stim_image_built(visual_stim):
             cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
         image[cond] = color
 
+
+
     def new(self):
         pass
 
@@ -759,7 +828,7 @@ class vis_stim_image_built(visual_stim):
 #####################################################
 
 
-class center_grating_stim_image(vis_stim_image_built):
+class center_grating(vis_stim_image_built):
     """
     """
     def __init__(self, protocol):
@@ -804,7 +873,8 @@ class center_grating_stim_image(vis_stim_image_built):
                              parent=parent)
         return ax
 
-class center_drifting_grating_stim_image(vis_stim_image_built):
+
+class center_drifting_grating(vis_stim_image_built):
     """
     """
     def __init__(self, protocol):
