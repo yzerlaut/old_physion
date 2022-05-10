@@ -1,6 +1,6 @@
 {
   "Presentation": "Stimuli-Sequence",
-  "Stimulus": "center-grating-image",
+  "Stimulus": "center-grating",
   "Screen": "Dell-2020",
   "shuffling-seed": 23,
   "presentation-duration": 1,
