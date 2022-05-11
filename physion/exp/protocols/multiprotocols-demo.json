@@ -1,7 +1,6 @@
 {
   "Presentation": "multiprotocol",
   "shuffling" :"none",
-  "shuffling-seed" :34,
   "Protocol-1": "drifting-demo.json",
   "Protocol-2": "noise-demo.json",
   "presentation-prestim-period": 2.0,

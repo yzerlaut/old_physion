@@ -344,12 +344,12 @@ class visual_stim:
             protocol_ids = np.zeros(len(self.experiment['index']), dtype=int)
 
         print(' --> buffering stimuli [...] ') 
-        for protocol_id in np.unique(protocol_ids):
+        tic = time.time()
+        for protocol_id in np.sort(np.unique(protocol_ids)):
             self.buffer.append([]) # adding a new set of buffers
-            cond = (protocol_ids==protocol_id) & (self.experiment['repeat']==0)
-            tic = time.time()
-            print('    - protocol %i  (t=%.2f)' % (protocol_id+1, time.time()-tic)) 
-            for i, index in enumerate(self.experiment['index'][cond]):
+            print('    - protocol %i  ' % (protocol_id+1)) 
+            index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)]
+            for i, index in enumerate(index_cond):
                 toc = time.time()
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
                 self.buffer[protocol_id].append({'time_indices':time_indices,
@@ -372,6 +372,8 @@ class visual_stim:
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
             iframe = int((clock.getTime()-start)*self.buffer[protocol_id][stim_index]['refresh_freq'])
+            #print(self.buffer[protocol_id][stim_index]['refresh_freq'])
+            #print(iframe, len(self.buffer[protocol_id][stim_index]['time_indices']))
             self.buffer[protocol_id][stim_index]['FRAMES'][self.buffer[protocol_id][stim_index]['time_indices'][iframe]].draw()
             self.add_monitoring_signal(clock.getTime(), start)
             try:
@@ -393,7 +395,7 @@ class visual_stim:
 
         if ('buffer' in self.protocol) and self.protocol['buffer'] and (self.buffer is None):
             self.buffer_stim(parent)
-        
+        print(self.experiment['index']) 
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
@@ -409,7 +411,6 @@ class visual_stim:
                 self.array_sequence_presentation(parent, i) # non-buffered version
 
             if i<(len(self.experiment['index'])-1):
-                print(self.experiment['interstim'][i])
                 self.inter_screen(parent,
                                   duration=1.*self.experiment['interstim'][i],
                                   color=self.experiment['interstim-screen'][i])
@@ -554,13 +555,6 @@ class multiprotocol(visual_stim):
 
         super().__init__(protocol, 
                          demo=(('demo' in protocol) and protocol['demo']))
-
-
-        if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 10.
-        if 'appearance_threshold' not in protocol:
-            protocol['appearance_threshold'] = 2.5
-        self.refresh_freq = protocol['movie_refresh_freq']
 
         self.STIM, i = [], 1
 
@@ -1171,7 +1165,7 @@ class Natural_Image_VSE(visual_stim):
                                 run_type='images_sequence')
 
         if 'movie_refresh_freq' not in protocol:
-            protocol['movie_refresh_freq'] = 10.
+            protocol['movie_refresh_freq'] = 20.
         self.refresh_freq = protocol['movie_refresh_freq']
 
         # initializing set of NI
@@ -1192,20 +1186,18 @@ class Natural_Image_VSE(visual_stim):
         cls = (parent if parent is not None else self)
         if cls.experiment['vary-VSE-with-Image'][index]==1:
             return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
-        else:
             return int(cls.experiment['VSE-seed'][index])
 
         
     def get_frames_sequence(self, index, parent=None):
         cls = (parent if parent is not None else self)
-        
         vse = self.get_vse(index, parent=cls)
         
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
         interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
-        time_indices, FRAMES = np.zeros(int(1.2*interval*self.refresh_freq), dtype=int), []
-        Times = np.arange(int(1.2*interval*self.refresh_freq))/self.refresh_freq
+        time_indices, FRAMES = np.zeros(int(2*interval*self.refresh_freq), dtype=int), []
+        Times = np.arange(len(time_indices))/self.refresh_freq
 
         for i, t in enumerate(vse['t']):
             FRAMES.append(self.compute_shifted_image(img, int(vse['x'][i]), int(vse['y'][i])))
