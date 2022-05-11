@@ -143,17 +143,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('ready to select a protocol/config')
-        for func, label, shift in zip(FUNCTIONS, LABELS,\
-                                      110*np.arange(len(LABELS))):
-            btn = QtWidgets.QPushButton(label, self)
-            btn.clicked.connect(func)
-            btn.setMinimumWidth(110)
-            btn.move(50+shift, Y)
+        for func, label, name, shift in zip(FUNCTIONS, 
+               ["i) Initialize", "r) Run", "s) Stop", "q) Quit"],
+               ['initButton', 'runButton', 'stopButton', 'quitButton'],
+               110*np.arange(4)):
+            setattr(self, name, QtWidgets.QPushButton(label, self))
+            getattr(self,name).clicked.connect(func)
+            getattr(self,name).setMinimumWidth(110)
+            getattr(self,name).move(50+shift, Y)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
-            
+        self.runButton.setEnabled(False)
+
         Y+=45
         QtWidgets.QLabel("Notes: ", self).move(25, Y+10)
         self.qmNotes = QtWidgets.QTextEdit('', self)
@@ -190,8 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                         args=(self.run_event , self.closeFaceCamera_event, self.datafolder,
                                               {'frame_rate':self.config['FaceCamera-frame-rate']}))
             self.FaceCamera_process.start()
-            time.sleep(6)
-            self.statusBar.showMessage('[ok] FaceCamera ready ! ')
+            self.statusBar.showMessage('[ok] FaceCamera initialized (in 5-6s) ! ')
             
         elif (not self.FaceCameraButton.isChecked()) and (self.FaceCamera_process is not None):
             # need to shut it down
@@ -290,6 +292,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def initialize(self):
 
+        self.runButton.setEnabled(False) # acq blocked during init
+
         ### set up all metadata
         self.metadata = {'config':self.cbc.currentText(),
                          'protocol':self.cbp.currentText(),
@@ -345,7 +349,8 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
             if self.bufferstimW.isChecked():
-                self.stim.buffer_stim(self)
+                QtWidgets.QApplication.processEvents()
+                self.stim.buffer_stim(self, gui_refresh_func=QtWidgets.QApplication.processEvents)
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
@@ -384,6 +389,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.acq = None
 
         self.init = True
+        self.runButton.setEnabled(True)
         self.save_experiment() # saving all metadata after full initialization
 
         if self.cbp.currentText()=='None':
@@ -424,6 +430,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.send_CaImaging_Stop_signal()
                 
         self.init = False
+        self.runButton.setEnabled(False)
         print(100*'-', '\n', 50*'=')
         
     
@@ -438,6 +445,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
         self.statusBar.showMessage('stimulation stopped !')
+        self.runButton.setEnabled(False)
         print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):

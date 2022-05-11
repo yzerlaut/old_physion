@@ -80,7 +80,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_exp(self):
         if not no_psychopy:
             from physion.exp.gui import run as RunExp
-            child = RunExp(self.app, self.args)
+            child = RunExp(self.app, demo=False)
             CHILDREN_PROCESSES.append(child)
         else:
             self.statusBar.showMessage('Module cant be launched, PsychoPy is missing !')

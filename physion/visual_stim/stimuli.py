@@ -333,7 +333,7 @@ class visual_stim:
 
     #####################################################
     # adding a run purely define by an array -- NOW BUFFERED 
-    def buffer_stim(self, parent):
+    def buffer_stim(self, parent, gui_refresh_func=None):
 
         cls = (parent if parent is not None else self)
         win = cls.win if hasattr(cls, 'win') else self.win
@@ -361,6 +361,8 @@ class visual_stim:
                                                                  image=self.gamma_corrected_lum(frame),
                                                                  units='pix', size=win.size))
                 print('        index #%i   (%.2fs)' % (i+1, time.time()-toc)) 
+                if gui_refresh_func is not None:
+                    gui_refresh_func()
    
         print(' --> buffering done ! (t=%.2fs / %.2fmin)' % (time.time()-tic, (time.time()-tic)/60.)) 
 
