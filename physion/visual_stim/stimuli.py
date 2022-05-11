@@ -337,6 +337,7 @@ class visual_stim:
 
         cls = (parent if parent is not None else self)
         win = cls.win if hasattr(cls, 'win') else self.win
+
         self.buffer = []
         if 'protocol_id' in self.experiment:
             protocol_ids = self.experiment['protocol_id']
