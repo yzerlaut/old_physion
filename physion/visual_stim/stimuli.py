@@ -398,7 +398,7 @@ class visual_stim:
 
         if ('buffer' in self.protocol) and self.protocol['buffer'] and (self.buffer is None):
             self.buffer_stim(parent)
-        print(self.experiment['index']) 
+
         for i in range(len(self.experiment['index'])):
             if stop_signal(parent):
                 break
