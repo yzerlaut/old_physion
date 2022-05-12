@@ -32,6 +32,8 @@ settings_filename = os.path.join(base_path, 'settings.npy')
 
 class MainWindow(QtWidgets.QMainWindow):
 
+    MODALITIES = ['Locomotion', 'FaceCamera', 'NeuroPixels', 'EphysLFP', 'EphysVm', 'CaImaging']
+
     def __init__(self, app, args=None, demo=False):
         """
         """
@@ -39,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app = app
 
         self.setWindowTitle('Experimental module')
-        self.setGeometry(400, 50, 550, 430)
+        self.setGeometry(400, 50, 550, 390)
 
         Y = 5 # coordinates of the current buttons
 
@@ -66,31 +68,19 @@ class MainWindow(QtWidgets.QMainWindow):
         ##########################################################
         ####### GUI settings
         ##########################################################
-        rml = QtWidgets.QLabel('   '+'-'*40+" Recording modalities "+'-'*40, self)
-        rml.move(30, Y)
+        rml = QtWidgets.QLabel('     '+'-'*40+" Recording modalities "+'-'*40, self)
+        rml.move(35, Y)
         rml.setMinimumWidth(500)
+
         Y+=35
-        self.VisualStimButton = QtWidgets.QPushButton("Visual-Stim", self)
-        self.VisualStimButton.move(30, Y)
-        self.LocomotionButton = QtWidgets.QPushButton("Locomotion", self)
-        self.LocomotionButton.move(130, Y)
-        self.LFPButton = QtWidgets.QPushButton("LFP", self)
-        self.LFPButton.move(230, Y)
-        self.LFPButton.setFixedWidth(50)
-        self.VmButton = QtWidgets.QPushButton("Vm", self)
-        self.VmButton.move(280, Y)
-        self.VmButton.setFixedWidth(50)
-        self.FaceCameraButton = QtWidgets.QPushButton("FaceCamera", self)
+        for i, k in enumerate(self.MODALITIES):
+            setattr(self, k+'Button', QtWidgets.QPushButton(k, self))
+            getattr(self, k+'Button').move(30+80*i, Y)
+            getattr(self, k+'Button').setMaximumWidth(75)
+            getattr(self, k+'Button').setCheckable(True)
+
         self.FaceCameraButton.clicked.connect(self.toggle_FaceCamera_process)
-        self.FaceCameraButton.move(330, Y)
-        self.CaImagingButton = QtWidgets.QPushButton("CaImaging", self)
-        self.CaImagingButton.move(430, Y)
-        for button in [self.VisualStimButton, self.LocomotionButton, self.LFPButton, self.VmButton,
-                       self.FaceCameraButton, self.CaImagingButton]:
-            button.setCheckable(True)
-        for button in [self.VisualStimButton, self.LocomotionButton]:
-            button.setChecked(True)
-            
+
         Y+=50
         # screen choice
         QtWidgets.QLabel(" Screen :", self).move(250, Y)
@@ -100,6 +90,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbsc.activated.connect(self.update_screen)
         self.cbsc.addItems(SCREENS.keys())
         
+        self.demoW = QtWidgets.QCheckBox('demo', self)
+        self.demoW.move(40, Y)
+        if demo:
+            self.demoW.setChecked(True)
+
         Y+=35
         # config choice
         QtWidgets.QLabel("  => Config :", self).move(160, Y)
@@ -124,19 +119,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbp.move(130, Y)
         self.cbp.activated.connect(self.update_protocol)
        
-        Y+=45
-        for ik, k in enumerate(['demo', 'buffer-stim', 'photostim         ']):
-            key = k.replace(' ', '').replace('-','')
-            setattr(self, key+'W', QtWidgets.QCheckBox(k, self))
-            getattr(self, key+'W').setMinimumWidth(390)
-            getattr(self, key+'W').move(40+ik*120+len(k), Y)
-        if demo:
-            self.demoW.setChecked(True)
         
         Y+=45
         # buttons and functions
-        LABELS = ["i) Initialize", "r) Run", "s) Stop", "q) Quit"]
-        FUNCTIONS = [self.initialize, self.run, self.stop, self.quit]
+        LABELS = ["i) Initialize", "b) Buffer", "r) Run", "s) Stop", "q) Quit"]
+        FUNCTIONS = [self.initialize, self.buffer, self.run, self.stop, self.quit]
         
         mainMenu = self.menuBar()
         self.fileMenu = mainMenu.addMenu('')
@@ -144,18 +131,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage('ready to select a protocol/config')
-        for func, label, name, shift in zip(FUNCTIONS, 
-               ["i) Initialize", "r) Run", "s) Stop", "q) Quit"],
-               ['initButton', 'runButton', 'stopButton', 'quitButton'],
-               110*np.arange(4)):
+        for func, label, name, shift in zip(FUNCTIONS, LABELS,
+                ['initButton', 'bufferButton','runButton', 'stopButton', 'quitButton'],
+                90*np.arange(5)):
             setattr(self, name, QtWidgets.QPushButton(label, self))
             getattr(self,name).clicked.connect(func)
-            getattr(self,name).setMinimumWidth(110)
+            getattr(self,name).setFixedWidth(85)
             getattr(self,name).move(50+shift, Y)
             action = QtWidgets.QAction(label, self)
             action.setShortcut(label.split(')')[0])
             action.triggered.connect(func)
             self.fileMenu.addAction(action)
+
+        self.bufferButton.setEnabled(False)
         self.runButton.setEnabled(False)
 
         Y+=45
@@ -207,11 +195,9 @@ class MainWindow(QtWidgets.QMainWindow):
         settings = {'config':self.cbc.currentText(),
                     'protocol':self.cbp.currentText(),
                     'subject':self.cbs.currentText()}
-        for label, button in zip(['VisualStimButton', 'LocomotionButton', 'LFPButton',
-                                  'FaceCameraButton', 'CaImagingButton'],
-                                 [self.VisualStimButton, self.LocomotionButton, self.LFPButton,
-                                  self.FaceCameraButton, self.CaImagingButton]):
-            settings[label] = button.isChecked()
+        
+        for i, k in enumerate(self.MODALITIES):
+            settings[k] = getattr(self, k+'Button').isChecked()
         np.save(settings_filename, settings)
         self.statusBar.showMessage('settings succesfully saved !')
 
@@ -227,11 +213,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if settings['subject'] in self.subjects:
                 self.cbs.setCurrentText(settings['subject'])
                 self.update_subject()
-            for label, button in zip(['VisualStimButton', 'LocomotionButton', 'LFPButton',
-                                      'FaceCameraButton', 'CaImagingButton'],
-                                     [self.VisualStimButton, self.LocomotionButton, self.LFPButton,
-                                      self.FaceCameraButton, self.CaImagingButton]):
-                button.setChecked(settings[label])
+            for i, k in enumerate(self.MODALITIES):
+                getattr(self, k+'Button').setChecked(settings[k])
         if (self.config is None) or (self.protocol is None) or (self.subject is None):
             self.statusBar.showMessage(' /!\ Problem in loading settings /!\  ')
     
@@ -298,6 +281,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ### set up all metadata
         self.metadata = {'config':self.cbc.currentText(),
                          'protocol':self.cbp.currentText(),
+                         'VisualStim':self.cbp.currentText()!='None',
                          'notes':self.qmNotes.toPlainText(),
                          'subject_ID':self.cbs.currentText(),
                          'subject_props':self.subjects[self.cbs.currentText()]}
@@ -307,12 +291,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 for key in d:
                     self.metadata[key] = d[key]
         
-        # Setup configuration
-        for modality, button in zip(['VisualStim', 'Locomotion', 'LFP', 'Vm',
-                                     'FaceCamera', 'CaImaging'],
-                                    [self.VisualStimButton, self.LocomotionButton, self.LFPButton, self.VmButton,
-                                     self.FaceCameraButton, self.CaImagingButton]):
-            self.metadata[modality] = bool(button.isChecked())
+        for k in self.MODALITIES:
+            self.metadata[k] = bool(getattr(self, k+'Button').isChecked())
 
         if self.cbp.currentText()=='None':
             self.statusBar.showMessage('[...] initializing acquisition')
@@ -321,8 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.filename = generate_filename_path(self.root_datafolder,
                                                filename='metadata', extension='.npy',
-                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'],
-                                               with_screen_frames_folder=self.metadata['VisualStim'])
+                                               with_FaceCamera_frames_folder=self.metadata['FaceCamera'])
         self.datafolder.set(os.path.dirname(self.filename))
 
         if self.metadata['protocol']!='None':
@@ -332,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = {}
 
         # init visual stimulation
-        if self.metadata['VisualStim'] and len(self.protocol.keys())>0:
+        if len(self.protocol.keys())>0:
 
             self.protocol['screen'] = self.metadata['Screen']
 
@@ -341,7 +320,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.protocol['demo'] = False
 
-            self.stim = build_stim(self.protocol)
+            if not self.bufferButton.isChecked():
+                # when we re-check the buffer after a run, no need to re-init the stimulation
+                self.stim = build_stim(self.protocol)
+
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
 
@@ -349,11 +331,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 max_time = min([4*60*60, int(10*np.max(self.stim.experiment['time_stop']))]) # 10 times for security, 4h max
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
-            if self.bufferstimW.isChecked():
-                self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
-                print('end while loop')
-                self.update()
-                self.show()
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None
@@ -392,6 +369,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.acq = None
 
         self.init = True
+        if not self.bufferButton.isChecked():
+            self.bufferButton.setEnabled(True)
         self.runButton.setEnabled(True)
         self.save_experiment() # saving all metadata after full initialization
 
@@ -400,6 +379,12 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.statusBar.showMessage('Acquisition & Stimulation ready !')
 
+    def buffer(self):
+        # buffers the visual stimulus
+        self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
+        self.update()
+        self.show()
+        self.bufferButton.setEnabled(False)
 
     def run(self):
         self.stop_flag=False
