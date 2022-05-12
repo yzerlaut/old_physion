@@ -36,6 +36,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         """
         super(MainWindow, self).__init__()
+        self.app = app
 
         self.setWindowTitle('Experimental module')
         self.setGeometry(400, 50, 550, 430)
@@ -349,8 +350,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 max_time = 1*60*60 # 1 hour, should be stopped manually
             if self.bufferstimW.isChecked():
-                QtWidgets.QApplication.processEvents()
-                self.stim.buffer_stim(self, gui_refresh_func=QtWidgets.QApplication.processEvents)
+                self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
+                print('end while loop')
+                self.update()
+                self.show()
         else:
             max_time = 1*60*60 # 1 hour, should be stopped manually
             self.stim = None

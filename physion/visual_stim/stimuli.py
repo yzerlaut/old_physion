@@ -21,10 +21,11 @@ def build_stim(protocol, no_psychopy=False):
     if (protocol['Presentation']=='multiprotocol'):
         return multiprotocol(protocol, no_psychopy=no_psychopy)
     else:
-        protocol_name = protocol['Stimulus'].replace('-', '_').replace('+', '_')
+        protocol_name = protocol['Stimulus'].replace('-image','').replace('-', '_').replace('+', '_')
         if hasattr(sys.modules[__name__], protocol_name):
             return getattr(sys.modules[__name__], protocol_name)(protocol) # e.g. returns "center_grating_image_stim(protocol)"
         else:
+            print(protocol_name)
             print(protocol)
             print('\n /!\ Protocol not recognized ! /!\ \n ')
             return None
@@ -361,11 +362,13 @@ class visual_stim:
                     self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
                                                                  image=self.gamma_corrected_lum(frame),
                                                                  units='pix', size=win.size))
+                    if gui_refresh_func is not None:    
+                        gui_refresh_func()
                 print('        index #%i   (%.2fs)' % (i+1, time.time()-toc)) 
-                if gui_refresh_func is not None:
-                    gui_refresh_func()
+
    
         print(' --> buffering done ! (t=%.2fs / %.2fmin)' % (time.time()-tic, (time.time()-tic)/60.)) 
+        return True
 
     def array_sequence_buffered_presentation(self, parent, index):
         # --- fetch protocol_id and stim_index:
@@ -947,7 +950,7 @@ class line_moving_dots(vis_stim_image_built):
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         img = init_bg_image(cls, episode)
-        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, episode)
         for x0, y0 in zip(X0, Y0):
             new_position = (X0+dx_per_time*time_from_episode_start,
                             Y0+dy_per_time*time_from_episode_start)
@@ -1119,7 +1122,7 @@ class natural_image(visual_stim):
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
+        return cls.NIarray[int(cls.experiment['Image-ID'][episode])]
             
 #####################################################
 ##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
