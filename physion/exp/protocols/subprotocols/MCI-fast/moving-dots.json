@@ -3,7 +3,7 @@
   "Stimulus": "line-moving-dots",
   "Screen": "Dell-2020",
   "shuffling-seed": 17,
-  "movie_refresh_freq":10,
+  "movie_refresh_freq":8,
   "presentation-duration": 3.0,
   "presentation-prestim-period": 3.0,
   "presentation-poststim-period": 3.0,
