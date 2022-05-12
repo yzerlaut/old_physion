@@ -162,11 +162,11 @@ class MainWindow(QtWidgets.QMainWindow):
         ##########################################################
         ##########################################################
         ##########################################################
-        self.config, self.protocol, self.subject = None, None, None
+        self.config, self.protocol, self.subject = None, {}, None
         
         self.get_config_list()
         self.load_settings()
-	# self.toggle_FaceCamera_process() # initialize if pre-set
+	    # self.toggle_FaceCamera_process() # initialize if pre-set
         
         self.experiment = {} # storing the specifics of an experiment
         self.show()
@@ -215,7 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.update_subject()
             for i, k in enumerate(self.MODALITIES):
                 getattr(self, k+'Button').setChecked(settings[k])
-        if (self.config is None) or (self.protocol is None) or (self.subject is None):
+        if (self.config is None) or (self.protocol=={}) or (self.subject is None):
             self.statusBar.showMessage(' /!\ Problem in loading settings /!\  ')
     
     def get_config_list(self):
@@ -316,7 +316,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.datafolder.set(os.path.dirname(self.filename))
 
 
-    def init_visual_stimulation(self):
+    def init_visual_stim(self):
 
         with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
             self.protocol = json.load(fp)
@@ -336,9 +336,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.bufferButton.setEnabled(False) # should be already blocked, but for security 
         self.runButton.setEnabled(False) # acq blocked during init
 
-        self.set_filename_and_folder()
-
         self.metadata = self.check_gui_to_init_metadata()
+        self.set_filename_and_folder()
 
         max_time = 2*60*60 # 2 hours by default, so should be stopped manually
         if self.metadata['VisualStim']:
@@ -375,7 +374,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.acq = None
 
         self.init = True
-        self.bufferButton.setEnabled(True)
+        if self.stim is not None:
+            self.bufferButton.setEnabled(True)
         self.runButton.setEnabled(True)
 
         self.save_experiment(self.metadata) # saving all metadata after full initialization
@@ -395,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def check_metadata(self):
         new_metadata = self.check_gui_to_init_metadata()
         same, same_protocol = True, new_metadata['protocol']==self.metadata['protocol'] 
-        for k in self.metadata:
+        for k in new_metadata:
             if self.metadata[k]!=new_metadata[k]:
                 same=False
         if not same:
