@@ -32,16 +32,18 @@ settings_filename = os.path.join(base_path, 'settings.npy')
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    MODALITIES = ['Locomotion', 'FaceCamera', 'NeuroPixels', 'EphysLFP', 'EphysVm', 'CaImaging']
+    MODALITIES = ['Locomotion', 'FaceCamera', 'EphysLFP', 'EphysVm', 'CaImaging']
 
-    def __init__(self, app, args=None, demo=False):
+    def __init__(self, app, 
+                 args=None, 
+                 demo=False,
+                 width=550):
         """
         """
         super(MainWindow, self).__init__()
         self.app = app
 
         self.setWindowTitle('Experimental module')
-        self.setGeometry(400, 50, 550, 390)
 
         Y = 5 # coordinates of the current buttons
 
@@ -75,8 +77,8 @@ class MainWindow(QtWidgets.QMainWindow):
         Y+=35
         for i, k in enumerate(self.MODALITIES):
             setattr(self, k+'Button', QtWidgets.QPushButton(k, self))
-            getattr(self, k+'Button').move(30+80*i, Y)
-            getattr(self, k+'Button').setMaximumWidth(75)
+            getattr(self, k+'Button').move(30+i*0.9*width/len(self.MODALITIES), Y)
+            getattr(self, k+'Button').setFixedWidth(0.8*width/len(self.MODALITIES))
             getattr(self, k+'Button').setCheckable(True)
 
         self.FaceCameraButton.clicked.connect(self.toggle_FaceCamera_process)
@@ -119,6 +121,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbp.move(130, Y)
         self.cbp.activated.connect(self.update_protocol)
        
+        Y+=35
+        # protocol choice
+        QtWidgets.QLabel(" Intervention :", self).move(20, Y)
+        self.cbi = QtWidgets.QComboBox(self)
+        self.cbi.addItems(['', 'CNO injection', 'Compound-21 injection'])
+        self.cbi.setMinimumWidth(390)
+        self.cbi.move(130, Y)
+        # self.cbi.activated.connect(self.update_protocol)
+       
         
         Y+=45
         # buttons and functions
@@ -159,6 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btn.setMinimumHeight(50)
         btn.move(380,Y+5)
 
+        self.setGeometry(400, 50, width, Y+95)
         ##########################################################
         ##########################################################
         ##########################################################
