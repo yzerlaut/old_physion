@@ -289,67 +289,68 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.metadata['EphysVm']:
             self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
 
-    def initialize(self):
-
-        self.runButton.setEnabled(False) # acq blocked during init
-        self.bufferButton.setEnabled(False) # should be already blocked, but for security 
-
-        ### set up all metadata
-        self.metadata = {'config':self.cbc.currentText(),
-                         'protocol':self.cbp.currentText(),
-                         'VisualStim':self.cbp.currentText()!='None',
-                         'notes':self.qmNotes.toPlainText(),
-                         'subject_ID':self.cbs.currentText(),
-                         'subject_props':self.subjects[self.cbs.currentText()]}
+    def check_gui_to_init_metadata(self):
+        ### set up all metadata based on GUI infos
+        metadata = {'config':self.cbc.currentText(),
+                    'protocol':self.cbp.currentText(),
+                    'VisualStim':self.cbp.currentText()!='None',
+                    'notes':self.qmNotes.toPlainText(),
+                    'subject_ID':self.cbs.currentText(),
+                    'subject_props':self.subjects[self.cbs.currentText()]}
 
         for d in [self.config, self.protocol]:
             if d is not None:
                 for key in d:
-                    self.metadata[key] = d[key]
+                    metadata[key] = d[key]
         
         for k in self.MODALITIES:
-            self.metadata[k] = bool(getattr(self, k+'Button').isChecked())
+            metadata[k] = bool(getattr(self, k+'Button').isChecked())
 
-        if self.cbp.currentText()=='None':
-            self.statusBar.showMessage('[...] initializing acquisition')
-        else:
-            self.statusBar.showMessage('[...] initializing acquisition & stimulation')
+        return metadata
 
+
+    def set_filename_and_folder(self):
         self.filename = generate_filename_path(self.root_datafolder,
                                                filename='metadata', extension='.npy',
                                                with_FaceCamera_frames_folder=self.metadata['FaceCamera'])
         self.datafolder.set(os.path.dirname(self.filename))
 
-        if self.metadata['protocol']!='None':
-            with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
-                self.protocol = json.load(fp)
+
+    def init_visual_stimulation(self):
+
+        with open(os.path.join(base_path, 'protocols', self.metadata['protocol']+'.json'), 'r') as fp:
+            self.protocol = json.load(fp)
+
+        self.protocol['screen'] = self.metadata['Screen']
+
+        if self.demoW.isChecked():
+            self.protocol['demo'] = True
         else:
-                self.protocol = {}
+            self.protocol['demo'] = False
 
-        # init visual stimulation
-        if not self.metadata['protocol']!='None':
+        self.stim = build_stim(self.protocol)
 
-            self.protocol['screen'] = self.metadata['Screen']
 
-            if self.demoW.isChecked():
-                self.protocol['demo'] = True
-            else:
-                self.protocol['demo'] = False
+    def initialize(self):
 
-            #if not self.bufferButton.isChecked():
-            #    # when we re-check the buffer after a run, no need to re-init the stimulation
-            #    self.stim = build_stim(self.protocol)
-            self.stim = build_stim(self.protocol)
+        self.bufferButton.setEnabled(False) # should be already blocked, but for security 
+        self.runButton.setEnabled(False) # acq blocked during init
 
+        self.set_filename_and_folder()
+
+        self.metadata = self.check_gui_to_init_metadata()
+
+        max_time = 2*60*60 # 2 hours by default, so should be stopped manually
+        if self.metadata['VisualStim']:
+            self.statusBar.showMessage('[...] initializing acquisition & stimulation')
+            self.init_visual_stim()
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
-
-            if 'time_stop' in self.stim.experiment:
-                max_time = min([4*60*60, int(10*np.max(self.stim.experiment['time_stop']))]) # 10 times for security, 4h max
-            else:
-                max_time = 1*60*60 # 1 hour, should be stopped manually
+            if ('time_stop' in self.stim.experiment) and self.stim.buffer is not None:
+                # if buffered, it won't be much longer than the scheduled time
+                max_time = 1.5*np.max(self.stim.experiment['time_stop'])
         else:
-            max_time = 1*60*60 # 1 hour, should be stopped manually
+            self.statusBar.showMessage('[...] initializing acquisition')
             self.stim = None
 
         print('max_time of NIdaq recording: %.2dh:%.2dm:%.2ds' % (max_time/3600, (max_time%3600)/60, (max_time%60)))
@@ -376,12 +377,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.init = True
         self.bufferButton.setEnabled(True)
         self.runButton.setEnabled(True)
-        self.save_experiment() # saving all metadata after full initialization
 
-        if self.cbp.currentText()=='None':
-            self.statusBar.showMessage('Acquisition ready !')
-        else:
+        self.save_experiment(self.metadata) # saving all metadata after full initialization
+
+        if self.metadata['VisualStim']:
             self.statusBar.showMessage('Acquisition & Stimulation ready !')
+        else:
+            self.statusBar.showMessage('Acquisition ready !')
 
     def buffer(self):
         # buffers the visual stimulus
@@ -390,40 +392,62 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.bufferButton.setEnabled(False)
 
-    def run(self):
-        self.stop_flag=False
-        self.run_event.set() # start the run flag for the facecamera
+    def check_metadata(self):
+        new_metadata = self.check_gui_to_init_metadata()
+        same, same_protocol = True, new_metadata['protocol']==self.metadata['protocol'] 
+        for k in self.metadata:
+            if self.metadata[k]!=new_metadata[k]:
+                same=False
+        if not same:
+            print(' /!\  metadata were changed since the initialization !  /!\ ')
+            print("    ---> updating the metadata file !")
+            self.save_experiment(new_metadata)
+        return same_protocol
 
-        if ((self.acq is None) and (self.stim is None)) or not self.init:
-            self.statusBar.showMessage('Need to initialize the stimulation !')
-        elif (self.stim is None) and (self.acq is not None):
-            self.acq.launch()
-            self.statusBar.showMessage('Acquisition running [...]')
-        else:
-            self.statusBar.showMessage('Stimulation & Acquisition running [...]')
-            # Ni-Daq
-            if self.acq is not None:
+    def run(self):
+
+        if self.check_metadata(): # invalid if not the same protocol !
+            self.initButton.setEnabled(False)
+            self.bufferButton.setEnabled(False)
+
+            self.stop_flag=False
+            self.run_event.set() # start the run flag for the facecamera
+
+            if ((self.acq is None) and (self.stim is None)) or not self.init:
+                self.statusBar.showMessage('Need to initialize the stimulation !')
+            elif (self.stim is None) and (self.acq is not None):
                 self.acq.launch()
-            # run visual stim
-            if self.metadata['VisualStim']:
-                self.stim.run(self)
-            # ========================
-            # ---- HERE IT RUNS [...]
-            # ========================
-            # stop and clean up things
-            if self.metadata['FaceCamera']:
-                self.run_event.clear() # this will close the camera process
-            # close visual stim
-            if self.metadata['VisualStim']:
-                self.stim.close() # close the visual stim
-            if self.acq is not None:
-                self.acq.close()
-            if self.metadata['CaImaging'] and not self.stop_flag: # outside the pure acquisition case
-                self.send_CaImaging_Stop_signal()
-                
-        self.init = False
-        self.runButton.setEnabled(False)
-        print(100*'-', '\n', 50*'=')
+                self.statusBar.showMessage('Acquisition running [...]')
+            else:
+                self.statusBar.showMessage('Stimulation & Acquisition running [...]')
+                # Ni-Daq
+                if self.acq is not None:
+                    self.acq.launch()
+                # run visual stim
+                if self.metadata['VisualStim']:
+                    self.stim.run(self)
+                # ========================
+                # ---- HERE IT RUNS [...]
+                # ========================
+                # stop and clean up things
+                if self.metadata['FaceCamera']:
+                    self.run_event.clear() # this will close the camera process
+                # close visual stim
+                if self.metadata['VisualStim']:
+                    self.stim.close() # close the visual stim
+                if self.acq is not None:
+                    self.acq.close()
+                if self.metadata['CaImaging'] and not self.stop_flag: # outside the pure acquisition case
+                    self.send_CaImaging_Stop_signal()
+                    
+            self.init = False
+            self.initButton.setEnabled(True)
+            self.runButton.setEnabled(False)
+            print(100*'-', '\n', 50*'=')
+
+        else:
+            print('\n /!\ the visual stimulation was changed, need to REDO the initialization !!  /!\ ')
+            self.statusBar.showMessage(' /!\ Need to re-initialize /!\ ')
         
     
     def stop(self):
@@ -462,12 +486,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.stim.quit()
         QtWidgets.QApplication.quit()
 
-    def save_experiment(self):
+    def save_experiment(self, metadata):
         # SAVING THE METADATA FILES
-        self.metadata['filename'] = str(self.datafolder.get())
+        metadata['filename'] = str(self.datafolder.get())
         for key in self.protocol:
-            self.metadata[key] = self.protocol[key]
-        np.save(os.path.join(str(self.datafolder.get()), 'metadata.npy'), self.metadata)
+            metadata[key] = self.protocol[key]
+        np.save(os.path.join(str(self.datafolder.get()), 'metadata.npy'), metadata)
         print('[ok] Metadata data saved as: %s ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
         self.statusBar.showMessage('Metadata saved as: "%s" ' % os.path.join(str(self.datafolder.get()), 'metadata.npy'))
 
