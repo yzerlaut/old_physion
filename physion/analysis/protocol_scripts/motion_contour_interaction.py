@@ -120,6 +120,57 @@ def interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
         ge.draw_bar_scales(ax, Xbar=1, Xbar_label='1s', Ybar=Ybar, Ybar_label=str(Ybar)+'dF/F')
     return fig, AX
 
+def find_contour_responsive_cells(episode_static_patch, contour_param_values,
+                                  response_significance_threshold=0.01):
+    rois_of_interest = {}
+    for v in contour_param_values:
+        rois_of_interest['%ideg' % v] = []
+
+    for roi in range(episode_static_patch.data.nROIs):
+        summary_data = episode_static_patch.compute_summary_data(dict(interval_pre=[-1,0],
+                                                                      interval_post=[0.5,1.5],
+                                                                      test='wilcoxon', positive=True),
+                                                                  response_args={'quantity':'dFoF', 'roiIndex':roi},
+                                                                  response_significance_threshold=response_significance_threshold)
+        for v, significant in zip(contour_param_values, summary_data['significant']):
+            if significant:
+                rois_of_interest['%ideg' % v].append(roi)
+    return rois_of_interest
+
+def find_contour_responsive_cells(episode_static_patch, contour_param_values,
+                                  response_significance_threshold=0.01):
+    rois_of_interest = {}
+    for v in contour_param_values:
+        rois_of_interest['%ideg' % v] = []
+
+    for roi in range(episode_static_patch.data.nROIs):
+        summary_data = episode_static_patch.compute_summary_data(dict(interval_pre=[-1,0],
+                                                                      interval_post=[0.5,1.5],
+                                                                      test='wilcoxon', positive=True),
+                                                                  response_args={'quantity':'dFoF', 'roiIndex':roi},
+                                                                  response_significance_threshold=response_significance_threshold)
+        for v, significant in zip(contour_param_values, summary_data['significant']):
+            if significant:
+                rois_of_interest['%ideg' % v].append(roi)
+    return rois_of_interest
+def find_contour_responsive_cells(episode_static_patch, contour_param_values,
+                                  response_significance_threshold=0.01):
+    rois_of_interest = {}
+    for v in contour_param_values:
+        rois_of_interest['%ideg' % v] = []
+
+    for roi in range(episode_static_patch.data.nROIs):
+        summary_data = episode_static_patch.compute_summary_data(dict(interval_pre=[-1,0],
+                                                                      interval_post=[0.5,1.5],
+                                                                      test='wilcoxon', positive=True),
+                                                                  response_args={'quantity':'dFoF', 'roiIndex':roi},
+                                                                  response_significance_threshold=response_significance_threshold)
+        for v, significant in zip(contour_param_values, summary_data['significant']):
+            if significant:
+                rois_of_interest['%ideg' % v].append(roi)
+    return rois_of_interest
+
+    
 def run_analysis_and_save_figs(datafile,
                                suffix='',
                                folder='./',
@@ -220,30 +271,16 @@ def run_analysis_and_save_figs(datafile,
             
         ## Focusing on cells responding to contour features
 
-        SUMMARY_DATA, significant_rois = [], {}
+        rois_of_interest = find_contour_responsive_cells(episode_static_patch, contour_param_values)
         for v in contour_param_values:
-            significant_rois['%ideg' % v] = []
-
-        for roi in range(episode_static_patch.data.nROIs):
-            summary_data = episode_static_patch.compute_summary_data(dict(interval_pre=[-1,0],
-                                                                          interval_post=[0.5,1.5],
-                                                                          test='wilcoxon', positive=True),
-                                                                      response_args={'quantity':'dFoF', 'roiIndex':roi},
-                                                                     response_significance_threshold=0.01)
-            for v, significant in zip(contour_param_values, summary_data['significant']):
-                if significant:
-                    significant_rois['%ideg' % v].append(roi)
-
-
-        for v in contour_param_values:
-            print('- %i deg patch --> %i significantly modulated cells (%.1f%%) ' % (v, len(significant_rois['%ideg' % v]),
-                                                         100*len(significant_rois['%ideg' % v])/episode_static_patch.data.nROIs))
+            print('- %i deg patch --> %i significantly modulated cells (%.1f%%) ' % (v, len(rois_of_interest['%ideg' % v]),
+                                                         100*len(rois_of_interest['%ideg' % v])/episode_static_patch.data.nROIs))
 
 
         for i, v in enumerate(contour_param_values):
 
-            if len(significant_rois['%ideg' % v])>0:
-                fig, AX = episode_static_patch.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
+            if len(rois_of_interest['%ideg' % v])>0:
+                fig, AX = episode_static_patch.plot_trial_average(roiIndices=rois_of_interest['%ideg' % v], 
                                                                   column_key=contour_param_key,
                                                                   with_annotation=True,
                                                                   with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
@@ -251,14 +288,14 @@ def run_analysis_and_save_figs(datafile,
                 fig.suptitle('static patches --> cells resp. to %i$^o$\n\n\n' % v, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
 
-                fig, AX = episode_moving_dots.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
+                fig, AX = episode_moving_dots.plot_trial_average(roiIndices=rois_of_interest['%ideg' % v], 
                                                                   column_key='direction',
                                                                   with_annotation=True,
                                                                   with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                   xbar=1, xbarlabel='1s')
                 fig.suptitle('moving-dots --> cells resp. to %i$^o$\n\n\n' % v, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
-                fig, AX = episode_mixed.plot_trial_average(roiIndices=significant_rois['%ideg' % v], 
+                fig, AX = episode_mixed.plot_trial_average(roiIndices=rois_of_interest['%ideg' % v], 
                                                        column_key='patch-delay',
                                                        row_key='direction',
                                                        color_key=('patch-%s'%contour_param_key if (contour_param_key!='') else ''),
@@ -271,7 +308,7 @@ def run_analysis_and_save_figs(datafile,
 
                 for j, d in enumerate(episode_mixed.varied_parameters['direction']):
                     fig, AX = interaction_fig(episode_static_patch, episode_moving_dots, episode_mixed,
-                                              roiIndices=significant_rois['%ideg' % v],
+                                              roiIndices=rois_of_interest['%ideg' % v],
                                               moving_dot_direction_index = j,
                                               contour_param_key=contour_param_key,
                                               suffix=suffix,
@@ -280,7 +317,7 @@ def run_analysis_and_save_figs(datafile,
                     if (episode_random_dots is not None) and (episode_mixed_random_dots is not None):
                         patch_delay= episode_mixed.data.metadata['Protocol-%i-patch-delay-1' % (episode_mixed.data.get_protocol_id('random-mixed-moving-dots-static-patch'+suffix)+1)]
                         fig, AX = interaction_fig(episode_static_patch, episode_random_dots, episode_mixed_random_dots,
-                                                  roiIndices=significant_rois['%ideg' % v],
+                                                  roiIndices=rois_of_interest['%ideg' % v],
                                                   moving_dot_direction_index = j, moving_dot_label='random-line-dots',
                                                   contour_param_key=contour_param_key,
                                                   fixed_delay = patch_delay,
