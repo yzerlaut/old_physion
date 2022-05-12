@@ -4,11 +4,11 @@
   "shuffling-seed" :22,
   "Protocol-1": "subprotocols/neurometric-task/gaussian-blobs.json",
   "Protocol-2": "subprotocols/neurometric-task/NI-VSE-4images-1vse-30trials.json",
-  "presentation-prestim-period": 5.0,
-  "presentation-poststim-period": 5.0,
+  "presentation-prestim-period": 2.0,
+  "presentation-poststim-period": 2.0,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
-  "presentation-interstim-period": 1.0,
+  "presentation-interstim-period": 2.0,
   "presentation-interstim-screen": 0,
   "Screen": "Dell-2020"
 }

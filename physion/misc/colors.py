@@ -40,6 +40,8 @@ def build_dark_palette(app):
     palette.setColor(QtGui.QPalette.Button, QtGui.QColor(50, 50, 50))
     palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
     palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+    # palette.setColor(QtGui.QPalette.Inactive, QtGui.QPalette.Button, QtCore.Qt.black)
+    palette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Button, QtCore.Qt.black)
     # palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
     # palette.setColor(QtGui.QPalette.Link, QtCore.Qt.white)
     palette.setColor(QtGui.QPalette.Link, QtGui.QColor(200, 200, 200))
@@ -47,7 +49,6 @@ def build_dark_palette(app):
     palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(150, 150, 150))
     palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
     app.setPalette(palette)
-
 
 if __name__=='__main__':
 

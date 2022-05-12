@@ -299,4 +299,12 @@ STIMULI = {
     },
     
     # "full-field-grating+VSE":{},
+    "full-field-grating+VSE":{
+        "angle (deg)":60,
+        "spatial-freq (cycle/deg)":0.05,
+        "contrast (norm.)":1.,
+        # range
+        "spatial-freq-1":0.001, "spatial-freq-2":2., "N-spatial-freq":2,
+        "angle-1":0., "angle-2":360, "N-angle":0,
+        "contrast-1":0., "contrast-2":1., "N-contrast":0, "N-log-contrast":0},
 }

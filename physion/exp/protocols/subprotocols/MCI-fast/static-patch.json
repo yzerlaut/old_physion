@@ -1,10 +1,10 @@
 {
   "Presentation": "Stimuli-Sequence",
-  "Stimulus": "center-grating-image",
+  "Stimulus": "center-grating",
   "Screen": "Dell-2020",
   "shuffling-seed": 23,
   "presentation-duration": 1,
-  "presentation-prestim-period": 0.1,
+  "presentation-prestim-period": 3,
   "presentation-poststim-period": 3,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
