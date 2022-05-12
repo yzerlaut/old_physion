@@ -274,9 +274,25 @@ class MainWindow(QtWidgets.QMainWindow):
         time.sleep(5)
         self.statusBar.showMessage('Screen ready')
         
+    def NIdaq_metadata_init(self):
+        # --------------- #
+        ### NI daq init ###   ## we override parameters based on the chosen modalities if needed
+        # --------------- #
+        if self.metadata['VisualStim'] and (self.metadata['NIdaq-analog-input-channels']<1):
+            self.metadata['NIdaq-analog-input-channels'] = 1 # at least one (AI0), -> the photodiode
+        if self.metadata['Locomotion'] and (self.metadata['NIdaq-digital-input-channels']<2):
+            self.metadata['NIdaq-digital-input-channels'] = 2
+        if self.metadata['EphysLFP'] and self.metadata['EphysVm']:
+            self.metadata['NIdaq-analog-input-channels'] = 3 # both channels, -> channel AI1 for Vm, AI2 for LFP 
+        elif self.metadata['EphysLFP']:
+            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for LFP 
+        elif self.metadata['EphysVm']:
+            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
+
     def initialize(self):
 
         self.runButton.setEnabled(False) # acq blocked during init
+        self.bufferButton.setEnabled(False) # should be already blocked, but for security 
 
         ### set up all metadata
         self.metadata = {'config':self.cbc.currentText(),
@@ -311,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.protocol = {}
 
         # init visual stimulation
-        if len(self.protocol.keys())>0:
+        if not self.metadata['protocol']!='None':
 
             self.protocol['screen'] = self.metadata['Screen']
 
@@ -320,9 +336,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.protocol['demo'] = False
 
-            if not self.bufferButton.isChecked():
-                # when we re-check the buffer after a run, no need to re-init the stimulation
-                self.stim = build_stim(self.protocol)
+            #if not self.bufferButton.isChecked():
+            #    # when we re-check the buffer after a run, no need to re-init the stimulation
+            #    self.stim = build_stim(self.protocol)
+            self.stim = build_stim(self.protocol)
 
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
@@ -341,19 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
 
-        # --------------- #
-        ### NI daq init ###   ## we override parameters based on the chosen modalities if needed
-        # --------------- #
-        if self.metadata['VisualStim'] and (self.metadata['NIdaq-analog-input-channels']<1):
-            self.metadata['NIdaq-analog-input-channels'] = 1 # at least one (AI0), -> the photodiode
-        if self.metadata['Locomotion'] and (self.metadata['NIdaq-digital-input-channels']<2):
-            self.metadata['NIdaq-digital-input-channels'] = 2
-        if self.metadata['LFP'] and self.metadata['Vm']:
-            self.metadata['NIdaq-analog-input-channels'] = 3 # both channels, -> channel AI1 for Vm, AI2 for LFP 
-        elif self.metadata['LFP']:
-            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for LFP 
-        elif self.metadata['Vm']:
-            self.metadata['NIdaq-analog-input-channels'] = 2 # AI1 for Vm
+        self.NIdaq_metadata_init()
 
         if not self.demoW.isChecked():
             try:
@@ -369,8 +374,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.acq = None
 
         self.init = True
-        if not self.bufferButton.isChecked():
-            self.bufferButton.setEnabled(True)
+        self.bufferButton.setEnabled(True)
         self.runButton.setEnabled(True)
         self.save_experiment() # saving all metadata after full initialization
 
