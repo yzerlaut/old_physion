@@ -1,28 +1,29 @@
 # need "physion" installed
 
-import sys, os
+import sys, os, pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from physion.analysis.read_NWB import Data
-from physion.dataviz.show_data import MultimodalData, EpisodeResponse
-from physion.analysis.tools import summary_pdf_folder
 from datavyz import graph_env_screen as ge
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+
+from analysis.read_NWB import Data
+from dataviz.show_data import MultimodalData, EpisodeResponse
+from analysis.tools import summary_pdf_folder
 
 
 def build_linear_pred(patch_resp, mvDot_resp, 
                       episode_static_patch, episode_moving_dots,
                       delay=0):
 
-    # the center of the mv dot protocol is half
-    mVdot_center = 0# episode_moving_dots.data.metadata['Protocol-%i-presentation-duration' % (episode_moving_dots.data.get_protocol_id('moving-dots')+1)]/2.
-    
-    i_mVdot_center = np.argwhere(episode_moving_dots.t>(mVdot_center+delay))[0][0]
+    i_mVdot_center = np.argwhere(episode_moving_dots.t>delay)[0][0]
     patch_evoked_t = episode_static_patch.t>0
     
-    resp = 0*episode_moving_dots.t + mvDot_resp
-    
+    resp = 0*episode_moving_dots.t + mvDot_resp # mvDot_resp by default
+
+    # and we add the patch-evoked response (substracting its baseline)
     imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_mVdot_center])-1
     resp[i_mVdot_center:i_mVdot_center+imax] += patch_resp[patch_evoked_t][:imax]-patch_resp[patch_evoked_t][0]
     
@@ -137,26 +138,10 @@ def find_contour_responsive_cells(episode_static_patch, contour_param_values,
                 rois_of_interest['%ideg' % v].append(roi)
     return rois_of_interest
 
-def find_contour_responsive_cells(episode_static_patch, contour_param_values,
-                                  response_significance_threshold=0.01):
+def find_motion_responsive_cells(episode_moving_dots, mvDot_param_values,
+                                 response_significance_threshold=0.01):
     rois_of_interest = {}
-    for v in contour_param_values:
-        rois_of_interest['%ideg' % v] = []
-
-    for roi in range(episode_static_patch.data.nROIs):
-        summary_data = episode_static_patch.compute_summary_data(dict(interval_pre=[-1,0],
-                                                                      interval_post=[0.5,1.5],
-                                                                      test='wilcoxon', positive=True),
-                                                                  response_args={'quantity':'dFoF', 'roiIndex':roi},
-                                                                  response_significance_threshold=response_significance_threshold)
-        for v, significant in zip(contour_param_values, summary_data['significant']):
-            if significant:
-                rois_of_interest['%ideg' % v].append(roi)
-    return rois_of_interest
-def find_contour_responsive_cells(episode_static_patch, contour_param_values,
-                                  response_significance_threshold=0.01):
-    rois_of_interest = {}
-    for v in contour_param_values:
+    for v in mvDot_param_values:
         rois_of_interest['%ideg' % v] = []
 
     for roi in range(episode_static_patch.data.nROIs):

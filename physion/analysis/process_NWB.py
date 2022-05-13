@@ -30,7 +30,8 @@ class EpisodeResponse:
         
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
-            
+        quantities_args['verbose'] = verbose
+
         if verbose:
             print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(self.protocol_cond_in_full_data), len(self.protocol_cond_in_full_data)))
             print('  building episodes with %i modalities [...]' % len(quantities))
