@@ -2,20 +2,34 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="683.04352"
    height="496.94199"
    viewBox="0 0 180.72193 131.48256"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.1 (1:1.1+202109281949+c3084ef5ed)"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
    sodipodi:docname="experimental-rig.svg"
-   inkscape:export-filename="/home/yann/Desktop/report/slides/pngs/experimental-rig-11.png"
-   inkscape:export-xdpi="100"
-   inkscape:export-ydpi="100"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
+   inkscape:export-filename="/home/yann.zerlaut/Desktop/experimental-rig.png"
+   inkscape:export-xdpi="150"
+   inkscape:export-ydpi="150">
+  <metadata
+     id="metadata1099">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
   <sodipodi:namedview
      id="namedview7"
      pagecolor="#ffffff"
@@ -27,13 +41,13 @@
      inkscape:document-units="mm"
      showgrid="false"
      units="px"
-     inkscape:zoom="1.1728873"
-     inkscape:cx="451.87632"
+     inkscape:zoom="0.41467828"
+     inkscape:cx="-246.82679"
      inkscape:cy="251.94237"
      inkscape:window-width="1553"
      inkscape:window-height="972"
      inkscape:window-x="82"
-     inkscape:window-y="164"
+     inkscape:window-y="37"
      inkscape:window-maximized="0"
      inkscape:current-layer="g1295-0"
      width="1920px"
@@ -4433,18 +4447,19 @@
              sodipodi:nodetypes="cc" />
           <text
              xml:space="preserve"
-             transform="matrix(0.37057301,0,0,0.37057301,1.5451344,86.596383)"
              id="text82339-1"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.1356px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82553-0);display:inline;fill:#000000"
-             x="215.77635"
-             y="0"><tspan
-               x="120.51338"
-               y="40.141458"
-               id="tspan17713">blinking signal
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.34999037px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82553-0);display:inline;fill:#000000;stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round"
+             x="-74.684982"
+             y="86.596382"><tspan
+               x="-109.98687"
+               y="101.47173"
+               id="tspan17713"
+               style="stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round">blinking signal
 </tspan><tspan
-               x="116.66456"
-               y="61.560956"
-               id="tspan17715">+ photodiode   </tspan></text>
+               x="-111.41314"
+               y="109.40921"
+               id="tspan17715"
+               style="stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round">+ photodiode   </tspan></text>
           <g
              id="g82429-9"
              transform="matrix(0.76912433,-0.2461986,0.2461986,0.76912433,-5.3796683,67.788688)"
@@ -4628,14 +4643,14 @@
                id="tspan17717">IR camera</tspan></text>
           <text
              xml:space="preserve"
-             transform="matrix(0.39678796,0,0,0.39678796,91.289824,171.97257)"
              id="text82433-6"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.0035px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000"
-             x="164.43637"
-             y="0"><tspan
-               x="87.443006"
-               y="39.139815"
-               id="tspan17719">circular treadmill</tspan></text>
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.34999609px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000;stroke-width:0.39678797;stroke-linecap:butt;stroke-linejoin:round"
+             x="26.827415"
+             y="171.97256"><tspan
+               x="-3.7226408"
+               y="187.50278"
+               id="tspan17719"
+               style="stroke-width:0.39678797;stroke-linecap:butt;stroke-linejoin:round">circular treadmill</tspan></text>
           <text
              xml:space="preserve"
              transform="matrix(0.37057301,0,0,0.37057301,15.201867,188.41172)"
