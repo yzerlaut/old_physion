@@ -1,5 +1,3 @@
-# need "physion" installed
-
 import sys, os, pathlib
 import numpy as np
 import matplotlib.pyplot as plt

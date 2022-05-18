@@ -410,6 +410,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
     def plot_trial_average(self,
                            # episodes props
                            quantity='dFoF', roiIndex=None, roiIndices='all',
+                           norm='',
                            interpolation='linear',
                            baseline_substraction=False,
                            condition=None,
@@ -491,6 +492,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         # response reshape in 
         response = self.get_response(**response_args)
+        if norm=='minmax-per-cell':
+            response = (response-response.min(axis=0))/(response.max(axis=0)-response.min(axis=0))
         
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -950,8 +953,10 @@ if __name__=='__main__':
                                    quantities=[args.quantity])
         fig, AX = episodes.plot_trial_average(quantity=args.quantity,
                                               roiIndex=args.roiIndex,
+                                              norm='minmax-per-cell',
                                               column_key=list(episodes.varied_parameters.keys())[0],
-                                              xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
+                                              xbar=1, xbarlabel='1s', 
+                                              # ybar=0.2, ybarlabel='0.2dF/F',
                                               with_stat_test=True,
                                               with_annotation=True,
                                               with_screen_inset=True,                                          
