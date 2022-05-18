@@ -973,7 +973,7 @@ if __name__=='__main__':
         fig, AX = episodes.plot_trial_average(quantity=args.quantity,
                                               roiIndex=args.roiIndex,
                                               #roiIndices=[22,25,34,55,63],
-                                              #with_std_over_rois=True,
+                                              with_std_over_rois=True,
                                               #norm='minmax-per-cell',
                                               column_key=list(episodes.varied_parameters.keys())[0],
                                               xbar=1, xbarlabel='1s', 
