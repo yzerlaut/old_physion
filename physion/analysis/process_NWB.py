@@ -305,7 +305,7 @@ class EpisodeResponse:
                                                    .5*(x[1:]+x[:-1]),
                                                    [x[-1]+.5*(x[-1]-x[-2])]]))
 
-        summary_data = {'value':[], 'significant':[]}
+        summary_data = {'value':[], 'significant':[], 'relative_value':[]}
         for key, bins in zip(VARIED_KEYS, VARIED_BINS):
             summary_data[key] = []
             summary_data[key+'-bins'] = bins
@@ -320,6 +320,7 @@ class EpisodeResponse:
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
                 summary_data['value'].append(np.mean(stats.y-stats.x))
+                summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
                 summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
         else:
             stats = self.stat_test_for_evoked_responses(response_args=response_args,
