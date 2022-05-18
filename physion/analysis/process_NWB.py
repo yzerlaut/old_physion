@@ -27,7 +27,8 @@ class EpisodeResponse:
         
         # choosing protocol (if multiprotocol)
         self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
-        
+        self.protocol_name = full_data.protocols[protocol_id]
+
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
         for q in quantities_args:
