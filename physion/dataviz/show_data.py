@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools as dv_tools
-from analysis import read_NWB, process_NWB, stat_tools
+from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
 
 # datavyz submodule
@@ -498,16 +498,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             no_set=no_set
 
         # response reshape in 
-        response = self.get_response(**response_args)
-        print(response.shape) 
-        if norm=='Zscore-per-roi':
-            mean_array = response.mean(axis=0).mean(axis=-1).reshape(1, response.shape[1], 1) 
-            std_array = response.mean(axis=0).std(axis=-1).reshape(1, response.shape[1], 1) 
-            response = (response-mean_array)/std_array
-        elif norm=='minmax-per-roi':
-            min_array = response.mean(axis=0).min(axis=-1).reshape(1, response.shape[1], 1) 
-            max_array = response.mean(axis=0).max(axis=-1).reshape(1, response.shape[1], 1) 
-            response = (response-min_array)/(max_array-min_array)
+        response = tools.normalize(self.get_response(**response_args), norm, verbose=True)
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -518,7 +509,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                     
                     my = response[cond,:,:].mean(axis=(0,1))
 
-                    if with_std or with_std_over_rois:
+                    if with_std_over_trials or with_std_over_rois:
                         if with_std_over_rois: 
                             sy = response[cond,:,:].mean(axis=0).std(axis=-2)
                         else:
@@ -626,9 +617,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                 if roiIndex is not None:
                     S+='roi #%i' % roiIndex
                 elif roiIndices in ['sum', 'mean', 'all']:
-                    S+='mean: n=%i rois' % len(self.data.valid_roiIndices)
+                    S+='n=%i rois' % len(self.data.valid_roiIndices)
                 else:
-                    S+='mean: n=%i rois\n' % len(roiIndices)
+                    S+='n=%i rois' % len(roiIndices)
             # for i, key in enumerate(self.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
@@ -969,12 +960,11 @@ if __name__=='__main__':
                                    protocol_id=args.protocol_id,
                                    quantities=[args.quantity],
                                    prestim_duration=3)
-        print(episodes.protocol_name)
         fig, AX = episodes.plot_trial_average(quantity=args.quantity,
-                                              roiIndex=args.roiIndex,
-                                              #roiIndices=[22,25,34,55,63],
+                                              #roiIndex=args.roiIndex,
+                                              roiIndices=[22,25,34,51,63],
                                               with_std_over_rois=True,
-                                              #norm='minmax-per-cell',
+                                              norm='MinMax-time-variations-after-trial-averaging-per-roi',
                                               column_key=list(episodes.varied_parameters.keys())[0],
                                               xbar=1, xbarlabel='1s', 
                                               # ybar=0.2, ybarlabel='0.2dF/F',

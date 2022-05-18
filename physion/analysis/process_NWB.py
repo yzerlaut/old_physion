@@ -211,24 +211,25 @@ class EpisodeResponse:
         if len(getattr(self, quantity).shape)>2:
 
             if roiIndex is not None:
-                roiIndices = roiIndex
-            elif roiIndices in ['all', 'sum', 'mean']:
-                roiIndices = np.arange(getattr(self, quantity).shape[1])
-
-            if len(getattr(self, quantity).shape)>2 and average_over_rois:
-                return getattr(self, quantity)[:,roiIndices,:].mean(axis=1)
-            elif average_over_rois:
-                return getattr(self, quantity)[:,roiIndices,:]
+                if average_over_rois:
+                    return getattr(self, quantity)[:,roiIndex,:]
+                else:
+                    return getattr(self, quantity)[:,roiIndex,:].reshape(getattr(self, quantity).shape[0],
+                                                                         1,
+                                                                         getattr(self, quantity).shape[2])
             else:
-                return getattr(self, quantity)[:,roiIndices,:].reshape(getattr(self, quantity).shape[0],
-                                                                       1,
-                                                                       getattr(self, quantity).shape[2])
+                if roiIndices in ['all', 'sum', 'mean']:
+                    roiIndices = np.arange(getattr(self, quantity).shape[1])
 
-            return response
+                if average_over_rois:
+                    return getattr(self, quantity)[:,roiIndices,:].mean(axis=1)
+                else:
+                    return getattr(self, quantity)[:,roiIndices,:]
+
         else:
             return getattr(self, quantity)
 
-        
+
     def compute_interval_cond(self, interval):
         return (self.t>=interval[0]) & (self.t<=interval[1])
 

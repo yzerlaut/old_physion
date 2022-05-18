@@ -7,6 +7,30 @@ try:
 except ModuleNotFoundError:
     pass
 
+
+def normalize(response, norm_type, verbose=False):
+    """
+    
+    """
+    if norm_type=='Zscore-time-variations-after-trial-averaging-per-roi':
+        if verbose:
+            print('applying the normalization: ', norm_type)
+        mean_array = response.mean(axis=0).mean(axis=-1).reshape(1, response.shape[1], 1) 
+        std_array = response.mean(axis=0).std(axis=-1).reshape(1, response.shape[1], 1) 
+        return (response-mean_array)/std_array
+    elif norm_type=='MinMax-time-variations-after-trial-averaging-per-roi':
+        if verbose:
+            print('applying the normalization: ', norm_type)
+        min_array = response.mean(axis=0).min(axis=-1).reshape(1, response.shape[1], 1) 
+        max_array = response.mean(axis=0).max(axis=-1).reshape(1, response.shape[1], 1) 
+        return (response-min_array)/(max_array-min_array)
+    else:
+        # no normalization
+        return response
+
+
+
+
 def summary_pdf_folder(filename):
     if not os.path.isdir(filename.replace('.nwb', '')):
         os.mkdir(filename.replace('.nwb', ''))
