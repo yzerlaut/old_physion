@@ -82,6 +82,13 @@ class EpisodeResponse:
                 QUANTITY_TIMES.append(full_data.t_dFoF)
                 QUANTITIES.append('dFoF')
 
+            elif quantity in ['Zscore_dFoF', 'Zscore_dF/F']:
+                if not hasattr(full_data, 'Zscore_dFoF'):
+                    full_data.build_Zscore_dFoF(**quantity_args)
+                QUANTITY_VALUES.append(full_data.Zscore_dFoF)
+                QUANTITY_TIMES.append(full_data.t_dFoF)
+                QUANTITIES.append('Zscore_dFoF')
+
             elif quantity in ['Neuropil', 'neuropil']:
                 if not hasattr(full_data, 'Neuropil'):
                     full_data.build_Neuropil(**quantity_args)
