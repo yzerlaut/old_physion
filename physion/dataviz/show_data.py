@@ -498,7 +498,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             no_set=no_set
 
         # response reshape in 
-        response = tools.normalize(self.get_response(**response_args), norm, verbose=True)
+        response = tools.normalize(self.get_response(**dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=True)
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -563,19 +563,21 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                                     s+=20*' '+icolor*18*' '+format_key_value(key, getattr(self, key)[cond][0])
                                     ge.annotate(fig, s+'  ', (1,0), color=COLORS[icolor], ha='right', va='bottom', size='small')
                     
-        # if with_stat_test:
-            # for irow, row_cond in enumerate(ROW_CONDS):
-                # for icol, col_cond in enumerate(COL_CONDS):
-                    # for icolor, color_cond in enumerate(COLOR_CONDS):
+        if with_stat_test:
+            for irow, row_cond in enumerate(ROW_CONDS):
+                for icol, col_cond in enumerate(COL_CONDS):
+                    for icolor, color_cond in enumerate(COLOR_CONDS):
                         
-                        # cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
-                        # results = self.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
+                        cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
+                        results = self.stat_test_for_evoked_responses(episode_cond=cond,
+                                                                      response_args=dict(roiIndex=roiIndex, roiIndices=roiIndices),
+                                                                      **stat_test_props)
 
-                        # ps, size = results.pval_annot()
-                        # AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
-                                                                 # self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
-                        # AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
-                        # AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
+                        ps, size = results.pval_annot()
+                        AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
+                                                                 self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
+                        AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
+                        AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                             
         if xlim is None:
             self.xlim = [self.t[0], self.t[-1]]
@@ -961,10 +963,10 @@ if __name__=='__main__':
                                    quantities=[args.quantity],
                                    prestim_duration=3)
         fig, AX = episodes.plot_trial_average(quantity=args.quantity,
-                                              #roiIndex=args.roiIndex,
-                                              roiIndices=[22,25,34,51,63],
-                                              with_std_over_rois=True,
-                                              norm='Zscore-time-variations-after-trial-averaging-per-roi',
+                                              roiIndex=args.roiIndex,
+                                              # roiIndices=[22,25,34,51,63],
+                                              # with_std_over_rois=True,
+                                              # norm='Zscore-time-variations-after-trial-averaging-per-roi',
                                               column_key=list(episodes.varied_parameters.keys())[0],
                                               xbar=1, xbarlabel='1s', 
                                               ybar=1, ybarlabel='1 (Zscore, dF/F)',
