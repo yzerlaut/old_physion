@@ -193,9 +193,14 @@ class EpisodeResponse:
             print('  -> [ok] episodes ready !')
 
 
-    def get_response(self, quantity=None, roiIndex=None, roiIndices='all'):
+    def get_response(self, quantity=None, roiIndex=None, roiIndices='all', average_over_rois=True):
         """
         to deal with the fact that single-episode responses can be multidimensional
+
+        if average_over_rois is True:
+            shape=(Nepisodes, Ntimestamps)
+        else:
+            shape=(Nepisodes, Nrois, Ntimestamps)
         """
         if quantity is None:
             if len(self.quantities)>1:
@@ -204,13 +209,21 @@ class EpisodeResponse:
             quantity = self.quantities[0]
 
         if len(getattr(self, quantity).shape)>2:
+
             if roiIndex is not None:
                 roiIndices = roiIndex
             elif roiIndices in ['all', 'sum', 'mean']:
                 roiIndices = np.arange(getattr(self, quantity).shape[1])
-            response = getattr(self, quantity)[:,roiIndices,:]
-            if len(response.shape)>2:
-                response = response.mean(axis=1)
+
+            if len(getattr(self, quantity).shape)>2 and average_over_rois:
+                return getattr(self, quantity)[:,roiIndices,:].mean(axis=1)
+            elif average_over_rois:
+                return getattr(self, quantity)[:,roiIndices,:]
+            else:
+                return getattr(self, quantity)[:,roiIndices,:].reshape(getattr(self, quantity).shape[0],
+                                                                       1,
+                                                                       getattr(self, quantity).shape[2])
+
             return response
         else:
             return getattr(self, quantity)

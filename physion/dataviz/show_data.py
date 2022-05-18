@@ -420,7 +420,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                            fig_preset=' ',
                            xbar=0., xbarlabel='',
                            ybar=0., ybarlabel='',
-                           with_std=True,
+                           with_std=True, with_std_over_trials=False, with_std_over_rois=False,
                            with_screen_inset=False,
                            with_stim=True,
                            with_axis=False,
@@ -433,9 +433,16 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                            label='',
                            ylim=None, xlim=None,
                            fig=None, AX=None, no_set=True, verbose=False):
+        """
+            
+        "norm" can be either:
+            - "Zscore-per-roi"
+            - "minmax-per-roi"
+        """
+        if with_std:
+            with_std_over_trials = True # for backward compatibility --- DEPRECATED you need to specify !!
 
-        response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices)
-
+        response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)
 
         if with_screen_inset and (self.data.visual_stim is None):
             print('initializing stim [...]')
@@ -492,9 +499,16 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         # response reshape in 
         response = self.get_response(**response_args)
-        if norm=='minmax-per-cell':
-            response = np.transpose((response.T-response.min(axis=-1))/(response.max(axis=-1)-response.min(axis=-1)))
-        
+        print(response.shape) 
+        if norm=='Zscore-per-roi':
+            mean_array = response.mean(axis=0).mean(axis=-1).reshape(1, response.shape[1], 1) 
+            std_array = response.mean(axis=0).std(axis=-1).reshape(1, response.shape[1], 1) 
+            response = (response-mean_array)/std_array
+        elif norm=='minmax-per-roi':
+            min_array = response.mean(axis=0).min(axis=-1).reshape(1, response.shape[1], 1) 
+            max_array = response.mean(axis=0).max(axis=-1).reshape(1, response.shape[1], 1) 
+            response = (response-min_array)/(max_array-min_array)
+
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
@@ -502,20 +516,23 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                     
                     cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
                     
-                    if response[cond,:].shape[0]>0:
+                    my = response[cond,:,:].mean(axis=(0,1))
 
-                        my = response[cond, :].mean(axis=0)
-                        if with_std:
-                            sy = response[cond, :].std(axis=0)
-                            ge.plot(self.t, my, sy=sy,
-                                    ax=AX[irow][icol], color=COLORS[icolor], lw=1)
-                            self.ylim = [min([self.ylim[0], np.min(my-sy)]),
-                                         max([self.ylim[1], np.max(my+sy)])]
+                    if with_std or with_std_over_rois:
+                        if with_std_over_rois: 
+                            sy = response[cond,:,:].mean(axis=0).std(axis=-2)
                         else:
-                            AX[irow][icol].plot(self.t, my,
-                                                color=COLORS[icolor], lw=1)
-                            self.ylim = [min([self.ylim[0], np.min(my)]),
-                                         max([self.ylim[1], np.max(my)])]
+                            sy = response[cond,:,:].std(axis=(0,1))
+
+                        ge.plot(self.t, my, sy=sy,
+                                ax=AX[irow][icol], color=COLORS[icolor], lw=1)
+                        self.ylim = [min([self.ylim[0], np.min(my-sy)]),
+                                     max([self.ylim[1], np.max(my+sy)])]
+                    else:
+                        AX[irow][icol].plot(self.t, my,
+                                            color=COLORS[icolor], lw=1)
+                        self.ylim = [min([self.ylim[0], np.min(my)]),
+                                     max([self.ylim[1], np.max(my)])]
 
                             
                     if with_screen_inset:
@@ -544,7 +561,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                                         pass
                             ge.annotate(AX[irow][icol], s[:-2], (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
-                        ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
+                        ge.annotate(AX[irow][icol], ' n=%i\n trials'%np.sum(cond)+2*'\n'*icolor,
                                     (.99,0), color=COLORS[icolor], size='xx-small',
                                     ha='left', va='bottom')
                         # color label
@@ -555,19 +572,19 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                                     s+=20*' '+icolor*18*' '+format_key_value(key, getattr(self, key)[cond][0])
                                     ge.annotate(fig, s+'  ', (1,0), color=COLORS[icolor], ha='right', va='bottom', size='small')
                     
-        if with_stat_test:
-            for irow, row_cond in enumerate(ROW_CONDS):
-                for icol, col_cond in enumerate(COL_CONDS):
-                    for icolor, color_cond in enumerate(COLOR_CONDS):
+        # if with_stat_test:
+            # for irow, row_cond in enumerate(ROW_CONDS):
+                # for icol, col_cond in enumerate(COL_CONDS):
+                    # for icolor, color_cond in enumerate(COLOR_CONDS):
                         
-                        cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
-                        results = self.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
+                        # cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
+                        # results = self.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
 
-                        ps, size = results.pval_annot()
-                        AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
-                                                                 self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
-                        AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
-                        AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
+                        # ps, size = results.pval_annot()
+                        # AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
+                                                                 # self.ylim[0]), va='top', ha='center', size=size-1, xycoords='data', color=COLORS[icolor])
+                        # AX[irow][icol].plot(stat_test_props['interval_pre'], self.ylim[0]*np.ones(2), 'k-', lw=1)
+                        # AX[irow][icol].plot(stat_test_props['interval_post'], self.ylim[0]*np.ones(2), 'k-', lw=1)
                             
         if xlim is None:
             self.xlim = [self.t[0], self.t[-1]]
@@ -950,11 +967,13 @@ if __name__=='__main__':
     elif args.ops=='trial-average':
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
-                                   quantities=[args.quantity])
+                                   quantities=[args.quantity],
+                                   prestim_duration=3)
         print(episodes.protocol_name)
         fig, AX = episodes.plot_trial_average(quantity=args.quantity,
-                                              #roiIndex=args.roiIndex,
-                                              roiIndices=[22,25,35,51],
+                                              roiIndex=args.roiIndex,
+                                              #roiIndices=[22,25,34,55,63],
+                                              #with_std_over_rois=True,
                                               #norm='minmax-per-cell',
                                               column_key=list(episodes.varied_parameters.keys())[0],
                                               xbar=1, xbarlabel='1s', 
