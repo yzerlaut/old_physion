@@ -450,6 +450,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         
         if condition is None:
             condition = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+
         elif len(condition)==len(self.protocol_cond_in_full_data):
             condition = condition[self.protocol_cond_in_full_data]
             
@@ -497,7 +498,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         else:
             no_set=no_set
 
-        # response reshape in 
+        # get response reshape in 
         response = tools.normalize(self.get_response(**dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=True)
 
         self.ylim = [np.inf, -np.inf]
@@ -962,18 +963,26 @@ if __name__=='__main__':
                                    protocol_id=args.protocol_id,
                                    quantities=[args.quantity],
                                    prestim_duration=3)
-        fig, AX = episodes.plot_trial_average(quantity=args.quantity,
-                                              roiIndex=args.roiIndex,
-                                              # roiIndices=[22,25,34,51,63],
-                                              # with_std_over_rois=True,
-                                              # norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                                              column_key=list(episodes.varied_parameters.keys())[0],
-                                              xbar=1, xbarlabel='1s', 
-                                              ybar=1, ybarlabel='1 (Zscore, dF/F)',
-                                              with_stat_test=True,
-                                              with_annotation=True,
-                                              with_screen_inset=True,                                          
-                                              fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
+        episodes.plot_trial_average(column_key='patch-radius',
+                                         row_key='direction',
+                                         color_key='patch-delay',
+                                         roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
+                                         norm='MinMax-time-variations-after-trial-averaging-per-roi',
+                                         with_std_over_rois=True, with_annotation=True,
+                                         with_stat_test=True)
+
+        # fig, AX = episodes.plot_trial_average(quantity=args.quantity,
+                                              # roiIndex=args.roiIndex,
+                                              # # roiIndices=[22,25,34,51,63],
+                                              # # with_std_over_rois=True,
+                                              # # norm='Zscore-time-variations-after-trial-averaging-per-roi',
+                                              # column_key=list(episodes.varied_parameters.keys())[0],
+                                              # xbar=1, xbarlabel='1s', 
+                                              # ybar=1, ybarlabel='1 (Zscore, dF/F)',
+                                              # with_stat_test=True,
+                                              # with_annotation=True,
+                                              # with_screen_inset=True,                                          
+                                              # fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
 
     elif args.ops=='evoked-raster':
         episodes = EpisodeResponse(args.datafile,

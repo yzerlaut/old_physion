@@ -42,7 +42,6 @@ def find_responsive_cells(episode,
                                          summary_data['value'],
                                          summary_data['relative_value']):
             if significant and rv>0.1:
-                print(p, significant, v, rv)
                 rois_of_interest_contour_only['%s_%i' % (param_key, p)].append(roi)
                 rois_of_interest_contour_only['%s_%i_resp' % (param_key, p)].append(v)
     return rois_of_interest_contour_only
