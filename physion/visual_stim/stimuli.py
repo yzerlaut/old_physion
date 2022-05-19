@@ -356,13 +356,13 @@ class visual_stim:
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
                 self.buffer[protocol_id].append({'time_indices':time_indices,
                                                  'frames':frames,
-                                                 'frames':[],
-                                                  'refresh_freq':refresh_freq})
+                                                 'FRAMES':[],
+                                                 'refresh_freq':refresh_freq})
                 for frame in self.buffer[protocol_id][i]['frames']:
-                    self.buffer[protocol_id][i]['frames'].append(visual.imagestim(win,
+                    self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
                                                                  image=self.gamma_corrected_lum(frame),
                                                                  units='pix', size=win.size))
-                    if gui_refresh_func is not none:    
+                    if gui_refresh_func is not None:    
                         gui_refresh_func()
                 print('        index #%i   (%.2fs)' % (i+1, time.time()-toc)) 
 

@@ -53,8 +53,8 @@
   "patch-spatial-freq-1": 0.04,
   "patch-spatial-freq-2": 0.04,
   "N-patch-spatial-freq": 0,
-  "patch-radius-1": 10,
-  "patch-radius-2": 10,
+  "patch-radius-1": 15,
+  "patch-radius-2": 15,
   "N-patch-radius": 0,
   "starting-index": 0,
   "N-repeat": 15

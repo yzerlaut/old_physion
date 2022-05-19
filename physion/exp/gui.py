@@ -398,11 +398,19 @@ class MainWindow(QtWidgets.QMainWindow):
             self.statusBar.showMessage('Acquisition ready !')
 
     def buffer(self):
+        self.bufferButton.setEnabled(False)
+        self.initButton.setEnabled(False)
+        self.stopButton.setEnabled(False)
+        self.runButton.setEnabled(False)
+        # ----------------------------------
         # buffers the visual stimulus
         self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
         self.update()
+        # ----------------------------------
+        self.initButton.setEnabled(True)
+        self.stopButton.setEnabled(True)
+        self.runButton.setEnabled(True)
         self.show()
-        self.bufferButton.setEnabled(False)
 
     def check_metadata(self):
         new_metadata = self.check_gui_to_init_metadata()
