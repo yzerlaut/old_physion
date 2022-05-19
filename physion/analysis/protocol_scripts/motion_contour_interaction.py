@@ -17,34 +17,37 @@ from analysis.tools import summary_pdf_folder
 #############################################################################
 
 def find_responsive_cells(episode,
-                          param_key='radius',
+                          param_key='',
                           interval_pre=[-1,0],
                           interval_post=[0.5,1.5],
+                          minimum_relative_shift=0.1,
                           response_significance_threshold=0.01):
     """
     Two conditions:
         1) statistically significant positive shift over trials
         2) > 10% increase of trial average response with respect to baseline (pre)
     """
-    rois_of_interest_contour_only = {}
-    for v in episode.varied_parameters[param_key]:
-        rois_of_interest_contour_only['%s_%i' % (param_key, v)] = []
-        rois_of_interest_contour_only['%s_%i_resp' % (param_key, v)] = []
+    rois_of_interest = {}
+    param_values = episode.varied_parameters[param_key] if param_key!='' else [0]
 
-    for roi in range(episode.       data.nROIs):
+    for v in param_values:
+        rois_of_interest['%s_%i' % (param_key, v)] = []
+        rois_of_interest['%s_%i_resp' % (param_key, v)] = []
+
+    for roi in range(episode.data.nROIs):
         summary_data = episode.compute_summary_data(dict(interval_pre=interval_pre,
                                                          interval_post=interval_post,
                                                          test='anova', positive=True),
                                                          response_args={'quantity':'dFoF', 'roiIndex':roi},
                                                          response_significance_threshold=response_significance_threshold)
-        for p, significant, v, rv in zip(episode.varied_parameters[param_key], 
+        for p, significant, v, rv in zip(param_values, 
                                          summary_data['significant'],
                                          summary_data['value'],
                                          summary_data['relative_value']):
-            if significant and rv>0.1:
-                rois_of_interest_contour_only['%s_%i' % (param_key, p)].append(roi)
-                rois_of_interest_contour_only['%s_%i_resp' % (param_key, p)].append(v)
-    return rois_of_interest_contour_only
+            if significant and rv>minimum_relative_shift:
+                rois_of_interest['%s_%i' % (param_key, p)].append(roi)
+                rois_of_interest['%s_%i_resp' % (param_key, p)].append(v)
+    return rois_of_interest
 
 
 def exclude_motion_sensitive_cells(rois_of_interest_contour, rois_of_interest_motion,
@@ -75,7 +78,6 @@ def exclude_motion_sensitive_cells(rois_of_interest_contour, rois_of_interest_mo
                 elif roi not in rois_of_interest_contour_only[key]:
                     #print('not motion sensitive')
                     rois_of_interest_contour_only[key].append(roi)
-        print(len(rois_of_interest_contour_only[key]))                                
         print('')
     return rois_of_interest_contour_only
 
@@ -110,14 +112,15 @@ def interaction_fig(responses,
                     moving_dots_label='...',
                     mixed_label='...',
                     random=False,
-                    Ybar=0.2, tmin=-3):
+                    Ybar=0.2, Ybar_label='0.2dF/F', 
+                    tmin=-3):
     
     fig, AX = ge.figure(axes=(3, 1), figsize=(1.,1), wspace=0.5, right=8, top=2)
     
     ax = ge.inset(fig, [.9,.4,.07,.5])
     ax.bar([0], [responses['linear-integral']], color=ge.red)
     ax.bar([1], [responses['mixed-integral']], color='k')
-    ge.set_plot(ax, ['left'], ylabel='integral')
+    ge.set_plot(ax, ['left'], ylabel='integ. (resp.s)')
 
     # static-patch
     cond = responses['t_contour']>tmin/2.
@@ -143,13 +146,15 @@ def interaction_fig(responses,
     AX[0].fill_between([0,responses['patch-duration']], AX[0].get_ylim()[0]*np.ones(2), AX[0].get_ylim()[1]*np.ones(2), color=ge.blue, alpha=.3, lw=0)
     AX[1].fill_between([0,responses['mvDot-duration']], AX[1].get_ylim()[0]*np.ones(2), AX[1].get_ylim()[1]*np.ones(2), color=ge.orange, alpha=.1, lw=0)
         
+    AX[2].plot(responses['delay']+np.arange(2)*responses['integral_window'], AX[2].get_ylim()[1]*np.ones(2), 'k-')
     AX[2].fill_between(responses['delay']+np.arange(2)*responses['patch-duration'], 
                            AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2), color=ge.blue, alpha=.3, lw=0)
     AX[2].fill_between([0,responses['mvDot-duration']], AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2), color=ge.orange, alpha=.1, lw=0)
 
     for ax in AX:
-        ge.draw_bar_scales(ax, Xbar=1, Xbar_label='1s', Ybar=Ybar, Ybar_label=str(Ybar)+'dF/F')
-    return fig, AX
+        ge.draw_bar_scales(ax, Xbar=1, Xbar_label='1s', Ybar=Ybar, Ybar_label=Ybar_label)
+    ge.annotate(fig, ' n=%iROIs' % responses['nROIs'], (0.02,0.02))
+    return fig, AX, ax
 
 #############################################################################
 #############################################################################
@@ -215,6 +220,7 @@ class MCI_data:
                       moving_dots_cond,
                       mixed_cond,
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
+                      integral_window=2.,
                       roiIndices=[0]):
         
         # mixed resp
@@ -225,7 +231,7 @@ class MCI_data:
         else:
             scaling_factor = 1
             
-        responses = {}
+        responses = {'nROIs':len(roiIndices), 'integral_window':integral_window}
         
         # static patch 
         resp = self.episode_static_patch.get_response('dFoF', roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
@@ -253,7 +259,7 @@ class MCI_data:
             responses['delay'] = delays[0] # storing delay for later
             # linear pred.
             responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], delay=responses['delay'])
-            integral_cond = (responses['linear']>0) & (responses['linear']<responses['mvDot-duration']+1)
+            integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
             responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
             responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
         else:
@@ -439,7 +445,7 @@ def run_analysis_and_save_figs(datafile,
                         for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
                             mixed_indices = [motion_index, contour_index, mixed_index] 
                             mixed_keys = [motion_key, 'patch-%s'%contour_key, mixed_only_key]
-                            fig, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
+                            fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
                                                                         data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
                                                                         data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
                                                                         roiIndices=rois_of_interest_contour_only[key]),

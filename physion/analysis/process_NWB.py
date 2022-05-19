@@ -243,8 +243,7 @@ class EpisodeResponse:
 
     
     def find_episode_cond(self, key, index):
-        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]) :
-            print(key, index)
+        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]):
             cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
             for n in range(1, len(key)):
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
