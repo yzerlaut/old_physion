@@ -248,6 +248,7 @@ class MCI_data:
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.data.get_protocol_id('moving-dots')+1)]
 
         delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+        print(delays)
         if len(np.unique(delays))<2:
             responses['delay'] = delays[0] # storing delay for later
             # linear pred.

@@ -502,7 +502,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    print(len(condition), len(col_cond), len(row_cond), len(color_cond))            
+
                     cond = np.array(condition & col_cond & row_cond & color_cond)
                     
                     my = response[cond,:,:].mean(axis=(0,1))
@@ -961,12 +961,13 @@ if __name__=='__main__':
                                    quantities=[args.quantity],
                                    prestim_duration=3,
                                    verbose=args.verbose)
-        episodes.plot_trial_average(column_key='patch-radius',
-                                         row_key='direction',
-                                         color_key='patch-delay',
-                                         roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
-                                         norm='MinMax-time-variations-after-trial-averaging-per-roi',
-                                         with_std_over_rois=True, 
+        episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
+                                    row_key='patch-delay',
+                                    color_key='repeat',
+                                    roiIndex=52,
+                                    # roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
+                                    #     norm='MinMax-time-variations-after-trial-averaging-per-roi',
+                                    #     with_std_over_rois=True, 
                                          with_annotation=True,
                                          with_stat_test=True,
                                          verbose=args.verbose)
