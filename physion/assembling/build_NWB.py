@@ -21,7 +21,7 @@ from analysis.tools import resample_signal
 
 
 ALL_MODALITIES = ['raw_CaImaging', 'processed_CaImaging',  'raw_FaceCamera',
-                  'VisualStim', 'Locomotion', 'Pupil', 'FaceMotion', 'LFP', 'Vm']
+                  'VisualStim', 'Locomotion', 'Pupil', 'FaceMotion', 'EphysLFP', 'EphysVm']
 
 
 def build_NWB(args,
@@ -419,7 +419,7 @@ def build_NWB(args,
 
     iElectrophy = 1 # start on channel 1
     
-    if metadata['Vm'] and ('Vm' in args.modalities):
+    if metadata['EphysVm'] and ('EphysVm' in args.modalities):
     
         if args.verbose:
             print('=> Storing Vm signal for "%s" [...]' % args.datafolder)
@@ -433,7 +433,7 @@ def build_NWB(args,
         nwbfile.add_acquisition(vm)
         iElectrophy += 1
 
-    if metadata['LFP'] and ('LFP' in args.modalities):
+    if metadata['EphysLFP'] and ('EphysLFP' in args.modalities):
     
         if args.verbose:
             print('=> Storing LFP signal for "%s" [...]' % args.datafolder)
