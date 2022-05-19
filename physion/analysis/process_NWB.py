@@ -27,10 +27,13 @@ class EpisodeResponse:
         
         # choosing protocol (if multiprotocol)
         self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
-        
+        self.protocol_name = full_data.protocols[protocol_id]
+
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
-            
+        for q in quantities_args:
+            q['verbose'] = verbose 
+
         if verbose:
             print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(self.protocol_cond_in_full_data), len(self.protocol_cond_in_full_data)))
             print('  building episodes with %i modalities [...]' % len(quantities))
@@ -78,6 +81,13 @@ class EpisodeResponse:
                 QUANTITY_VALUES.append(full_data.dFoF)
                 QUANTITY_TIMES.append(full_data.t_dFoF)
                 QUANTITIES.append('dFoF')
+
+            elif quantity in ['Zscore_dFoF', 'Zscore_dF/F']:
+                if not hasattr(full_data, 'Zscore_dFoF'):
+                    full_data.build_Zscore_dFoF(**quantity_args)
+                QUANTITY_VALUES.append(full_data.Zscore_dFoF)
+                QUANTITY_TIMES.append(full_data.t_dFoF)
+                QUANTITIES.append('Zscore_dFoF')
 
             elif quantity in ['Neuropil', 'neuropil']:
                 if not hasattr(full_data, 'Neuropil'):
@@ -190,9 +200,14 @@ class EpisodeResponse:
             print('  -> [ok] episodes ready !')
 
 
-    def get_response(self, quantity=None, roiIndex=None, roiIndices='all'):
+    def get_response(self, quantity=None, roiIndex=None, roiIndices='all', average_over_rois=True):
         """
         to deal with the fact that single-episode responses can be multidimensional
+
+        if average_over_rois is True:
+            shape=(Nepisodes, Ntimestamps)
+        else:
+            shape=(Nepisodes, Nrois, Ntimestamps)
         """
         if quantity is None:
             if len(self.quantities)>1:
@@ -201,18 +216,27 @@ class EpisodeResponse:
             quantity = self.quantities[0]
 
         if len(getattr(self, quantity).shape)>2:
+
             if roiIndex is not None:
-                roiIndices = roiIndex
-            elif roiIndices in ['all', 'sum', 'mean']:
-                roiIndices = np.arange(getattr(self, quantity).shape[1])
-            response = getattr(self, quantity)[:,roiIndices,:]
-            if len(response.shape)>2:
-                response = response.mean(axis=1)
-            return response
+                if average_over_rois:
+                    return getattr(self, quantity)[:,roiIndex,:]
+                else:
+                    return getattr(self, quantity)[:,roiIndex,:].reshape(getattr(self, quantity).shape[0],
+                                                                         1,
+                                                                         getattr(self, quantity).shape[2])
+            else:
+                if roiIndices in ['all', 'sum', 'mean']:
+                    roiIndices = np.arange(getattr(self, quantity).shape[1])
+
+                if average_over_rois:
+                    return getattr(self, quantity)[:,roiIndices,:].mean(axis=1)
+                else:
+                    return getattr(self, quantity)[:,roiIndices,:]
+
         else:
             return getattr(self, quantity)
 
-        
+
     def compute_interval_cond(self, interval):
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
@@ -281,7 +305,7 @@ class EpisodeResponse:
                                                    .5*(x[1:]+x[:-1]),
                                                    [x[-1]+.5*(x[-1]-x[-2])]]))
 
-        summary_data = {'value':[], 'significant':[]}
+        summary_data = {'value':[], 'significant':[], 'relative_value':[]}
         for key, bins in zip(VARIED_KEYS, VARIED_BINS):
             summary_data[key] = []
             summary_data[key+'-bins'] = bins
@@ -296,6 +320,7 @@ class EpisodeResponse:
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
                 summary_data['value'].append(np.mean(stats.y-stats.x))
+                summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
                 summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
         else:
             stats = self.stat_test_for_evoked_responses(response_args=response_args,

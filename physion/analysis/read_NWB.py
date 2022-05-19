@@ -300,6 +300,12 @@ class Data:
                             return_corrected_F_and_F0=return_corrected_F_and_F0,
                             verbose=verbose)
 
+    def build_Zscore_dFoF(self, verbose=True):
+        if not hasattr(self, 'dFoF'):
+            self.build_dFoF(verbose=verbose)
+        setattr(self, 'Zscore_dFoF', (self.dFoF-self.dFoF.mean(axis=0).reshape(1, self.dFoF.shape[1]))/self.dFoF.std(axis=0).reshape(1, self.dFoF.shape[1]))
+
+
     def build_neuropil(self,
                        roiIndex=None, roiIndices='all',
                        verbose=True):

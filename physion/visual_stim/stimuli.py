@@ -494,13 +494,17 @@ class visual_stim:
             fig, ax = plt.subplots(1)
 
         cls = (parent if parent is not None else self)
-
-        ax.imshow(cls.image_to_frame(cls.get_image(episode,
-                                                   time_from_episode_start=time_from_episode_start,
-                                                   parent=cls), psychopy_to_numpy=True),
-                  cmap='gray', vmin=0, vmax=1,
-                  origin='lower',
-                  aspect='equal')
+        
+        try:
+            ax.imshow(cls.image_to_frame(cls.get_image(episode,
+                                                       time_from_episode_start=time_from_episode_start,
+                                                       parent=cls), psychopy_to_numpy=True),
+                      cmap='gray', vmin=0, vmax=1,
+                      origin='lower',
+                      aspect='equal')
+        except BaseException as be:
+            print(be)
+            print(' /!\ pb in get stim /!\  ')
 
         if vse:
             if not hasattr(self, 'vse'):
@@ -980,8 +984,8 @@ class line_moving_dots(vis_stim_image_built):
         # print(arrow['direction'])
 
         for shift in [-.5, 0, .5]:
-            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(x)/3.,
-                               shift*np.cos(np.pi/180.*direction)*np.max(y)/3.]
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
+                               shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
             self.add_arrow(arrow, ax)
 
         return ax

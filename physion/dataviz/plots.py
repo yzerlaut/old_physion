@@ -260,9 +260,13 @@ def raw_data_plot(self, tzoom,
 
         icond = np.argwhere((self.data.nwbfile.stimulus['time_start_realigned'].data[:]<=self.time) & \
                             (self.data.nwbfile.stimulus['time_stop_realigned'].data[:]>=self.time)).flatten()
-        if len(icond)>0:
-            self.pScreenimg.setImage(255*self.data.visual_stim.get_image(icond[0],
-                                                                         self.time-self.data.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
+        if len(icond)>1:
+            try:
+                self.pScreenimg.setImage(255*self.data.visual_stim.get_image(icond[0],
+                                                                             self.time-self.data.nwbfile.stimulus['time_start_realigned'].data[icond[0]]))
+            except BaseException as be:
+                print(be)
+                print('pb with image')
         elif self.time<=self.data.nwbfile.stimulus['time_start_realigned'].data[0]: # PRE-STIM
             self.pScreenimg.setImage(255*self.data.visual_stim.get_prestim_image())
         elif self.time>=self.data.nwbfile.stimulus['time_stop_realigned'].data[-1]: # POST-STIM

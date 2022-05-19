@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools as dv_tools
-from analysis import read_NWB, process_NWB, stat_tools
+from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
 
 # datavyz submodule
@@ -410,6 +410,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
     def plot_trial_average(self,
                            # episodes props
                            quantity='dFoF', roiIndex=None, roiIndices='all',
+                           norm='',
                            interpolation='linear',
                            baseline_substraction=False,
                            condition=None,
@@ -419,7 +420,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                            fig_preset=' ',
                            xbar=0., xbarlabel='',
                            ybar=0., ybarlabel='',
-                           with_std=True,
+                           with_std=True, with_std_over_trials=False, with_std_over_rois=False,
                            with_screen_inset=False,
                            with_stim=True,
                            with_axis=False,
@@ -432,9 +433,16 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                            label='',
                            ylim=None, xlim=None,
                            fig=None, AX=None, no_set=True, verbose=False):
+        """
+            
+        "norm" can be either:
+            - "Zscore-per-roi"
+            - "minmax-per-roi"
+        """
+        if with_std:
+            with_std_over_trials = True # for backward compatibility --- DEPRECATED you need to specify !!
 
-        response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices)
-
+        response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)
 
         if with_screen_inset and (self.data.visual_stim is None):
             print('initializing stim [...]')
@@ -442,6 +450,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         
         if condition is None:
             condition = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+
         elif len(condition)==len(self.protocol_cond_in_full_data):
             condition = condition[self.protocol_cond_in_full_data]
             
@@ -489,9 +498,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         else:
             no_set=no_set
 
-        # response reshape in 
-        response = self.get_response(**response_args)
-        
+        # get response reshape in 
+        response = tools.normalize(self.get_response(**dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=True)
+
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
@@ -499,20 +508,23 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                     
                     cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
                     
-                    if response[cond,:].shape[0]>0:
+                    my = response[cond,:,:].mean(axis=(0,1))
 
-                        my = response[cond, :].mean(axis=0)
-                        if with_std:
-                            sy = response[cond, :].std(axis=0)
-                            ge.plot(self.t, my, sy=sy,
-                                    ax=AX[irow][icol], color=COLORS[icolor], lw=1)
-                            self.ylim = [min([self.ylim[0], np.min(my-sy)]),
-                                         max([self.ylim[1], np.max(my+sy)])]
+                    if with_std_over_trials or with_std_over_rois:
+                        if with_std_over_rois: 
+                            sy = response[cond,:,:].mean(axis=0).std(axis=-2)
                         else:
-                            AX[irow][icol].plot(self.t, my,
-                                                color=COLORS[icolor], lw=1)
-                            self.ylim = [min([self.ylim[0], np.min(my)]),
-                                         max([self.ylim[1], np.max(my)])]
+                            sy = response[cond,:,:].std(axis=(0,1))
+
+                        ge.plot(self.t, my, sy=sy,
+                                ax=AX[irow][icol], color=COLORS[icolor], lw=1)
+                        self.ylim = [min([self.ylim[0], np.min(my-sy)]),
+                                     max([self.ylim[1], np.max(my+sy)])]
+                    else:
+                        AX[irow][icol].plot(self.t, my,
+                                            color=COLORS[icolor], lw=1)
+                        self.ylim = [min([self.ylim[0], np.min(my)]),
+                                     max([self.ylim[1], np.max(my)])]
 
                             
                     if with_screen_inset:
@@ -541,7 +553,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                                         pass
                             ge.annotate(AX[irow][icol], s[:-2], (0, 0), ha='right', va='bottom', rotation=90, size='small')
                         # n per cond
-                        ge.annotate(AX[irow][icol], ' n=%i'%np.sum(cond)+'\n'*icolor,
+                        ge.annotate(AX[irow][icol], ' n=%i\n trials'%np.sum(cond)+2*'\n'*icolor,
                                     (.99,0), color=COLORS[icolor], size='xx-small',
                                     ha='left', va='bottom')
                         # color label
@@ -550,7 +562,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             for i, key in enumerate(self.varied_parameters.keys()):
                                 if (key==color_key) or (key in color_keys):
                                     s+=20*' '+icolor*18*' '+format_key_value(key, getattr(self, key)[cond][0])
-                                    ge.annotate(fig, s+'  ', (1,0), color=COLORS[icolor], ha='right', va='bottom', size='small')
+                                    ge.annotate(fig, s+'  '+icolor*'\n', (1,0), color=COLORS[icolor], ha='right', va='bottom', size='small')
                     
         if with_stat_test:
             for irow, row_cond in enumerate(ROW_CONDS):
@@ -558,7 +570,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                     for icolor, color_cond in enumerate(COLOR_CONDS):
                         
                         cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
-                        results = self.stat_test_for_evoked_responses(episode_cond=cond, response_args=response_args, **stat_test_props)
+                        results = self.stat_test_for_evoked_responses(episode_cond=cond,
+                                                                      response_args=dict(roiIndex=roiIndex, roiIndices=roiIndices),
+                                                                      **stat_test_props)
 
                         ps, size = results.pval_annot()
                         AX[irow][icol].annotate(icolor*'\n'+ps, ((stat_test_props['interval_post'][0]+stat_test_props['interval_pre'][1])/2.,
@@ -606,9 +620,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                 if roiIndex is not None:
                     S+='roi #%i' % roiIndex
                 elif roiIndices in ['sum', 'mean', 'all']:
-                    S+='mean: n=%i rois' % len(self.data.valid_roiIndices)
+                    S+='n=%i rois' % len(self.data.valid_roiIndices)
                 else:
-                    S+='mean: n=%i rois\n' % len(roiIndices)
+                    S+='n=%i rois' % len(roiIndices)
             # for i, key in enumerate(self.varied_parameters.keys()):
             #     if 'single-value' in getattr(self, '%s_plot' % key).currentText():
             #         S += ', %s=%.2f' % (key, getattr(self, '%s_values' % key).currentText())
@@ -947,15 +961,28 @@ if __name__=='__main__':
     elif args.ops=='trial-average':
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
-                                   quantities=[args.quantity])
-        fig, AX = episodes.plot_trial_average(quantity=args.quantity,
-                                              roiIndex=args.roiIndex,
-                                              column_key=list(episodes.varied_parameters.keys())[0],
-                                              xbar=1, xbarlabel='1s', ybar=1, ybarlabel='1dF/F',
-                                              with_stat_test=True,
-                                              with_annotation=True,
-                                              with_screen_inset=True,                                          
-                                              fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
+                                   quantities=[args.quantity],
+                                   prestim_duration=3)
+        episodes.plot_trial_average(column_key='patch-radius',
+                                         row_key='direction',
+                                         color_key='patch-delay',
+                                         roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
+                                         norm='MinMax-time-variations-after-trial-averaging-per-roi',
+                                         with_std_over_rois=True, with_annotation=True,
+                                         with_stat_test=True)
+
+        # fig, AX = episodes.plot_trial_average(quantity=args.quantity,
+                                              # roiIndex=args.roiIndex,
+                                              # # roiIndices=[22,25,34,51,63],
+                                              # # with_std_over_rois=True,
+                                              # # norm='Zscore-time-variations-after-trial-averaging-per-roi',
+                                              # column_key=list(episodes.varied_parameters.keys())[0],
+                                              # xbar=1, xbarlabel='1s', 
+                                              # ybar=1, ybarlabel='1 (Zscore, dF/F)',
+                                              # with_stat_test=True,
+                                              # with_annotation=True,
+                                              # with_screen_inset=True,                                          
+                                              # fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
 
     elif args.ops=='evoked-raster':
         episodes = EpisodeResponse(args.datafile,
