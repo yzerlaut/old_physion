@@ -329,6 +329,7 @@ class EpisodeResponse:
                                                         **stat_test_props)
             summary_data['value'].append(np.mean(stats.y-stats.x))
             summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+            summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
 
         for key in summary_data:
             summary_data[key] = np.array(summary_data[key])
