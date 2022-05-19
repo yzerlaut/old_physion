@@ -1,5 +1,5 @@
 # general modules
-import pynwb, os, sys, pathlib
+import pynwb, os, sys, pathlib, itertools
 import numpy as np
 import matplotlib.pylab as plt
 
@@ -458,31 +458,28 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         # columns
         if column_key!='':
-            COL_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[column_key].data[self.protocol_cond_in_full_data]))], [column_key], self.protocol_id)
+            COL_CONDS = [self.find_episode_cond(column_key, index) for index in range(len(self.varied_parameters[column_key]))]
         elif len(column_keys)>0:
-            COL_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in column_keys],
-                                                       column_keys, self.protocol_id)
+            COL_CONDS = [self.find_episode_cond(column_keys, indices) for indices in itertools.product(*[range(len(self.varied_parameters[key])) for key in column_keys])]
         elif (COL_CONDS is None):
             COL_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
 
         # rows
         if row_key!='':
-            ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[row_key].data[self.protocol_cond_in_full_data]))], [row_key], self.protocol_id)
-        elif row_keys!='':
-            ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in row_keys],
-                                                       row_keys, self.protocol_id)
+            ROW_CONDS = [self.find_episode_cond(row_key, index) for index in range(len(self.varied_parameters[row_key]))]
+        elif len(row_keys)>0:
+            ROW_CONDS = [self.find_episode_cond(row_keys, indices) for indices in itertools.product(*[range(len(self.varied_parameters[key])) for key in row_keys])]
         elif (ROW_CONDS is None):
             ROW_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
             
         # colors
         if color_key!='':
-            COLOR_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[color_key].data[self.protocol_cond_in_full_data]))], [color_key], self.protocol_id)
-        elif color_keys!='':
-            COLOR_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])) for key in color_keys],
-                                                       color_keys, self.protocol_id)
-        elif COLOR_CONDS is None:
+            COLOR_CONDS = [self.find_episode_cond(color_key, index) for index in range(len(self.varied_parameters[color_key]))]
+        elif len(color_keys)>0:
+            COLOR_CONDS = [self.find_episode_cond(color_keys, indices) for indices in itertools.product(*[range(len(self.varied_parameters[key])) for key in color_keys])]
+        elif (COLOR_CONDS is None):
             COLOR_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
-
+            
         if (len(COLOR_CONDS)>1):
             COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
         else:
@@ -505,8 +502,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         for irow, row_cond in enumerate(ROW_CONDS):
             for icol, col_cond in enumerate(COL_CONDS):
                 for icolor, color_cond in enumerate(COLOR_CONDS):
-                    
-                    cond = np.array(condition & col_cond & row_cond & color_cond)[:response.shape[0]]
+                    print(len(condition), len(col_cond), len(row_cond), len(color_cond))            
+                    cond = np.array(condition & col_cond & row_cond & color_cond)
                     
                     my = response[cond,:,:].mean(axis=(0,1))
 
@@ -962,14 +959,17 @@ if __name__=='__main__':
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
                                    quantities=[args.quantity],
-                                   prestim_duration=3)
+                                   prestim_duration=3,
+                                   verbose=args.verbose)
         episodes.plot_trial_average(column_key='patch-radius',
                                          row_key='direction',
                                          color_key='patch-delay',
                                          roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
                                          norm='MinMax-time-variations-after-trial-averaging-per-roi',
-                                         with_std_over_rois=True, with_annotation=True,
-                                         with_stat_test=True)
+                                         with_std_over_rois=True, 
+                                         with_annotation=True,
+                                         with_stat_test=True,
+                                         verbose=args.verbose)
 
         # fig, AX = episodes.plot_trial_average(quantity=args.quantity,
                                               # roiIndex=args.roiIndex,

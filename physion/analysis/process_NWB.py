@@ -156,12 +156,13 @@ class EpisodeResponse:
                 # compute time and interpolate
                 ep_cond = (tfull>=(tstart-2.*prestim_duration)) & (tfull<(tstop+1.5*prestim_duration)) # higher range of interpolation to avoid boundary problems
                 try:
-                    if len(valfull.shape)>1:
+                    if (len(valfull.shape)>1):
                         # multi-dimensional response, e.g. dFoF = (rois, time)
                         resp = np.zeros((valfull.shape[0], len(self.t)))
                         for j in range(valfull.shape[0]):
                             func = interp1d(tfull[ep_cond]-tstart, valfull[j,ep_cond],
-                                            kind=interpolation)
+                                            kind=interpolation, bounds_error=False,
+                                            fill_value=(valfull[j,ep_cond][0], valfull[j,ep_cond][-1]))
                             resp[j, :] = func(self.t)
                         RESPS.append(resp)
                         
@@ -243,6 +244,7 @@ class EpisodeResponse:
     
     def find_episode_cond(self, key, index):
         if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]) :
+            print(key, index)
             cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
             for n in range(1, len(key)):
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
