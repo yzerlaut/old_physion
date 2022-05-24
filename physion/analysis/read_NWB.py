@@ -191,7 +191,8 @@ class Data:
     ######################
     def build_running_speed(self,
                             specific_time_sampling=None,
-                            interpolation='linear'):
+                            interpolation='linear',
+                            verbose=False):
         """
         build distance from mean (x,y) position of pupil
         """
@@ -216,7 +217,8 @@ class Data:
 
     def build_pupil_diameter(self,
                              specific_time_sampling=None,
-                             interpolation='linear'):
+                             interpolation='linear',
+                             verbose=False):
         """
         build pupil diameter trace, i.e. twice the maximum of the ellipse radius at each time point
         """
@@ -230,7 +232,8 @@ class Data:
 
     def build_gaze_movement(self,
                             specific_time_sampling=None,
-                            interpolation='linear'):
+                            interpolation='linear',
+                            verbose=False):
         """
         build distance from mean (x,y) position of pupil
         """
@@ -254,7 +257,8 @@ class Data:
 
     def build_facemotion(self,
                          specific_time_sampling=None,
-                         interpolation='linear'):
+                         interpolation='linear',
+                         verbose=False):
         """
         build facemotion
         """

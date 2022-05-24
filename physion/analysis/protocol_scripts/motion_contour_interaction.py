@@ -124,12 +124,18 @@ def interaction_fig(responses,
 
     # static-patch
     cond = responses['t_contour']>tmin/2.
-    AX[0].plot(responses['t_contour'][cond], responses['contour'][cond],  color='k')
+    if 'contour_std' in responses and responses['contour_std'] is not None:
+        ge.plot(responses['t_contour'][cond], responses['contour'][cond], sy=responses['contour_std'][cond] , color='k',ax=AX[0])
+    else:
+        AX[0].plot(responses['t_contour'][cond], responses['contour'][cond],  color='k')
     ge.set_plot(AX[0], [], title = static_patch_label)
 
     # mv Dots
     cond = responses['t_motion']>tmin
-    AX[1].plot(responses['t_motion'][cond], responses['motion' if not random else 'random'][cond],  color='k')
+    if 'motion_std' in responses and responses['motion_std'] is not None:
+        ge.plot(responses['t_motion'][cond], responses['motion'][cond], sy=responses['motion_std'][cond] , color='k',ax=AX[1])
+    else:
+        AX[1].plot(responses['t_motion'][cond], responses['motion' if not random else 'random'][cond],  color='k')
     ge.set_plot(AX[1], [], title = moving_dots_label)
 
     # mixed
@@ -165,53 +171,61 @@ def interaction_fig(responses,
 class MCI_data:
     
     
-    def __init__(self, filename):
+    def __init__(self, filename, quantities=['dFoF']):
     
         data = Data(filename, metadata_only=True, verbose=False)
         # computing episodes       
         self.episode_static_patch = EpisodeResponse(filename,
                                                protocol_id=data.get_protocol_id('static-patch'),
-                                               quantities=['dFoF'],            
+                                               quantities=quantities,            
                                                prestim_duration=3, verbose=False)             
         self.episode_moving_dots = EpisodeResponse(filename,
                                               protocol_id=data.get_protocol_id('moving-dots'),
-                                              quantities=['dFoF'],            
+                                              quantities=quantities,            
                                               prestim_duration=3, verbose=False)             
 
         self.episode_mixed = EpisodeResponse(filename,
                                         protocol_id=data.get_protocol_id('mixed-moving-dots-static-patch'),
-                                        quantities=['dFoF'],            
-                                        prestim_duration=3, verbose=False)             
-        self.nROIs = self.episode_mixed.data.nROIs
+                                        quantities=quantities,            
+                                        prestim_duration=3, verbose=False)         
+        if hasattr(self.episode_mixed.data, 'nROIs'):
+            self.nROIs = self.episode_mixed.data.nROIs
         
         self.episode_random_dots, self.episode_mixed_random_dots = None, None
         if 'random-line-dots' in data.protocols:
             self.episode_random_dots = EpisodeResponse(filename,
                                                   protocol_id=data.get_protocol_id('random-line-dots'),
-                                                  quantities=['dFoF'],            
+                                                  quantities=quantities,            
                                                   prestim_duration=3, verbose=False)             
         else:
             self.episode_random_dots = None
         if 'random-mixed-moving-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
                                                         protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'),
-                                                        quantities=['dFoF'],            
+                                                        quantities=quantities,            
                                                         prestim_duration=3, verbose=False)  
         else:
             self.episode_mixed_random_dots = None
             
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
-                          delay=0):
+                          delay=0, 
+                          patch_baseline_end=0):
+        """
+        the linear prediction is build by adding the patch evoke resp to the motion trace
+            we remove the baseline for mthe patch resp so that it has a zero baseline
+            N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
+        """
 
         i_mVdot_center = np.argwhere(self.episode_moving_dots.t>delay)[0][0]
-        patch_evoked_t = self.episode_static_patch.t>0
+        patch_evoked_t = self.episode_static_patch.t>patch_baseline_end
+        patch_baseline = np.mean(patch_resp[self.episode_static_patch.t<patch_baseline_end])
 
         resp = 0*self.episode_moving_dots.t + mvDot_resp # mvDot_resp by default
 
         # and we add the patch-evoked response (substracting its baseline)
         imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_mVdot_center])-1
-        resp[i_mVdot_center:i_mVdot_center+imax] += patch_resp[patch_evoked_t][:imax]-patch_resp[patch_evoked_t][0]
+        resp[i_mVdot_center:i_mVdot_center+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
 
         return resp
 
@@ -219,42 +233,43 @@ class MCI_data:
                       static_patch_cond,
                       moving_dots_cond,
                       mixed_cond,
+                      quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
                       integral_window=2.,
                       roiIndices=[0]):
         
-        # mixed resp
-        mixed_resp = self.episode_mixed.get_response('dFoF', roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
-            # we apply the same factor for all responsese
+            # from mixed resp
+            mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
             scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+        elif norm=='MinMax-time-variations-after-trial-averaging-per-roi':
+            # from static patch
+            patch_resp = self.episode_static_patch.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
+            scaling_factor = 1./(patch_resp.max(axis=1).reshape(patch_resp.shape[0],1)-patch_resp.min(axis=1).reshape(patch_resp.shape[0],1))
         else:
-            scaling_factor = 1
+            scaling_factor = 1.
             
         responses = {'nROIs':len(roiIndices), 'integral_window':integral_window}
         
         # static patch 
-        resp = self.episode_static_patch.get_response('dFoF', roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
+        resp = self.episode_static_patch.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
         responses['t_contour'] = self.episode_static_patch.t
         responses['contour'] = np.mean(scaling_factor*(resp-resp[:,self.episode_static_patch.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['contour_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_static_patch.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         # moving dots
-        resp = self.episode_moving_dots.get_response('dFoF', roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
+        resp = self.episode_moving_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
         responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['motion_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         responses['t_motion'] = self.episode_moving_dots.t
                 
         # mixed stim
-        resp = self.episode_mixed.get_response('dFoF', roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
+        resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
         responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['mixed_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.data.get_protocol_id('static-patch')+1)]
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.data.get_protocol_id('moving-dots')+1)]
 
         delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
-        print(delays)
+        
         if len(np.unique(delays))<2:
             responses['delay'] = delays[0] # storing delay for later
             # linear pred.
@@ -271,11 +286,12 @@ class MCI_data:
     def add_random_responses(self, responses,
                              random_cond,
                              random_mixed_cond,
+                             quantity='dFoF',
                              roiIndices=[0]):
         scaling_factor = 1
         
         # moving dots
-        resp = self.episode_random_dots.get_response('dFoF', roiIndices=roiIndices)[random_cond].mean(axis=0)
+        resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices)[random_cond].mean(axis=0)
         responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         responses['random_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
 
