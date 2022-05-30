@@ -2,10 +2,15 @@
 import pynwb, os, sys, pathlib, itertools
 import numpy as np
 import matplotlib.pylab as plt
+import matplotlib.animation as animation
 from PIL import Image
 
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
+from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
+from assembling.move_CaImaging_folders import StartTime_to_day_seconds
+from assembling.tools import load_FaceCamera_data
 
 from dataviz.show_data import *
 from datavyz import graph_env
@@ -21,8 +26,35 @@ def draw_figure(top_row_bottom=0.75, top_row_space=0.08, top_row_height=0.2):
     width = (1.-4*top_row_space)/4.
     for i, label in enumerate(['setup', 'screen', 'camera', 'imaging']):
         AX['%s_ax'%label] = ge.inset(fig, (top_row_space/2.+i*(width+top_row_space), top_row_bottom, width, top_row_height))
-    return fig, AX
 
+    t0 = 0
+    time_title = AX['setup_ax'].annotate('', (0.5,1.1), xycoords='axes fraction', ha='center')
+    def init():
+        time_title.set_text('t=%.1fs' % t0)
+        return [time_title]
+
+    def update(i):
+        time_title.set_text('t=%.1fs' % i)
+        return [time_title]
+        
+    ani = animation.FuncAnimation(fig, 
+                                  update,
+                                  np.arange(100),
+                                  init_func=init,
+                                  interval=0.1,
+                                  blit=True)
+
+    return fig, AX, ani
+
+
+def load_faceCamera(metadata):
+    imgfolder = os.path.join(metadata['filename'], 'FaceCamera-imgs')
+    times, FILES, nframes, Lx, Ly = load_FaceCamera_data(imgfolder, t0=metadata['NIdaq_Tstart'], verbose=True)
+    
+    print(times)
+
+def load_NIdaq(metadata):
+    metadata['NIdaq_Tstart'] = np.load(os.path.join(metadata['filename'], 'NIdaq.start.npy'))[0]
 
 
 if __name__=='__main__':
@@ -45,7 +77,13 @@ if __name__=='__main__':
 
     data = MultimodalData(args.datafile)
 
-    fig, AX = draw_figure()    
+    metadata = dict(data.metadata)
+
+    if os.path.isdir(metadata['filename']):
+        load_NIdaq(metadata)
+        load_faceCamera(metadata)
+
+    fig, AX, ani = draw_figure()    
 
     # setup drawing
     img = Image.open('doc/exp-rig.png')
@@ -55,7 +93,7 @@ if __name__=='__main__':
     for i, label in enumerate(['screen', 'camera', 'imaging']):
         ge.set_plot(AX['%s_ax'%label], [], title=label)
 
-    
+    """    
     data.plot_raw_data(args.tlim, 
                        settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                roiIndices='all',
@@ -70,6 +108,7 @@ if __name__=='__main__':
                         'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                         'VisualStim':dict(fig_fraction=.005, color='black')},
                         Tbar=1, ax=AX['time_plot_ax'])
+    """    
         
     ge.show()
 
