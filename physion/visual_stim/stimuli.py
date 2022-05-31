@@ -471,7 +471,8 @@ class visual_stim:
                           'lw':2, 'fontsize':12},
                    arrow=None,
                    vse=False,
-                   ax=None):
+                   ax=None,
+                   return_img=False):
         """
 
         display the visual stimulus at a given time in a given episode of a stimulation pattern
@@ -496,7 +497,7 @@ class visual_stim:
         cls = (parent if parent is not None else self)
         
         try:
-            ax.imshow(cls.image_to_frame(cls.get_image(episode,
+            img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
                                                        time_from_episode_start=time_from_episode_start,
                                                        parent=cls), psychopy_to_numpy=True),
                       cmap='gray', vmin=0, vmax=1,
@@ -520,7 +521,19 @@ class visual_stim:
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
             ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
 
-        return ax
+        if return_img:
+            return img
+        else:
+            return ax
+
+    def update_frame(self, episode, img,
+                     time_from_episode_start=0,
+                     parent=None):
+        cls = (parent if parent is not None else self)
+        
+        img.set_array(cls.image_to_frame(cls.get_image(episode,
+                                                      time_from_episode_start=time_from_episode_start,
+                                                     parent=cls), psychopy_to_numpy=True))
 
 
     def add_arrow(self, arrow, ax):

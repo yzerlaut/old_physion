@@ -65,7 +65,10 @@ class MultimodalData(read_NWB.Data):
         ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
-                       fig_fraction_start=0., fig_fraction=1., subsampling=10, color='#808080', name='photodiode'):
+                       fig_fraction_start=0., fig_fraction=1., 
+                       subsampling=10, 
+                       color='#808080', 
+                       name='photodiode'):
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.nwbfile.acquisition['Photodiode-Signal'])
         t = dv_tools.convert_index_to_time(range(i1,i2), self.nwbfile.acquisition['Photodiode-Signal'])[::subsampling]
         y = self.nwbfile.acquisition['Photodiode-Signal'].data[i1:i2][::subsampling]
@@ -171,7 +174,7 @@ class MultimodalData(read_NWB.Data):
             _, axb = ge.bar_legend(ax,
                           # X=[0,1], bounds=[0,1],
                           continuous=False, colormap=cmap,
-                          colorbar_inset=dict(rect=[-.04,
+                          colorbar_inset=dict(rect=[-.06,
                                            fig_fraction_start+.2*fig_fraction,
                                            .01,
                                            .6*fig_fraction], facecolor=None),
@@ -191,7 +194,8 @@ class MultimodalData(read_NWB.Data):
     def add_CaImaging(self, tlim, ax,
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       subquantity='Fluorescence', roiIndices='all', dFoF_args={},
-                      vicinity_factor=1, subsampling=1, name='[Ca] imaging'):
+                      vicinity_factor=1, subsampling=1, name='[Ca] imaging',
+                      with_annotation=True):
 
         if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
             self.build_dFoF(**dFoF_args)
@@ -219,7 +223,8 @@ class MultimodalData(read_NWB.Data):
                 self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
                                         scale_unit_string=('fluo (a.u.)' if (n==0) else ''))
 
-            self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
+            if with_annotation:
+                self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
             
         # ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
         #             xycoords='data', ha='right', va='center', rotation=90)
@@ -248,11 +253,14 @@ class MultimodalData(read_NWB.Data):
         
     def add_VisualStim(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=0.05, size=0.1,
+                       with_screen_inset=True,
                        color='k', name='visual stim.'):
         if self.visual_stim is None:
             self.init_visual_stim()
-        cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]>tlim[0]) &\
-            (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tlim[1])
+        # cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]>tlim[0]) &\
+            # (self.nwbfile.stimulus['time_stop_realigned'].data[:]<tlim[1])
+        cond = (self.nwbfile.stimulus['time_start_realigned'].data[:]<tlim[1]) &\
+            (self.nwbfile.stimulus['time_stop_realigned'].data[:]>tlim[0])
         ylevel = fig_fraction_start+fig_fraction/2.
         sx, sy = self.visual_stim.screen['resolution']
         ax_pos = ax.get_position()
@@ -262,9 +270,10 @@ class MultimodalData(read_NWB.Data):
             # ax.plot([tstart, tstop], [ylevel, ylevel], color=color)
             ax.fill_between([tstart, tstop], [0,0], np.zeros(2)+ylevel,
                             lw=0, alpha=0.05, color=color)
-            axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
-            axi.axis('equal')
-            self.visual_stim.plot_stim_picture(i, ax=axi)
+            if with_screen_inset:
+                axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
+                axi.axis('equal')
+                self.visual_stim.plot_stim_picture(i, ax=axi)
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
 
         
