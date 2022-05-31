@@ -61,8 +61,11 @@ class MultimodalData(read_NWB.Data):
             ge.annotate(ax, scale_unit_string, (self.shifted_start(tlim), ax_fraction_start), ha='right', color=color, va='center', xycoords='data')
 
     def add_name_annotation(self, ax, name, tlim, ax_fraction_extent, ax_fraction_start,
-                            color='k', rotation=0):
-        ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
+                            color='k', rotation=0, side='right'):
+        if side=='right':
+            ge.annotate(ax, ' '+name, (tlim[1], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', rotation=rotation)
+        else:
+            ge.annotate(ax, name+' ', (tlim[0], ax_fraction_extent/2.+ax_fraction_start), xycoords='data', color=color, va='center', ha='right', rotation=rotation)
         
     def add_Photodiode(self, tlim, ax,
                        fig_fraction_start=0., fig_fraction=1., 
@@ -195,7 +198,7 @@ class MultimodalData(read_NWB.Data):
                       fig_fraction_start=0., fig_fraction=1., color='green',
                       subquantity='Fluorescence', roiIndices='all', dFoF_args={},
                       vicinity_factor=1, subsampling=1, name='[Ca] imaging',
-                      with_annotation=True):
+                      annotation_side='right'):
 
         if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
             self.build_dFoF(**dFoF_args)
@@ -210,21 +213,22 @@ class MultimodalData(read_NWB.Data):
 
         i1, i2 = dv_tools.convert_times_to_indices(*tlim, self.Neuropil, axis=1)
         t = np.array(self.Neuropil.timestamps[:])[np.arange(i1,i2)][::subsampling]
-        
+
         for n, ir in zip(range(len(roiIndices))[::-1], roiIndices[::-1]):
+
             ypos = n*fig_fraction/len(roiIndices)/vicinity_factor+fig_fraction_start # bottom position
-            
+
             if (subquantity in ['dF/F', 'dFoF']):
-                y = self.dFoF[n, np.arange(i1,i2)][::subsampling]
+                y = self.dFoF[ir, np.arange(i1,i2)][::subsampling]
                 self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
                                         scale_unit_string=('%.0f$\Delta$F/F' if (n==0) else ' '))
             else:
-                y = self.Fluorescence.data[n, np.arange(i1,i2)][::subsampling]
+                y = self.Fluorescence.data[ir, np.arange(i1,i2)][::subsampling]
                 self.plot_scaled_signal(ax, t, y, tlim, 1., fig_fraction/len(roiIndices), ypos, color=color,
                                         scale_unit_string=('fluo (a.u.)' if (n==0) else ''))
 
-            if with_annotation:
-                self.add_name_annotation(ax, ' ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos, color=color)
+            self.add_name_annotation(ax, 'ROI#%i'%(ir+1), tlim, fig_fraction/len(roiIndices), ypos,
+                    color=color, side=annotation_side)
             
         # ge.annotate(ax, name, (self.shifted_start(tlim), fig_fraction/2.+fig_fraction_start), color=color,
         #             xycoords='data', ha='right', va='center', rotation=90)
@@ -375,7 +379,7 @@ class MultimodalData(read_NWB.Data):
             y = np.mean([self.pixel_masks[ii][0] for ii in indices])
             sy = np.std([self.pixel_masks[ii][1] for ii in indices])
             # ellipse = plt.Circle((x, y), sx, sy)
-            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='r', facecolor='none', lw=3)
+            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='lightgray', facecolor='none', lw=3)
             ax.add_patch(ellipse)
             if with_roi_zoom:
                 ax.set_xlim([x-10*sx, x+10*sx])
