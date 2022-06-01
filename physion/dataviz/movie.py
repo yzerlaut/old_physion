@@ -62,11 +62,11 @@ def draw_figure(args, data,
     AX['FOV_ax'] = ge.inset(fig, [0.04,0.6,0.11,0.13]) 
     AX['time_ax'] = ge.inset(fig, [0.02,0.05,0.08,0.05]) 
 
-    data.show_CaImaging_FOV(ax=AX['FOV_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[0], with_roi_zoom=True)
+    data.show_CaImaging_FOV(ax=AX['FOV_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[0], with_roi_zoom=True, roi_zoom_factor=5)
     AX['FOV_ax'].set_title('')
-    ge.annotate(AX['FOV_ax'], 'roi #%i' % (args.ROIs[0]+1), (0,0), color='w', size='xx-small')
-    data.show_CaImaging_FOV(ax=AX['ROI_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[1], with_roi_zoom=True)
-    ge.annotate(AX['ROI_ax'], 'roi #%i' % (args.ROIs[1]+1), (0,0), color='w', size='xx-small')
+    ge.annotate(AX['FOV_ax'], 'roi #%i' % (args.ROIs[0]+1), (0,0), color='w', size='xxx-small')
+    data.show_CaImaging_FOV(ax=AX['ROI_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[1], with_roi_zoom=True, roi_zoom_factor=5)
+    ge.annotate(AX['ROI_ax'], 'roi #%i' % (args.ROIs[1]+1), (0,0), color='w', size='xxx-small')
     AX['ROI_ax'].set_title('')
 
     t0 = times[0]
@@ -267,6 +267,7 @@ if __name__=='__main__':
     parser.add_argument('-n', "--Ndiscret", type=int, default=100)
     parser.add_argument('-q', "--quantity", type=str, default='dFoF')
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+    parser.add_argument("-e", "--export", help="export to mp4", action="store_true")
 
     args = parser.parse_args()
 
@@ -274,22 +275,12 @@ if __name__=='__main__':
 
     fig, AX, ani = draw_figure(args, data)    
 
-    # data.plot_raw_data(args.tlim, 
-                       # settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
-                                               # roiIndices='all',
-                                               # normalization='per-line',
-                                               # subquantity='dF/F'),
-                        # 'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                         # subquantity='dF/F', color='#2ca02c',
-                                         # roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), np.min([args.Nmax, data.iscell.sum()]), replace=False))),
-                        # 'Locomotion':dict(fig_fraction=1, subsampling=1, color='#1f77b4'),
-                        # 'Pupil':dict(fig_fraction=2, subsampling=1, color='#d62728'),
-                        # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color='#ff7f0e'),
-                        # 'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
-                        # 'VisualStim':dict(fig_fraction=.005, color='black')},
-                        # Tbar=1, ax=AX['time_plot_ax'])
-        
-    ge.show()
+    if args.export:
+        print('writing video [...]')
+        writer = animation.writers['ffmpeg'](fps=3)
+        ani.save('demo.mp4',writer=writer,dpi=100)# fig, ax = ge.twoD_plot(np.arange(50), np.arange(30), np.random.randn(50, 30))
+    else:
+        ge.show()
 
 
 

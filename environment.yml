@@ -27,6 +27,7 @@ dependencies:
   - matplotlib=3.4.2
   - jupyter
   - pynwb=2.0.0
+  - ffmpeg
   - pip:
     - pyqt5
     - pyqt5.sip

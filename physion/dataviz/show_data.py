@@ -358,7 +358,10 @@ class MultimodalData(read_NWB.Data):
     ### ----- IMAGING PLOT components -----
     ###-------------------------------------
 
-    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None, roiIndex=None, with_roi_zoom=False):
+    def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None,
+            roiIndex=None,
+            roi_zoom_factor=10,
+            with_roi_zoom=False):
         
         if ax is None:
             fig, ax = ge.figure()
@@ -382,8 +385,8 @@ class MultimodalData(read_NWB.Data):
             ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='lightgray', facecolor='none', lw=3)
             ax.add_patch(ellipse)
             if with_roi_zoom:
-                ax.set_xlim([x-10*sx, x+10*sx])
-                ax.set_ylim([y-10*sy, y+10*sy])
+                ax.set_xlim([x-roi_zoom_factor*sx, x+roi_zoom_factor*sx])
+                ax.set_ylim([y-roi_zoom_factor*sy, y+roi_zoom_factor*sy])
 
         ge.title(ax, key)
         
