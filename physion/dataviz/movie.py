@@ -11,10 +11,12 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import get_files_with_extension, list_dayfolder, check_datafolder, get_TSeries_folders
 from assembling.move_CaImaging_folders import StartTime_to_day_seconds
 from assembling.tools import load_FaceCamera_data
+from assembling.IO.binary import BinaryFile
 
 from pupil import roi, process
 
-from dataviz.show_data import *
+from dataviz.show_data import * # this includes dv_tools
+
 from datavyz import graph_env
 ge = graph_env('screen')
 
@@ -28,9 +30,10 @@ def draw_figure(args, data,
     metadata = dict(data.metadata)
 
     metadata['raw_vis_folder'] = args.raw_vis_folder
-    if metadata['raw_vis_folder']!='':
-         load_NIdaq(metadata)
-         load_faceCamera(metadata)
+    metadata['raw_imaging_folder'] = args.raw_imaging_folder
+
+    times = np.linspace(args.tlim[0], args.tlim[1], args.Ndiscret)
+
 
     fractions = {'photodiode':0.09, 'photodiode_start':0,
             'running':0.13, 'running_start':0.1,
@@ -40,8 +43,6 @@ def draw_figure(args, data,
             'rois':0.14, 'rois_start':0.6,
             'raster':0.25, 'raster_start':0.75}
 
-    times = np.linspace(args.tlim[0], args.tlim[1], args.Ndiscret)
-
     AX = {'time_plot_ax':None}
     fig, AX['time_plot_ax'] = ge.figure(figsize=(2,3.5),
             bottom=0.02, right=0.5)
@@ -50,24 +51,50 @@ def draw_figure(args, data,
     AX['setup_ax'] = ge.inset(fig, (top_row_space/2.+0*(width+top_row_space), top_row_bottom, width, top_row_height))
     AX['screen_ax'] = ge.inset(fig, (top_row_space/2.+1*(width+.5*top_row_space), top_row_bottom, 1.3*width, top_row_height))
     AX['camera_ax'] = ge.inset(fig, (top_row_space/2.+2*(width+top_row_space), top_row_bottom, width, top_row_height))
-    AX['imaging_ax'] = ge.inset(fig, (top_row_space/2.+3*(width+top_row_space), top_row_bottom-.04, width, top_row_height+0.08))
-    ge.annotate(AX['imaging_ax'], 'imaging', (-0.05,0.5), ha='right', va='center', rotation=90)
-    data.show_CaImaging_FOV(ax=AX['imaging_ax'], cmap=ge.get_linear_colormap('k','lightgreen'), NL=4)
+
+    if 'ophys' in data.nwbfile.processing:
+
+        # full image
+        max_proj = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['max_proj'][:]
+        max_proj_scaled = (max_proj-max_proj.min())/(max_proj.max()-max_proj.min())
+        max_proj_scaled = np.power(max_proj_scaled, 1/args.imaging_NL)
+
+        AX['imaging_ax'] = ge.inset(fig, (top_row_space/2.+3*(width+top_row_space), top_row_bottom-.04, width, top_row_height+0.08))
+        ge.annotate(AX['imaging_ax'], 'imaging', (-0.05,0.5), ha='right', va='center', rotation=90)
+        AX['imaging_img'] = AX['imaging_ax'].imshow(max_proj_scaled, vmin=0, vmax=1, 
+                cmap=ge.get_linear_colormap('k','lightgreen'), 
+                aspect='equal', interpolation='none', origin='lower')
+        ge.annotate(AX['imaging_ax'], ' n=%i rois' % data.iscell.sum(), (0,0), color='w', size='xxx-small')
+
+        # ROI 1 
+        AX['ROI1_ax'] = ge.inset(fig, [0.04,0.6,0.11,0.13]) 
+        extent1 = data.find_roi_extent(args.ROIs[0])
+        max_proj = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['max_proj'][:][extent1[0]:extent1[1], extent1[2]:extent1[3]]
+        max_proj_scaled1 = (max_proj-max_proj.min())/(max_proj.max()-max_proj.min())
+        max_proj_scaled1 = np.power(max_proj_scaled1, 1/args.imaging_NL)
+
+        AX['ROI1_img'] = AX['ROI1_ax'].imshow(max_proj_scaled, vmin=0, vmax=1, 
+                cmap=ge.get_linear_colormap('k','lightgreen'), 
+                aspect='equal', interpolation='none', origin='lower')
+        ge.annotate(AX['ROI1_ax'], ' roi #%i' % (args.ROIs[0]+1), (0,0), color='w', size='xxx-small')
+
+        # ROI 2 
+        AX['ROI2_ax'] = ge.inset(fig, [0.04,0.45,0.11,0.13]) 
+        extent2 = data.find_roi_extent(args.ROIs[1])
+        max_proj = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['max_proj'][:][extent2[0]:extent2[1], extent2[2]:extent2[3]]
+        max_proj_scaled2 = (max_proj-max_proj.min())/(max_proj.max()-max_proj.min())
+        max_proj_scaled2 = np.power(max_proj_scaled2, 1/args.imaging_NL)
+
+        AX['ROI2_img'] = AX['ROI2_ax'].imshow(max_proj_scaled, vmin=0, vmax=1, 
+                cmap=ge.get_linear_colormap('k','lightgreen'), 
+                aspect='equal', interpolation='none', origin='lower')
+        ge.annotate(AX['ROI2_ax'], ' roi #%i' % (args.ROIs[1]+1), (0,0), color='w', size='xxx-small')
 
     AX['whisking_ax'] = ge.inset(fig, [0.04,0.15,0.11,0.11]) 
     ge.annotate(AX['whisking_ax'], '$F_{(t+dt)}$-$F_{(t)}$', (0,0.5), ha='right', va='center', rotation=90, size='xxx-small')
     ge.annotate(AX['whisking_ax'], 'motion frames', (0.5,0), ha='center', va='top', size='xxx-small')
     AX['pupil_ax'] = ge.inset(fig, [0.04,0.28,0.11,0.13]) 
-    AX['ROI_ax'] = ge.inset(fig, [0.04,0.45,0.11,0.13]) 
-    AX['FOV_ax'] = ge.inset(fig, [0.04,0.6,0.11,0.13]) 
     AX['time_ax'] = ge.inset(fig, [0.02,0.05,0.08,0.05]) 
-
-    data.show_CaImaging_FOV(ax=AX['FOV_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[0], with_roi_zoom=True, roi_zoom_factor=5)
-    AX['FOV_ax'].set_title('')
-    ge.annotate(AX['FOV_ax'], 'roi #%i' % (args.ROIs[0]+1), (0,0), color='w', size='xxx-small')
-    data.show_CaImaging_FOV(ax=AX['ROI_ax'], key='max_proj', cmap=ge.get_linear_colormap('k','lightgreen'), NL=3, roiIndex=args.ROIs[1], with_roi_zoom=True, roi_zoom_factor=5)
-    ge.annotate(AX['ROI_ax'], 'roi #%i' % (args.ROIs[1]+1), (0,0), color='w', size='xxx-small')
-    AX['ROI_ax'].set_title('')
 
     t0 = times[0]
 
@@ -81,8 +108,33 @@ def draw_figure(args, data,
     AX['screen_img'] = data.visual_stim.show_frame(0, ax=AX['screen_ax'],
                                                    return_img=True,
                                                    label=None)
+
+    # Calcium Imaging
+    if metadata['raw_imaging_folder']!='':
+        
+        Ly, Lx = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['meanImg'].shape
+        Ca_data = BinaryFile(Ly=Ly, Lx=Lx,
+                             read_filename=os.path.join(metadata['raw_imaging_folder'],
+                                        'suite2p', 'plane0','data.bin'))
+        i1, i2 = dv_tools.convert_times_to_indices(times[0], times[1], data.Fluorescence)
+
+        imaging_scale = Ca_data.data[i1:i2,:,:].min(), Ca_data.data[i1:i2,:,:].max()
+
+        imaging_scale1 = Ca_data.data[i1:i2, extent1[0]:extent1[1], extent1[2]:extent1[3]].min(),\
+               Ca_data.data[i1:i2, extent1[0]:extent1[1], extent1[2]:extent1[3]].max() 
+
+        imaging_scale2 = Ca_data.data[i1:i2, extent2[0]:extent2[1], extent2[2]:extent2[3]].min(),\
+               Ca_data.data[i1:i2, extent2[0]:extent2[1], extent2[2]:extent2[3]].max() 
+
+    else:
+        Ca_data = None
+
+
     # Face Camera
     if metadata['raw_vis_folder']!='':
+        load_NIdaq(metadata)
+        load_faceCamera(metadata)
+
         img = np.load(metadata['raw_vis_FILES'][0])
         AX['camera_img'] = AX['camera_ax'].imshow(img, cmap='gray')
         # pupil
@@ -172,7 +224,7 @@ def draw_figure(args, data,
 
     for i, label in enumerate(['screen', 'camera']):
         ge.set_plot(AX['%s_ax'%label], [], title=label)
-    for i, label in enumerate(['imaging', 'pupil', 'whisking', 'FOV', 'ROI', 'time']):
+    for i, label in enumerate(['imaging', 'pupil', 'whisking', 'ROI1', 'ROI2', 'time']):
         ge.set_plot(AX['%s_ax'%label], [], title=' ')
 
     def update(i=0):
@@ -190,6 +242,30 @@ def draw_figure(args, data,
         img1 = np.load(metadata['raw_vis_FILES'][camera_index+1])
         AX['whisking_img'].set_array((img1-img)[whisking_cond].reshape(*whisking_shape))
 
+        # imaging
+        if (i in [0,len(times)-1]) or (Ca_data is None):
+            AX['imaging_img'].set_array(max_proj_scaled)
+            AX['ROI1_img'].set_array(max_proj_scaled1)
+            AX['ROI2_img'].set_array(max_proj_scaled2)
+        else:
+            im_index = dv_tools.convert_time_to_index(times[i], data.Fluorescence)
+            img = Ca_data.data[im_index,:,:].astype(np.uint16)
+            img = (img-imaging_scale[0])/(imaging_scale[1]-imaging_scale[0])
+            img = np.power(img, 1/args.imaging_NL)
+            AX['imaging_img'].set_array(img)
+
+            img1 = Ca_data.data[im_index, extent1[0]:extent1[1], extent1[2]:extent1[3]]
+            img1 = (img1-imaging_scale1[0])/(imaging_scale1[1]-imaging_scale1[0])
+            img1 = np.power(img1, 1/args.imaging_NL)
+            AX['ROI1_img'].set_array(img1)
+
+            img2 = Ca_data.data[im_index, extent2[0]:extent2[1], extent2[2]:extent2[3]]
+            img2 = (img2-imaging_scale2[0])/(imaging_scale2[1]-imaging_scale2[0])
+            img2 = np.power(img2, 1/args.imaging_NL)
+            AX['ROI2_img'].set_array(img2)
+            
+
+        # visual stim
         iEp = data.find_episode_from_time(times[i])
         if iEp==-1:
             AX['screen_img'].set_array(data.visual_stim.x*0+0.5)
@@ -202,7 +278,8 @@ def draw_figure(args, data,
         time.set_text('t=%.1fs' % times[i])
         
         return [cursor, time, AX['screen_img'], AX['camera_img'], AX['pupil_img'],
-                AX['whisking_img'], AX['pupil_fit'], AX['pupil_center']]
+                AX['whisking_img'], AX['pupil_fit'], AX['pupil_center'],
+                AX['imaging_img'], AX['ROI1_img'], AX['ROI2_img']]
         
     ani = animation.FuncAnimation(fig, 
                                   update,
@@ -252,6 +329,8 @@ def load_faceCamera(metadata):
 def load_NIdaq(metadata):
     metadata['NIdaq_Tstart'] = np.load(os.path.join(metadata['raw_vis_folder'], 'NIdaq.start.npy'))[0]
 
+def load_Imaging(metadata):
+    metadata['raw_imaging_folder'] = args.raw_imaging_folder
 
 if __name__=='__main__':
 
@@ -269,12 +348,13 @@ if __name__=='__main__':
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("-e", "--export", help="export to mp4", action="store_true")
 
+    parser.add_argument("--imaging_NL", type=int, default=3, help='1/exponent for image transform')
     args = parser.parse_args()
 
     data = MultimodalData(args.datafile, with_visual_stim=True)
+    print('\n', data.nwbfile.processing['ophys'].description, '\n')
 
     fig, AX, ani = draw_figure(args, data)    
-
     if args.export:
         print('writing video [...]')
         writer = animation.writers['ffmpeg'](fps=3)

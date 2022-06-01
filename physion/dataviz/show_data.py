@@ -358,10 +358,53 @@ class MultimodalData(read_NWB.Data):
     ### ----- IMAGING PLOT components -----
     ###-------------------------------------
 
+    def find_roi_coords(self, roiIndex):
+
+        indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
+                            (self.pixel_masks_index[roiIndex] if roiIndex<len(self.valid_roiIndices) else len(self.pixel_masks_index)))
+        mx = np.mean([self.pixel_masks[ii][1] for ii in indices])
+        sx = np.std([self.pixel_masks[ii][1] for ii in indices])
+        my = np.mean([self.pixel_masks[ii][0] for ii in indices])
+        sy = np.std([self.pixel_masks[ii][1] for ii in indices])
+
+        return my, mx, sy, sx
+
+    def find_roi_extent(self, roiIndex, roi_zoom_factor=10.):
+
+        mx, my, sx, sy = self.find_roi_coords(roiIndex)
+
+        return np.array((mx-roi_zoom_factor*sx, mx+roi_zoom_factor*sx,
+                         my-roi_zoom_factor*sy, my+roi_zoom_factor*sy), dtype=int)
+
+
+    def find_roi_cond(self, roiIndex, roi_zoom_factor=10.):
+
+        mx, my, sx, sy = self.find_roi_coords(roiIndex)
+
+        img_shape = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['meanImg'][:].shape
+
+        x, y = np.meshgrid(np.arange(img_shape[0]), np.arange(img_shape[1]), indexing='ij')
+        cond = (x>=(mx-roi_zoom_factor*sx)) &\
+                (x<=(mx+roi_zoom_factor*sx)) &\
+               (y>=(my-roi_zoom_factor*sy)) &\
+                (y<=(my+roi_zoom_factor*sy)) 
+        roi_zoom_shape = (len(np.unique(x[cond])), len(np.unique(y[cond])))
+
+        return cond, roi_zoom_shape
+
+    def add_roi_ellipse(self, roiIndex, ax,
+                        size_factor=1.5,
+                        roi_lw=3):
+
+        mx, my, sx, sy = self.find_roi_coords(roiIndex)
+        ellipse = plt.Circle((mx, my), 1.5*(sy+sx), edgecolor='lightgray', facecolor='none', lw=roi_lw)
+        ax.add_patch(ellipse)
+
     def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None,
-            roiIndex=None,
-            roi_zoom_factor=10,
-            with_roi_zoom=False):
+                           roiIndex=None,
+                           roi_zoom_factor=10,
+                           roi_lw=3,
+                           with_roi_zoom=False,):
         
         if ax is None:
             fig, ax = ge.figure()
@@ -369,28 +412,24 @@ class MultimodalData(read_NWB.Data):
             fig = None
             
         img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
+        extent=(0,img.shape[0], 0, img.shape[1])
+
+        if with_roi_zoom and roiIndex is not None:
+            zoom_cond, zoom_cond_shape = self.find_roi_cond(roiIndex, roi_zoom_factor=roi_zoom_factor)
+            img = img[zoom_cond].reshape(*zoom_cond_shape)
+            extent=self.find_roi_extent(roiIndex, roi_zoom_factor=roi_zoom_factor)
+        
         img = (img-img.min())/(img.max()-img.min())
         img = np.power(img, 1/NL)
-        ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none')
+        img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', extent=extent, origin='lower')
         ax.axis('off')
         
         if roiIndex is not None:
-            indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
-                                (self.pixel_masks_index[roiIndex] if roiIndex<len(self.valid_roiIndices) else len(self.pixel_masks_index)))
-            x = np.mean([self.pixel_masks[ii][1] for ii in indices])
-            sx = np.std([self.pixel_masks[ii][1] for ii in indices])
-            y = np.mean([self.pixel_masks[ii][0] for ii in indices])
-            sy = np.std([self.pixel_masks[ii][1] for ii in indices])
-            # ellipse = plt.Circle((x, y), sx, sy)
-            ellipse = plt.Circle((x, y), 1.5*(sx+sy), edgecolor='lightgray', facecolor='none', lw=3)
-            ax.add_patch(ellipse)
-            if with_roi_zoom:
-                ax.set_xlim([x-roi_zoom_factor*sx, x+roi_zoom_factor*sx])
-                ax.set_ylim([y-roi_zoom_factor*sy, y+roi_zoom_factor*sy])
+            self.add_roi_ellipse(roiIndex, ax, roi_lw=roi_lw)
 
         ge.title(ax, key)
         
-        return fig, ax
+        return fig, ax, img
 
 
     
