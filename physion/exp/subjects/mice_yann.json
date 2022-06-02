@@ -1,10 +1,10 @@
 {
-    "Mouse1_NDNFdread":{"description":"Mouse1_NDNFdread",
+    "Mouse_PVtest":{"description":"Mouse_PVtest",
 			 "sex":"Male",
 			 "strain":"C57B6/J",
-			 "genotype":"NDNF-Cre-Jax",
+			 "genotype":"PV-Cre-Jax",
 			 "species":"Mouse",
-			 "subject_id":"Mouse1_NDNFdread",
+			 "subject_id":"Mouse_PVtest",
 			 "weight":"24g",
 			 "virus":"None",
 			 "virus_ID":"",
