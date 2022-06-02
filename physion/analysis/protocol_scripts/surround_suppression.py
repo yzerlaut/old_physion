@@ -7,11 +7,12 @@ from matplotlib.backends.backend_pdf import PdfPages
 from datavyz import graph_env_manuscript as ge
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+
 from dataviz.show_data import MultimodalData, format_key_value
 from analysis.tools import summary_pdf_folder
 from analysis.process_NWB import EpisodeResponse
 from analysis import stat_tools
-from analysis.spatial_selectivity import summary_fig as SS_summary_fig
+from analysis.protocol_scripts.spatial_selectivity import summary_fig as SS_summary_fig
 
 def ROI_analysis(FullData,
                  roiIndex=0,

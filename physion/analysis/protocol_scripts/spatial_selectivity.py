@@ -6,17 +6,19 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from datavyz import graph_env_manuscript as ge
 
-from physion.analysis.read_NWB import Data
-from physion.dataviz.show_data import MultimodalData, EpisodeResponse, format_key_value
-from physion.analysis.tools import summary_pdf_folder
-from physion.analysis import stat_tools
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+
+from analysis.read_NWB import Data
+from dataviz.show_data import MultimodalData, EpisodeResponse, format_key_value
+from analysis.tools import summary_pdf_folder
+from analysis import stat_tools
 
 
 def summary_fig(results):
 
     other_keys = []
     for key in results:
-        if (key not in ['Ntot', 'significant', 'x-center', 'y-center', 'value']) and ('-bins' not in key):
+        if (key not in ['Ntot', 'significant', 'x-center', 'y-center', 'value']) and ('-bins' not in key) and ('relative_' not in key):
             other_keys.append(key)
 
     fig, AX = ge.figure(axes=(2+len(other_keys),1), right=2, figsize=(1., 1.1))
@@ -53,8 +55,8 @@ def summary_fig(results):
 
 def analysis_pdf(datafile,
                  iprotocol=0, 
-                 stat_test_props=dict(interval_pre=[-2,0], interval_post=[1,3],
-                                      test='wilcoxon', positive=True),
+                 stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2],
+                                      test='anova', positive=True),
                  response_significance_threshold=0.05,
                  quantity='dFoF',
                  verbose=True,
@@ -82,7 +84,7 @@ def analysis_pdf(datafile,
                                               ybar=0.2, ybarlabel='0.2dF/F',
                                               xbar=1., xbarlabel='1s',
                                               with_annotation=True,
-                                              with_std=True,
+                                              with_std=False,
                                               with_stat_test=True, stat_test_props=stat_test_props,
                                               with_screen_inset=True,
                                               verbose=verbose)
@@ -102,7 +104,7 @@ def analysis_pdf(datafile,
                                                   ybar=0.2, ybarlabel='0.2dF/F',
                                                   xbar=1., xbarlabel='1s',
                                                   with_annotation=True,
-                                                  with_std=False,
+                                                  with_std=True,
                                                   with_stat_test=True, stat_test_props=stat_test_props,
                                                   with_screen_inset=True,
                                                   verbose=verbose)

@@ -40,8 +40,8 @@ def draw_figure(args, data,
             'whisking':0.15, 'whisking_start':0.25,
             'gaze':0.1, 'gaze_start':0.35,
             'pupil':0.13, 'pupil_start':0.45,
-            'rois':0.14, 'rois_start':0.6,
-            'raster':0.25, 'raster_start':0.75}
+            'rois':0.2, 'rois_start':0.6,
+            'raster':0.2, 'raster_start':0.8}
 
     AX = {'time_plot_ax':None}
     fig, AX['time_plot_ax'] = ge.figure(figsize=(2,3.5),
@@ -68,27 +68,29 @@ def draw_figure(args, data,
 
         # ROI 1 
         AX['ROI1_ax'] = ge.inset(fig, [0.04,0.6,0.11,0.13]) 
-        extent1 = data.find_roi_extent(args.ROIs[0])
+        extent1 = data.find_roi_extent(args.ROIs[0], roi_zoom_factor=4)
         max_proj = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['max_proj'][:][extent1[0]:extent1[1], extent1[2]:extent1[3]]
         max_proj_scaled1 = (max_proj-max_proj.min())/(max_proj.max()-max_proj.min())
         max_proj_scaled1 = np.power(max_proj_scaled1, 1/args.imaging_NL)
 
-        AX['ROI1_img'] = AX['ROI1_ax'].imshow(max_proj_scaled, vmin=0, vmax=1, 
-                cmap=ge.get_linear_colormap('k','lightgreen'), 
+        AX['ROI1_img'] = AX['ROI1_ax'].imshow(max_proj_scaled1, vmin=0, vmax=1, 
+                cmap=ge.get_linear_colormap('k','lightgreen'), extent=extent1,
                 aspect='equal', interpolation='none', origin='lower')
         ge.annotate(AX['ROI1_ax'], ' roi #%i' % (args.ROIs[0]+1), (0,0), color='w', size='xxx-small')
+        data.add_roi_ellipse(args.ROIs[0], AX['ROI1_ax'], size_factor=1.5, roi_lw=1)
 
         # ROI 2 
         AX['ROI2_ax'] = ge.inset(fig, [0.04,0.45,0.11,0.13]) 
-        extent2 = data.find_roi_extent(args.ROIs[1])
+        extent2 = data.find_roi_extent(args.ROIs[1], roi_zoom_factor=4)
         max_proj = data.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['max_proj'][:][extent2[0]:extent2[1], extent2[2]:extent2[3]]
         max_proj_scaled2 = (max_proj-max_proj.min())/(max_proj.max()-max_proj.min())
         max_proj_scaled2 = np.power(max_proj_scaled2, 1/args.imaging_NL)
 
-        AX['ROI2_img'] = AX['ROI2_ax'].imshow(max_proj_scaled, vmin=0, vmax=1, 
-                cmap=ge.get_linear_colormap('k','lightgreen'), 
+        AX['ROI2_img'] = AX['ROI2_ax'].imshow(max_proj_scaled2, vmin=0, vmax=1, 
+                cmap=ge.get_linear_colormap('k','lightgreen'), extent=extent2, 
                 aspect='equal', interpolation='none', origin='lower')
         ge.annotate(AX['ROI2_ax'], ' roi #%i' % (args.ROIs[1]+1), (0,0), color='w', size='xxx-small')
+        data.add_roi_ellipse(args.ROIs[1], AX['ROI2_ax'], size_factor=1.5, roi_lw=1)
 
     AX['whisking_ax'] = ge.inset(fig, [0.04,0.15,0.11,0.11]) 
     ge.annotate(AX['whisking_ax'], '$F_{(t+dt)}$-$F_{(t)}$', (0,0.5), ha='right', va='center', rotation=90, size='xxx-small')
@@ -208,7 +210,7 @@ def draw_figure(args, data,
                        fig_fraction_start=fractions['rois_start'], 
                        fig_fraction=fractions['rois'], 
                        name='', annotation_side='left')
-    # ge.annotate(AX['time_plot_ax'], 'pupil\ndiam.', (-0.1, fractions['pupil_start']), ha='center', va='bottom', color=ge.red, size='small')
+    ge.annotate(AX['time_plot_ax'], 'fluorescence', (-0.1, fractions['raster_start']), ha='right', va='center', color=ge.green, rotation=90)
 
     # raster 
     data.add_CaImagingRaster(args.tlim, AX['time_plot_ax'], 
@@ -216,10 +218,11 @@ def draw_figure(args, data,
                              fig_fraction_start=fractions['raster_start'], 
                              fig_fraction=fractions['raster'], 
                              name='')
-    # ge.annotate(AX['time_plot_ax'], 'pupil\ndiam.', (-0.1, fractions['pupil_start']), ha='center', va='bottom', color=ge.red, size='small')
     
 
-
+    if args.Tbar>0:
+        AX['time_plot_ax'].plot(args.Tbar*np.arange(2)+times[0], args.Tbar_loc*np.ones(2), 'k-')
+        ge.annotate(AX['time_plot_ax'], '%is' % args.Tbar, (0,args.Tbar_loc+0.01))
     ge.set_plot(AX['time_plot_ax'], [], xlim=[times[0], times[-1]], ylim=[-0.01, 1.01])
 
     for i, label in enumerate(['screen', 'camera']):
@@ -338,18 +341,31 @@ if __name__=='__main__':
 
     parser=argparse.ArgumentParser()
     parser.add_argument("datafile", type=str)
+
     parser.add_argument("-rvf", '--raw_vis_folder', type=str, default='')
     parser.add_argument("-rif", '--raw_imaging_folder', type=str, default='')
-    parser.add_argument('-o', "--ops", default='raw', help='')
+    
     parser.add_argument("--tlim", type=float, nargs='*', default=[10, 100], help='')
+    parser.add_argument("--Tbar", type=int, default=0)
+    parser.add_argument("--Tbar_loc", type=float, default=0.1, help='y-loc of Tbar in [0,1]')
+
     parser.add_argument('-rois', "--ROIs", type=int, default=[0,1], nargs='*')
-    parser.add_argument('-n', "--Ndiscret", type=int, default=100)
+    parser.add_argument('-n', "--Ndiscret", type=int, default=10)
     parser.add_argument('-q', "--quantity", type=str, default='dFoF')
+
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("-e", "--export", help="export to mp4", action="store_true")
+    # video properties
+    parser.add_argument("--fps", type=int, default=20)
+    parser.add_argument("--duration", type=float, default=0, help='video duration')
+    parser.add_argument("--dpi", type=int, default=100, help='video duration')
 
     parser.add_argument("--imaging_NL", type=int, default=3, help='1/exponent for image transform')
+
     args = parser.parse_args()
+
+    if args.duration>0:
+        args.Ndiscret = int(args.duration*args.fps)
 
     data = MultimodalData(args.datafile, with_visual_stim=True)
     print('\n', data.nwbfile.processing['ophys'].description, '\n')
@@ -357,8 +373,8 @@ if __name__=='__main__':
     fig, AX, ani = draw_figure(args, data)    
     if args.export:
         print('writing video [...]')
-        writer = animation.writers['ffmpeg'](fps=3)
-        ani.save('demo.mp4',writer=writer,dpi=100)# fig, ax = ge.twoD_plot(np.arange(50), np.arange(30), np.random.randn(50, 30))
+        writer = animation.writers['ffmpeg'](fps=args.fps)
+        ani.save('demo.mp4',writer=writer,dpi=args.dpi)# fig, ax = ge.twoD_plot(np.arange(50), np.arange(30), np.random.randn(50, 30))
     else:
         ge.show()
 

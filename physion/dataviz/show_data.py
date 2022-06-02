@@ -397,7 +397,7 @@ class MultimodalData(read_NWB.Data):
                         roi_lw=3):
 
         mx, my, sx, sy = self.find_roi_coords(roiIndex)
-        ellipse = plt.Circle((mx, my), 1.5*(sy+sx), edgecolor='lightgray', facecolor='none', lw=roi_lw)
+        ellipse = plt.Circle((mx, my), size_factor*(sy+sx), edgecolor='lightgray', facecolor='none', lw=roi_lw)
         ax.add_patch(ellipse)
 
     def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None,
@@ -443,7 +443,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
     def __init__(self, filename,
                  protocol_id=0,
                  quantities=['dFoF'],
-                 quantities_args=[{}],
+                 quantities_args=None,
                  prestim_duration=None,
                  verbose=False,
                  with_visual_stim=False):
