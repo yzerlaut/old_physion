@@ -509,8 +509,12 @@ class visual_stim:
 
         if vse:
             if not hasattr(self, 'vse'):
-                vse = self.get_vse(episode, parent=cls)
-            self.add_vse(ax, vse)
+                if hasattr(self, 'get_vse'):
+                    self.vse = self.get_vse(episode, parent=cls)
+                else:
+                    self.vse = None
+            if self.vse is not None:
+                self.add_vse(ax, self.vse)
 
         ax.axis('off')
 
@@ -671,8 +675,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][index]].get_frames_sequence(index, parent=self)
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
-    def plot_stim_picture(self, episode, ax=None, parent=None):
-        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self)
+    def plot_stim_picture(self, episode, ax=None, parent=None, label=None, vse=False):
+        return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self, label=label, vse=vse)
 
 
 
@@ -1237,12 +1241,15 @@ class Natural_Image_VSE(visual_stim):
         translate saccades in degree in pixels here
         """
         cls = (parent if parent is not None else self)
-        seed = self.get_seed(episode, parent=cls)
-        return generate_VSE(duration=cls.experiment['time_duration'][episode],
-                            min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
-                            max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
-                            saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
-                            seed=seed)
+        if 'saccade-amplitude' in cls.experiment:
+            seed = self.get_seed(episode, parent=cls)
+            return generate_VSE(duration=cls.experiment['time_duration'][episode],
+                                min_saccade_duration=cls.experiment['min-saccade-duration'][episode],
+                                max_saccade_duration=cls.experiment['max-saccade-duration'][episode],
+                                saccade_amplitude=cls.angle_to_pix(cls.experiment['saccade-amplitude'][episode]),
+                                seed=seed)
+        else:
+            return None
 
 #####################################################
 ##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
