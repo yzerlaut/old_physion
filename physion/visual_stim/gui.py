@@ -1,3 +1,9 @@
+"""
+DEPRECATED
+
+use: python physion/visual_stim/stimuli.py your_stimulus_parameter_file.json 
+to design and debug protocols
+"""
 import sys, time
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
@@ -8,7 +14,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from assembling.saving import create_day_folder, generate_filename_path
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0]))
-from psychopy_code.stimuli import build_stim
+from stimuli import build_stim
 from default_params import STIMULI, PRESENTATIONS
 from screens import SCREENS
 from guiparts import *
@@ -240,14 +246,23 @@ def run(app, args=None, parent=None):
 
 
 if __name__=='__main__':
-    import tempfile
+    print("""
+    DEPRECATED
 
-    import argparse, os
+    use: python physion/visual_stim/stimuli.py your_stimulus_parameter_file.json 
+    to design and debug protocols
+    """)
+
+    import tempfile, argparse, os
+
     parser=argparse.ArgumentParser(description="Experiment interface",
                        formatter_class=argparse.RawTextHelpFormatter)
+
     parser.add_argument('-rf', "--root_datafolder", type=str,
                         default=tempfile.gettempdir())
+
     parser.add_argument('-d', "--demo", action="store_true")
+
     args = parser.parse_args()
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(app, args=args)

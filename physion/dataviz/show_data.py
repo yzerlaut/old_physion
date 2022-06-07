@@ -6,18 +6,9 @@ import matplotlib.pylab as plt
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz import tools as dv_tools
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
-
-# datavyz submodule
-try:
-    from datavyz import graph_env_manuscript as ge
-except ModuleNotFoundError:
-    print('--------------------------------------------')
-    print('  "datavyz" submodule not found')
-    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
-    print('             (after a "git submodule init; git submodule update" if not already done) ')
-
 
 # we define a data object fitting this analysis purpose
 class MultimodalData(read_NWB.Data):

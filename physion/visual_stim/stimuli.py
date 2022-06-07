@@ -827,7 +827,7 @@ class center_grating(vis_stim_image_built):
         return img
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None,
+                          ax=None, parent=None, label=None, vse=False,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
@@ -875,7 +875,7 @@ class center_drifting_grating(vis_stim_image_built):
         return img
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None,
+                          ax=None, parent=None, label=None, vse=False,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
@@ -982,7 +982,8 @@ class line_moving_dots(vis_stim_image_built):
 
 
     def plot_stim_picture(self, episode,
-                          ax=None, parent=None, label=None,
+                          ax=None, parent=None, 
+                          label=None, vse=False,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
@@ -1072,6 +1073,7 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
 
     def plot_stim_picture(self, episode,
                           ax=None, parent=None, label=None, 
+                          vse=False,
                           arrow={'length':10,
                                  'width_factor':0.05,
                                  'color':'red'}):
