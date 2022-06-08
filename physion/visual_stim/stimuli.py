@@ -1008,6 +1008,89 @@ class line_moving_dots(vis_stim_image_built):
 
         return ax
 
+
+class random_dots(vis_stim_image_built):
+    """
+    """
+    def __init__(self, protocol):
+
+        super().__init__(protocol,
+                         keys=['speed', 'bg-color', 'ndots', 'spacing',
+                               'direction', 'size', 'dotcolor', 'seed'])
+
+        ## /!\ here always use self.refresh_freq not the parent cls.refresh_freq ##
+        # when the parent multiprotocol will have ~10Hz refresh rate, the random case should remain 2-3Hz
+        self.refresh_freq = protocol['movie_refresh_freq']
+
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        get frame seq
+        """
+        cls = (parent if parent is not None else self)
+
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, index)
+
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+
+        order = self.compute_frame_order(cls, times, index) # shuffling inside if randomize !!
+
+        for iframe, t in enumerate(times):
+            new_t = order[iframe]/self.refresh_freq
+            img = init_bg_image(cls, index)
+            for x0, y0 in zip(X0, Y0):
+                # adding the dots one by one
+                new_position = (x0+dx_per_time*new_t, y0+dy_per_time*new_t)
+                self.add_dot(img, new_position,
+                             cls.experiment['size'][index],
+                             cls.experiment['dotcolor'][index])
+
+            FRAMES.append(self.image_to_frame(img))
+
+        return time_indices, FRAMES, self.refresh_freq
+
+
+    def get_image(self, episode, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = init_bg_image(cls, episode)
+        X0, Y0, dx_per_time, dy_per_time = get_starting_point_and_direction_mv_dots(cls, episode)
+        for x0, y0 in zip(X0, Y0):
+            new_position = (X0+dx_per_time*time_from_episode_start,
+                            Y0+dy_per_time*time_from_episode_start)
+            self.add_dot(img, new_position,
+                         cls.experiment['size'][episode],
+                         cls.experiment['dotcolor'][episode])
+        return img
+
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, 
+                          label=None, vse=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
+                             cls.experiment['time_start'][episode])
+        ax = self.show_frame(episode, ax=ax, label=label,
+                             time_from_episode_start=tcenter_minus,
+                             parent=parent)
+
+        direction = cls.experiment['direction'][episode]
+
+        # print(direction)
+        arrow['direction'] = ((direction+180)%180)+180
+        # print(arrow['direction'])
+
+        for shift in [-.5, 0, .5]:
+            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
+                               shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
+            self.add_arrow(arrow, ax)
+
+        return ax
+
+
 class mixed_moving_dots_static_patch(vis_stim_image_built):
 
     def __init__(self, protocol):
@@ -1130,6 +1213,7 @@ def get_NaturalImages_as_array(screen):
         print(' /!\  Natural Images folder not found !!! /!\  ')
         return [np.ones(10,10)*0.5 for i in range(5)]
     
+
 class natural_image(visual_stim):
 
     def __init__(self, protocol):
