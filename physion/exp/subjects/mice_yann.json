@@ -23,7 +23,7 @@
 			 "injection-location":"VC:-3.0RC,2.1ML",
 			 "surgery":"headplate+injection",
 			 "surgery_date":"2022_04_05",
-			 "FOVs":"{'1':(73,126),'2':(591,-152),'3':(-560,-272)}"
+			 "FOVs":"{'1':(73,126),'2':(591,-152),'3':(-560,-272)}",
 			 "date_of_birth":"2022_03_28"},
     "MouseA2_NDNFdread":{"description":"MouseA2_NDNFdread",
 			 "sex":"Male",
@@ -37,7 +37,7 @@
 			 "injection-location":"VC:-3.0RC,2.1ML",
 			 "surgery":"headplate+injection",
 			 "surgery_date":"2022_04_05",
-			 "FOVs":"{'1':(-151,126),'2':(178,702),'3':(560,-530),'4':(-230,580)}"
+			 "FOVs":"{'1':(-151,126),'2':(178,702),'3':(560,-530),'4':(-230,580)}",
 			 "date_of_birth":"2022_03_28"},
     "MouseA3_NDNFdread":{"description":"MouseA3_NDNFdread",
 			 "sex":"Male",
@@ -51,7 +51,7 @@
 			 "injection-location":"VC:-3.0RC,2.1ML",
 			 "surgery":"headplate+injection",
 			 "surgery_date":"2022_04_05",
-			 "FOVs":"{'1':(0,-300),'2':(230,160),'3':(940,-930),'4':(560,240)}"
+			 "FOVs":"{'1':(0,-300),'2':(230,160),'3':(940,-930),'4':(560,240)}",
 			 "date_of_birth":"2022_03_28"},
     "Mouse1_NDNFdread_injL1L23":{"description":"Mouse1_NDNFdread_injL1L23",
 			 "sex":"Male",
