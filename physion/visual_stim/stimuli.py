@@ -446,7 +446,6 @@ class visual_stim:
 
         return ax
 
-
     def get_prestim_image(self):
         return (1+self.protocol['presentation-prestim-screen'])/2.+0*self.x
     def get_interstim_image(self):
@@ -1405,22 +1404,39 @@ class dummy_parent:
 
 if __name__=='__main__':
 
-    import json, tempfile
+    import json, argparse, tempfile
     from pathlib import Path
 
-    if os.path.isfile(sys.argv[1]) and ('.json' in sys.argv[1]):
-        with open(sys.argv[1], 'r') as fp:
+    parser=argparse.ArgumentParser()
+    parser.add_argument("protocol", type=str)
+    parser.add_argument("-b", "--buffered", help="buffer stim", action="store_true")
+    parser.add_argument("-i", "--index", help="stim index", type=int, default=0) 
+    parser.add_argument("-p", "--plot", help="plot stim", action="store_true")
+
+    args = parser.parse_args()
+
+    if os.path.isfile(args.protocol) and ('.json' in args.protocol):
+        with open(args.protocol, 'r') as fp:
             protocol = json.load(fp)
             protocol['demo'] = True
-            if sys.argv[-1]=='--buffered':
+            if args.buffered:
                 protocol['buffer'] = True
             else:
                 protocol['buffer'] = False 
-                print(' running the non-pre-buffered version, add "--buffered" as second argument to have the buffered version')
-
-            stim = build_stim(protocol)
             parent = dummy_parent()
-            stim.run(parent)
-            stim.close()
+            if args.plot:
+                protocol['no-window'] = True
+            
+                sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+                from dataviz.datavyz.datavyz import graph_env
+                ge = graph_env('screen')
+                fig, ax = ge.figure()
+                stim = build_stim(protocol, no_psychopy=True)
+                stim.plot_stim_picture(args.index, ax=ax)
+                ge.show()
+            else:
+                stim = build_stim(protocol)
+                stim.run(parent)
+                stim.close()
     else:
         print('need to provide a ".json" protocol file as argument !')
