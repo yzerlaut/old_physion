@@ -483,7 +483,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
         self.statusBar.showMessage('stimulation stopped !')
-        self.runButton.setEnabled(False)
         print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):
