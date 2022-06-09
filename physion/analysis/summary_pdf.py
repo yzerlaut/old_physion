@@ -132,12 +132,22 @@ def make_summary_pdf(filename, Nmax=1000000,
                                           'ndnf_protocol.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
+        elif data.metadata['protocol']=='size-tuning-protocol':
+            # spatial location first
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
+                                          'spatial_selectivity.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i --iprotocol 0' % (python_path, process_script, filename, Nmax), shell=True)
+            # then size tuning
+            process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
+                                          'size_tuning.py')
+            p = subprocess.Popen('%s %s %s --Nmax %i --iprotocol 1' % (python_path, process_script, filename, Nmax), shell=True)
+
         elif data.metadata['protocol']=='mismatch-negativity':
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'mismatch_negativity.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
 
-        elif ('surround-suppression' in data.metadata['protocol']) or ('size-tuning' in data.metadata['protocol']):
+        elif ('surround-suppression' in data.metadata['protocol']):
             process_script = os.path.join(str(pathlib.Path(__file__).resolve().parents[0]), 'protocol_scripts', 
                                           'surround_suppression.py')
             p = subprocess.Popen('%s %s %s --Nmax %i' % (python_path, process_script, filename, Nmax), shell=True)
