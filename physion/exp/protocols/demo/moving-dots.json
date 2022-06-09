@@ -1,5 +1,5 @@
 {
-  "Presentation": "Randomized-Sequence",
+  "Presentation": "Stimuli-Sequence",
   "Stimulus": "line-moving-dots",
   "Screen": "Dell-2020",
   "shuffling-seed": 17,
@@ -21,8 +21,8 @@
   "spacing-2": 15,
   "N-spacing": 0,
   "direction-1": 0,
-  "direction-2": 90,
-  "N-direction": 2,
+  "direction-2": 270,
+  "N-direction": 4,
   "ndots-1": 10,
   "ndots-2": 10,
   "N-ndots": 0,
