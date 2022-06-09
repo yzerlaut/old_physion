@@ -125,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # protocol choice
         QtWidgets.QLabel(" Intervention :", self).move(20, Y)
         self.cbi = QtWidgets.QComboBox(self)
-        self.cbi.addItems(['', 'CNO injection', 'Compound-21 injection'])
+        self.cbi.addItems(['', 'Saline injection', 'CNO injection', 'Compound-21 injection'])
         self.cbi.setMinimumWidth(390)
         self.cbi.move(130, Y)
         # self.cbi.activated.connect(self.update_protocol)
@@ -206,7 +206,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def save_settings(self):
         settings = {'config':self.cbc.currentText(),
                     'protocol':self.cbp.currentText(),
-                    'subject':self.cbs.currentText()}
+                    'subject':self.cbs.currentText(),
+ 		    'intervention':self.cbi.currentText()}
         
         for i, k in enumerate(self.MODALITIES):
             settings[k] = getattr(self, k+'Button').isChecked()
@@ -306,6 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
         metadata = {'config':self.cbc.currentText(),
                     'protocol':self.cbp.currentText(),
                     'VisualStim':self.cbp.currentText()!='None',
+                    'intervention':self.cbi.currentText(),
                     'notes':self.qmNotes.toPlainText(),
                     'subject_ID':self.cbs.currentText(),
                     'subject_props':self.subjects[self.cbs.currentText()]}
@@ -481,7 +483,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
         self.statusBar.showMessage('stimulation stopped !')
-        self.runButton.setEnabled(False)
         print(100*'-', '\n', 50*'=')
         
     def send_CaImaging_Stop_signal(self):

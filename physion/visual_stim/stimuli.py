@@ -995,6 +995,8 @@ class line_moving_dots(vis_stim_image_built):
                              parent=parent)
 
         direction = cls.experiment['direction'][episode]
+        if direction==0:
+            print(0)
 
         # print(direction)
         arrow['direction'] = ((direction+180)%180)+180

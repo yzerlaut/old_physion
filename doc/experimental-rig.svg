@@ -2,23 +2,23 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="683.04352"
    height="496.94199"
    viewBox="0 0 180.72193 131.48256"
    version="1.1"
    id="svg5"
-   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
    sodipodi:docname="experimental-rig.svg"
    inkscape:export-filename="/home/yann.zerlaut/Desktop/experimental-rig.png"
    inkscape:export-xdpi="150"
-   inkscape:export-ydpi="150">
+   inkscape:export-ydpi="150"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <metadata
      id="metadata1099">
     <rdf:RDF>
@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -43,8 +43,8 @@
      showgrid="false"
      units="px"
      inkscape:zoom="0.58644365"
-     inkscape:cx="314.89553"
-     inkscape:cy="-284.50582"
+     inkscape:cx="315.46083"
+     inkscape:cy="670.14111"
      inkscape:window-width="1553"
      inkscape:window-height="972"
      inkscape:window-x="82"
@@ -4464,18 +4464,17 @@
           <text
              xml:space="preserve"
              id="text82339-1"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.34999037px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82553-0);display:inline;fill:#000000;stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.34999px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82553-0);display:inline;fill:#000000;stroke-width:0.370573;stroke-linecap:butt;stroke-linejoin:round"
              x="-74.684982"
-             y="86.596382"><tspan
-               x="-109.98687"
-               y="101.47173"
-               id="tspan17713"
-               style="stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round">blinking signal
+             y="86.596382"
+             transform="translate(-155.74661,69.579108)"><tspan
+               x="198.57905"
+               y="30.773757"
+               id="tspan4455">blinking signal
 </tspan><tspan
-               x="-111.41314"
-               y="109.40921"
-               id="tspan17715"
-               style="stroke-width:0.37057301;stroke-linecap:butt;stroke-linejoin:round">+ photodiode   </tspan></text>
+               x="196.95745"
+               y="38.711246"
+               id="tspan4457">+ photodiode   </tspan></text>
           <g
              id="g82429-9"
              transform="matrix(0.76912433,-0.2461986,0.2461986,0.76912433,-5.3796683,67.788688)"
@@ -4655,18 +4654,18 @@
              x="95.124329"
              y="0"><tspan
                x="43.339844"
-               y="40.141458"
-               id="tspan17717">IR camera</tspan></text>
+               y="40.613795"
+               id="tspan4459">IR camera</tspan></text>
           <text
              xml:space="preserve"
              id="text82433-6"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.34999609px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000;stroke-width:0.39678797;stroke-linecap:butt;stroke-linejoin:round"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:end;white-space:pre;shape-inside:url(#rect82557-2);display:inline;fill:#000000;stroke-width:0.396788;stroke-linecap:butt;stroke-linejoin:round"
              x="26.827415"
-             y="171.97256"><tspan
-               x="-3.7226408"
-               y="187.50278"
-               id="tspan17719"
-               style="stroke-width:0.39678797;stroke-linecap:butt;stroke-linejoin:round">circular treadmill</tspan></text>
+             y="171.97256"
+             transform="translate(-47.922034,159.43292)"><tspan
+               x="169.26467"
+               y="30.773766"
+               id="tspan4461">circular treadmill</tspan></text>
           <text
              xml:space="preserve"
              transform="matrix(0.37057301,0,0,0.37057301,15.201867,188.41172)"
@@ -4675,8 +4674,8 @@
              x="95.124329"
              y="0"><tspan
                x="43.339844"
-               y="40.141458"
-               id="tspan17721">IR LEDs</tspan></text>
+               y="40.613795"
+               id="tspan4463">IR LEDs</tspan></text>
           <g
              id="g82477-5"
              transform="matrix(0.55658214,0.641195,-0.641195,0.55658214,153.43995,63.304028)">
@@ -4784,8 +4783,8 @@
              x="95.124329"
              y="0"><tspan
                x="43.339844"
-               y="40.141458"
-               id="tspan17723">screen</tspan></text>
+               y="40.613795"
+               id="tspan4465">screen</tspan></text>
           <text
              xml:space="preserve"
              transform="matrix(0.37057301,0,0,0.37057301,91.231846,93.991957)"
@@ -4794,8 +4793,8 @@
              x="95.124329"
              y="0"><tspan
                x="43.339844"
-               y="40.141458"
-               id="tspan17725">2-photon imaging</tspan></text>
+               y="40.613795"
+               id="tspan4467">2-photon imaging</tspan></text>
           <path
              style="fill:#4d4d4d;stroke:#000000;stroke-width:0.274226;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
              d="m 120.35841,138.07518 4.42249,-2.85593 4.08828,-0.0802 0.0934,5.33885 -8.56505,0.16794 z"
@@ -5737,43 +5736,42 @@
           <text
              xml:space="preserve"
              id="text2293"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.75336266px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.7534px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.919335;stroke-linecap:butt;stroke-linejoin:round"
              x="16.057659"
              y="269.68463"
-             transform="rotate(-13.254213)"
+             transform="rotate(-13.254213,1188.2506,186.28999)"
              inkscape:export-filename="/home/yann.zerlaut/Desktop/text2301.png"
              inkscape:export-xdpi="100"
              inkscape:export-ydpi="100"><tspan
-               style="stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round"
-               x="-31.549635"
-               y="306.58835"
-               id="tspan2291">screen</tspan></text>
+               x="43.339844"
+               y="39.352773"
+               id="tspan4469">screen</tspan></text>
           <text
              xml:space="preserve"
              id="text2297"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.75336266px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.7534px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.919335;stroke-linecap:butt;stroke-linejoin:round"
              x="184.31764"
              y="243.97638"
              inkscape:export-filename="/home/yann.zerlaut/Desktop/text2301.png"
              inkscape:export-xdpi="100"
-             inkscape:export-ydpi="100"><tspan
-               style="stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round"
-               x="136.71039"
-               y="280.88"
-               id="tspan2295">imaging</tspan></text>
+             inkscape:export-ydpi="100"
+             transform="translate(92.618549,239.9913)"><tspan
+               x="43.339844"
+               y="39.352773"
+               id="tspan4471">imaging</tspan></text>
           <text
              y="318.5589"
              x="141.37096"
-             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.75336266px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.7534px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:start;white-space:pre;shape-inside:url(#rect82563-1);display:inline;fill:#000000;stroke-width:0.919335;stroke-linecap:butt;stroke-linejoin:round"
              id="text2301"
              xml:space="preserve"
              inkscape:export-filename="/home/yann.zerlaut/Desktop/text2301.png"
              inkscape:export-xdpi="100"
-             inkscape:export-ydpi="100"><tspan
-               id="tspan2299"
-               y="355.46252"
-               x="93.763641"
-               style="stroke-width:0.91933542;stroke-linecap:butt;stroke-linejoin:round">camera</tspan></text>
+             inkscape:export-ydpi="100"
+             transform="translate(45.618093,318.40505)"><tspan
+               x="43.339844"
+               y="39.352773"
+               id="tspan4473">camera</tspan></text>
         </g>
       </g>
     </g>
