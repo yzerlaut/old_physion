@@ -12,7 +12,7 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="126.36198mm"
    height="138.32339mm"
-   viewBox="0 0 126.36199 138.3234"
+   viewBox="0 0 126.362 138.3234"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
@@ -908,8 +908,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7071068"
-     inkscape:cx="303.00156"
-     inkscape:cy="158.90383"
+     inkscape:cx="27.937029"
+     inkscape:cy="158.90386"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -939,7 +939,8 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(16.227451,-85.582478)">
+     transform="translate(16.227451,-85.582478)"
+     style="stroke-linecap:butt;stroke-linejoin:round">
     <path
        style="fill:none;stroke:#000000;stroke-width:0.2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.2, 0.2;stroke-dashoffset:0;stroke-opacity:1"
        d="M 19.927338,191.76657 10.261971,180.63646"
@@ -960,7 +961,8 @@
        style="fill:none;stroke:#ff0000;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.1, 0.2;stroke-dashoffset:0;stroke-opacity:1" />
     <g
        id="g4293"
-       transform="matrix(1.2845397,0,0,1.2845397,-83.784045,15.911531)">
+       transform="matrix(1.2845397,0,0,1.2845397,-83.784045,15.911531)"
+       style="stroke-linecap:butt;stroke-linejoin:round">
       <path
          style="fill:none;stroke:#000000;stroke-width:0.26458299px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          d="m 71.936629,122.04602 c 0,0 7.094621,12.24599 -4.742283,4.1182"
@@ -991,7 +993,7 @@
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
       <ellipse
-         style="stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+         style="stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
          id="path4541"
          cx="27.519627"
          cy="-140.70346"
@@ -1004,7 +1006,7 @@
          cy="-140.70346"
          cx="30.165424"
          id="ellipse4543"
-         style="stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+         style="stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
          transform="rotate(139.02898)" />
       <path
          sodipodi:nodetypes="cc"
@@ -1065,16 +1067,19 @@
        style="fill:none;stroke:#000000;stroke-width:0.26458299;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.264583, 0.264583;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker5849);marker-end:url(#marker5967)" />
     <flowRoot
        transform="matrix(5.1246188e-4,0.06864913,-0.06864913,5.1246188e-4,65.717401,163.61336)"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-linecap:butt;stroke-linejoin:round"
        id="flowRoot7386"
        xml:space="preserve"><flowRegion
-         id="flowRegion7382"><rect
+         id="flowRegion7382"
+         style="stroke-linecap:butt;stroke-linejoin:round"><rect
            y="335.10577"
            x="139.90613"
            height="72.73098"
            width="215.66757"
-           id="rect7380" /></flowRegion><flowPara
-         id="flowPara7384">48cm</flowPara></flowRoot>    <path
+           id="rect7380"
+           style="stroke-linecap:butt;stroke-linejoin:round" /></flowRegion><flowPara
+         id="flowPara7384"
+         style="stroke-linecap:butt;stroke-linejoin:round">48cm</flowPara></flowRoot>    <path
        style="fill:none;stroke:#000000;stroke-width:0.26458299;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.264583, 0.264583;stroke-dashoffset:0;stroke-opacity:1;marker-start:url(#marker6271);marker-end:url(#marker6401)"
        d="m 30.727252,175.37441 -20.9617477,0.2446"
        id="path7529"
@@ -1204,15 +1209,18 @@
     <flowRoot
        xml:space="preserve"
        id="flowRoot1124"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.02878009,0.06232714,-0.06232714,0.02878009,105.7476,167.96098)"><flowRegion
-         id="flowRegion1120"><rect
+         id="flowRegion1120"
+         style="stroke-linecap:butt;stroke-linejoin:round"><rect
            id="rect1118"
            width="215.66757"
            height="72.73098"
            x="139.90613"
-           y="335.10577" /></flowRegion><flowPara
-         id="flowPara1122">27cm</flowPara></flowRoot>    <path
+           y="335.10577"
+           style="stroke-linecap:butt;stroke-linejoin:round" /></flowRegion><flowPara
+         id="flowPara1122"
+         style="stroke-linecap:butt;stroke-linejoin:round">27cm</flowPara></flowRoot>    <path
        style="fill:#cccccc;stroke:#000000;stroke-width:0.98100001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 74.233142,170.07527 0.508417,11.38725 12.86863,28.42433 8.221434,7.8953"
        id="path1150"
@@ -2752,7 +2760,7 @@
            y="-87.412704"
            style="stroke-linecap:butt;stroke-linejoin:round" /></flowRegion><flowPara
          id="flowPara2268"
-         style="stroke-linecap:butt;stroke-linejoin:round"></flowPara></flowRoot>    <flowRoot
+         style="stroke-linecap:butt;stroke-linejoin:round" /></flowRoot>    <flowRoot
        xml:space="preserve"
        id="flowRoot2270"
        style="font-style:normal;font-weight:normal;font-size:10.66666698px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-linecap:butt;stroke-linejoin:round"
