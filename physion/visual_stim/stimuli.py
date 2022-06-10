@@ -1,7 +1,7 @@
 import numpy as np
 import itertools, os, sys, pathlib, time, json, tempfile
 try:
-    from psychopy import visual, core, event, clock, monitors # We actually do it below so that we can use the code without psychopy
+    from psychopy import visual, core, event, clock, monitors
 except ModuleNotFoundError:
     pass
 
@@ -11,15 +11,12 @@ from screens import SCREENS
 from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 
-def build_stim(protocol, no_psychopy=False):
+def build_stim(protocol):
     """
     """
 
-    if not no_psychopy:
-        from psychopy import visual, core, event, clock, monitors # some libraries from PsychoPy
-        
     if (protocol['Presentation']=='multiprotocol'):
-        return multiprotocol(protocol, no_psychopy=no_psychopy)
+        return multiprotocol(protocol)
     else:
         protocol_name = protocol['Stimulus'].replace('-image','').replace('-', '_').replace('+', '_')
         if hasattr(sys.modules[__name__], protocol_name):
@@ -561,7 +558,7 @@ class visual_stim:
 class movie_replay(visual_stim):
     """ TO BE IMPLEMENTED """
 
-    def __init__(self, protocol, no_psychopy=False):
+    def __init__(self, protocol):
 
         super().__init__(protocol)
 
@@ -576,8 +573,7 @@ class movie_replay(visual_stim):
 
 class multiprotocol(visual_stim):
 
-    def __init__(self, protocol, 
-                 no_psychopy=False):
+    def __init__(self, protocol):
 
         super().__init__(protocol, 
                          demo=(('demo' in protocol) and protocol['demo']))
@@ -593,7 +589,7 @@ class multiprotocol(visual_stim):
                 for key in protocol:
                     if ('Protocol-%i-'%i in key):
                         subprotocol[key.replace('Protocol-%i-'%i, '')] = protocol[key]
-                self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))
+                self.STIM.append(build_stim(subprotocol))
                 i+=1
         else:
             while 'Protocol-%i'%i in protocol:
@@ -606,7 +602,7 @@ class multiprotocol(visual_stim):
                     subprotocol['Screen'] = protocol['Screen']
                     subprotocol['no-window'] = True
                     subprotocol['demo'] = (('demo' in protocol) and protocol['demo'])
-                    self.STIM.append(build_stim(subprotocol, no_psychopy=no_psychopy))
+                    self.STIM.append(build_stim(subprotocol))
                     for key, val in subprotocol.items():
                         protocol['Protocol-%i-%s'%(i,key)] = val
                 i+=1
@@ -1433,7 +1429,7 @@ if __name__=='__main__':
                 from dataviz.datavyz.datavyz import graph_env
                 ge = graph_env('screen')
                 fig, ax = ge.figure()
-                stim = build_stim(protocol, no_psychopy=True)
+                stim = build_stim(protocol)
                 stim.plot_stim_picture(args.index, ax=ax)
                 ge.show()
             else:
