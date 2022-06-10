@@ -331,7 +331,7 @@ class Data:
     
     def init_visual_stim(self):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
-        self.visual_stim = build_stim(self.metadata, no_psychopy=True)
+        self.visual_stim = build_stim(self.metadata)
 
         
     def get_protocol_id(self, protocol_name):
