@@ -767,6 +767,7 @@ class vis_stim_image_built(visual_stim):
         image += 2*np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
                      contrast*np.exp(-(t-t0)**2/2./sT**2)
 
+
     def add_dot(self, image, pos, size, color, type='square'):
         """
         add dot, either square or circle
