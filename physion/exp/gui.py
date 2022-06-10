@@ -348,10 +348,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initialize(self):
 
-        if (self.stim is not None) and (self.stim.experiment['protocol-name']!=self.metadata['protocol']):
-            # need to remove the last stim
-            self.stim.close() 
-                    
         self.bufferButton.setEnabled(False) # should be already blocked, but for security 
         self.runButton.setEnabled(False) # acq blocked during init
 
@@ -362,6 +358,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['VisualStim']:
             self.statusBar.showMessage('[...] initializing acquisition & stimulation')
             if (self.stim is None) or (self.stim.experiment['protocol-name']!=self.metadata['protocol']):
+                if self.stim is not None:
+                    self.stim.close() # need to remove the last stim
                 self.init_visual_stim()
             else:
                 print('no need to reinit, same visual stim than before')
@@ -396,7 +394,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.acq = None
 
         self.init = True
-        if self.stim is not None:
+        if (self.stim is not None) and (self.stim.buffer is None):
             self.bufferButton.setEnabled(True)
         self.runButton.setEnabled(True)
 
@@ -412,18 +410,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.initButton.setEnabled(False)
         self.stopButton.setEnabled(False)
         self.runButton.setEnabled(False)
+        self.update()
         # ----------------------------------
         # buffers the visual stimulus
         if self.stim.buffer is None:
             self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
         else:
             print('\n --> visual stim already buffered, keeping this')
-        self.update()
         # ----------------------------------
         self.initButton.setEnabled(True)
         self.stopButton.setEnabled(True)
         self.runButton.setEnabled(True)
-        self.show()
+        self.update()
 
     def check_metadata(self):
         new_metadata = self.check_gui_to_init_metadata()
