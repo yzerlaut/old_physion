@@ -114,11 +114,11 @@ class MainWindow(QtWidgets.QMainWindow):
             potential_settings = folder.split('-')[-2]
             if potential_settings in list(PREPROCESSING_SETTINGS.keys()):
                 settings = potential_settings
+                print('using "%s" setting for: %s' % (settings, folder))
             else:
                 print('settings not found for', folder)
         else:
             settings = self.cbc.currentText()
-        print(settings)
         return settings
         
     def load_imaging(self):
@@ -147,12 +147,14 @@ class MainWindow(QtWidgets.QMainWindow):
             print('\n /!\ no "TSeries" folder found or added, set of command is empty ! \n')
                 
     def run(self):
-        if len(self.CMDS)==0 and self.delayBox.currentText()!='None':
+        if self.delayBox.currentText()!='None':
             # delaying the run by a delay
             delay = eval(self.delayBox.currentText().replace('s', '').replace('m', '*60').replace('h', '*3600').replace('d', '*86400'))
             print('sleeping for %is' % delay)
             time.sleep(delay)
             print('sleeping time over !')
+            # ----------------------------------------------------
+            self.CMDS = [] # we overwrite the previous commands
             # looping over folder after the delay (in case the transfer was done)
             folders = get_TSeries_folders(self.folder, limit_to_subdirectories=False)
             for f in folders:
