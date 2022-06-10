@@ -487,7 +487,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.acq is not None:
             self.acq.close()
         if self.stim is not None:
-            self.stim.close()
+            # self.stim.close() # -- NOW done only in init !!:w
             self.init = False
         if self.metadata['CaImaging']:
             self.send_CaImaging_Stop_signal()
