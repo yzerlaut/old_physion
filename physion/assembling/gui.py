@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbc.setMinimumWidth(150)
         self.cbc.move(100, HEIGHT)
         self.cbc.activated.connect(self.update_setting)
-        self.cbc.addItems(['custom', 'nidaq_only', 'lightweight', 'full'])
+        self.cbc.addItems(['lightweight', 'custom', 'nidaq_only', 'full'])
 
         HEIGHT +=40 
         s = QtWidgets.QLabel("Photodiode-Sampling (Hz)    ", self)
