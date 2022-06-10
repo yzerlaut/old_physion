@@ -18,8 +18,8 @@
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
    sodipodi:docname="visual-field.svg"
    inkscape:export-filename="/home/yann.zerlaut/work/physion/doc/visual-field.png"
-   inkscape:export-xdpi="200"
-   inkscape:export-ydpi="200">
+   inkscape:export-xdpi="100"
+   inkscape:export-ydpi="100">
   <defs
      id="defs2"
      style="stroke-linecap:butt;stroke-linejoin:round">
@@ -908,7 +908,7 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7071068"
-     inkscape:cx="-247.1275"
+     inkscape:cx="-522.19203"
      inkscape:cy="158.90386"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -931,7 +931,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>

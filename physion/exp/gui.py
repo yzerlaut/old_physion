@@ -343,10 +343,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.protocol['demo'] = False
 
         self.stim = build_stim(self.protocol)
+        self.stim.experiment['protocol-name'] = self.metadata['protocol'] # storing in stim for later, to check the need to re-buffer
 
 
     def initialize(self):
 
+        if (self.stim is not None) and (self.stim.experiment['protocol-name']!=self.metadata['protocol']):
+            # need to remove the last stim
+            self.stim.close() 
+                    
         self.bufferButton.setEnabled(False) # should be already blocked, but for security 
         self.runButton.setEnabled(False) # acq blocked during init
 
@@ -356,7 +361,10 @@ class MainWindow(QtWidgets.QMainWindow):
         max_time = 2*60*60 # 2 hours by default, so should be stopped manually
         if self.metadata['VisualStim']:
             self.statusBar.showMessage('[...] initializing acquisition & stimulation')
-            self.init_visual_stim()
+            if (self.stim is None) or (self.stim.experiment['protocol-name']!=self.metadata['protocol']):
+                self.init_visual_stim()
+            else:
+                print('no need to reinit, same visual stim than before')
             np.save(os.path.join(str(self.datafolder.get()), 'visual-stim.npy'), self.stim.experiment)
             print('[ok] Visual-stimulation data saved as "%s"' % os.path.join(str(self.datafolder.get()), 'visual-stim.npy'))
             if ('time_stop' in self.stim.experiment) and self.stim.buffer is not None:
@@ -406,7 +414,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.runButton.setEnabled(False)
         # ----------------------------------
         # buffers the visual stimulus
-        self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
+        if self.stim.buffer is None:
+            self.stim.buffer_stim(self, gui_refresh_func=self.app.processEvents)
+        else:
+            print('\n --> visual stim already buffered, keeping this')
         self.update()
         # ----------------------------------
         self.initButton.setEnabled(True)
@@ -455,8 +466,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 if self.metadata['FaceCamera']:
                     self.run_event.clear() # this will close the camera process
                 # close visual stim
-                if self.metadata['VisualStim']:
-                    self.stim.close() # close the visual stim
+                # if self.metadata['VisualStim']:
+                    # self.stim.close() close the visual stim
                 if self.acq is not None:
                     self.acq.close()
                 if self.metadata['CaImaging'] and not self.stop_flag: # outside the pure acquisition case
@@ -522,5 +533,5 @@ def run(app, demo=False):
     
 if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
-    main = run(app, demo='demo' in sys.argv)
+    main = run(app, demo=('demo' in sys.argv) or ('--demo' in sys.argv))
     sys.exit(app.exec_())
