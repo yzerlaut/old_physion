@@ -764,8 +764,11 @@ class vis_stim_image_built(visual_stim):
         N.B. when contrast=1, you need black background, otherwise it will saturate
              when contrast=0.5, you can start from the grey background to reach white in the center
         """
-        image += 2*np.exp(-((self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
-                     contrast*np.exp(-(t-t0)**2/2./sT**2)
+        cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
+        image[cond] = 1 
+
+        # image += 2*np.exp(-(0*(self.x-xcenter)**2+(self.z-zcenter)**2)/2./radius**2)*\
+                     # contrast*np.exp(-(t-t0)**2/2./sT**2)
 
 
     def add_dot(self, image, pos, size, color, type='square'):
