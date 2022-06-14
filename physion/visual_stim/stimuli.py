@@ -1010,24 +1010,32 @@ class line_moving_dots(vis_stim_image_built):
                                  'color':'red'}):
 
         cls = (parent if parent is not None else self)
-        tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
-                             cls.experiment['time_start'][episode])
-        ax = self.show_frame(episode, ax=ax, label=label,
-                             time_from_episode_start=tcenter_minus,
-                             parent=parent)
-
         direction = cls.experiment['direction'][episode]
-        if direction==0:
-            print(0)
 
-        # print(direction)
-        arrow['direction'] = ((direction+180)%180)+180
-        # print(arrow['direction'])
+        png_name = 'line-mv-dots_direction-%i.png' %  direction
+        filename = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
+                                'doc', 'stimuli', png_name)
+        if os.path.isfile(filename):
+            print('ok')
+        # cls = (parent if parent is not None else self)
+        # tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
+                             # cls.experiment['time_start'][episode])
+        # ax = self.show_frame(episode, ax=ax, label=label,
+                             # time_from_episode_start=tcenter_minus,
+                             # parent=parent)
 
-        for shift in [-.5, 0, .5]:
-            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
-                               shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
-            self.add_arrow(arrow, ax)
+        # direction = cls.experiment['direction'][episode]
+        # if direction==0:
+            # print(0)
+
+        # # print(direction)
+        # arrow['direction'] = ((direction+180)%180)+180
+        # # print(arrow['direction'])
+
+        # for shift in [-.5, 0, .5]:
+            # arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
+                               # shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
+            # self.add_arrow(arrow, ax)
 
         return ax
 
@@ -1391,6 +1399,7 @@ class Natural_Image_VSE(visual_stim):
         cls = (parent if parent is not None else self)
         if cls.experiment['vary-VSE-with-Image'][index]==1:
             return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
             return int(cls.experiment['VSE-seed'][index])
 
         
