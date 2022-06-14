@@ -55,7 +55,7 @@ def summary_fig(results):
 
 def analysis_pdf(datafile,
                  iprotocol=0, 
-                 stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2],
+                 stat_test_props=dict(interval_pre=[-1,0], interval_post=[0.5,1.5],
                                       test='anova', positive=True),
                  response_significance_threshold=0.05,
                  quantity='dFoF',
@@ -79,12 +79,16 @@ def analysis_pdf(datafile,
 
         print('   - spatial-selectivity analysis for summed ROI fluo (n=%i rois)' % EPISODES.data.nROIs)
         
-        fig, AX = EPISODES.plot_trial_average(quantity=quantity, roiIndices='all', roiIndex=None, 
+        fig, AX = EPISODES.plot_trial_average(quantity='dFoF', 
+                                              roiIndices='all', roiIndex=None, 
                                               column_key='x-center', row_key='y-center', # color_key='angle',
-                                              ybar=0.2, ybarlabel='0.2dF/F',
+                                              ybar=2, ybarlabel='2 s.d.',
+                                              norm='Zscore-time-variations-after-trial-averaging-per-roi',
+                                              with_std_over_rois=False,
+                                              # ybar=0.2, ybarlabel='0.2dF/F',
                                               xbar=1., xbarlabel='1s',
                                               with_annotation=True,
-                                              with_std=False,
+                                              # with_std=False,
                                               with_stat_test=True, stat_test_props=stat_test_props,
                                               with_screen_inset=True,
                                               verbose=verbose)
