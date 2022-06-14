@@ -720,6 +720,22 @@ class vis_stim_image_built(visual_stim):
         if 'appearance_threshold' not in protocol:
             protocol['appearance_threshold'] = 2.5 # 
 
+    def get_image(self):
+        print('should be implemented in child class ! ')
+        return 0.5+0*self.x # grey screen by default
+
+
+    def get_frames_sequence(self, index, parent=None):
+        """
+        """
+        cls = (parent if parent is not None else self)
+        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
+        for iframe, t in enumerate(times):
+            FRAMES.append(self.image_to_frame(self.get_image(index,
+                                                             time_from_episode_start=t,
+                                                             parent=parent)))
+        return time_indices, FRAMES, self.refresh_freq
+
 
     def compute_frame_order(self, cls, times, index):
         """
@@ -797,17 +813,6 @@ class uniform_bg(vis_stim_image_built):
         super().__init__(protocol,
                          keys=['bg-color'])
 
-    def get_frames_sequence(self, index, parent=None):
-        """
-        """
-        cls = (parent if parent is not None else self)
-        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
-        for iframe, t in enumerate(times):
-            FRAMES.append(self.image_to_frame(self.get_image(index,
-                                                             parent=parent)))
-        return time_indices, FRAMES, self.refresh_freq
-
-
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
         return init_bg_image(cls, episode)
@@ -839,16 +844,6 @@ class center_grating(vis_stim_image_built):
                                'x-center', 'y-center',
                                'radius','spatial-freq',
                                'angle', 'contrast'])
-
-    def get_frames_sequence(self, index, parent=None):
-        """
-        """
-        cls = (parent if parent is not None else self)
-        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
-        for iframe, t in enumerate(times):
-            FRAMES.append(self.image_to_frame(self.get_image(index,
-                                                             parent=parent)))
-        return time_indices, FRAMES, self.refresh_freq
 
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
@@ -885,18 +880,6 @@ class center_drifting_grating(vis_stim_image_built):
                                'x-center', 'y-center',
                                'radius','spatial-freq',
                                'angle', 'contrast'])
-
-    def get_frames_sequence(self, index, parent=None):
-        """
-        """
-        cls = (parent if parent is not None else self)
-        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
-        for iframe, t in enumerate(times):
-            FRAMES.append(self.image_to_frame(self.get_image(index,
-                                                             time_from_episode_start=t,
-                                                             parent=parent)))
-        return time_indices, FRAMES, self.refresh_freq
-
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
@@ -980,7 +963,8 @@ class line_moving_dots(vis_stim_image_built):
 
     def get_frames_sequence(self, index, parent=None):
         """
-        get frame seq
+        We overwrite the method (easier than finding an equation
+        to have the frame at time t)
         """
         cls = (parent if parent is not None else self)
 
@@ -1026,24 +1010,34 @@ class line_moving_dots(vis_stim_image_built):
                                  'color':'red'}):
 
         cls = (parent if parent is not None else self)
-        tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
-                             cls.experiment['time_start'][episode])
-        ax = self.show_frame(episode, ax=ax, label=label,
-                             time_from_episode_start=tcenter_minus,
-                             parent=parent)
-
         direction = cls.experiment['direction'][episode]
-        if direction==0:
-            print(0)
 
-        # print(direction)
-        arrow['direction'] = ((direction+180)%180)+180
-        # print(arrow['direction'])
+        png_name = 'line-mv-dots_direction-%i.png' %  direction
+        filename = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
+                                'doc', 'stimuli', png_name)
 
-        for shift in [-.5, 0, .5]:
-            arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
-                               shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
-            self.add_arrow(arrow, ax)
+        if os.path.isfile(filename):
+            ge.image(filename, ax=ax)
+
+        # cls = (parent if parent is not None else self)
+        # tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
+                             # cls.experiment['time_start'][episode])
+        # ax = self.show_frame(episode, ax=ax, label=label,
+                             # time_from_episode_start=tcenter_minus,
+                             # parent=parent)
+
+        # direction = cls.experiment['direction'][episode]
+        # if direction==0:
+            # print(0)
+
+        # # print(direction)
+        # arrow['direction'] = ((direction+180)%180)+180
+        # # print(arrow['direction'])
+
+        # for shift in [-.5, 0, .5]:
+            # arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
+                               # shift*np.cos(np.pi/180.*direction)*np.max(cls.z)/3.]
+            # self.add_arrow(arrow, ax)
 
         return ax
 
@@ -1407,6 +1401,7 @@ class Natural_Image_VSE(visual_stim):
         cls = (parent if parent is not None else self)
         if cls.experiment['vary-VSE-with-Image'][index]==1:
             return int(cls.experiment['VSE-seed'][index]+1000*cls.experiment['Image-ID'][index])
+        else:
             return int(cls.experiment['VSE-seed'][index])
 
         
@@ -1463,38 +1458,18 @@ class gaussian_blobs(vis_stim_image_built):
                           'center-time', 'extent-time',
                           'contrast', 'bg-color'])
 
-    def get_frames_sequence(self, index, parent=None):
-        """
-        Generator creating a random number of chunks (but at most max_chunks) of length chunk_length containing
-        random samples of sin([0, 2pi]).
-        """
+    def get_image(self, index, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-
-        time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
-
-        for iframe, t in enumerate(times):
-            img = init_bg_image(cls, index)
-            self.add_gaussian(img,
-                              t=t, 
-                              contrast = cls.experiment['contrast'][index],
-                              xcenter=cls.experiment['x-center'][index],
-                              zcenter=cls.experiment['y-center'][index],
-                              radius = cls.experiment['radius'][index],
-                              t0=cls.experiment['center-time'][index],
-                              sT=cls.experiment['extent-time'][index])
-            FRAMES.append(img)
-
-        return time_indices, FRAMES, self.refresh_freq
-
-    def get_image(self, episode, time_from_episode_start=0, parent=None):
-        cls = (parent if parent is not None else self)
-        xcenter, zcenter = cls.experiment['x-center'][episode], cls.experiment['y-center'][episode]
-        radius = cls.experiment['radius'][episode]
-        t0, sT = cls.experiment['center-time'][episode], cls.experiment['extent-time'][episode]
-        return np.exp(-((cls.x-xcenter)**2+(cls.z-zcenter)**2)/2./radius**2)*\
-            np.exp(-(time_from_episode_start-t0)**2/2./sT**2)*\
-            cls.experiment['contrast'][episode]+cls.experiment['bg-color'][episode]
-    
+        img = init_bg_image(cls, index)
+        self.add_gaussian(img,
+                          t=time_from_episode_start, 
+                          contrast = cls.experiment['contrast'][index],
+                          xcenter=cls.experiment['x-center'][index],
+                          zcenter=cls.experiment['y-center'][index],
+                          radius = cls.experiment['radius'][index],
+                          t0=cls.experiment['center-time'][index],
+                          sT=cls.experiment['extent-time'][index])
+        return img    
 
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
@@ -1534,12 +1509,12 @@ if __name__=='__main__':
                 protocol['buffer'] = False 
             parent = dummy_parent()
             if args.plot:
-                protocol['no-window'] = True
-            
                 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
                 from dataviz.datavyz.datavyz import graph_env
                 ge = graph_env('screen')
                 fig, ax = ge.figure()
+                # 
+                protocol['no-window'] = True
                 stim = build_stim(protocol)
                 stim.plot_stim_picture(args.index, ax=ax)
                 ge.show()
