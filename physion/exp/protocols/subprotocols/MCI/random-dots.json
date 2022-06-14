@@ -22,12 +22,12 @@
   "bg-color-1": 0.5,
   "bg-color-2": 0.5,
   "N-bg-color": 0,
-  "seed-1": 3,
-  "seed-2": 5,
-  "N-seed": 0,
+  "seed-1": 1,
+  "seed-2": 10,
+  "N-seed": 10,
   "dotcolor-1": -1,
   "dotcolor-2": -1,
   "N-dotcolor": 0,
   "starting-index": 0,
-  "N-repeat": 10
+  "N-repeat": 2
 }

@@ -1176,7 +1176,7 @@ class random_dots(vis_stim_image_built):
 
         time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        np.random.seed(self.experiment['seed'][index]+3*index) # changing seed at each realization
+        np.random.seed(int(cls.experiment['seed'][index]+3*index)) # changing seed at each realization
         for iframe, t in enumerate(times):
             img = compute_new_image_with_dots(cls, index)
             FRAMES.append(self.image_to_frame(img))
@@ -1221,7 +1221,7 @@ class mixed_random_dots_static_patch(vis_stim_image_built):
 
         time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        np.random.seed(self.experiment['seed'][index]+3*index) # changing seed at each realization
+        np.random.seed(int(cls.experiment['seed'][index]+3*index)) # changing seed at each realization
         for iframe, t in enumerate(times):
             # random dot frame
             img = compute_new_image_with_dots(cls, index)
