@@ -349,16 +349,15 @@ class MultimodalData(read_NWB.Data):
     ### ----- IMAGING PLOT components -----
     ###-------------------------------------
 
-    def find_roi_coords(self, roiIndex):
+    def find_full_roi_coords(self, roiIndex):
 
         indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
                             (self.pixel_masks_index[roiIndex] if roiIndex<len(self.valid_roiIndices) else len(self.pixel_masks_index)))
-        mx = np.mean([self.pixel_masks[ii][1] for ii in indices])
-        sx = np.std([self.pixel_masks[ii][1] for ii in indices])
-        my = np.mean([self.pixel_masks[ii][0] for ii in indices])
-        sy = np.std([self.pixel_masks[ii][1] for ii in indices])
+        return [self.pixel_masks[ii][1] for ii in indices],  [self.pixel_masks[ii][0] for ii in indices]
 
-        return my, mx, sy, sx
+    def find_roi_coords(self, roiIndex):
+        x, y = self.find_full_roi_coords(roiIndex)
+        return np.mean(y), np.mean(x), np.std(y), np.std(x)
 
     def find_roi_extent(self, roiIndex, roi_zoom_factor=10.):
 
@@ -392,7 +391,7 @@ class MultimodalData(read_NWB.Data):
         ax.add_patch(ellipse)
 
     def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None,
-                           roiIndex=None,
+                           roiIndex=None, roiIndices=[],
                            roi_zoom_factor=10,
                            roi_lw=3,
                            with_roi_zoom=False,):
@@ -414,10 +413,23 @@ class MultimodalData(read_NWB.Data):
         img = np.power(img, 1/NL)
         img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', extent=extent, origin='lower')
         ax.axis('off')
-        
+
         if roiIndex is not None:
             self.add_roi_ellipse(roiIndex, ax, roi_lw=roi_lw)
 
+        if roiIndices=='all':
+            roiIndices = self.valid_roiIndices
+
+        for roiIndex in roiIndices:
+            x, y = self.find_full_roi_coords(roiIndex)
+            ax.plot(x, y, '.', 
+                    # color=ge.tab10(roiIndex%10), 
+                    # color=plt.cm.hsv(np.random.uniform(0,1)),
+                    color=plt.cm.autumn(np.random.uniform(0,1)),
+                    alpha=0.5,
+                    ms=0.1)
+        ax.annotate('%i ROIs' % len(roiIndices), (-0.1, 0), xycoords='axes fraction', rotation=90)
+        
         ge.title(ax, key)
         
         return fig, ax, img
@@ -983,7 +995,6 @@ if __name__=='__main__':
 
     args = parser.parse_args()
     
-
     if args.ops=='raw':
         data = MultimodalData(args.datafile)
         data.plot_raw_data(args.tlim, 
@@ -1052,7 +1063,12 @@ if __name__=='__main__':
                                           data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
     elif args.ops=='FOV':
-        fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
+        data = MultimodalData(args.datafile)
+        fig, ax = ge.figure(figsize=(2,4), left=0.1, bottom=0.1)
+        data.show_CaImaging_FOV('meanImg', NL=3,
+                cmap=ge.get_linear_colormap('k', 'lightgreen'), 
+                roiIndices='all',
+                ax=ax)
     else:
         print(' option not recognized !')
         

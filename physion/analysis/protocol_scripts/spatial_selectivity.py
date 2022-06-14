@@ -82,16 +82,16 @@ def analysis_pdf(datafile,
         fig, AX = EPISODES.plot_trial_average(quantity='dFoF', 
                                               roiIndices='all', roiIndex=None, 
                                               column_key='x-center', row_key='y-center', # color_key='angle',
-                                              ybar=2, ybarlabel='2 s.d.',
                                               norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                                              with_std_over_rois=False,
-                                              # ybar=0.2, ybarlabel='0.2dF/F',
+                                              ybar=2, ybarlabel='2 s.d.',
                                               xbar=1., xbarlabel='1s',
                                               with_annotation=True,
-                                              # with_std=False,
+                                              with_std=False,
+                                              with_std_over_rois=False,
                                               with_stat_test=True, stat_test_props=stat_test_props,
                                               with_screen_inset=True,
                                               verbose=verbose)
+        ge.annotate(AX[0][0], 'Z-score $\Delta$F/F time variations after trial average ', (-0.3,-0.1), rotation=90, size='x-small', va='top')
         pdf.savefig(fig); plt.close(fig) # Add figure to pdf and close
         
         for roi in np.arange(EPISODES.data.nROIs)[:Nmax]:
