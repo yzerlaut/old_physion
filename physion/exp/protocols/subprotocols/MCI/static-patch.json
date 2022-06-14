@@ -5,14 +5,12 @@
   "shuffling-seed": 23,
   "movie_refresh_freq":2,
   "presentation-duration": 1,
-  "presentation-prestim-period": 0.1,
+  "presentation-prestim-period": 3,
   "presentation-poststim-period": 3,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
   "presentation-interstim-period": 3,
   "presentation-interstim-screen": 0,
-  "N-repeat": 20,
-  "starting-index": 0,
   "angle-1": 90,
   "angle-2": 90,
   "N-angle": 0,
@@ -33,5 +31,7 @@
   "N-contrast": 0,
   "bg-color-1": 0.5,
   "bg-color-2": 0.5,
-  "N-bg-color": 0
+  "N-bg-color": 0,
+  "starting-index": 0,
+  "N-repeat": 20
 }
