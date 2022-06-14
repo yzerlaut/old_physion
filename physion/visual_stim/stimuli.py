@@ -1015,10 +1015,10 @@ class line_moving_dots(vis_stim_image_built):
         png_name = 'line-mv-dots_direction-%i.png' %  direction
         filename = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
                                 'doc', 'stimuli', png_name)
+
         if os.path.isfile(filename):
-            img = plt.imread(filename)
-            ax.imshow(img)
-            print('ok')
+            ge.image(filename, ax=ax)
+
         # cls = (parent if parent is not None else self)
         # tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
                              # cls.experiment['time_start'][episode])
