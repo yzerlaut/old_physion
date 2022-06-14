@@ -1016,6 +1016,8 @@ class line_moving_dots(vis_stim_image_built):
         filename = os.path.join(str(pathlib.Path(__file__).resolve().parents[2]),
                                 'doc', 'stimuli', png_name)
         if os.path.isfile(filename):
+            img = plt.imread(filename)
+            ax.imshow(img)
             print('ok')
         # cls = (parent if parent is not None else self)
         # tcenter_minus = .2*(cls.experiment['time_stop'][episode]-\
@@ -1507,12 +1509,12 @@ if __name__=='__main__':
                 protocol['buffer'] = False 
             parent = dummy_parent()
             if args.plot:
-                protocol['no-window'] = True
-            
                 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
                 from dataviz.datavyz.datavyz import graph_env
                 ge = graph_env('screen')
                 fig, ax = ge.figure()
+                # 
+                protocol['no-window'] = True
                 stim = build_stim(protocol)
                 stim.plot_stim_picture(args.index, ax=ax)
                 ge.show()
