@@ -1,11 +1,10 @@
-import os
+import os, sys, pathlib
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.interpolate import interp1d
-try:
-    from datavyz import ge
-except ModuleNotFoundError:
-    pass
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 
 
 def normalize(response, norm_type, verbose=False):
