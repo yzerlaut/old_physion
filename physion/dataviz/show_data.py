@@ -1069,6 +1069,7 @@ if __name__=='__main__':
                 cmap=ge.get_linear_colormap('k', 'lightgreen'), 
                 roiIndices='all',
                 ax=ax)
+        ge.save_on_desktop(fig, 'fig.png', dpi=400)
     else:
         print(' option not recognized !')
         
