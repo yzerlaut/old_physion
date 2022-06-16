@@ -412,7 +412,10 @@ class MultimodalData(read_NWB.Data):
         
         img = (img-img.min())/(img.max()-img.min())
         img = np.power(img, 1/NL)
-        img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', extent=extent, origin='lower')
+        img = ax.imshow(img, vmin=0, vmax=1,
+                        cmap=cmap, aspect='equal',
+                        interpolation='none',
+                        extent=extent, origin='lower')
         ax.axis('off')
         
         if roiIndex is not None:
@@ -983,7 +986,6 @@ if __name__=='__main__':
 
     args = parser.parse_args()
     
-
     if args.ops=='raw':
         data = MultimodalData(args.datafile)
         data.plot_raw_data(args.tlim, 
@@ -1052,7 +1054,8 @@ if __name__=='__main__':
                                           data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
     elif args.ops=='FOV':
-        fig, ax = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
+        data = MultimodalData(args.datafile)
+        fig, ax, img = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
     else:
         print(' option not recognized !')
         

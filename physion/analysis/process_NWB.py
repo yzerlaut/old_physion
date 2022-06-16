@@ -42,7 +42,8 @@ class EpisodeResponse:
         self.varied_parameters, self.fixed_parameters =  {}, {}
         for key in full_data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
-                           'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim']:
+                           'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim',
+                           'protocol-name']:
                 unique = np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
@@ -185,7 +186,10 @@ class EpisodeResponse:
                 for quantity, response in zip(QUANTITIES, RESPS):
                     getattr(self, quantity).append(response)
                 for key in full_data.nwbfile.stimulus.keys():
-                    getattr(self, key).append(full_data.nwbfile.stimulus[key].data[iEp])
+                    try:
+                        getattr(self, key).append(full_data.nwbfile.stimulus[key].data[iEp])
+                    except BaseException as be:
+                        pass # we skip thise variable
 
         # transform stim params to np.array
         for key in full_data.nwbfile.stimulus.keys():
