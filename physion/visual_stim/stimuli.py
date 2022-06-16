@@ -1440,6 +1440,43 @@ class Natural_Image_VSE(visual_stim):
         else:
             return None
 
+    def plot_stim_picture(self, episode, parent=None, 
+                          vse=True, ax=None,
+                          time_from_episode_start=0):
+
+        cls = (parent if parent is not None else self)
+
+        if ax==None:
+            import matplotlib.pylab as plt
+            fig, ax = plt.subplots(1)
+
+        img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
+                        time_from_episode_start=time_from_episode_start,
+                        parent=cls).T, psychopy_to_numpy=True),
+                      cmap='gray', vmin=0, vmax=1,
+                      origin='lower',
+                      aspect='equal')
+
+        self.vse = self.get_vse(episode, parent=cls)
+        self.add_vse(ax, self.vse)
+
+        ax.axis('off')
+
+        return ax
+        # if label is not None:
+            # nz, nx = self.x.shape
+            # L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
+            # ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
+            # ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
+            # ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
+
+        # if return_img:
+            # return img
+        # else:
+            # return ax
+
+            
+
 #####################################################
 ##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
 #####################################################
