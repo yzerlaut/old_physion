@@ -1441,7 +1441,7 @@ class Natural_Image_VSE(visual_stim):
             return None
 
     def plot_stim_picture(self, episode, parent=None, 
-                          vse=True, ax=None,
+                          vse=True, ax=None, label=None,
                           time_from_episode_start=0):
 
         cls = (parent if parent is not None else self)

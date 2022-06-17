@@ -448,6 +448,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                  quantities=['dFoF'],
                  quantities_args=None,
                  prestim_duration=None,
+                 dt_sampling=10, # ms
                  verbose=False,
                  with_visual_stim=False):
         """ plot Episode Response """
@@ -463,6 +464,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                          quantities=quantities,
                          quantities_args=quantities_args,
                          prestim_duration=prestim_duration,
+                         dt_sampling=dt_sampling,
                          verbose=verbose)
         
     def plot_trial_average(self,
