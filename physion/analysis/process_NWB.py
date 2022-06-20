@@ -28,6 +28,7 @@ class EpisodeResponse:
         # choosing protocol (if multiprotocol)
         self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
         self.protocol_name = full_data.protocols[protocol_id]
+        self.protocol_id = protocol_id
 
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
@@ -153,8 +154,9 @@ class EpisodeResponse:
             tstart = full_data.nwbfile.stimulus['time_start_realigned'].data[iEp]
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
-            print(iEp, tstart, tstop)
-            print(full_data.nwbfile.stimulus['patch-delay'].data[iEp])
+            # print(iEp, tstart, tstop)
+            # print(full_data.nwbfile.stimulus['patch-delay'].data[iEp])
+
             RESPS, success = [], True
             for quantity, tfull, valfull in zip(QUANTITIES, QUANTITY_TIMES, QUANTITY_VALUES):
                 
@@ -177,6 +179,7 @@ class EpisodeResponse:
                         RESPS.append(func(self.t))
                         
                 except BaseException as be:
+
                     success=False # we switch this off to remove the episode in all modalities
                     if verbose:
                         print('----')
@@ -185,7 +188,9 @@ class EpisodeResponse:
                         
                         print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
                         
+
             if success:
+
                 # only succesful episodes in all modalities
                 for quantity, response in zip(QUANTITIES, RESPS):
                     getattr(self, quantity).append(response)
@@ -198,12 +203,12 @@ class EpisodeResponse:
         # transform stim params to np.array
         for key in full_data.nwbfile.stimulus.keys():
             setattr(self, key, np.array(getattr(self, key)))
+
         for q in QUANTITIES:
             setattr(self, q, np.array(getattr(self, q)))
 
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
-        self.protocol_id = protocol_id
         
         if verbose:
             print('  -> [ok] episodes ready !')
@@ -260,12 +265,16 @@ class EpisodeResponse:
         
         if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]):
             for n in range(len(key)):
+                print(key[n], self.varied_parameters[key[n]][index[n]])
                 # looping over provided keys
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
-                
+         
         elif key is not None and index is not None:
+            print(index)
+            print(getattr(self, key)==self.varied_parameters[key][index])
             cond = cond & (getattr(self, key)==self.varied_parameters[key][index])
-            
+       
+        print(cond)
         return cond
 
     
@@ -369,17 +378,21 @@ if __name__=='__main__':
         episode = EpisodeResponse(data,
                                   protocol_id=3,
                                   # quantities=['pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
-                                  # quantities=['pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
                                   quantities=['dFoF'],
                                   dt_sampling=10)
+
         from datavyz import ge
         fig, ax = ge.figure(figsize=(1.3,2))
 
         for i in range(3):
+            print(getattr(episode, 'patch-delay')[episode.find_episode_cond(['speed',
+                                                                             'patch-delay'],
+                                                                             [0,i])])
             ax.plot(episode.dFoF[episode.find_episode_cond(['speed', 'patch-delay'],
-                                                           [0,i]),:,:].mean(axis=(0,1)),
-                                                           color=ge.tab10(i))
-            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (1,1), va='top', ha='right', color=ge.tab10(i))
+                                                            [0,i]),:,:].mean(axis=(0,1)),
+                                                            color=ge.tab10(i))
+            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (1,1), 
+                    va='top', ha='right', color=ge.tab10(i))
 
         # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
         ge.show()
