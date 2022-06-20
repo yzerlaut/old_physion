@@ -58,7 +58,8 @@ class EpisodeResponse:
             prestim_duration = 1 # still 1s is a minimum
         ipre = int(prestim_duration/dt_sampling*1e3)
 
-        duration = full_data.nwbfile.stimulus['time_stop'].data[self.protocol_cond_in_full_data][0]-full_data.nwbfile.stimulus['time_start'].data[self.protocol_cond_in_full_data][0]
+        duration = full_data.nwbfile.stimulus['time_stop'].data[self.protocol_cond_in_full_data][0]-\
+                full_data.nwbfile.stimulus['time_start'].data[self.protocol_cond_in_full_data][0]
         idur = int(duration/dt_sampling/1e-3)
         # -> time array:
         self.t = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
@@ -152,6 +153,8 @@ class EpisodeResponse:
             tstart = full_data.nwbfile.stimulus['time_start_realigned'].data[iEp]
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
+            print(iEp, tstart, tstop)
+            print(full_data.nwbfile.stimulus['patch-delay'].data[iEp])
             RESPS, success = [], True
             for quantity, tfull, valfull in zip(QUANTITIES, QUANTITY_TIMES, QUANTITY_VALUES):
                 
@@ -364,11 +367,22 @@ if __name__=='__main__':
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
-                                  quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
-        print(episode.quantities)
-        # from datavyz import ge
+                                  protocol_id=3,
+                                  # quantities=['pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+                                  # quantities=['pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
+                                  quantities=['dFoF'],
+                                  dt_sampling=10)
+        from datavyz import ge
+        fig, ax = ge.figure(figsize=(1.3,2))
+
+        for i in range(3):
+            ax.plot(episode.dFoF[episode.find_episode_cond(['speed', 'patch-delay'],
+                                                           [0,i]),:,:].mean(axis=(0,1)),
+                                                           color=ge.tab10(i))
+            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (1,1), va='top', ha='right', color=ge.tab10(i))
+
         # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
-        # ge.show()
+        ge.show()
         # episode = EpisodeResponse(data,
         #                           quantities=['Pupil', 'CaImaging', 'CaImaging'],
         #                           quantities_args=[{}, {'subquantity':'Fluorescence'}, {'subquantity':'dFoF', 'roiIndices':np.arange(10)}])
