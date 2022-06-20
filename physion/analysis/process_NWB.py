@@ -40,11 +40,12 @@ class EpisodeResponse:
 
         # find the parameter(s) varied within that specific protocol
         self.varied_parameters, self.fixed_parameters =  {}, {}
+        
         for key in full_data.nwbfile.stimulus.keys():
             if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
                            'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim',
                            'protocol-name']:
-                unique = np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])
+                unique = np.sort(np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data]))
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
                 elif len(unique)==1:
