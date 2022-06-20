@@ -209,8 +209,8 @@ class MCI_data:
             
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
-                          delay=0, 
-                          patch_baseline_end=0):
+                          delay=0,
+                          patch_baseline_window=[-1,0]):
         """
         the linear prediction is build by adding the patch evoke resp to the motion trace
             we remove the baseline for mthe patch resp so that it has a zero baseline
@@ -218,8 +218,9 @@ class MCI_data:
         """
 
         i_mVdot_center = np.argwhere(self.episode_moving_dots.t>delay)[0][0]
-        patch_evoked_t = self.episode_static_patch.t>patch_baseline_end
-        patch_baseline = np.mean(patch_resp[self.episode_static_patch.t<patch_baseline_end])
+        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[0]
+        patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) & (self.episode_static_patch.t<=patch_baseline_window[1])
+        patch_baseline = np.mean(patch_resp[patch_baseline_cond])
 
         resp = 0*self.episode_moving_dots.t + mvDot_resp # mvDot_resp by default
 
@@ -236,6 +237,7 @@ class MCI_data:
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
                       integral_window=2.,
+                      patch_baseline_window=[-1,0],
                       roiIndices=[0]):
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
@@ -249,7 +251,8 @@ class MCI_data:
         else:
             scaling_factor = 1.
             
-        responses = {'nROIs':len(roiIndices), 'integral_window':integral_window}
+        responses = {'nROIs':len(roiIndices),
+                     'integral_window':integral_window}
         
         # static patch 
         resp = self.episode_static_patch.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
@@ -265,15 +268,24 @@ class MCI_data:
         resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
         responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
-        responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.data.get_protocol_id('static-patch')+1)]
-        responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.data.get_protocol_id('moving-dots')+1)]
+        responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
+        responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
 
+        # speeds
+        if hasattr(self.episode_mixed, 'speed'):
+            speeds = getattr(self.episode_mixed, 'speed')[mixed_cond]
+            responses['mvDot-speed'] = speeds[0]
+        else:
+            responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
+            
+        # delays
         delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
-        
-        if len(np.unique(delays))<2:
+        if len(np.unique(delays))==1:
             responses['delay'] = delays[0] # storing delay for later
             # linear pred.
-            responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], delay=responses['delay'])
+            responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
+                                                         delay=responses['delay'],
+                                                         patch_baseline_window=patch_baseline_window)
             integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
             responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
             responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
@@ -308,7 +320,7 @@ def make_proportion_fig(data,
         ax.bar([n], [100.*len(rois_of_interest_contour[key])/data.nROIs], color=ge.blue)
         ticks.append(key)
         n+=1
-    print(list(rois_of_interest_motion.keys())[::2])
+
     for key in list(rois_of_interest_motion.keys())[::2]:
         ax.bar([n], [100.*len(rois_of_interest_motion[key])/data.nROIs], color=ge.orange)
         ticks.append(key)

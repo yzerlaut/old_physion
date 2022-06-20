@@ -247,13 +247,22 @@ class EpisodeResponse:
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
     
-    def find_episode_cond(self, key, index):
+    def find_episode_cond(self, key=None, index=None):
+        """
+        by default returns the conditions of all episodes in the protocol
+        'key' and 'index' can be either lists of values
+        """
+        
+        cond = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+        
         if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]):
-            cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
-            for n in range(1, len(key)):
+            for n in range(len(key)):
+                # looping over provided keys
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
-        else:
-            cond = (getattr(self, key)==self.varied_parameters[key][index])
+                
+        elif key is not None and index is not None:
+            cond = cond & (getattr(self, key)==self.varied_parameters[key][index])
+            
         return cond
 
     
@@ -266,14 +275,19 @@ class EpisodeResponse:
         response = self.get_response(**response_args)
         
         if episode_cond is None:
-            episode_cond = np.ones(response.shape[0], dtype=bool)
+            episode_cond = self.find_episode_cond()
 
         pre_cond  = self.compute_interval_cond(interval_pre)
         post_cond  = self.compute_interval_cond(interval_post)
 
-        return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
-                                   response[episode_cond,:][:,post_cond].mean(axis=1),
-                                   test=test, positive=positive)
+        if len(response.shape)>1 and (np.sum(episode_cond)>1):
+            return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
+                                       response[episode_cond,:][:,post_cond].mean(axis=1),
+                                       test=test, positive=positive)
+        else:
+            return stat_tools.StatTest(None, None,
+                                       test=test, positive=positive)
+
 
     def compute_stats_over_repeated_trials(self, key, index,
                                            response_args={},
@@ -322,7 +336,6 @@ class EpisodeResponse:
                                                                                                 list(indices)),
                                                             response_args=response_args,
                                                             **stat_test_props)
-
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
                 summary_data['value'].append(np.mean(stats.y-stats.x))

@@ -35,7 +35,7 @@ class StatTest:
                     setattr(self, key, getattr(result, key))
             else:
                 print(' "%s" test not implemented ! ' % test)
-        except ValueError:
+        except (ValueError, TypeError):
             print(' -----------------   ')
             print('x, y = ', x, y)
             print('  statistical test failed   ')
@@ -81,7 +81,8 @@ if __name__=='__main__':
 
 
     # filename = os.path.join(os.path.expanduser('~'), 'DATA', 'CaImaging', 'Wild_Type_GCamp6f', '2021_03_23-11-26-36.nwb')
-    filename = sys.argv[-1]
     
-    FullData= Data(filename)
-    
+    #filename = sys.argv[-1]
+    #FullData= Data(filename)
+        
+    StatTest(None, None)
