@@ -283,7 +283,8 @@ class EpisodeResponse:
                                        interval_pre=[-2,0], interval_post=[1,3],
                                        test='wilcoxon',
                                        positive=True):
-
+        """
+        """
         response = self.get_response(**response_args)
         
         if episode_cond is None:
@@ -372,12 +373,12 @@ if __name__=='__main__':
     filename = sys.argv[-1]
     
     if '.nwb' in sys.argv[-1]:
+
         data = Data(filename)
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
                                   protocol_id=3,
-                                  # quantities=['pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
                                   quantities=['dFoF'],
                                   dt_sampling=10)
 
@@ -385,31 +386,15 @@ if __name__=='__main__':
         fig, ax = ge.figure(figsize=(1.3,2))
 
         for i in range(3):
-            print(getattr(episode, 'patch-delay')[episode.find_episode_cond(['speed',
-                                                                             'patch-delay'],
-                                                                             [0,i])])
-            ax.plot(episode.dFoF[episode.find_episode_cond(['speed', 'patch-delay'],
-                                                            [0,i]),:,:].mean(axis=(0,1)),
-                                                            color=ge.tab10(i))
-            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (1,1), 
-                    va='top', ha='right', color=ge.tab10(i))
+            print(episode.find_episode_cond('patch-delay', i))
+            ax.plot(episode.t,
+                    episode.dFoF[episode.find_episode_cond('patch-delay', i),:,:].mean(axis=(0,1)),
+                    color=ge.tab10(i))
+            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (0,1), 
+                        va='top', color=ge.tab10(i))
 
-        # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
         ge.show()
-        # episode = EpisodeResponse(data,
-        #                           quantities=['Pupil', 'CaImaging', 'CaImaging'],
-        #                           quantities_args=[{}, {'subquantity':'Fluorescence'}, {'subquantity':'dFoF', 'roiIndices':np.arange(10)}])
-        # print(episode.CaImaging_dFoF.shape)
 
-        # from datavyz import ge
-        # episode = EpisodeResponse(data,
-        #                           quantities=['dFoF'])
-        # summary_data = episode.compute_summary_data(dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
-        #                                             response_args={'quantity':'dFoF', 'roiIndex':2})
-
-        # print(summary_data)
-
-        
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             
