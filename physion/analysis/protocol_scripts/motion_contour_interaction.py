@@ -8,7 +8,8 @@ from datavyz import graph_env_manuscript as ge
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
 from analysis.read_NWB import Data
-from dataviz.show_data import MultimodalData, EpisodeResponse
+from analysis.process_NWB import EpisodeResponse
+#from dataviz.show_data import MultimodalData, EpisodeResponse
 from analysis.tools import summary_pdf_folder
 
 #############################################################################
@@ -174,32 +175,35 @@ class MCI_data:
     def __init__(self, filename, quantities=['dFoF']):
     
         data = Data(filename, metadata_only=True, verbose=False)
+
         # computing episodes       
         self.episode_static_patch = EpisodeResponse(filename,
-                                               protocol_id=data.get_protocol_id('static-patch'),
-                                               quantities=quantities,            
-                                               prestim_duration=3, verbose=False)             
+                                                    protocol_name='static-patch',
+                                                    quantities=quantities,            
+                                                    prestim_duration=3, verbose=False)             
+
         self.episode_moving_dots = EpisodeResponse(filename,
-                                              protocol_id=data.get_protocol_id('moving-dots'),
-                                              quantities=quantities,            
-                                              prestim_duration=3, verbose=False)             
+                                                   protocol_name='moving-dots',
+                                                   quantities=quantities,            
+                                                   prestim_duration=3, verbose=False)             
 
         self.episode_mixed = EpisodeResponse(filename,
-                                        protocol_id=data.get_protocol_id('mixed-moving-dots-static-patch'),
-                                        quantities=quantities,            
-                                        prestim_duration=3, verbose=False)         
+                                             protocol_name='mixed-moving-dots-static-patch',
+                                             quantities=quantities,            
+                                             prestim_duration=3, verbose=False)         
+
         if hasattr(self.episode_mixed.data, 'nROIs'):
             self.nROIs = self.episode_mixed.data.nROIs
         
         self.episode_random_dots, self.episode_mixed_random_dots = None, None
-        if 'random-line-dots' in data.protocols:
+        if 'random-dots' in data.protocols:
             self.episode_random_dots = EpisodeResponse(filename,
                                                   protocol_id=data.get_protocol_id('random-line-dots'),
                                                   quantities=quantities,            
                                                   prestim_duration=3, verbose=False)             
         else:
             self.episode_random_dots = None
-        if 'random-mixed-moving-dots-static-patch' in data.protocols:
+        if 'mixed-random-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
                                                         protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'),
                                                         quantities=quantities,            
@@ -278,7 +282,7 @@ class MCI_data:
         else:
             responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
             
-        if force_delay is None:
+        if force_delay is not None:
             responses['delay'] = force_delay
         else:
             # delays
