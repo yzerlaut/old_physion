@@ -15,7 +15,7 @@ class EpisodeResponse:
     """
 
     def __init__(self, full_data,
-                 protocol_id=0, protocol_name=None,
+                 protocol_id=None, protocol_name=None,
                  quantities=['Photodiode-Signal'],
                  quantities_args=None,
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
@@ -27,9 +27,15 @@ class EpisodeResponse:
         self.dt_sampling = dt_sampling
         
         # choosing protocol (if multiprotocol)
-        self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id, protocol_name=protocol_name)
-        self.protocol_name = full_data.protocols[protocol_id]
-
+        if (protocol_id is not None) or (protocol_name is not None):
+            self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id,
+                                                                          protocol_name=protocol_name)
+            self.protocol_name = full_data.protocols[protocol_id]
+        else:
+            self.protocol_cond_in_full_data = np.ones(full_data.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+                                                      dtype=bool)
+            # self.protocol_name set at the end !
+            
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
         for q in quantities_args:
@@ -212,7 +218,11 @@ class EpisodeResponse:
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
 
-        self.protocol_id = protocol_id
+        if protocol_id is not None:
+            self.protocol_id = protocol_id
+        else:
+            setattr(self, 'protocol_name', np.array([full_data.protocols[i] for i in self.protocol_id], dtype=str))
+            pass # --> self.protocol_id is an array with the different protocol ids per episode
         
         if verbose:
             print('  -> [ok] episodes ready !')
@@ -275,6 +285,8 @@ class EpisodeResponse:
         elif (type(key) in [list, np.ndarray, tuple]) and\
                  (type(value) in [list, np.ndarray, tuple]):
             for n in range(len(key)):
+                print(key[n], value[n])
+                print(getattr(self, key[n])==value[n])
                 cond = cond & (getattr(self, key[n])==value[n])
          
         elif (key is not None) and\
@@ -379,6 +391,8 @@ class EpisodeResponse:
 if __name__=='__main__':
 
     from analysis.read_NWB import Data
+    from dataviz.datavyz.datavyz import graph_env
+    ge = graph_env('screen')
     
     filename = sys.argv[-1]
     
@@ -388,25 +402,32 @@ if __name__=='__main__':
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
-                                  protocol_id=3,
+                                  protocol_id=None,
                                   quantities=['dFoF'],
                                   dt_sampling=10)
 
-        from datavyz import ge
         fig0, ax = ge.figure()
         fig, AX = ge.figure(axes=(3,10), figsize=(.8,.9))
 
+        print(episode.protocol_name)
+        print(getattr(episode, 'patch-delay'))
         for i, delay in enumerate([0., 1., 2.]):
-            cond = episode.find_episode_cond(['speed','patch-delay'], 
-                                             value=[60.,delay])
+            cond = episode.find_episode_cond(['protocol_name', 'speed','patch-delay'], 
+                             value=['mixed-moving-dots-static-patch', 90., delay])
             ax.plot(episode.t,
                     episode.dFoF[cond,:,:].mean(axis=(0,1)),
                     color=ge.tab10(i))
-            # for k in range(episode.dFoF[cond,:,:].shape[0]):
-                # AX[k%10][i].plot(episode.t, episode.dFoF[cond,:,:][k,:,:].mean(axis=0))
+            for k in range(episode.dFoF[cond,:,:].shape[0]):
+                AX[k%10][i].plot(episode.t, episode.dFoF[cond,:,:].mean(axis=1)[k,:])
             ge.annotate(ax, i*'\n'+'delay=%.1s'%delay, (0,1), 
                         va='top', color=ge.tab10(i))
-
+    
+        fig1, ax1 = ge.figure()
+        cond = episode.find_episode_cond(['protocol_name'], 
+                                         value=['static-patch'])
+        ax1.plot(episode.t,
+                episode.dFoF[cond,:,:].mean(axis=(0,1)),
+                color=ge.tab10(i))
         ge.show()
 
     else:
