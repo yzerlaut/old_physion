@@ -15,7 +15,7 @@ class EpisodeResponse:
     """
 
     def __init__(self, full_data,
-                 protocol_id=0,
+                 protocol_id=0, protocol_name=None,
                  quantities=['Photodiode-Signal'],
                  quantities_args=None,
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
@@ -27,7 +27,7 @@ class EpisodeResponse:
         self.dt_sampling = dt_sampling
         
         # choosing protocol (if multiprotocol)
-        self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
+        self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id, protocol_name=protocol_name)
         self.protocol_name = full_data.protocols[protocol_id]
 
         if quantities_args is None:
