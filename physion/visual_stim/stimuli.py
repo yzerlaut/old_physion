@@ -354,10 +354,14 @@ class visual_stim:
             for i, index in enumerate(index_cond):
                 toc = time.time()
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
+                print('delay', self.experiment['patch-delay'][index])
                 self.buffer[protocol_id].append({'time_indices':time_indices,
                                                  'frames':frames,
                                                  'FRAMES':[],
                                                  'refresh_freq':refresh_freq})
+                for key in self.experiment:
+                    self.buffer[protocol_id][-1][key] = self.experiment[key][index] 
+                    
                 for frame in self.buffer[protocol_id][i]['frames']:
                     self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
                                                                  image=self.gamma_corrected_lum(frame),
@@ -374,8 +378,7 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
-        print(stim_index)
-        print(protocol_id, len(self.buffer[protocol_id]))
+        print('delay', self.buffer[protocol_id][stim_index]['patch-delay'])
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
@@ -1529,12 +1532,17 @@ if __name__=='__main__':
 
                 exp2 = {}
                 for k, Array in stim.experiment.items():
-                    if k not in ['protocol_id']:
-                    exp2[k] = Array[stim.experiment['index']]
-                print(exp2)
+                    exp2[k] = Array
+                    # if k not in ['protocol_id',
+                            # 'time_start', 'time_stop', 'time_duration']:
+                        # exp2[k] = Array[stim.experiment['index']]
+                    # else:
+                        # exp2[k] = Array
+                for key in ['protocol_id', 'patch-delay', 'repeat', 'index']:
+                    print(key)
+                    print(exp2[key])
                 np.save(os.path.join(os.path.expanduser('~'),
                         'Desktop', 'visual-stim.npy'), exp2)
-
                 stim.run(parent)
                 stim.close()
     else:
