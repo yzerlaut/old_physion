@@ -301,6 +301,8 @@ class visual_stim:
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_sequence_presentation(self, parent, index):
         print(index)
+        print(self.experiment['index'][index])
+        index = self.experiment['index'][index]
         tic = time.time()
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         print('  array init took %.1fs' % (time.time()-tic))
@@ -373,6 +375,7 @@ class visual_stim:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
         print(stim_index)
+        print(protocol_id, len(self.buffer[protocol_id]))
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
