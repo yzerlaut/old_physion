@@ -404,6 +404,7 @@ if __name__=='__main__':
         episode = EpisodeResponse(data,
                                   protocol_id=None,
                                   quantities=['dFoF'],
+                                  prestim_duration=3.,
                                   dt_sampling=10)
 
         fig0, ax = ge.figure()
