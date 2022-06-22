@@ -1529,9 +1529,9 @@ if __name__=='__main__':
 
                 exp2 = {}
                 for k, Array in stim.experiment.items():
-                    print(k)
-                    print(Array)
+                    if k not in ['protocol_id']:
                     exp2[k] = Array[stim.experiment['index']]
+                print(exp2)
                 np.save(os.path.join(os.path.expanduser('~'),
                         'Desktop', 'visual-stim.npy'), exp2)
 
