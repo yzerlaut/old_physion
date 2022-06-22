@@ -230,9 +230,9 @@ class visual_stim:
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
 
-        for k in ['index', 'repeat','time_start', 'time_stop',
-                    'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
-            self.experiment[k] = np.array(self.experiment[k]) 
+        for k in self.experiment:
+            self.experiment[k] = np.array(self.experiment[k],
+                    dtype=type(self.experiment[k][0])) 
 
     # the close function
     def close(self):
@@ -1524,7 +1524,17 @@ if __name__=='__main__':
                 stim.plot_stim_picture(args.index, ax=ax)
                 ge.show()
             else:
+
                 stim = build_stim(protocol)
+
+                exp2 = {}
+                for k, Array in stim.experiment.items():
+                    print(k)
+                    print(Array)
+                    exp2[k] = Array[stim.experiment['index']]
+                np.save(os.path.join(os.path.expanduser('~'),
+                        'Desktop', 'visual-stim.npy'), exp2)
+
                 stim.run(parent)
                 stim.close()
     else:
