@@ -138,10 +138,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def run(self):
 
-        #if self.destination_folder=='':
-        #    self.destination_folder = FOLDERS[self.destBox.currentText()]
-        self.destination_folder = FOLDERS[self.destBox.currentText()]
-        print(self.destination_folder)
+        if self.destination_folder=='':
+            self.destination_folder = FOLDERS[self.destBox.currentText()]
 
         if self.source_folder=='':
             self.source_folder = FOLDERS[self.sourceBox.currentText()]
