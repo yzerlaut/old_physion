@@ -236,7 +236,7 @@ class MCI_data:
                       mixed_cond,
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                      integral_window=2.,
+                      integral_window=2., force_delay=None,
                       patch_baseline_window=[-1,0],
                       roiIndices=[0]):
         
@@ -278,20 +278,25 @@ class MCI_data:
         else:
             responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
             
-        # delays
-        delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
-        if len(np.unique(delays))==1:
-            responses['delay'] = delays[0] # storing delay for later
-            # linear pred.
-            responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
-                                                         delay=responses['delay'],
-                                                         patch_baseline_window=patch_baseline_window)
-            integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
-            responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
-            responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
+        if force_delay is None:
+            responses['delay'] = force_delay
         else:
-            print('delays', np.unique(delays))
-            print('no unique delay, unpossible to build the linear predictions !')
+            # delays
+            delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+
+            if len(np.unique(delays))==1:
+                responses['delay'] = delays[0] # storing delay for later
+            else:
+                print('delays', np.unique(delays))
+                print('no unique delay, unpossible to build the linear predictions !')
+
+        # linear pred.
+        responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
+                                                     delay=responses['delay'],
+                                                     patch_baseline_window=patch_baseline_window)
+        integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
+        responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
+        responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
         
         return responses
     
