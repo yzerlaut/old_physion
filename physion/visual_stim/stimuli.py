@@ -49,7 +49,7 @@ class visual_stim:
         self.screen = SCREENS[self.protocol['Screen']]
         self.buffer = None # by default, non-buffered data
         self.buffer_delay = 0            
-
+   
         self.protocol['movie_refresh_freq'] = protocol['movie_refresh_freq'] if 'movie_refresh_freq' in protocol else 10.
 
         if demo or (('demo' in self.protocol) and self.protocol['demo']):
@@ -230,10 +230,6 @@ class visual_stim:
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
 
-        for k in self.experiment:
-            self.experiment[k] = np.array(self.experiment[k],
-                    dtype=type(self.experiment[k][0])) 
-
     # the close function
     def close(self):
         self.win.close()
@@ -354,7 +350,6 @@ class visual_stim:
             for i, index in enumerate(index_cond):
                 toc = time.time()
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
-                print('delay', self.experiment['patch-delay'][index])
                 self.buffer[protocol_id].append({'time_indices':time_indices,
                                                  'frames':frames,
                                                  'FRAMES':[],
@@ -378,7 +373,10 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
-        print('delay', self.buffer[protocol_id][stim_index]['patch-delay'])
+        for k in self.exp2:
+            if k in self.buffer[protocol_id][stim_index]:
+                self.exp2[k][index] = self.buffer[protocol_id][stim_index][k]
+        print('delay', self.exp2['patch-delay'][index])
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
@@ -668,6 +666,11 @@ class multiprotocol(visual_stim):
 
         for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
             self.experiment[key] = np.array(self.experiment[key])
+
+
+        self.exp2 = {}
+        for k in self.experiment:
+            self.exp2[k] = self.experiment[k]
 
     # functions implemented in child class
     def get_frame(self, index):
@@ -1489,10 +1492,12 @@ class dummy_datafolder:
     def get(self):
         return tempfile.gettempdir()
 
+
 class dummy_parent:
     def __init__(self):
         self.stop_flag = False
         self.datafolder = dummy_datafolder()
+
 
 if __name__=='__main__':
 
@@ -1529,21 +1534,10 @@ if __name__=='__main__':
             else:
 
                 stim = build_stim(protocol)
-
-                exp2 = {}
-                for k, Array in stim.experiment.items():
-                    exp2[k] = Array
-                    # if k not in ['protocol_id',
-                            # 'time_start', 'time_stop', 'time_duration']:
-                        # exp2[k] = Array[stim.experiment['index']]
-                    # else:
-                        # exp2[k] = Array
-                for key in ['protocol_id', 'patch-delay', 'repeat', 'index']:
-                    print(key)
-                    print(exp2[key])
+                stim.run(parent) 
                 np.save(os.path.join(os.path.expanduser('~'),
-                        'Desktop', 'visual-stim.npy'), exp2)
-                stim.run(parent)
+                        'Desktop', 'visual-stim.npy'), stim.exp2)
+                
                 stim.close()
     else:
         print('need to provide a ".json" protocol file as argument !')
