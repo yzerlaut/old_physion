@@ -7,6 +7,7 @@ from Ca_imaging import tools as Ca_imaging_tools
 from scipy.interpolate import interp1d
 from analysis import stat_tools
 
+
 class EpisodeResponse:
     """
     - Using the photodiode-signal-derived timestamps to build "episode response" by interpolating the raw signal on a fixed time interval (surrounding the stim)
@@ -255,7 +256,7 @@ class EpisodeResponse:
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
     
-    def find_episode_cond(self, key=None, index=None):
+    def find_episode_cond(self, key=None, index=None, value=None):
         """
         by default returns the conditions of all episodes in the protocol
         'key' and 'index' can be either lists of values
@@ -263,18 +264,24 @@ class EpisodeResponse:
         
         cond = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
         
-        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]):
+        if (type(key) in [list, np.ndarray, tuple]) and\
+                (type(index) in [list, np.ndarray, tuple]):
             for n in range(len(key)):
-                print(key[n], self.varied_parameters[key[n]][index[n]])
-                # looping over provided keys
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
+
+        elif (type(key) in [list, np.ndarray, tuple]) and\
+                 (type(value) in [list, np.ndarray, tuple]):
+            for n in range(len(key)):
+                cond = cond & (getattr(self, key[n])==value[n])
          
-        elif key is not None and index is not None:
-            print(index)
-            print(getattr(self, key)==self.varied_parameters[key][index])
+        elif (key is not None) and\
+                (index is not None):
             cond = cond & (getattr(self, key)==self.varied_parameters[key][index])
        
-        print(cond)
+        elif (key is not None) and\
+                (values is not None):
+            cond = cond & (getattr(self, key)==value)
+       
         return cond
 
     
@@ -383,14 +390,18 @@ if __name__=='__main__':
                                   dt_sampling=10)
 
         from datavyz import ge
-        fig, ax = ge.figure(figsize=(1.3,2))
+        fig0, ax = ge.figure()
+        fig, AX = ge.figure(axes=(3,10), figsize=(.8,.9))
 
-        for i in range(3):
-            print(episode.find_episode_cond('patch-delay', i))
+        for i, delay in enumerate([0., 1., 2.]):
+            cond = episode.find_episode_cond(['speed','patch-delay'], 
+                                             value=[60.,delay])
             ax.plot(episode.t,
-                    episode.dFoF[episode.find_episode_cond('patch-delay', i),:,:].mean(axis=(0,1)),
+                    episode.dFoF[cond,:,:].mean(axis=(0,1)),
                     color=ge.tab10(i))
-            ge.annotate(ax, i*'\n'+'delay=%.1s'%i, (0,1), 
+            # for k in range(episode.dFoF[cond,:,:].shape[0]):
+                # AX[k%10][i].plot(episode.t, episode.dFoF[cond,:,:][k,:,:].mean(axis=0))
+            ge.annotate(ax, i*'\n'+'delay=%.1s'%delay, (0,1), 
                         va='top', color=ge.tab10(i))
 
         ge.show()
