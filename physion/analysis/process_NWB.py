@@ -29,7 +29,6 @@ class EpisodeResponse:
         # choosing protocol (if multiprotocol)
         self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
         self.protocol_name = full_data.protocols[protocol_id]
-        self.protocol_id = protocol_id
 
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
@@ -44,8 +43,10 @@ class EpisodeResponse:
         self.varied_parameters, self.fixed_parameters =  {}, {}
         
         for key in full_data.nwbfile.stimulus.keys():
-            if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
-                           'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim',
+            if key not in ['frame_run_type', 'index', 'protocol_id',
+                           'time_duration', 'time_start',
+                           'time_start_realigned', 'time_stop',
+                           'time_stop_realigned', 'interstim',
                            'protocol-name']:
                 unique = np.sort(np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data]))
                 if len(unique)>1:
@@ -210,6 +211,8 @@ class EpisodeResponse:
 
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
+
+        self.protocol_id = protocol_id
         
         if verbose:
             print('  -> [ok] episodes ready !')
