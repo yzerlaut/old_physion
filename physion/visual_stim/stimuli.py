@@ -233,7 +233,6 @@ class visual_stim:
         for k in ['index', 'repeat','time_start', 'time_stop',
                     'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
             self.experiment[k] = np.array(self.experiment[k]) 
-        print(self.experiment['index'])
 
     # the close function
     def close(self):
@@ -302,7 +301,7 @@ class visual_stim:
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_sequence_presentation(self, parent, index):
         tic = time.time()
-        print('index', self.experiment['index'][index])
+        print('stim_index', self.experiment['index'][index])
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         print('  array init took %.1fs' % (time.time()-tic))
         toc = time.time()
@@ -334,7 +333,14 @@ class visual_stim:
     #####################################################
     # adding a run purely define by an array -- NOW BUFFERED 
     def buffer_stim(self, parent, gui_refresh_func=None):
-
+        """
+        we build the buffers order so that we can call them as:
+        self.buffer[protocol_index][stim_index] 
+        where:
+        protocol_index = stim.experiment['protocol_id'][index]
+        stim_index = stim.experiment['index'][index]
+        where "index" is the episode number over the full protocol run (including multiprotocols)
+        """
         cls = (parent if parent is not None else self)
         win = cls.win if hasattr(cls, 'win') else self.win
 
@@ -349,23 +355,22 @@ class visual_stim:
         for protocol_id in np.sort(np.unique(protocol_ids)):
             self.buffer.append([]) # adding a new set of buffers
             print('    - protocol %i  ' % (protocol_id+1)) 
-            index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)]
-            print(index_cond)
-            for i, index in enumerate(index_cond):
+            single_indices = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)] # this gives the valid
+            indices_order = np.argsort(self.experiment['index'][single_indices])
+            for stim_index, index_in_full_array in enumerate(single_indices[indices_order]):
                 toc = time.time()
-                time_indices, frames, refresh_freq = self.get_frames_sequence(index)
+                time_indices, frames, refresh_freq = self.get_frames_sequence(index_in_full_array)
                 self.buffer[protocol_id].append({'time_indices':time_indices,
                                                  'frames':frames,
                                                  'FRAMES':[],
                                                  'refresh_freq':refresh_freq})
-                for frame in self.buffer[protocol_id][i]['frames']:
-                    self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
-                                                                 image=self.gamma_corrected_lum(frame),
-                                                                 units='pix', size=win.size))
+                for frame in self.buffer[protocol_id][stim_index]['frames']:
+                    self.buffer[protocol_id][stim_index]['FRAMES'].append(visual.ImageStim(win,
+                                                                          image=self.gamma_corrected_lum(frame),
+                                                                          units='pix', size=win.size))
                     if gui_refresh_func is not None:    
                         gui_refresh_func()
-                print('        index #%i   (%.2fs)' % (i+1, time.time()-toc)) 
-
+                print('        index #%i   (%.2fs)' % (stim_index+1, time.time()-toc)) 
    
         print(' --> buffering done ! (t=%.2fs / %.2fmin)' % (time.time()-tic, (time.time()-tic)/60.)) 
         return True
@@ -374,6 +379,7 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
+        print('stim_index', stim_index)
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
