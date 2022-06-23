@@ -92,7 +92,7 @@ def interaction_panel(responses,
         fig, ax = ge.figure()
     else:
         fig = None
-            
+    
     # mixed
     cond = responses['t_motion']>tmin
     if 'linear' in responses:
@@ -197,23 +197,24 @@ class MCI_data:
         self.episode_random_dots, self.episode_mixed_random_dots = None, None
         if 'random-dots' in data.protocols:
             self.episode_random_dots = EpisodeResponse(filename,
-                                                  protocol_id=data.get_protocol_id('random-line-dots'),
-                                                  quantities=quantities,            
-                                                  prestim_duration=3, verbose=False)             
+                                                      protocol_name='random-dots',
+                                                      quantities=quantities,            
+                                                      prestim_duration=3, verbose=False)             
         else:
             self.episode_random_dots = None
         if 'mixed-random-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
-                                                        protocol_id=data.get_protocol_id('random-mixed-moving-dots-static-patch'),
-                                                        quantities=quantities,            
-                                                        prestim_duration=3, verbose=False)  
+                                                             protocol_name='mixed-random-dots-static-patch',
+                                                             quantities=quantities,            
+                                                             prestim_duration=3, verbose=False)  
         else:
             self.episode_mixed_random_dots = None
             
+
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
                           delay=0,
-                          patch_baseline_window=[-1,0]):
+                          patch_baseline_window=[-0.5,0]):
         """
         the linear prediction is build by adding the patch evoke resp to the motion trace
             we remove the baseline for mthe patch resp so that it has a zero baseline
@@ -221,7 +222,7 @@ class MCI_data:
         """
 
         i_mVdot_center = np.argwhere(self.episode_moving_dots.t>delay)[0][0]
-        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[0]
+        patch_evoked_t = self.episode_static_patch.t>0
         patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) & (self.episode_static_patch.t<=patch_baseline_window[1])
         patch_baseline = np.mean(patch_resp[patch_baseline_cond])
 
@@ -271,7 +272,7 @@ class MCI_data:
         resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
         responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
-        responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
+        responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_static_patch.protocol_id+1)]
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
 
         # speeds
@@ -281,17 +282,14 @@ class MCI_data:
         else:
             responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
             
-        if force_delay is not None:
-            responses['delay'] = force_delay
-        else:
-            # delays
-            delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+        # delays
+        delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
 
-            if len(np.unique(delays))==1:
-                responses['delay'] = delays[0] # storing delay for later
-            else:
-                print('delays', np.unique(delays))
-                print('no unique delay, unpossible to build the linear predictions !')
+        if len(np.unique(delays))==1:
+            responses['delay'] = delays[0] # storing delay for later
+        else:
+            print('delays', np.unique(delays))
+            print('no unique delay, unpossible to build the linear predictions !')
 
         # linear pred.
         responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
@@ -343,6 +341,8 @@ def make_proportion_fig(data,
     ge.set_plot(ax, xticks=np.arange(n), xticks_labels=ticks, xticks_rotation=90, ylabel='responsive ROI (%)     ')
     return fig, ax
 
+
+
 def run_analysis_and_save_figs(datafile,
                                suffix='',
                                folder='./',
@@ -354,14 +354,14 @@ def run_analysis_and_save_figs(datafile,
     data = MCI_data(datafile)
     
     if len(data.episode_static_patch.varied_parameters.keys())==2:
-        contour_key = [k for k in data.episode_static_patch.varied_parameters.keys()][0]
+        contour_key = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat'][0]
     elif len(data.episode_static_patch.varied_parameters.keys())==1:
         contour_key = ''
     else:
         print('\n\n /!\ MORE THAN ONE CONTOUR KEY /!\ \n    --> needs special analysis   \n\n ')
 
     if len(data.episode_moving_dots.varied_parameters.keys())==2:
-        motion_key = [k for k in data.episode_moving_dots.varied_parameters.keys()][0]
+        motion_key = [k for k in data.episode_moving_dots.varied_parameters.keys() if k!='repeat'][0]
     elif len(data.episode_moving_dots.varied_parameters.keys())==1:
         motion_key = ''
     else:
@@ -405,7 +405,6 @@ def run_analysis_and_save_figs(datafile,
 
         if data.episode_random_dots is not None:
             fig, AX = data.episode_random_dots.plot_trial_average(roiIndices='mean', 
-                                                                  column_key=motion_key,
                                                                   with_annotation=True,
                                                                   with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                   xbar=1, xbarlabel='1s')
@@ -414,7 +413,6 @@ def run_analysis_and_save_figs(datafile,
 
         if data.episode_mixed_random_dots is not None:
             fig, AX = data.episode_mixed_random_dots.plot_trial_average(roiIndices='mean', 
-                                                                        column_key=motion_key,
                                                                         color_key=('patch-%s'%contour_key if (contour_key!='') else ''),
                                                                    with_annotation=True,
                                                                    with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
@@ -442,6 +440,20 @@ def run_analysis_and_save_figs(datafile,
                                       rois_of_interest_motion,
                                       rois_of_interest_contour_only)
         pdf.savefig(fig);plt.close(fig)
+
+        for mixed_index in range(3):
+            fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
+                                                           data.episode_moving_dots.find_episode_cond(),
+                                                           data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
+                                                           roiIndices=rois_of_interest_contour_only['_0']),
+                                    static_patch_label='patch',
+                                    moving_dots_label='mv-dots',
+                                    mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
+                                        data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
+                                    Ybar=Ybar)
+            fig.suptitle(' interaction - all parameters merge ')
+            pdf.savefig(fig);plt.close(fig)
+
 
         for key in [key for key in rois_of_interest_contour_only if 'resp' not in key]:
 
@@ -476,21 +488,21 @@ def run_analysis_and_save_figs(datafile,
                 pdf.savefig(fig);plt.close(fig)
 
 
-                for contour_index in range(len(data.episode_static_patch.varied_parameters[contour_key])):
-                    for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
-                        for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
-                            mixed_indices = [motion_index, contour_index, mixed_index] 
-                            mixed_keys = [motion_key, 'patch-%s'%contour_key, mixed_only_key]
-                            fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
-                                                                        data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
-                                                                        data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
-                                                                        roiIndices=rois_of_interest_contour_only[key]),
-                                                    static_patch_label='patch\n (%s=%i)' % (contour_key[:3], data.episode_static_patch.varied_parameters[contour_key][contour_index]),
-                                                    moving_dots_label='mv-dots\n (%s=%i)' % (motion_key[:3], data.episode_moving_dots.varied_parameters[motion_key][motion_index]),
-                                                    mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-                                                        data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
-                                                    Ybar=Ybar)
-                            pdf.savefig(fig);plt.close(fig)
+                # for contour_index in range(len(data.episode_static_patch.varied_parameters[contour_key])):
+                    # for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
+                        # for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
+                            # mixed_indices = [motion_index, contour_index, mixed_index] 
+                            # mixed_keys = [motion_key, 'patch-%s'%contour_key, mixed_only_key]
+                            # fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
+                                                                        # data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
+                                                                        # data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
+                                                                        # roiIndices=rois_of_interest_contour_only[key]),
+                                                    # static_patch_label='patch\n (%s=%i)' % (contour_key[:3], data.episode_static_patch.varied_parameters[contour_key][contour_index]),
+                                                    # moving_dots_label='mv-dots\n (%s=%i)' % (motion_key[:3], data.episode_moving_dots.varied_parameters[motion_key][motion_index]),
+                                                    # mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
+                                                        # data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
+                                                    # Ybar=Ybar)
+                            # pdf.savefig(fig);plt.close(fig)
 
         print('[ok] motion-contour-interaction analysis saved as: "%s" ' % pdf_filename)
 

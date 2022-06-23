@@ -27,10 +27,11 @@ class EpisodeResponse:
         self.dt_sampling = dt_sampling
         
         # choosing protocol (if multiprotocol)
-        if (protocol_id is not None) or (protocol_name is not None):
-            self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id,
-                                                                          protocol_name=protocol_name)
-            self.protocol_name = full_data.protocols[protocol_id]
+        if (protocol_id is not None):
+            self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
+        elif (protocol_name is not None):
+            self.protocol_id = full_data.get_protocol_id(protocol_name)
+            self.protocol_cond_in_full_data = full_data.get_protocol_cond(self.protocol_id)
         else:
             self.protocol_cond_in_full_data = np.ones(full_data.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                       dtype=bool)
@@ -218,8 +219,14 @@ class EpisodeResponse:
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
 
-        if protocol_id is not None:
+        if (protocol_id is not None):
+            # we overwrite those to single values
             self.protocol_id = protocol_id
+            self.protocol_name = full_data.protocols[self.protocol_id]
+        elif (protocol_name is not None):
+            # we overwrite those to single values
+            self.protocol_id = full_data.get_protocol_id(protocol_name)
+            self.protocol_name = protocol_name 
         else:
             setattr(self, 'protocol_name', np.array([full_data.protocols[i] for i in self.protocol_id], dtype=str))
             pass # --> self.protocol_id is an array with the different protocol ids per episode
