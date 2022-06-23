@@ -4,6 +4,8 @@
   "Screen": "Dell-2020",
   "shuffling-seed": 17,
   "movie_refresh_freq":2,
+  "randomize":"True",
+  "randomize-per-trial":"True",
   "presentation-duration": 3,
   "presentation-prestim-period": 3,
   "presentation-poststim-period": 3,

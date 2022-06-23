@@ -381,10 +381,12 @@ class visual_stim:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
         print(stim_index)
-        for k in self.exp2:
-            if k in self.buffer[protocol_id][stim_index]:
-                self.exp2[k][index] = self.buffer[protocol_id][stim_index][k]
-        # print('delay', self.exp2['patch-delay'][index])
+
+        # for k in self.exp2:
+            # if k in self.buffer[protocol_id][stim_index]:
+                # self.exp2[k][index] = self.buffer[protocol_id][stim_index][k]
+
+        print('delay', self.exp2['patch-delay'][index])
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
