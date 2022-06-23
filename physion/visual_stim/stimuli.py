@@ -1543,6 +1543,8 @@ if __name__=='__main__':
 
                 stim = build_stim(protocol)
                 stim.run(parent) 
+                stim.exp2['time_start'] = stim.experiment['time_start']
+                stim.exp2['time_stop'] = stim.experiment['time_stop']
                 np.save(os.path.join(os.path.expanduser('~'),
                         'Desktop', 'visual-stim.npy'), stim.exp2)
                 
