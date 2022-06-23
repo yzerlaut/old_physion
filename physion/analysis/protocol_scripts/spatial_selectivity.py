@@ -4,10 +4,9 @@ import itertools
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from datavyz import graph_env_manuscript as ge
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from analysis.read_NWB import Data
 from dataviz.show_data import MultimodalData, EpisodeResponse, format_key_value
 from analysis.tools import summary_pdf_folder

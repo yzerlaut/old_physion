@@ -444,7 +444,7 @@ class MultimodalData(read_NWB.Data):
 class EpisodeResponse(process_NWB.EpisodeResponse):
 
     def __init__(self, filename,
-                 protocol_id=0,
+                 protocol_id=None, protocol_name=None,
                  quantities=['dFoF'],
                  quantities_args=None,
                  prestim_duration=None,
@@ -460,7 +460,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         # initialize episodes
         super().__init__(self.data,
-                         protocol_id=protocol_id,
+                         protocol_id=protocol_id, protocol_name=protocol_name,
                          quantities=quantities,
                          quantities_args=quantities_args,
                          prestim_duration=prestim_duration,
