@@ -233,6 +233,7 @@ class visual_stim:
         for k in ['index', 'repeat','time_start', 'time_stop',
                     'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
             self.experiment[k] = np.array(self.experiment[k]) 
+        print(self.experiment['index'])
 
     # the close function
     def close(self):
@@ -301,6 +302,7 @@ class visual_stim:
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_sequence_presentation(self, parent, index):
         tic = time.time()
+        print('index', self.experiment['index'][index])
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         print('  array init took %.1fs' % (time.time()-tic))
         toc = time.time()
@@ -348,6 +350,7 @@ class visual_stim:
             self.buffer.append([]) # adding a new set of buffers
             print('    - protocol %i  ' % (protocol_id+1)) 
             index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)]
+            print(index_cond)
             for i, index in enumerate(index_cond):
                 toc = time.time()
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
