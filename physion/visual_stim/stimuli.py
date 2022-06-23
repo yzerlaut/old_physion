@@ -230,6 +230,10 @@ class visual_stim:
                     self.experiment['time_duration'].append(protocol['presentation-duration'])
                     self.experiment['frame_run_type'].append(run_type)
 
+        self.exp2 = {}
+        for k in self.experiment:
+            self.exp2[k] = self.experiment[k]
+
     # the close function
     def close(self):
         self.win.close()
@@ -341,13 +345,16 @@ class visual_stim:
         else:
             protocol_ids = np.zeros(len(self.experiment['index']), dtype=int)
 
+        protocol_ids = np.zeros(len(self.experiment['index']), dtype=int)
+
         print(' --> buffering stimuli [...] ') 
         tic = time.time()
         for protocol_id in np.sort(np.unique(protocol_ids)):
             self.buffer.append([]) # adding a new set of buffers
             print('    - protocol %i  ' % (protocol_id+1)) 
-            index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)]
+            index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (np.array(self.experiment['repeat'], dtype=int)==0)]
             for i, index in enumerate(index_cond):
+                print(i, index)
                 toc = time.time()
                 time_indices, frames, refresh_freq = self.get_frames_sequence(index)
                 self.buffer[protocol_id].append({'time_indices':time_indices,
@@ -373,10 +380,11 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
+        print(stim_index)
         for k in self.exp2:
             if k in self.buffer[protocol_id][stim_index]:
                 self.exp2[k][index] = self.buffer[protocol_id][stim_index][k]
-        print('delay', self.exp2['patch-delay'][index])
+        # print('delay', self.exp2['patch-delay'][index])
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
