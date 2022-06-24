@@ -1540,6 +1540,8 @@ if __name__=='__main__':
                 ge.show()
             else:
                 stim = build_stim(protocol)
+                np.save(os.path.join(os.path.expanduser('~'),
+                        'Desktop', 'visual-stim-0.npy'), stim.experiment)
                 stim.run(parent)
                 stim.exp2['time_start'] = stim.experiment['time_start']
                 stim.exp2['time_stop'] = stim.experiment['time_stop']
