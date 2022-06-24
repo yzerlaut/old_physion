@@ -349,16 +349,15 @@ class MultimodalData(read_NWB.Data):
     ### ----- IMAGING PLOT components -----
     ###-------------------------------------
 
-    def find_roi_coords(self, roiIndex):
+    def find_full_roi_coords(self, roiIndex):
 
         indices = np.arange((self.pixel_masks_index[roiIndex-1] if roiIndex>0 else 0),
                             (self.pixel_masks_index[roiIndex] if roiIndex<len(self.valid_roiIndices) else len(self.pixel_masks_index)))
-        mx = np.mean([self.pixel_masks[ii][1] for ii in indices])
-        sx = np.std([self.pixel_masks[ii][1] for ii in indices])
-        my = np.mean([self.pixel_masks[ii][0] for ii in indices])
-        sy = np.std([self.pixel_masks[ii][1] for ii in indices])
+        return [self.pixel_masks[ii][1] for ii in indices],  [self.pixel_masks[ii][0] for ii in indices]
 
-        return my, mx, sy, sx
+    def find_roi_coords(self, roiIndex):
+        x, y = self.find_full_roi_coords(roiIndex)
+        return np.mean(y), np.mean(x), np.std(y), np.std(x)
 
     def find_roi_extent(self, roiIndex, roi_zoom_factor=10.):
 
@@ -392,7 +391,7 @@ class MultimodalData(read_NWB.Data):
         ax.add_patch(ellipse)
 
     def show_CaImaging_FOV(self, key='meanImg', NL=1, cmap='viridis', ax=None,
-                           roiIndex=None,
+                           roiIndex=None, roiIndices=[],
                            roi_zoom_factor=10,
                            roi_lw=3,
                            with_roi_zoom=False,):
@@ -412,15 +411,25 @@ class MultimodalData(read_NWB.Data):
         
         img = (img-img.min())/(img.max()-img.min())
         img = np.power(img, 1/NL)
-        img = ax.imshow(img, vmin=0, vmax=1,
-                        cmap=cmap, aspect='equal',
-                        interpolation='none',
-                        extent=extent, origin='lower')
+        img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', extent=extent, origin='lower')
         ax.axis('off')
-        
+
         if roiIndex is not None:
             self.add_roi_ellipse(roiIndex, ax, roi_lw=roi_lw)
 
+        if roiIndices=='all':
+            roiIndices = self.valid_roiIndices
+
+        for roiIndex in roiIndices:
+            x, y = self.find_full_roi_coords(roiIndex)
+            ax.plot(x, y, '.', 
+                    # color=ge.tab10(roiIndex%10), 
+                    # color=plt.cm.hsv(np.random.uniform(0,1)),
+                    color=plt.cm.autumn(np.random.uniform(0,1)),
+                    alpha=0.5,
+                    ms=0.1)
+        ax.annotate('%i ROIs' % len(roiIndices), (-0.1, 0), xycoords='axes fraction', rotation=90)
+        
         ge.title(ax, key)
         
         return fig, ax, img
@@ -435,10 +444,11 @@ class MultimodalData(read_NWB.Data):
 class EpisodeResponse(process_NWB.EpisodeResponse):
 
     def __init__(self, filename,
-                 protocol_id=0,
+                 protocol_id=None, protocol_name=None,
                  quantities=['dFoF'],
                  quantities_args=None,
                  prestim_duration=None,
+                 dt_sampling=10, # ms
                  verbose=False,
                  with_visual_stim=False):
         """ plot Episode Response """
@@ -450,10 +460,11 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         # initialize episodes
         super().__init__(self.data,
-                         protocol_id=protocol_id,
+                         protocol_id=protocol_id, protocol_name=protocol_name,
                          quantities=quantities,
                          quantities_args=quantities_args,
                          prestim_duration=prestim_duration,
+                         dt_sampling=dt_sampling,
                          verbose=verbose)
         
     def plot_trial_average(self,
@@ -1055,7 +1066,12 @@ if __name__=='__main__':
         
     elif args.ops=='FOV':
         data = MultimodalData(args.datafile)
-        fig, ax, img = data.show_CaImaging_FOV('meanImg', NL=3, cmap=ge.get_linear_colormap('k', 'lightgreen'))
+        fig, ax = ge.figure(figsize=(2,4), left=0.1, bottom=0.1)
+        data.show_CaImaging_FOV('meanImg', NL=3,
+                cmap=ge.get_linear_colormap('k', 'lightgreen'), 
+                roiIndices='all',
+                ax=ax)
+        ge.save_on_desktop(fig, 'fig.png', dpi=400)
     else:
         print(' option not recognized !')
         

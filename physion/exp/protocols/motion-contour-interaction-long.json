@@ -1,0 +1,17 @@
+{
+  "Presentation": "multiprotocol",
+  "shuffling" :"full",
+  "shuffling-seed" :8,
+  "Protocol-1": "subprotocols/MCI-long/moving-dots.json",
+  "Protocol-2": "subprotocols/MCI-long/random-dots.json",
+  "Protocol-3": "subprotocols/MCI-long/static-patch.json",
+  "Protocol-4": "subprotocols/MCI-long/mixed-moving-dots-static-patch.json",
+  "Protocol-5": "subprotocols/MCI-long/mixed-random-dots-static-patch.json",
+  "presentation-prestim-period": 5,
+  "presentation-poststim-period": 5,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "presentation-interstim-period": 7,
+  "presentation-interstim-screen": 0,
+  "Screen": "Dell-2020"
+}

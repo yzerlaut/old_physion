@@ -12,17 +12,17 @@
   "presentation-interstim-period": 3,
   "presentation-interstim-screen": 0,
   "speed-1": 60.0,
-  "speed-2": 60.0,
-  "N-speed": 0,
+  "speed-2": 90.0,
+  "N-speed": 2,
   "size-1": 5,
   "size-2": 5,
   "N-size": 0,
   "spacing-1": 15,
   "spacing-2": 15,
   "N-spacing": 0,
-  "direction-1": 0,
+  "direction-1": 90,
   "direction-2": 90,
-  "N-direction": 2,
+  "N-direction": 0,
   "ndots-1": 10,
   "ndots-2": 10,
   "N-ndots": 0,
@@ -36,5 +36,5 @@
   "dotcolor-2": -1,
   "N-dotcolor": 0,
   "starting-index": 0,
-  "N-repeat": 10
+  "N-repeat": 20
 }

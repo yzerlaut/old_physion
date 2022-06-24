@@ -5,12 +5,12 @@
   "movie_refresh_freq":2,
   "shuffling-seed": 17,
   "movie_refresh_freq":2,
-  "presentation-duration": 3.0,
-  "presentation-prestim-period": 3,
-  "presentation-poststim-period": 3,
+  "presentation-duration": 3,
+  "presentation-prestim-period": 5,
+  "presentation-poststim-period": 5,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
-  "presentation-interstim-period": 3,
+  "presentation-interstim-period": 7,
   "presentation-interstim-screen": 0,
   "size-1": 5,
   "size-2": 5,
@@ -46,5 +46,5 @@
   "patch-radius-2": 20,
   "N-patch-radius": 0,
   "starting-index": 0,
-  "N-repeat": 1
+  "N-repeat": 3
 }

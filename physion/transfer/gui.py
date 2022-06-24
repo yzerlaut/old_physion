@@ -2,7 +2,7 @@ import sys, time, os, pathlib, subprocess
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import get_files_with_extension, get_TSeries_folders
+from assembling.saving import get_files_with_extension, get_TSeries_folders, list_dayfolder
 from misc.folders import FOLDERS
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setGeometry(650, 700, 300, 400)
         # adding a "quit" keyboard shortcut
-        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Ctrl+Q'), self) # or 'Ctrl+Q'
+        self.quitSc = QtWidgets.QShortcut(QtGui.QKeySequence('Q'), self) # or 'Ctrl+Q'
         self.quitSc.activated.connect(self.quit)
             
         self.setWindowTitle('File Transfer')
@@ -64,8 +64,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeBox.setMinimumWidth(150)
         self.typeBox.move(100, HEIGHT)
         # self.typeBox.activated.connect(self.update_setting)
-        self.typeBox.addItems(['nwb', 'npy', 'FULL', 
-                               'Imaging (processed)', 'Imaging (+binary)'])
+        self.typeBox.addItems(['Imaging (processed)',
+                               'stim.+behav. (processed)',
+                               'nwb', 'npy', 'FULL', 
+                               'Imaging (+binary)'])
 
         HEIGHT += 40
         QtWidgets.QLabel("   delay ?", self).move(10, HEIGHT)
@@ -109,8 +111,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def file_copy_command(self, source_file, destination_folder):
         if sys.platform.startswith("win"):
-            return 'xcopy %s %s' % (source_file,
-                                    destination_folder)
+            return 'xcopy "%s" "%s"' % (source_file,
+                                        destination_folder)
         else:
             return 'rsync -avhP %s %s' % (source_file, destination_folder)
             
@@ -138,6 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.destination_folder=='':
             self.destination_folder = FOLDERS[self.destBox.currentText()]
+
         if self.source_folder=='':
             self.source_folder = FOLDERS[self.sourceBox.currentText()]
                                               
@@ -163,6 +166,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     cmd = self.file_copy_command(f, self.destination_folder)
                     print('"%s" launched as a subprocess' % cmd)
                     p = subprocess.Popen(cmd, shell=True)
+
         elif self.typeBox.currentText()=='FULL':
             if '10.0.0.' in self.destination_folder:
                 F.write('sshpass -p $passwd rsync -avhP %s %s \n' % (self.source_folder, self.destination_folder))
@@ -246,12 +250,29 @@ class MainWindow(QtWidgets.QMainWindow):
                     #         print('In: "%s" ' % os.path.isfile(os.path.join(Fsuite2p, 'plane%i' % iplane)))
                     #         print(' /!\ Problem no "binary file" found !! /!\  ')
 
-                    
-        if '10.0.0.' in self.destination_folder:
-            print('bash script "temp.sh" closed !')
-            F.close()
-        else:
-            print('done (but cmd likely still running as subprocesses)')
+        elif ('stim.+behav.' in self.typeBox.currentText()):
+
+            ##############################################
+            #############      Imaging         ##########
+            ##############################################
+            folders = list_dayfolder(self.source_folder)
+            print('processing: ', folders)
+
+            FILES = ['metadata.npy', 'pupil.npy', 'facemotion.npy', 
+                    'NIdaq.npy', 'NIdaq.start.npy', 
+                    'visual-stim.npy', 
+                    'FaceCamera-summary.npy']
+
+            for f in folders:
+
+                new_folder = os.path.join(self.destination_folder,
+                                          f.split(os.path.sep)[-1]) 
+                pathlib.Path(new_folder).mkdir(parents=True, exist_ok=True)
+                for ff in FILES:
+                    print(new_folder)
+                    cmd = self.file_copy_command(os.path.join(f, ff), new_folder+os.path.sep)
+                    print(cmd)
+                    p = subprocess.Popen(cmd, shell=True)
         
     def quit(self):
         QtWidgets.QApplication.quit()
@@ -264,6 +285,7 @@ def run(app, args=None, parent=None):
 
 if __name__=='__main__':
 
+    print(list_dayfolder('..\DATA\\2022_06_14')[0].split(os.path.sep)[-1])
     app = QtWidgets.QApplication(sys.argv)
     main = run(app)
     sys.exit(app.exec_())

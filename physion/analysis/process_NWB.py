@@ -7,6 +7,7 @@ from Ca_imaging import tools as Ca_imaging_tools
 from scipy.interpolate import interp1d
 from analysis import stat_tools
 
+
 class EpisodeResponse:
     """
     - Using the photodiode-signal-derived timestamps to build "episode response" by interpolating the raw signal on a fixed time interval (surrounding the stim)
@@ -14,7 +15,7 @@ class EpisodeResponse:
     """
 
     def __init__(self, full_data,
-                 protocol_id=0,
+                 protocol_id=None, protocol_name=None,
                  quantities=['Photodiode-Signal'],
                  quantities_args=None,
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
@@ -26,9 +27,16 @@ class EpisodeResponse:
         self.dt_sampling = dt_sampling
         
         # choosing protocol (if multiprotocol)
-        self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
-        self.protocol_name = full_data.protocols[protocol_id]
-
+        if (protocol_id is not None):
+            self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
+        elif (protocol_name is not None):
+            self.protocol_id = full_data.get_protocol_id(protocol_name)
+            self.protocol_cond_in_full_data = full_data.get_protocol_cond(self.protocol_id)
+        else:
+            self.protocol_cond_in_full_data = np.ones(full_data.nwbfile.stimulus['time_start_realigned'].data.shape[0],
+                                                      dtype=bool)
+            # self.protocol_name set at the end !
+            
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
         for q in quantities_args:
@@ -40,11 +48,14 @@ class EpisodeResponse:
 
         # find the parameter(s) varied within that specific protocol
         self.varied_parameters, self.fixed_parameters =  {}, {}
+        
         for key in full_data.nwbfile.stimulus.keys():
-            if key not in ['frame_run_type', 'index', 'protocol_id', 'time_duration', 'time_start',
-                           'time_start_realigned', 'time_stop', 'time_stop_realigned', 'interstim',
+            if key not in ['frame_run_type', 'index', 'protocol_id',
+                           'time_duration', 'time_start',
+                           'time_start_realigned', 'time_stop',
+                           'time_stop_realigned', 'interstim',
                            'protocol-name']:
-                unique = np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data])
+                unique = np.sort(np.unique(full_data.nwbfile.stimulus[key].data[self.protocol_cond_in_full_data]))
                 if len(unique)>1:
                     self.varied_parameters[key] = unique
                 elif len(unique)==1:
@@ -57,7 +68,8 @@ class EpisodeResponse:
             prestim_duration = 1 # still 1s is a minimum
         ipre = int(prestim_duration/dt_sampling*1e3)
 
-        duration = full_data.nwbfile.stimulus['time_stop'].data[self.protocol_cond_in_full_data][0]-full_data.nwbfile.stimulus['time_start'].data[self.protocol_cond_in_full_data][0]
+        duration = full_data.nwbfile.stimulus['time_stop'].data[self.protocol_cond_in_full_data][0]-\
+                full_data.nwbfile.stimulus['time_start'].data[self.protocol_cond_in_full_data][0]
         idur = int(duration/dt_sampling/1e-3)
         # -> time array:
         self.t = np.arange(-ipre+1, idur+ipre-1)*dt_sampling*1e-3
@@ -151,6 +163,9 @@ class EpisodeResponse:
             tstart = full_data.nwbfile.stimulus['time_start_realigned'].data[iEp]
             tstop = full_data.nwbfile.stimulus['time_stop_realigned'].data[iEp]
 
+            # print(iEp, tstart, tstop)
+            # print(full_data.nwbfile.stimulus['patch-delay'].data[iEp])
+
             RESPS, success = [], True
             for quantity, tfull, valfull in zip(QUANTITIES, QUANTITY_TIMES, QUANTITY_VALUES):
                 
@@ -173,6 +188,7 @@ class EpisodeResponse:
                         RESPS.append(func(self.t))
                         
                 except BaseException as be:
+
                     success=False # we switch this off to remove the episode in all modalities
                     if verbose:
                         print('----')
@@ -181,7 +197,9 @@ class EpisodeResponse:
                         
                         print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
                         
+
             if success:
+
                 # only succesful episodes in all modalities
                 for quantity, response in zip(QUANTITIES, RESPS):
                     getattr(self, quantity).append(response)
@@ -194,12 +212,24 @@ class EpisodeResponse:
         # transform stim params to np.array
         for key in full_data.nwbfile.stimulus.keys():
             setattr(self, key, np.array(getattr(self, key)))
+
         for q in QUANTITIES:
             setattr(self, q, np.array(getattr(self, q)))
 
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
-        self.protocol_id = protocol_id
+
+        if (protocol_id is not None):
+            # we overwrite those to single values
+            self.protocol_id = protocol_id
+            self.protocol_name = full_data.protocols[self.protocol_id]
+        elif (protocol_name is not None):
+            # we overwrite those to single values
+            self.protocol_id = full_data.get_protocol_id(protocol_name)
+            self.protocol_name = protocol_name 
+        else:
+            setattr(self, 'protocol_name', np.array([full_data.protocols[i] for i in self.protocol_id], dtype=str))
+            pass # --> self.protocol_id is an array with the different protocol ids per episode
         
         if verbose:
             print('  -> [ok] episodes ready !')
@@ -246,13 +276,34 @@ class EpisodeResponse:
         return (self.t>=interval[0]) & (self.t<=interval[1])
 
     
-    def find_episode_cond(self, key, index):
-        if (type(key) in [list, np.ndarray]) and (type(index) in [list, np.ndarray, tuple]):
-            cond = (getattr(self, key[0])==self.varied_parameters[key[0]][index[0]])
-            for n in range(1, len(key)):
+    def find_episode_cond(self, key=None, index=None, value=None):
+        """
+        by default returns the conditions of all episodes in the protocol
+        'key' and 'index' can be either lists of values
+        """
+        
+        cond = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+        
+        if (type(key) in [list, np.ndarray, tuple]) and\
+                (type(index) in [list, np.ndarray, tuple]):
+            for n in range(len(key)):
                 cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
-        else:
-            cond = (getattr(self, key)==self.varied_parameters[key][index])
+
+        elif (type(key) in [list, np.ndarray, tuple]) and\
+                 (type(value) in [list, np.ndarray, tuple]):
+            for n in range(len(key)):
+                print(key[n], value[n])
+                print(getattr(self, key[n])==value[n])
+                cond = cond & (getattr(self, key[n])==value[n])
+         
+        elif (key is not None) and\
+                (index is not None):
+            cond = cond & (getattr(self, key)==self.varied_parameters[key][index])
+       
+        elif (key is not None) and\
+                (values is not None):
+            cond = cond & (getattr(self, key)==value)
+       
         return cond
 
     
@@ -261,18 +312,24 @@ class EpisodeResponse:
                                        interval_pre=[-2,0], interval_post=[1,3],
                                        test='wilcoxon',
                                        positive=True):
-
+        """
+        """
         response = self.get_response(**response_args)
         
         if episode_cond is None:
-            episode_cond = np.ones(response.shape[0], dtype=bool)
+            episode_cond = self.find_episode_cond()
 
         pre_cond  = self.compute_interval_cond(interval_pre)
         post_cond  = self.compute_interval_cond(interval_post)
 
-        return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
-                                   response[episode_cond,:][:,post_cond].mean(axis=1),
-                                   test=test, positive=positive)
+        if len(response.shape)>1 and (np.sum(episode_cond)>1):
+            return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
+                                       response[episode_cond,:][:,post_cond].mean(axis=1),
+                                       test=test, positive=positive)
+        else:
+            return stat_tools.StatTest(None, None,
+                                       test=test, positive=positive)
+
 
     def compute_stats_over_repeated_trials(self, key, index,
                                            response_args={},
@@ -321,7 +378,6 @@ class EpisodeResponse:
                                                                                                 list(indices)),
                                                             response_args=response_args,
                                                             **stat_test_props)
-
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
                 summary_data['value'].append(np.mean(stats.y-stats.x))
@@ -342,33 +398,46 @@ class EpisodeResponse:
 if __name__=='__main__':
 
     from analysis.read_NWB import Data
+    from dataviz.datavyz.datavyz import graph_env
+    ge = graph_env('screen')
     
     filename = sys.argv[-1]
     
     if '.nwb' in sys.argv[-1]:
+
         data = Data(filename)
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
-                                  quantities=['Photodiode-Signal', 'pupil', 'gaze', 'facemotion', 'dFoF', 'rawFluo', 'Running-Speed'])
-        print(episode.quantities)
-        # from datavyz import ge
-        # ge.plot(episode.t, episode.PhotodiodeSignal.mean(axis=0), sy=episode.PhotodiodeSignal.std(axis=0))
-        # ge.show()
-        # episode = EpisodeResponse(data,
-        #                           quantities=['Pupil', 'CaImaging', 'CaImaging'],
-        #                           quantities_args=[{}, {'subquantity':'Fluorescence'}, {'subquantity':'dFoF', 'roiIndices':np.arange(10)}])
-        # print(episode.CaImaging_dFoF.shape)
+                                  protocol_id=None,
+                                  quantities=['dFoF'],
+                                  prestim_duration=3.,
+                                  dt_sampling=10)
 
-        # from datavyz import ge
-        # episode = EpisodeResponse(data,
-        #                           quantities=['dFoF'])
-        # summary_data = episode.compute_summary_data(dict(interval_pre=[-1,0], interval_post=[1,2], test='wilcoxon', positive=True),
-        #                                             response_args={'quantity':'dFoF', 'roiIndex':2})
+        fig0, ax = ge.figure()
+        fig, AX = ge.figure(axes=(3,10), figsize=(.8,.9))
 
-        # print(summary_data)
+        print(episode.protocol_name)
+        print(getattr(episode, 'patch-delay'))
+        for i, delay in enumerate([0., 1., 2.]):
+            cond = episode.find_episode_cond(['protocol_name', 'speed','patch-delay'], 
+                             value=['mixed-moving-dots-static-patch', 90., delay])
+            ax.plot(episode.t,
+                    episode.dFoF[cond,:,:].mean(axis=(0,1)),
+                    color=ge.tab10(i))
+            for k in range(episode.dFoF[cond,:,:].shape[0]):
+                AX[k%10][i].plot(episode.t, episode.dFoF[cond,:,:].mean(axis=1)[k,:])
+            ge.annotate(ax, i*'\n'+'delay=%.1s'%delay, (0,1), 
+                        va='top', color=ge.tab10(i))
+    
+        fig1, ax1 = ge.figure()
+        cond = episode.find_episode_cond(['protocol_name'], 
+                                         value=['static-patch'])
+        ax1.plot(episode.t,
+                episode.dFoF[cond,:,:].mean(axis=(0,1)),
+                color=ge.tab10(i))
+        ge.show()
 
-        
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
             

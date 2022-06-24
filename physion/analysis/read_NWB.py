@@ -122,6 +122,7 @@ class Data:
         if self.tlim is None:
             self.tlim = [0, 50] # bad for movies
 
+
     def read_data(self):
 
         # ophys data
@@ -138,6 +139,7 @@ class Data:
         if 'FaceMotion' in self.nwbfile.processing:
             self.read_facemotion()
             
+
     def resample(self, x, y, new_time_sampling,
                  interpolation='linear'):
         try:
@@ -154,6 +156,7 @@ class Data:
             return func(new_time_sampling)
             
    
+
     #########################################################
     #       CALCIUM IMAGING DATA (from suite2p output)      #
     #########################################################
@@ -207,6 +210,7 @@ class Data:
     ######################
     #       PUPIL 
     ######################        
+
     def read_pupil(self):
 
         pd = str(self.nwbfile.processing['Pupil'].description)
@@ -344,7 +348,7 @@ class Data:
             return None
 
     
-    def get_protocol_cond(self, protocol_id):
+    def get_protocol_cond(self, protocol_id, protocol_name=None):
         """
         ## a recording can have multiple protocols inside
         -> find the condition of a given protocol ID
@@ -352,13 +356,20 @@ class Data:
         'None' to have them all 
         """
 
-        if ('protocol_id' in self.nwbfile.stimulus) and (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1) and (protocol_id is not None):
+        if (protocol_name is not None) and (('protocol_id' in self.nwbfile.stimulus) and\
+                (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1)):
+            protocol_id = self.get_protocol_id(protocol_name)
             Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
-        else:
-            Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
-            
-        # limiting to available episodes
 
+        elif (protocol_id is not None) and (('protocol_id' in self.nwbfile.stimulus) and\
+                (len(np.unique(self.nwbfile.stimulus['protocol_id'].data[:]))>1)):
+            Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
+
+        else:
+            print('no protocol ID')
+            Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
+             
+        # limiting to available episodes
         Pcond[np.arange(len(Pcond))>=self.nwbfile.stimulus['time_start_realigned'].num_samples] = False
 
         return Pcond
@@ -381,6 +392,7 @@ class Data:
             return CONDS
         else:
             return [np.ones(np.sum(Pcond), dtype=bool)]
+
 
     def find_episode_from_time(self, time):
         """

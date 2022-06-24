@@ -301,6 +301,8 @@ class visual_stim:
     # adding a run purely define by an array (time, x, y), see e.g. sparse_noise initialization
     def array_sequence_presentation(self, parent, index):
         tic = time.time()
+        # print('stim_index', self.experiment['index'][index])
+        # -------------------------------------------------------
         time_indices, frames, refresh_freq = self.get_frames_sequence(index) # refresh_freq can be stimulus dependent !
         print('  array init took %.1fs' % (time.time()-tic))
         toc = time.time()
@@ -332,7 +334,14 @@ class visual_stim:
     #####################################################
     # adding a run purely define by an array -- NOW BUFFERED 
     def buffer_stim(self, parent, gui_refresh_func=None):
-
+        """
+        we build the buffers order so that we can call them as:
+        self.buffer[protocol_index][stim_index] 
+        where:
+        protocol_index = stim.experiment['protocol_id'][index]
+        stim_index = stim.experiment['index'][index]
+        where "index" is the episode number over the full protocol run (including multiprotocols)
+        """
         cls = (parent if parent is not None else self)
         win = cls.win if hasattr(cls, 'win') else self.win
 
@@ -347,22 +356,22 @@ class visual_stim:
         for protocol_id in np.sort(np.unique(protocol_ids)):
             self.buffer.append([]) # adding a new set of buffers
             print('    - protocol %i  ' % (protocol_id+1)) 
-            index_cond = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)]
-            for i, index in enumerate(index_cond):
+            single_indices = np.arange(len(protocol_ids))[(protocol_ids==protocol_id) & (self.experiment['repeat']==0)] # this gives the valid
+            indices_order = np.argsort(self.experiment['index'][single_indices])
+            for stim_index, index_in_full_array in enumerate(single_indices[indices_order]):
                 toc = time.time()
-                time_indices, frames, refresh_freq = self.get_frames_sequence(index)
+                time_indices, frames, refresh_freq = self.get_frames_sequence(index_in_full_array)
                 self.buffer[protocol_id].append({'time_indices':time_indices,
                                                  'frames':frames,
                                                  'FRAMES':[],
                                                  'refresh_freq':refresh_freq})
-                for frame in self.buffer[protocol_id][i]['frames']:
-                    self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
-                                                                 image=self.gamma_corrected_lum(frame),
-                                                                 units='pix', size=win.size))
+                for frame in self.buffer[protocol_id][stim_index]['frames']:
+                    self.buffer[protocol_id][stim_index]['FRAMES'].append(visual.ImageStim(win,
+                                                                          image=self.gamma_corrected_lum(frame),
+                                                                          units='pix', size=win.size))
                     if gui_refresh_func is not None:    
                         gui_refresh_func()
-                print('        index #%i   (%.2fs)' % (i+1, time.time()-toc)) 
-
+                print('        index #%i   (%.2fs)' % (stim_index+1, time.time()-toc)) 
    
         print(' --> buffering done ! (t=%.2fs / %.2fmin)' % (time.time()-tic, (time.time()-tic)/60.)) 
         return True
@@ -371,6 +380,8 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
+        # print('stim_index', stim_index)
+        # -------------------------------------------------------
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
@@ -1176,7 +1187,7 @@ class random_dots(vis_stim_image_built):
 
         time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        np.random.seed(self.experiment['seed'][index]+3*index) # changing seed at each realization
+        np.random.seed(int(cls.experiment['seed'][index]+3*index)) # changing seed at each realization
         for iframe, t in enumerate(times):
             img = compute_new_image_with_dots(cls, index)
             FRAMES.append(self.image_to_frame(img))
@@ -1221,7 +1232,7 @@ class mixed_random_dots_static_patch(vis_stim_image_built):
 
         time_indices, times, FRAMES = init_times_frames(cls, index, self.refresh_freq)
 
-        np.random.seed(self.experiment['seed'][index]+3*index) # changing seed at each realization
+        np.random.seed(int(cls.experiment['seed'][index]+3*index)) # changing seed at each realization
         for iframe, t in enumerate(times):
             # random dot frame
             img = compute_new_image_with_dots(cls, index)
@@ -1439,6 +1450,43 @@ class Natural_Image_VSE(visual_stim):
                                 seed=seed)
         else:
             return None
+
+    def plot_stim_picture(self, episode, parent=None, 
+                          vse=True, ax=None, label=None,
+                          time_from_episode_start=0):
+
+        cls = (parent if parent is not None else self)
+
+        if ax==None:
+            import matplotlib.pylab as plt
+            fig, ax = plt.subplots(1)
+
+        img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
+                        time_from_episode_start=time_from_episode_start,
+                        parent=cls).T, psychopy_to_numpy=True),
+                      cmap='gray', vmin=0, vmax=1,
+                      origin='lower',
+                      aspect='equal')
+
+        self.vse = self.get_vse(episode, parent=cls)
+        self.add_vse(ax, self.vse)
+
+        ax.axis('off')
+
+        return ax
+        # if label is not None:
+            # nz, nx = self.x.shape
+            # L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
+            # ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
+            # ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
+            # ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
+
+        # if return_img:
+            # return img
+        # else:
+            # return ax
+
+            
 
 #####################################################
 ##  -- PRESENTING APPEARING GAUSSIAN BLOBS  --  #####           
