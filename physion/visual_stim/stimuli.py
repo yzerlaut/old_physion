@@ -234,6 +234,11 @@ class visual_stim:
                     'interstim', 'time_duration', 'interstim-screen', 'frame_run_type']:
             self.experiment[k] = np.array(self.experiment[k]) 
 
+        self.exp2 = {}
+        for k in self.experiment:
+            self.exp2[k] = self.experiment[k]
+
+
     # the close function
     def close(self):
         self.win.close()
@@ -355,6 +360,9 @@ class visual_stim:
                                                  'frames':frames,
                                                  'FRAMES':[],
                                                  'refresh_freq':refresh_freq})
+                for key in self.experiment:
+                    self.buffer[protocol_id][-1][key] = self.experiment[key][index]
+
                 for frame in self.buffer[protocol_id][i]['frames']:
                     self.buffer[protocol_id][i]['FRAMES'].append(visual.ImageStim(win,
                                                                  image=self.gamma_corrected_lum(frame),
@@ -371,6 +379,13 @@ class visual_stim:
         # --- fetch protocol_id and stim_index:
         protocol_id = self.experiment['protocol_id'][index] if 'protocol_id' in self.experiment else 0
         stim_index = self.experiment['index'][index]
+
+        for k in self.exp2:
+            if k in self.buffer[protocol_id][stim_index]:
+                self.exp2[k][index] = self.buffer[protocol_id][stim_index][k]
+
+        print('delay', self.exp2['patch-delay'][:index])
+
         # then run loop over buffered frames
         start = clock.getTime()
         while ((clock.getTime()-start)<(self.experiment['time_duration'][index])) and not parent.stop_flag:
@@ -660,6 +675,11 @@ class multiprotocol(visual_stim):
 
         for key in ['protocol_id', 'index', 'repeat', 'interstim', 'time_start', 'time_stop', 'time_duration']:
             self.experiment[key] = np.array(self.experiment[key])
+        
+        self.exp2 = {}
+        for k in self.experiment:
+            self.exp2[k] = self.experiment[k]
+
 
     # functions implemented in child class
     def get_frame(self, index):
@@ -1521,6 +1541,10 @@ if __name__=='__main__':
             else:
                 stim = build_stim(protocol)
                 stim.run(parent)
+                stim.exp2['time_start'] = stim.experiment['time_start']
+                stim.exp2['time_stop'] = stim.experiment['time_stop']
+                np.save(os.path.join(os.path.expanduser('~'),
+                        'Desktop', 'visual-stim.npy'), stim.exp2)
                 stim.close()
     else:
         print('need to provide a ".json" protocol file as argument !')
