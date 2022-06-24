@@ -1,0 +1,17 @@
+{
+  "Presentation": "multiprotocol",
+  "shuffling" :"full",
+  "shuffling-seed" :8,
+  "Protocol-1": "subprotocols/MCI-neurometric-task/moving-dots.json",
+  "Protocol-1": "subprotocols/MCI-neurometric-task/random-dots.json",
+  "Protocol-3": "subprotocols/MCI-neurometric-task/static-patch.json",
+  "Protocol-4": "subprotocols/MCI-neurometric-task/mixed-moving-dots-static-patch.json",
+  "Protocol-5": "subprotocols/MCI-neurometric-task/mixed-random-dots-static-patch.json",
+  "presentation-prestim-period": 4,
+  "presentation-poststim-period": 4,
+  "presentation-prestim-screen": 0,
+  "presentation-poststim-screen": 0,
+  "presentation-interstim-period": 4,
+  "presentation-interstim-screen": 0,
+  "Screen": "Dell-2020"
+}
