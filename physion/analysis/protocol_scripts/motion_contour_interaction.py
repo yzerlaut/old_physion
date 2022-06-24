@@ -288,8 +288,7 @@ class MCI_data:
         if len(np.unique(delays))==1:
             responses['delay'] = delays[0] # storing delay for later
         else:
-            print('delays', np.unique(delays))
-            print('no unique delay, unpossible to build the linear predictions !')
+            raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
 
         # linear pred.
         responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
@@ -405,12 +404,23 @@ def run_analysis_and_save_figs(datafile,
         fig.suptitle('mixed static-patch + moving-dots\n\n', fontsize=9)    
         pdf.savefig(fig);plt.close(fig)
 
+        #fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
+        #                                               data.episode_moving_dots.find_episode_cond(),
+        #                                               data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
+        #                                               roiIndices=rois_of_interest_contour_only['_0']),
+        #                        static_patch_label='patch',
+        #                        moving_dots_label='mv-dots',
+        #                        mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
+        #                            data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]))
+        #fig.suptitle(' interaction - all parameters merge ')
+        #pdf.savefig(fig);plt.close(fig)
+
         if data.episode_random_dots is not None:
             fig, AX = data.episode_random_dots.plot_trial_average(roiIndices='mean', 
                                                                   with_annotation=True,
                                                                   with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                   xbar=1, xbarlabel='1s')
-            fig.suptitle('random line moving-dots\n\n', fontsize=9)    
+            fig.suptitle('random dots\n\n', fontsize=9)    
             pdf.savefig(fig);plt.close(fig)
 
         if data.episode_mixed_random_dots is not None:
@@ -419,7 +429,7 @@ def run_analysis_and_save_figs(datafile,
                                                                    with_annotation=True,
                                                                    with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                    xbar=1, xbarlabel='1s')
-            fig.suptitle('mixed static-patch + random line moving-dots\n\n', fontsize=9)    
+            fig.suptitle('mixed static patch + random dots\n\n', fontsize=9)    
             pdf.savefig(fig);plt.close(fig)
             
         ## Focusing on cells responding to contour features
@@ -503,6 +513,7 @@ def run_analysis_and_save_figs(datafile,
                                                 mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
                                                     data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
                                                 Ybar=Ybar)
+                        fig.suptitle('interaction --> cells resp. to %s\n\n\n' % key, fontsize=8)
                         pdf.savefig(fig);plt.close(fig)
 
                 # for contour_index in range(len(data.episode_static_patch.varied_parameters[contour_key])):
