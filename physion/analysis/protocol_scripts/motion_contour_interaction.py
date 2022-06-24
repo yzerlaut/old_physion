@@ -352,18 +352,20 @@ def run_analysis_and_save_figs(datafile,
     pdf_filename = os.path.join(summary_pdf_folder(datafile), 'motion-contour-interaction.pdf')
 
     data = MCI_data(datafile)
-    
-    if len(data.episode_static_patch.varied_parameters.keys())==2:
-        contour_key = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat'][0]
-    elif len(data.episode_static_patch.varied_parameters.keys())==1:
+   
+    keys = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat']
+    if len(keys)==0:
         contour_key = ''
+    elif len(keys)==1:
+        contour_key = keys[0]
     else:
         print('\n\n /!\ MORE THAN ONE CONTOUR KEY /!\ \n    --> needs special analysis   \n\n ')
 
-    if len(data.episode_moving_dots.varied_parameters.keys())==2:
-        motion_key = [k for k in data.episode_moving_dots.varied_parameters.keys() if k!='repeat'][0]
-    elif len(data.episode_moving_dots.varied_parameters.keys())==1:
+    keys = [k for k in data.episode_moving_dots.varied_parameters.keys() if k!='repeat']
+    if len(keys)==0:
         motion_key = ''
+    elif len(keys)==1:
+        motion_key = keys[0]
     else:
         print('\n\n /!\ MORE THAN ONE MOTION KEY /!\ \n    --> needs special analysis   \n\n ')
 
@@ -441,18 +443,18 @@ def run_analysis_and_save_figs(datafile,
                                       rois_of_interest_contour_only)
         pdf.savefig(fig);plt.close(fig)
 
-        for mixed_index in range(3):
-            fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
-                                                           data.episode_moving_dots.find_episode_cond(),
-                                                           data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
-                                                           roiIndices=rois_of_interest_contour_only['_0']),
-                                    static_patch_label='patch',
-                                    moving_dots_label='mv-dots',
-                                    mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-                                        data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
-                                    Ybar=Ybar)
-            fig.suptitle(' interaction - all parameters merge ')
-            pdf.savefig(fig);plt.close(fig)
+        # for mixed_index in range(3):
+            # fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
+                                                           # data.episode_moving_dots.find_episode_cond(),
+                                                           # data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
+                                                           # roiIndices=rois_of_interest_contour_only['_0']),
+                                    # static_patch_label='patch',
+                                    # moving_dots_label='mv-dots',
+                                    # mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
+                                        # data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
+                                    # Ybar=Ybar)
+            # fig.suptitle(' interaction - all parameters merge ')
+            # pdf.savefig(fig);plt.close(fig)
 
 
         for key in [key for key in rois_of_interest_contour_only if 'resp' not in key]:
