@@ -488,6 +488,21 @@ def run_analysis_and_save_figs(datafile,
                 pdf.savefig(fig);plt.close(fig)
 
 
+                for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
+                    for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
+                        mixed_indices = [motion_index, mixed_index] 
+                        mixed_keys = [motion_key, mixed_only_key]
+                        fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
+                                                                    data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
+                                                                    data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
+                                                                    roiIndices=rois_of_interest_contour_only[key]),
+                                                static_patch_label='patch',
+                                                moving_dots_label='mv-dots\n (%s=%i)' % (motion_key[:3], data.episode_moving_dots.varied_parameters[motion_key][motion_index]),
+                                                mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
+                                                    data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
+                                                Ybar=Ybar)
+                        pdf.savefig(fig);plt.close(fig)
+
                 # for contour_index in range(len(data.episode_static_patch.varied_parameters[contour_key])):
                     # for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
                         # for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
