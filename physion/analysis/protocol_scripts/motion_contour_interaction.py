@@ -214,7 +214,7 @@ class MCI_data:
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
                           delay=0,
-                          patch_baseline_window=[-0.5,0]):
+                          patch_baseline_window=[-0.1,0]):
         """
         the linear prediction is build by adding the patch evoke resp to the motion trace
             we remove the baseline for mthe patch resp so that it has a zero baseline
@@ -241,7 +241,7 @@ class MCI_data:
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
                       integral_window=2., force_delay=None,
-                      patch_baseline_window=[-1,0],
+                      patch_baseline_window=[-0.1,0],
                       roiIndices=[0]):
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
