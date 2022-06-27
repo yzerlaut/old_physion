@@ -777,10 +777,21 @@ class vis_stim_image_built(visual_stim):
 
         cond = ((self.x-xcenter)**2+(self.z-zcenter)**2)<radius**2
 
-        image[cond] = 2*self.compute_grating(xrot[cond],
-                                             spatial_freq=spatial_freq,
-                                             contrast=contrast,
-                                             time_phase=time_phase)-1
+        #image[cond] = 2*self.compute_grating(xrot[cond],
+        #                                     spatial_freq=spatial_freq,
+        #                                     contrast=contrast,
+        #                                     time_phase=time_phase)-1
+
+        full_grating = self.compute_grating(xrot,
+                                            spatial_freq=spatial_freq,
+                                            contrast=1,
+                                            time_phase=time_phase)-0.5
+
+        # image[cond] += 2*contrast*full_grating[cond] # /!\ "+=" to see both 
+        image[cond] = 2*contrast*full_grating[cond] # /!\ "=" for the patch 
+
+
+
     def add_gaussian(self, image,
                      t=0, t0=0, sT=1.,
                      radius=10,
