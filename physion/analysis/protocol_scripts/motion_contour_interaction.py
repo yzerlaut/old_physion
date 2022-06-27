@@ -450,19 +450,6 @@ def run_analysis_and_save_figs(datafile,
                                       rois_of_interest_contour_only)
         pdf.savefig(fig);plt.close(fig)
 
-        # for mixed_index in range(3):
-            # fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
-                                                           # data.episode_moving_dots.find_episode_cond(),
-                                                           # data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
-                                                           # roiIndices=rois_of_interest_contour_only['_0']),
-                                    # static_patch_label='patch',
-                                    # moving_dots_label='mv-dots',
-                                    # mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-                                        # data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
-                                    # Ybar=Ybar)
-            # fig.suptitle(' interaction - all parameters merge ')
-            # pdf.savefig(fig);plt.close(fig)
-
 
         for key in [key for key in rois_of_interest_contour_only if 'resp' not in key]:
 
