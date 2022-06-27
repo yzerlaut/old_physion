@@ -295,8 +295,10 @@ class MCI_data:
                                                      delay=responses['delay'],
                                                      patch_baseline_window=patch_baseline_window)
         integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
-        responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
-        responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),responses['t_motion'][integral_cond])
+        responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
+                                                responses['t_motion'][integral_cond])
+        responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),
+                                               responses['t_motion'][integral_cond])
         
         return responses
     
@@ -354,17 +356,17 @@ def run_analysis_and_save_figs(datafile,
    
     keys = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat']
     if len(keys)==0:
-        contour_key = ''
+        contour_key, contour_keys = '', ['']
     elif len(keys)==1:
-        contour_key = keys[0]
+        contour_key, contour_keys = keys[0], data.episode_static_patch.varied_parameters[keys[0]]
     else:
         print('\n\n /!\ MORE THAN ONE CONTOUR KEY /!\ \n    --> needs special analysis   \n\n ')
 
     keys = [k for k in data.episode_moving_dots.varied_parameters.keys() if k!='repeat']
     if len(keys)==0:
-        motion_key = ''
+        motion_key, motion_keys = '', ['']
     elif len(keys)==1:
-        motion_key = keys[0]
+        motion_key, motion_keys = keys[0], data.episode_moving_dots.varied_parameters[keys[0]]
     else:
         print('\n\n /!\ MORE THAN ONE MOTION KEY /!\ \n    --> needs special analysis   \n\n ')
 
@@ -375,6 +377,7 @@ def run_analysis_and_save_figs(datafile,
 
 
     with PdfPages(pdf_filename) as pdf:
+
         # static patches
         fig, AX = data.episode_static_patch.plot_trial_average(roiIndices='mean', 
                                                                column_key=contour_key,
@@ -386,10 +389,10 @@ def run_analysis_and_save_figs(datafile,
         
         # moving dots
         fig, AX = data.episode_moving_dots.plot_trial_average(roiIndices='mean', 
-                                                         column_key=motion_key,
-                                                         with_annotation=True,
-                                                         with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
-                                                         xbar=1, xbarlabel='1s')
+                                                              column_key=motion_key,
+                                                              with_annotation=True,
+                                                              with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                              xbar=1, xbarlabel='1s')
         fig.suptitle('moving dots\n\n', fontsize=9)
         pdf.savefig(fig);plt.close(fig)
 
@@ -399,35 +402,28 @@ def run_analysis_and_save_figs(datafile,
                                                         row_key=motion_key,
                                                         color_key=('patch-%s'%contour_key if (contour_key!='') else ''),
                                                         with_annotation=True,
-                                                         with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                        with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                         xbar=1, xbarlabel='1s')
         fig.suptitle('mixed static-patch + moving-dots\n\n', fontsize=9)    
         pdf.savefig(fig);plt.close(fig)
 
-        #fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
-        #                                               data.episode_moving_dots.find_episode_cond(),
-        #                                               data.episode_mixed.find_episode_cond(['patch-delay'], [mixed_index]),
-        #                                               roiIndices=rois_of_interest_contour_only['_0']),
-        #                        static_patch_label='patch',
-        #                        moving_dots_label='mv-dots',
-        #                        mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-        #                            data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]))
-        #fig.suptitle(' interaction - all parameters merge ')
-        #pdf.savefig(fig);plt.close(fig)
 
         if data.episode_random_dots is not None:
             fig, AX = data.episode_random_dots.plot_trial_average(roiIndices='mean', 
                                                                   with_annotation=True,
-                                                                  with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                                  with_std=False,
+                                                                  ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                   xbar=1, xbarlabel='1s')
             fig.suptitle('random dots\n\n', fontsize=9)    
             pdf.savefig(fig);plt.close(fig)
+
 
         if data.episode_mixed_random_dots is not None:
             fig, AX = data.episode_mixed_random_dots.plot_trial_average(roiIndices='mean', 
                                                                         color_key=('patch-%s'%contour_key if (contour_key!='') else ''),
                                                                    with_annotation=True,
-                                                                   with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                                   with_std=False,
+                                                                   ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                    xbar=1, xbarlabel='1s')
             fig.suptitle('mixed static patch + random dots\n\n', fontsize=9)    
             pdf.savefig(fig);plt.close(fig)
@@ -435,16 +431,17 @@ def run_analysis_and_save_figs(datafile,
         ## Focusing on cells responding to contour features
 
         rois_of_interest_contour = find_responsive_cells(data.episode_static_patch,
-                                                                 param_key=contour_key,
-                                                                 interval_pre=[-1,0],
-                                                                 interval_post=[0.5,1.5])
+                                                         param_key=contour_key,
+                                                         interval_pre=[-1,0],
+                                                         interval_post=[0.5,1.5])
 
         rois_of_interest_motion = find_responsive_cells(data.episode_moving_dots,
                                                         param_key=motion_key,
                                                         interval_pre=[-2,0],
                                                         interval_post=[1,3])
 
-        rois_of_interest_contour_only = exclude_motion_sensitive_cells(rois_of_interest_contour, rois_of_interest_motion)
+        rois_of_interest_contour_only = exclude_motion_sensitive_cells(rois_of_interest_contour,
+                                                                       rois_of_interest_motion)
 
 
         fig, ax = make_proportion_fig(data,
@@ -475,62 +472,52 @@ def run_analysis_and_save_figs(datafile,
             if len(rois_of_interest_contour_only[key])>0:
 
                 fig, AX = data.episode_static_patch.plot_trial_average(roiIndices=rois_of_interest_contour_only[key], 
-                                                                  column_key=contour_key,
-                                                                  with_annotation=True,
-                                                                  with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
-                                                                  xbar=1, xbarlabel='1s')
+                                                                       column_key=contour_key,
+                                                                       with_annotation=True,
+                                                                       with_std=False,
+                                                                       ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                                       xbar=1, xbarlabel='1s')
                 fig.suptitle('static patches --> cells resp. to %s\n\n\n' % key, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
 
                 fig, AX = data.episode_moving_dots.plot_trial_average(roiIndices=rois_of_interest_contour_only[key], 
-                                                                  column_key=motion_key,
-                                                                  with_annotation=True,
-                                                                  with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
-                                                                  xbar=1, xbarlabel='1s')
+                                                                      column_key=motion_key,
+                                                                      with_annotation=True,
+                                                                      with_std=False,
+                                                                      ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                                      xbar=1, xbarlabel='1s')
                 fig.suptitle('moving-dots --> cells resp. to %s\n\n\n' % key, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
+
                 fig, AX = data.episode_mixed.plot_trial_average(roiIndices=rois_of_interest_contour_only[key], 
                                                                 column_key=mixed_only_key,
                                                                 row_key=motion_key,
                                                                 color_key=('patch-%s'%contour_key if (contour_key!='') else ''),
                                                                 with_annotation=True,
-                                                                with_std=False, ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
+                                                                with_std=False,
+                                                                ybar=Ybar, ybarlabel='%.1fdF/F'%Ybar, 
                                                                 xbar=1, xbarlabel='1s')
                 fig.suptitle('mixed-stim --> cells resp. to %s\n\n\n' % key, fontsize=8)
                 pdf.savefig(fig);plt.close(fig)
 
 
-                for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
-                    for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
-                        mixed_indices = [motion_index, mixed_index] 
-                        mixed_keys = [motion_key, mixed_only_key]
-                        fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(),
-                                                                    data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
-                                                                    data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
-                                                                    roiIndices=rois_of_interest_contour_only[key]),
-                                                static_patch_label='patch',
-                                                moving_dots_label='mv-dots\n (%s=%i)' % (motion_key[:3], data.episode_moving_dots.varied_parameters[motion_key][motion_index]),
-                                                mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-                                                    data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
-                                                Ybar=Ybar)
-                        fig.suptitle('interaction --> cells resp. to %s\n\n\n' % key, fontsize=8)
-                        pdf.savefig(fig);plt.close(fig)
-
-                # for contour_index in range(len(data.episode_static_patch.varied_parameters[contour_key])):
-                    # for motion_index in range(len(data.episode_moving_dots.varied_parameters[motion_key])):
-                        # for mixed_index in range(len(data.episode_mixed.varied_parameters[mixed_only_key])):
-                            # mixed_indices = [motion_index, contour_index, mixed_index] 
-                            # mixed_keys = [motion_key, 'patch-%s'%contour_key, mixed_only_key]
-                            # fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
-                                                                        # data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
-                                                                        # data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
-                                                                        # roiIndices=rois_of_interest_contour_only[key]),
-                                                    # static_patch_label='patch\n (%s=%i)' % (contour_key[:3], data.episode_static_patch.varied_parameters[contour_key][contour_index]),
-                                                    # moving_dots_label='mv-dots\n (%s=%i)' % (motion_key[:3], data.episode_moving_dots.varied_parameters[motion_key][motion_index]),
-                                                    # mixed_label='mixed\n (%s=%i)' % (mixed_only_key.replace('patch-','')[:3], 
-                                                        # data.episode_mixed.varied_parameters[mixed_only_key][mixed_index]),
-                                                    # Ybar=Ybar)
-                            # pdf.savefig(fig);plt.close(fig)
+                for contour_index, cnt_value in enumerate(contour_keys):
+                    for motion_index, mot_value in enumerate(motion_keys):
+                        for mixed_index, mix_value in enumerate(data.episode_mixed.varied_parameters[mixed_only_key]):
+                            mixed_keys = [mixed_only_key, motion_key, 
+                                    'patch-%s'%contour_key if contour_key!='' else ''] 
+                            mixed_indices= [mixed_index, motion_index, contour_index]
+                            print(mixed_keys)
+                            fig, _, _ = interaction_fig(data.get_responses(data.episode_static_patch.find_episode_cond(contour_key, contour_index),
+                                                                           data.episode_moving_dots.find_episode_cond(motion_key, motion_index),
+                                                                           data.episode_mixed.find_episode_cond(mixed_keys, mixed_indices),
+                                                                           roiIndices=rois_of_interest_contour_only[key]),
+                                                         static_patch_label='patch\n (%s=%s)' % (contour_key[:3], cnt_value),
+                                                         moving_dots_label='mv-dots\n (%s=%s)' % (motion_key[:3], mot_value),
+                                                         mixed_label='mixed\n (%s=%s)' % (mixed_only_key.replace('patch-','')[:3], mix_value), 
+                                                         Ybar=Ybar)
+                            fig.suptitle('interaction --> cells resp. to %s\n\n\n' % key, fontsize=8)
+                            pdf.savefig(fig);plt.close(fig)
 
         print('[ok] motion-contour-interaction analysis saved as: "%s" ' % pdf_filename)
 

@@ -287,21 +287,19 @@ class EpisodeResponse:
         if (type(key) in [list, np.ndarray, tuple]) and\
                 (type(index) in [list, np.ndarray, tuple]):
             for n in range(len(key)):
-                cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
+                if key[n] != '':
+                    cond = cond & (getattr(self, key[n])==self.varied_parameters[key[n]][index[n]])
 
         elif (type(key) in [list, np.ndarray, tuple]) and\
                  (type(value) in [list, np.ndarray, tuple]):
             for n in range(len(key)):
-                print(key[n], value[n])
-                print(getattr(self, key[n])==value[n])
-                cond = cond & (getattr(self, key[n])==value[n])
+                if key[n] != '':
+                    cond = cond & (getattr(self, key[n])==value[n])
          
-        elif (key is not None) and\
-                (index is not None):
+        elif (key is not None) and (key!='') and (index is not None):
             cond = cond & (getattr(self, key)==self.varied_parameters[key][index])
        
-        elif (key is not None) and\
-                (values is not None):
+        elif (key is not None) and (key!='') and (value is not None):
             cond = cond & (getattr(self, key)==value)
        
         return cond
