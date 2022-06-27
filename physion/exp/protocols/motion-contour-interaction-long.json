@@ -7,11 +7,11 @@
   "Protocol-3": "subprotocols/MCI-long/static-patch.json",
   "Protocol-4": "subprotocols/MCI-long/mixed-moving-dots-static-patch.json",
   "Protocol-5": "subprotocols/MCI-long/mixed-random-dots-static-patch.json",
-  "presentation-prestim-period": 6,
-  "presentation-poststim-period": 6,
+  "presentation-prestim-period": 5,
+  "presentation-poststim-period": 5,
   "presentation-prestim-screen": 0,
   "presentation-poststim-screen": 0,
-  "presentation-interstim-period": 6,
+  "presentation-interstim-period": 5,
   "presentation-interstim-screen": 0,
   "Screen": "Dell-2020"
 }

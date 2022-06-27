@@ -541,7 +541,10 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             COLOR_CONDS = [np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)]
             
         if (len(COLOR_CONDS)>1):
-            COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
+            try:
+                COLORS= [color[c] for c in np.arange(len(COLOR_CONDS))]
+            except BaseException:
+                COLORS = [ge.tab10((c%10)/10.) for c in np.arange(len(COLOR_CONDS))]
         else:
             COLORS = [color for ic in range(len(COLOR_CONDS))]
             
