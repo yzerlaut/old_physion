@@ -355,6 +355,7 @@ def run_analysis_and_save_figs(datafile,
     data = MCI_data(datafile)
    
     keys = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat']
+
     if len(keys)==0:
         contour_key, contour_keys = '', ['']
     elif len(keys)==1:
