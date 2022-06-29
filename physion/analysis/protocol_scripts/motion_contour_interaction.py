@@ -174,13 +174,14 @@ class MCI_data:
     def __init__(self, filename, quantities=['dFoF']):
     
         data = Data(filename, metadata_only=True, verbose=False)
+        print(data.protocols)
 
         # computing episodes       
         self.episode_static_patch = EpisodeResponse(filename,
                                                     protocol_name='static-patch',
                                                     quantities=quantities,            
                                                     prestim_duration=3, verbose=False)             
-
+        print(self.episode_static_patch.varied_parameters)
         self.episode_moving_dots = EpisodeResponse(filename,
                                                    protocol_name='moving-dots',
                                                    quantities=quantities,            
@@ -355,7 +356,7 @@ def run_analysis_and_save_figs(datafile,
     data = MCI_data(datafile)
    
     keys = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat']
-
+    print(keys)
     if len(keys)==0:
         contour_key, contour_keys = '', ['']
     elif len(keys)==1:
@@ -364,6 +365,7 @@ def run_analysis_and_save_figs(datafile,
         print('\n\n /!\ MORE THAN ONE CONTOUR KEY /!\ \n    --> needs special analysis   \n\n ')
 
     keys = [k for k in data.episode_moving_dots.varied_parameters.keys() if k!='repeat']
+    print(keys)
     if len(keys)==0:
         motion_key, motion_keys = '', ['']
     elif len(keys)==1:
