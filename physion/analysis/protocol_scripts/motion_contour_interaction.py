@@ -223,7 +223,7 @@ class MCI_data:
             N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
         """
 
-        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1])[0][0]
+        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1]))[0][0]
         patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[1] # everything after the baseline window
         patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) &\
                     (self.episode_static_patch.t<=patch_baseline_window[1])
@@ -232,7 +232,33 @@ class MCI_data:
         resp = 0*self.episode_moving_dots.t + mvDot_resp # mvDot_resp by default
 
         # and we add the patch-evoked response (substracting its baseline)
-        imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_mVdot_center])-1
+        imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_patch_start])-1
+        resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
+
+        return resp
+
+    def build_contour_pred(self, 
+                           mixed_resp, mvDot_resp,
+                           delay=0,
+                           patch_baseline_window=[-0.1,0]):
+        """
+        the linear prediction is build by adding the patch evoke resp to the motion trace
+            we remove the baseline for mthe patch resp so that it has a zero baseline
+            N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
+        """
+
+        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1]))[0][0]
+
+        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[1] # everything after the baseline window
+
+        baseline_cond = (self.episode_moving_dots.t>=patch_baseline_window[0]) &\
+                    (self.episode_static_patch.t<=patch_baseline_window[1])
+        patch_baseline = np.mean(patch_resp[patch_baseline_cond])
+
+        resp = 0*self.episode_mixed.t + mixed_resp # mvDot_resp by default
+
+        # and we add the patch-evoked response (substracting its baseline)
+        imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_patch_start])-1
         resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
 
         return resp
