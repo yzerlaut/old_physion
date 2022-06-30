@@ -171,26 +171,27 @@ def interaction_fig(responses,
 class MCI_data:
     
     
-    def __init__(self, filename, quantities=['dFoF']):
+    def __init__(self, filename, 
+                 quantities=['dFoF'],
+                 prestim_duration=3):
     
         data = Data(filename, metadata_only=True, verbose=False)
-        print(data.protocols)
 
         # computing episodes       
         self.episode_static_patch = EpisodeResponse(filename,
                                                     protocol_name='static-patch',
                                                     quantities=quantities,            
-                                                    prestim_duration=3, verbose=False)             
-        print(self.episode_static_patch.varied_parameters)
+                                                    prestim_duration=prestim_duration, verbose=False)             
+
         self.episode_moving_dots = EpisodeResponse(filename,
                                                    protocol_name='moving-dots',
                                                    quantities=quantities,            
-                                                   prestim_duration=3, verbose=False)             
+                                                   prestim_duration=prestim_duration, verbose=False)             
 
         self.episode_mixed = EpisodeResponse(filename,
                                              protocol_name='mixed-moving-dots-static-patch',
                                              quantities=quantities,            
-                                             prestim_duration=3, verbose=False)         
+                                             prestim_duration=prestim_duration, verbose=False)         
 
         if hasattr(self.episode_mixed.data, 'nROIs'):
             self.nROIs = self.episode_mixed.data.nROIs
@@ -200,14 +201,14 @@ class MCI_data:
             self.episode_random_dots = EpisodeResponse(filename,
                                                       protocol_name='random-dots',
                                                       quantities=quantities,            
-                                                      prestim_duration=3, verbose=False)             
+                                                      prestim_duration=prestim_duration, verbose=False)             
         else:
             self.episode_random_dots = None
         if 'mixed-random-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
                                                              protocol_name='mixed-random-dots-static-patch',
                                                              quantities=quantities,            
-                                                             prestim_duration=3, verbose=False)  
+                                                             prestim_duration=prestim_duration, verbose=False)  
         else:
             self.episode_mixed_random_dots = None
             
@@ -222,16 +223,17 @@ class MCI_data:
             N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
         """
 
-        i_mVdot_center = np.argwhere(self.episode_moving_dots.t>delay)[0][0]
-        patch_evoked_t = self.episode_static_patch.t>0
-        patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) & (self.episode_static_patch.t<=patch_baseline_window[1])
+        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1])[0][0]
+        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[1] # everything after the baseline window
+        patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) &\
+                    (self.episode_static_patch.t<=patch_baseline_window[1])
         patch_baseline = np.mean(patch_resp[patch_baseline_cond])
 
         resp = 0*self.episode_moving_dots.t + mvDot_resp # mvDot_resp by default
 
         # and we add the patch-evoked response (substracting its baseline)
         imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_mVdot_center])-1
-        resp[i_mVdot_center:i_mVdot_center+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
+        resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
 
         return resp
 
@@ -356,7 +358,7 @@ def run_analysis_and_save_figs(datafile,
     data = MCI_data(datafile)
    
     keys = [k for k in data.episode_static_patch.varied_parameters.keys() if k!='repeat']
-    print(keys)
+
     if len(keys)==0:
         contour_key, contour_keys = '', ['']
     elif len(keys)==1:
