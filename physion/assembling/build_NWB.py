@@ -168,7 +168,6 @@ def build_NWB(args,
                 
             for key in VisualStim:
                 None_cond = np.array([isinstance(e, type(None)) for e in VisualStim[key]]) # just checks for 'None' values
-                print(key)
                 if key in ['protocol_id', 'index']:
                     array = np.array(VisualStim[key])
                 elif key in ['protocol-name']:
