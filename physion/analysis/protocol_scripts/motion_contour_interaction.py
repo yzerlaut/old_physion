@@ -216,51 +216,49 @@ class MCI_data:
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
                           delay=0,
-                          patch_baseline_window=[-0.1,0]):
+                          baseline_window=[-0.1,0]):
         """
         the linear prediction is build by adding the patch evoke resp to the motion trace
             we remove the baseline for mthe patch resp so that it has a zero baseline
             N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
         """
 
-        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1]))[0][0]
-        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[1] # everything after the baseline window
-        patch_baseline_cond = (self.episode_static_patch.t>=patch_baseline_window[0]) &\
-                    (self.episode_static_patch.t<=patch_baseline_window[1])
-        patch_baseline = np.mean(patch_resp[patch_baseline_cond])
+        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+baseline_window[1]))[0][0]
+
+        patch_evoked_t = self.episode_static_patch.t>baseline_window[1] # everything after the baseline window
+
+        baseline_cond = (self.episode_static_patch.t>=baseline_window[0]) &\
+                    (self.episode_static_patch.t<=baseline_window[1])
+        baseline = np.mean(patch_resp[baseline_cond])
 
         resp = 0*self.episode_moving_dots.t + mvDot_resp # mvDot_resp by default
 
         # and we add the patch-evoked response (substracting its baseline)
         imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_patch_start])-1
-        resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
+        resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-baseline
 
         return resp
 
-    def build_contour_pred(self, 
+    def build_contour_pred(self,
                            mixed_resp, mvDot_resp,
                            delay=0,
-                           patch_baseline_window=[-0.1,0]):
-        """
-        the linear prediction is build by adding the patch evoke resp to the motion trace
-            we remove the baseline for mthe patch resp so that it has a zero baseline
-            N.B. put the "patch_baseline_end" a bit before t=0 in case some evoked response would be there because of the linear interpolation
-        """
-
-        i_patch_start = np.argwhere(self.episode_moving_dots.t>(delay+patch_baseline_window[1]))[0][0]
-
-        patch_evoked_t = self.episode_static_patch.t>patch_baseline_window[1] # everything after the baseline window
-
-        baseline_cond = (self.episode_moving_dots.t>=patch_baseline_window[0]) &\
-                    (self.episode_static_patch.t<=patch_baseline_window[1])
-        patch_baseline = np.mean(patch_resp[patch_baseline_cond])
-
-        resp = 0*self.episode_mixed.t + mixed_resp # mvDot_resp by default
-
-        # and we add the patch-evoked response (substracting its baseline)
-        imax = min([len(patch_resp[patch_evoked_t]), len(mvDot_resp)-i_patch_start])-1
-        resp[i_patch_start:i_patch_start+imax] += patch_resp[patch_evoked_t][:imax]-patch_baseline
-
+                           baseline_window=[-0.1, 0]):
+        
+        resp = 0*self.episode_static_patch.t
+        t_mixed_cond = self.episode_mixed.t>0
+        
+        i_patch_start_mixed = np.argwhere(self.episode_mixed.t>delay)[0][0]
+        i_patch_start_cntr = np.argwhere(self.episode_static_patch.t>0)[0][0]
+        
+        # substracted baseline on moving dots (more repeats)
+        baseline_cond = (self.episode_moving_dots.t>=baseline_window[0]) &\
+                (self.episode_moving_dots.t<=baseline_window[1])
+        baseline = np.mean(mvDot_resp[baseline_cond])
+        
+        resp[i_patch_start_cntr:len(self.episode_static_patch.t)] = mixed_resp[i_patch_start_mixed:i_patch_start_mixed+len(self.episode_static_patch.t)-i_patch_start_cntr]-\
+                                        mvDot_resp[i_patch_start_mixed:i_patch_start_mixed+len(self.episode_static_patch.t)-i_patch_start_cntr]+baseline
+        resp[:i_patch_start_cntr] = baseline
+        
         return resp
 
     def get_responses(self, 
