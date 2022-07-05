@@ -90,7 +90,10 @@ class Data:
             self.description += ' =>  completed N=%i/%i episodes  \n' %(self.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                                self.nwbfile.stimulus['time_start'].data.shape[0])
                 
-        self.description += self.metadata['notes']+'\n'
+        self.description += self.metadata['notes']
+        if 'intervention' in self.metadata:
+            self.description += '  --   '+self.metadata['intervention']
+        self.description += '\n' 
         
         # FIND A BETTER WAY TO DESCRIBE
         # if self.metadata['protocol']!='multiprotocols':
@@ -464,8 +467,9 @@ if __name__=='__main__':
     data = Data(sys.argv[-1], metadata_only=True)
     # print(data.nwbfile.processing['ophys'])
     # data.build_dFoF()
-    print(data.get_protocol_id('static-patch'))
-    print(data.get_protocol_id('bleble'))
+    # print(data.get_protocol_id('static-patch'))
+    # print(data.get_protocol_id('bleble'))
+    print(data.metadata['intervention'])
     
     
 
