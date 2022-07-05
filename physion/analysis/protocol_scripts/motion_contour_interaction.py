@@ -268,7 +268,7 @@ class MCI_data:
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
                       integral_window=2., force_delay=None,
-                      patch_baseline_window=[-0.1,0],
+                      baseline_window=[-0.1,0],
                       roiIndices=[0]):
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
@@ -320,7 +320,7 @@ class MCI_data:
         # linear pred.
         responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
                                                      delay=responses['delay'],
-                                                     patch_baseline_window=patch_baseline_window)
+                                                     baseline_window=baseline_window)
         integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
         responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
                                                 responses['t_motion'][integral_cond])
