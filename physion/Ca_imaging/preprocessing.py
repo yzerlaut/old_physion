@@ -76,7 +76,7 @@ PREPROCESSING_SETTINGS = {
                              'functional_chan':2,
                              'align_by_chan':2,
                              'tau':1.3,
-                             'sparse_mode':False,
+                             'sparse_mode':True,
                              'connected':True,
                              'nonrigid':0,
                              'anatomical_only': 3, # using the mean image only for ROI detection
