@@ -1342,19 +1342,54 @@ class natural_image(visual_stim):
 
     def __init__(self, protocol):
         super().__init__(protocol)
-        super().init_experiment(protocol, ['Image-ID'], run_type='image')
+        super().init_experiment(protocol, ['Image-ID'], run_type='image_sequence')
         
-        self.NIarray = get_NaturalImages_as_array(self.screen)
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 2 
+        self.refresh_freq = protocol['movie_refresh_freq']
 
-    def get_frame(self, index, parent=None):
-        cls = (parent if parent is not None else self)
-        return cls.NIarray[int(cls.experiment['Image-ID'][index])]
-                       
+        # initializing set of NI
+        self.NIarray = get_NaturalImages_as_array(self.screen)
 
     def get_image(self, episode, time_from_episode_start=0, parent=None):
         cls = (parent if parent is not None else self)
-        return cls.NIarray[int(cls.experiment['Image-ID'][episode])]
+        return (1.+self.NIarray[int(cls.experiment['Image-ID'][episode])])/2.
             
+    def get_frames_sequence(self, index, parent=None):
+        cls = (parent if parent is not None else self)
+        
+        img = self.NIarray[int(cls.experiment['Image-ID'][index])]
+            
+        time_indices, FRAMES = np.zeros(int(2*interval*self.refresh_freq), dtype=int), []
+        Times = np.arange(len(time_indices))/self.refresh_freq
+
+        FRAMES.append(img)
+        time_indices[Times>=0] = 0
+            
+        return time_indices, FRAMES, self.refresh_freq
+
+    def plot_stim_picture(self, episode, parent=None, 
+                          vse=True, ax=None, label=None,
+                          time_from_episode_start=0):
+
+        cls = (parent if parent is not None else self)
+
+        if ax==None:
+            import matplotlib.pylab as plt
+            fig, ax = plt.subplots(1)
+
+        img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
+                        time_from_episode_start=time_from_episode_start,
+                        parent=cls).T, psychopy_to_numpy=True),
+                      cmap='gray', vmin=0, vmax=1,
+                      origin='lower',
+                      aspect='equal')
+
+        ax.axis('off')
+
+        return ax
+
+
 #####################################################
 ##  --    WITH VIRTUAL SCENE EXPLORATION    --- #####
 #####################################################
@@ -1496,6 +1531,7 @@ class Natural_Image_VSE(visual_stim):
             # return img
         # else:
             # return ax
+
 
             
 
