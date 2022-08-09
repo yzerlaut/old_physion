@@ -1360,6 +1360,7 @@ class natural_image(visual_stim):
         
         img = self.NIarray[int(cls.experiment['Image-ID'][index])]
             
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
         time_indices, FRAMES = np.zeros(int(2*interval*self.refresh_freq), dtype=int), []
         Times = np.arange(len(time_indices))/self.refresh_freq
 
