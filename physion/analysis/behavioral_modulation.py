@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from datavyz import graph_env_manuscript as ge
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from physion.analysis.read_NWB import Data
 from physion.analysis.process_NWB import EpisodeResponse
-from analysis.tools import summary_pdf_folder
-from analysis.orientation_direction_selectivity import shift_orientation_according_to_pref
+from physion.analysis.tools import summary_pdf_folder
+from physion.analysis.protocol_scripts.orientation_direction_selectivity import shift_orientation_according_to_pref
 
 def compute_DS_population_resp(filename, options,
                                protocol_id=0,
@@ -21,8 +21,12 @@ def compute_DS_population_resp(filename, options,
 
     # load datafile
     data = Data(filename)
+    Episodes = EpisodeResponse(data, 
+                               quantities=['dFoF', 'Pupil', 'Facemotion', 'Running-Speed'])
+                                
 
-    full_resp = {'roi':[], 'angle_from_pref':[], 'Nroi_tot':data.iscell.sum(),
+    full_resp = {'roi':[], 'angle_from_pref':[],
+                 'Nroi_tot':data.iscell.sum(),
                  'post_level':[], 'evoked_level':[]}
 
     # get levels of pupil and running-speed in the episodes (i.e. after realignement)

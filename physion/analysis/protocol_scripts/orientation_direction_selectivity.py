@@ -3,12 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from datavyz import graph_env_manuscript as ge
-
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from dataviz.show_data import MultimodalData
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from dataviz.show_data import MultimodalData, EpisodeResponse
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from analysis.tools import summary_pdf_folder
-from analysis.process_NWB import EpisodeResponse
 from analysis import stat_tools
 from analysis.summary_pdf import summary_fig
 
@@ -36,7 +34,7 @@ def orientation_selectivity_index(angles, resp):
         return 0
 
 
-def OS_ROI_analysis(FullData,
+def OS_ROI_analysis(datafile,
                     roiIndex=0,
                     iprotocol = 0,
                     subprotocol_id=0,
@@ -49,13 +47,11 @@ def OS_ROI_analysis(FullData,
     orientation selectivity ROI analysis
     """
 
-    EPISODES = EpisodeResponse(FullData,
+    EPISODES = EpisodeResponse(datafile,
                                protocol_id=iprotocol,
-                               quantity='CaImaging', subquantity='dF/F',
-                               roiIndex = roiIndex)
+                               verbose=verbose)
 
-    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
-                                          quantity='CaImaging', subquantity='dF/F',
+    fig, AX = EPISODES.plot_trial_average(quantity='dF/F',
                                           roiIndex = roiIndex,
                                           column_key='angle',
                                           ybar=1., ybarlabel='1dF/F',
@@ -133,10 +129,9 @@ def DS_ROI_analysis(FullData,
 
     EPISODES = EpisodeResponse(FullData,
                                protocol_id=iprotocol,
-                               roiIndex = roiIndex, verbose=verbose, **CaImaging_options)
+                               verbose=verbose)
     
-    fig, AX = FullData.plot_trial_average(EPISODES=EPISODES,
-                                          protocol_id=iprotocol,
+    fig, AX = EPISODES.plot_trial_average(protocol_id=iprotocol,
                                           roiIndex = roiIndex,
                                           column_key='angle',
                                           ybar=1., ybarlabel='1dF/F',
@@ -145,7 +140,7 @@ def DS_ROI_analysis(FullData,
                                           fig_preset='raw-traces-preset+right-space',
                                           with_annotation=True,
                                           with_stat_test=True, stat_test_props=stat_test_props,
-                                          verbose=verbose, **CaImaging_options)
+                                          verbose=verbose)
     
     ax = ge.inset(fig, inset_coords)
     angles, y, sy, responsive_angles = [], [], [], []
@@ -211,7 +206,7 @@ def OS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
             print('   - orientation-selectivity analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
-            fig, SI, responsive = OS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            fig, SI, responsive = OS_ROI_analysis(datafile, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
@@ -237,7 +232,7 @@ def DS_analysis_pdf(datafile, iprotocol=0, Nmax=1000000):
         for roi in np.arange(data.iscell.sum())[:Nmax]:
             
             print('   - direction-selectivity analysis for ROI #%i / %i' % (roi+1, data.iscell.sum()))
-            fig, SI, responsive = DS_ROI_analysis(data, roiIndex=roi, iprotocol=iprotocol)
+            fig, SI, responsive = DS_ROI_analysis(datafile, roiIndex=roi, iprotocol=iprotocol)
             pdf.savefig()  # saves the current figure into a pdf page
             plt.close()
 
