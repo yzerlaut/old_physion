@@ -400,10 +400,9 @@ class MultimodalData(read_NWB.Data):
             fig, ax = ge.figure()
         else:
             fig = None
-            
-        # img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
-        # extent=(0,img.shape[0], 0, img.shape[1])
-        img = np.rot90(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:], 3)
+        ax.axis('equal')
+
+        img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
         extent=(0,img.shape[1], 0, img.shape[0])
 
         if with_roi_zoom and roiIndex is not None:
@@ -413,7 +412,9 @@ class MultimodalData(read_NWB.Data):
         
         img = (img-img.min())/(img.max()-img.min())
         img = np.power(img, 1/NL)
-        img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', extent=extent, origin='lower')
+        img = ax.imshow(img, vmin=0, vmax=1, cmap=cmap, aspect='equal', interpolation='none', 
+                origin='lower',
+                extent=extent)
         ax.axis('off')
 
         if roiIndex is not None:
