@@ -401,8 +401,10 @@ class MultimodalData(read_NWB.Data):
         else:
             fig = None
             
-        img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
-        extent=(0,img.shape[0], 0, img.shape[1])
+        # img = self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:]
+        # extent=(0,img.shape[0], 0, img.shape[1])
+        img = np.rot90(self.nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images[key][:], 3)
+        extent=(0,img.shape[1], 0, img.shape[0])
 
         if with_roi_zoom and roiIndex is not None:
             zoom_cond, zoom_cond_shape = self.find_roi_cond(roiIndex, roi_zoom_factor=roi_zoom_factor)
@@ -428,7 +430,7 @@ class MultimodalData(read_NWB.Data):
                     color=plt.cm.autumn(np.random.uniform(0,1)),
                     alpha=0.5,
                     ms=0.1)
-        ax.annotate('%i ROIs' % len(roiIndices), (-0.1, 0), xycoords='axes fraction', rotation=90)
+        ax.annotate('%i ROIs' % np.sum(self.iscell), (0, 0), xycoords='axes fraction', rotation=90, ha='right')
         
         ge.title(ax, key)
         
