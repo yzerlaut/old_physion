@@ -8,8 +8,11 @@ def realign_from_photodiode(signal,
                             sampling_rate=None,
                             photodiode_rise_time=0.01,
                             shift_time=0.3, # MODIFY IT HERE IN CASE NEEDED
-                            debug=False, istart_debug=0,
-                            verbose=True, n_vis=5):
+                            debug=False, istart_debug=0, n_vis=5,
+                            indices_forced=[],
+                            times_forced=[],
+                            durations_forced=[],
+                            verbose=True):
     """
     
 
@@ -48,36 +51,51 @@ def realign_from_photodiode(signal,
     # looping over episodes
     i=0
     while (i<len(metadata['time_duration'])) and (tstart<(t[-1]-metadata['time_duration'][i])) and success:
+
         # the next time point above being above threshold
         cond_thresh = (t[:-2]>tstart+shift_time) & (smooth_signal[1:]>=(baseline+threshold)) & (smooth_signal[:-1]<(baseline+threshold))
         # print(tstart, i, success)
-        if np.sum(cond_thresh)>0:
+
+        if i in indices_forced:
+            iforced = np.argwhere(np.array(indices_forced)==i)[0][0]
+            # possibility to force some indices not to be re-aligned
+            print('forced index %i to start at time %.1f for a duration %.1f' % (i, times_forced[iforced], durations_forced[iforced]))
+            metadata['time_duration'][i] = durations_forced[iforced]
+            metadata['time_start_realigned'].append(times_forced[iforced])
+            tstart = times_forced[iforced]
+            tshift = 0.5
+
+        elif np.sum(cond_thresh)>0:
             # success
             tshift = t[:-2][cond_thresh][0] - tstart - photodiode_rise_time
-            
-            if debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
-                cond = (t[:-1]>=tstart+shift_time-5) & (t[:-1]<=tstart+tshift+10)
-                fig, ax = plt.subplots()
-                ax.plot(t[:-1][cond], signal[:-1][cond], label='signal')
-                ax.plot(t[:-1][cond], smooth_signal[cond], label='smoothed')
-                ax.plot((tstart+tshift)*np.ones(2), ax.get_ylim(), 'k:', label='onset')
-                ax.plot(ax.get_xlim(), (baseline+threshold)*np.ones(2), 'k:', label='threshold')
-                ax.plot(ax.get_xlim(), baseline*np.ones(2), 'k:', label='baseline')
-                ax.plot((tstart+tshift+metadata['time_duration'][i])*np.ones(2), ax.get_ylim(), 'k:', label='offset')
-                plt.xlabel('time (s)')
-                plt.ylabel('norm. signals')
-                ax.set_title('ep. #%i' % i)
-                ax.legend(frameon=False)
-                plt.show()
-            
             metadata['time_start_realigned'].append(tstart+tshift)
-            tstart=tstart+tshift+metadata['time_duration'][i] # update tstart by tshift_observed+duration
-            i+=1
         else:
             success = False
             # we don't do anything, we just increment the episode id
             print('realignment stopped from episode #%i !' % i)
         
+
+        if success and debug and ((i>=istart_debug) and (i<istart_debug+n_vis)):
+            # plot alignment for debugging !
+            cond = (t[:-1]>=tstart+shift_time-5) & (t[:-1]<=tstart+tshift+10)
+            fig, ax = plt.subplots()
+            ax.plot(t[:-1][cond], signal[:-1][cond], label='signal')
+            ax.plot(t[:-1][cond], smooth_signal[cond], label='smoothed')
+            ax.plot((tstart+tshift)*np.ones(2), ax.get_ylim(), 'k:', label='onset')
+            ax.plot(ax.get_xlim(), (baseline+threshold)*np.ones(2), 'k:', label='threshold')
+            ax.plot(ax.get_xlim(), baseline*np.ones(2), 'k:', label='baseline')
+            ax.plot((tstart+tshift+metadata['time_duration'][i])*np.ones(2), ax.get_ylim(), 'k:', label='offset')
+            plt.xlabel('time (s)')
+            plt.ylabel('norm. signals')
+            ax.set_title('ep. #%i' % i)
+            ax.legend(frameon=False)
+            plt.show()
+
+        if success:
+            tstart=tstart+tshift+metadata['time_duration'][i] # update tstart by tshift_observed+duration
+            i+=1
+            
+
     # transform to numpy array
     metadata['time_start_realigned'] = np.array(metadata['time_start_realigned'])
     metadata['time_stop_realigned'] = metadata['time_start_realigned']+\
@@ -134,13 +152,16 @@ if __name__=='__main__':
 
     import argparse, os
     parser=argparse.ArgumentParser(description="""
-    Realigning from Photodiod
+    Realigning visual stimulation episodes from Photodiode signals
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("datafolder")
     parser.add_argument('-n', "--n_vis", type=int, default=5)
     parser.add_argument('-id', "--istart_debug", type=int, default=0)
     parser.add_argument("--smoothing_time", type=float, help='in s', default=20e-3)
     parser.add_argument('-st', "--shift_time", type=float, help='in s', default=0.3)
+    parser.add_argument("--indices_forced", nargs='*', type=int, default=[])
+    parser.add_argument("--times_forced", nargs='*', type=float, default=[])
+    parser.add_argument("--durations_forced", nargs='*', type=float, default=[])
     args = parser.parse_args()
 
     data = np.load(os.path.join(args.datafolder, 'NIdaq.npy'), allow_pickle=True).item()['analog'][0]
@@ -160,7 +181,9 @@ if __name__=='__main__':
                             debug=True,
                             istart_debug=args.istart_debug,
                             shift_time=args.shift_time,
-                            n_vis=args.n_vis, verbose=True)
+                            n_vis=args.n_vis,
+                            indices_not_realigned=args.indices_not_realigned,
+                            verbose=True)
     
 
 
