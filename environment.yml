@@ -26,6 +26,7 @@ dependencies:
   - pathlib
   - matplotlib=3.4.2
   - jupyter
+  - jupytext=1.14.0
   - pynwb=2.0.0
   - ffmpeg
   - pip:
