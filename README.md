@@ -26,7 +26,7 @@ The software is organized into several modules to perform the acquisition, the p
 
    clone the repository using git:
    ```
-   git clone https://github.com/yzerlaut/physion
+   git clone https://github.com/yzerlaut/physion --recurse-submodules
    ```
    to create the `physion` environment and perform the installation, run:
    ```
@@ -34,15 +34,6 @@ The software is organized into several modules to perform the acquisition, the p
    conda env create -f environment.yml
    ```
    For an installation on an acquisition setup, see the [dedicated instructions](physion/hardware_control/#Installation)
-
-3. *Optional* Install submodule dependencies to benefit from the full analysis and data-visualization features
-
-   ```
-   git submodule init
-   git submodule update
-   pip install physion/dataviz/datavyz/.  # datavyz sub-module, see  
-   pip install physion/analysis/analyz/.   # analyz sub-module
-   ```
 
 ## Getting started
 
