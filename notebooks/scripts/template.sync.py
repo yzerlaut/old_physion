@@ -13,22 +13,48 @@
 #     name: python3
 # ---
 
+bug = ('keep this line for having jupyter_ascending.vim working')
+
 # %% [markdown]
-# # Template
+# # Notebook template
+
+# %% [markdown]
+# ## Load all required modules
 
 # %%
+# general python modules
+import sys, os
 import numpy as np
 import matplotlib.pylab as plt
-plt.plot(np.random.randn(400), 'bo') 
+
+# *_-= physion =-_*
+physion_folder = os.path.join(os.path.expanduser('~'), 'work', 'physion') # UPDATE to your folder location
+# -- physion core
+sys.path.append(os.path.join(physion_folder, 'physion'))
+from analysis.read_NWB import Data, scan_folder_for_NWBfiles
+from dataviz.show_data import MultimodalData, EpisodeResponse
+# -- physion data visualization
+sys.path.append(os.path.join(physion_folder, 'dataviz', 'datavyz'))
+from datavyz import ge
+
+# %% [markdown]
+# ## Load a datafile
 
 # %%
-plt.plot(np.random.randn(100), 'ro') 
+data_folder =  os.path.join(os.path.expanduser('~'), 'DATA')
+FILES, _, _ = scan_folder_for_NWBfiles(data_folder) 
+data = Data(FILES[0])
 
 # %%
-plt.plot(np.random.randn(100), 'o') 
+print(data)
+
+# %% [markdown]
+# ## Plot the raw data
 
 # %%
-plt.plot(np.random.randn(100), 'o') 
+mdata = MultimodalData(FILES[0])
 
 # %%
-plt.plot(np.random.randn(100), 'o') 
+mdata.plot_raw_data()
+
+
