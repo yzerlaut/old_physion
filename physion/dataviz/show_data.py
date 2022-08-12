@@ -227,7 +227,7 @@ class MultimodalData(read_NWB.Data):
 
     def add_CaImagingSum(self, tlim, ax,
                          fig_fraction_start=0., fig_fraction=1., color='green',
-                         quantity='CaImaging', subquantity='Fluorescence', subsampling=1,
+                         subquantity='Fluorescence', subsampling=1,
                          name='Sum [Ca]'):
         
         if (subquantity in ['dF/F', 'dFoF']) and (not hasattr(self, 'dFoF')):
@@ -306,7 +306,7 @@ class MultimodalData(read_NWB.Data):
                                 'FaceMotion':dict(fig_fraction=1, subsampling=10, color='purple'),
                                 'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
                                 'CaImaging':dict(fig_fraction=4, 
-                                                 quantity='CaImaging', subquantity='Fluorescence', color='green',
+                                                 subquantity='dFoF', color='green',
                                                  roiIndices='all'),
                                 'VisualStim':dict(fig_fraction=0, color='black')},                    
                       figsize=(3,3), Tbar=0., zoom_area=None,
