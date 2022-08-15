@@ -1056,21 +1056,25 @@ if __name__=='__main__':
         data.plot_raw_data(args.tlim)
         
     elif args.ops=='trial-average':
+
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
                                    quantities=[args.quantity],
                                    prestim_duration=3,
                                    verbose=args.verbose)
-        episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
-                                    row_key='patch-delay',
-                                    color_key='repeat',
-                                    roiIndex=52,
+
+        episodes.plot_trial_average()
+
+        # episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
+                                    # row_key='patch-delay',
+                                    # color_key='repeat',
+                                    # roiIndex=52,
                                     # roiIndices=[52, 84, 85, 105, 115, 141, 149, 152, 155, 157],
                                     #     norm='MinMax-time-variations-after-trial-averaging-per-roi',
                                     #     with_std_over_rois=True, 
-                                         with_annotation=True,
-                                         with_stat_test=True,
-                                         verbose=args.verbose)
+                                         # with_annotation=True,
+                                         # with_stat_test=True,
+                                         # verbose=args.verbose)
 
         # fig, AX = episodes.plot_trial_average(quantity=args.quantity,
                                               # roiIndex=args.roiIndex,
@@ -1099,6 +1103,7 @@ if __name__=='__main__':
         
         
     elif args.ops=='visual-stim':
+
         data = MultimodalData(args.datafile)
         fig, AX = data.show_VisualStim(args.tlim, Npanels=args.Npanels)
         fig2 = data.visual_stim.plot_stim_picture(args.episode)
@@ -1106,6 +1111,7 @@ if __name__=='__main__':
                                           data.nwbfile.stimulus['time_stop_realigned'].data[args.episode]))
         
     elif args.ops=='FOV':
+
         data = MultimodalData(args.datafile)
         fig, ax = ge.figure(figsize=(2,4), left=0.1, bottom=0.1)
         data.show_CaImaging_FOV('meanImg', NL=3,
@@ -1113,6 +1119,7 @@ if __name__=='__main__':
                 roiIndices='all',
                 ax=ax)
         ge.save_on_desktop(fig, 'fig.png', dpi=400)
+
     else:
         print(' option not recognized !')
         
