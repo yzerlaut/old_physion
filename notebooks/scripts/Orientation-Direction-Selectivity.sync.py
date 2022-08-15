@@ -17,6 +17,22 @@
 # # Orientation and direction selectivity analysis
 
 # %%
+# general python modules
+import sys, os, pprint
+import numpy as np
+import matplotlib.pylab as plt
+
+# *_-= physion =-_*
+physion_folder = os.path.join(os.path.expanduser('~'), 'work', 'physion') # UPDATE to your folder location
+# -- physion core
+sys.path.append(os.path.join(physion_folder, 'physion'))
+from analysis.read_NWB import Data, scan_folder_for_NWBfiles
+from dataviz.show_data import MultimodalData, EpisodeResponse
+# -- physion data visualization
+sys.path.append(os.path.join(physion_folder, 'dataviz', 'datavyz'))
+from datavyz import ge
+
+# %%
 # general modules
 import pynwb, os, sys
 import numpy as np

@@ -10,8 +10,10 @@ from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
 
-# we define a data object fitting this analysis purpose
 class MultimodalData(read_NWB.Data):
+    """
+    # we define a data object fitting this analysis purpose
+    """
     
     def __init__(self, filename, verbose=False, with_visual_stim=False):
         """ opens data file """
@@ -150,6 +152,7 @@ class MultimodalData(read_NWB.Data):
                 raster = self.dFoF[roiIndices,:]
                 
             roiIndices = np.arange(self.iscell.sum())
+
         elif (roiIndices=='all') and (subquantity in ['dFoF', 'dF/F']):
             roiIndices = np.arange(self.nROIs)
             
@@ -298,22 +301,53 @@ class MultimodalData(read_NWB.Data):
             
         return fig, AX
 
-    
+   
+    def find_default_plot_settings(self, Nmax=7):
+        settings = {}
+
+        if self.metadata['VisualStim']:
+            settings['Photodiode'] = dict(fig_fraction=.5, subsampling=1, color='grey')
+
+        if self.metadata['Locomotion']:
+            settings['Locomotion'] = dict(fig_fraction=1, subsampling=1, color='#1f77b4')
+
+        if 'FaceMotion' in self.nwbfile.processing:
+            settings['FaceMotion'] = dict(fig_fraction=1, subsampling=10, color='purple')
+
+        if 'Pupil' in self.nwbfile.processing:
+            settings['GazeMovement'] = dict(fig_fraction=0.5, subsampling=1, color='#ff7f0e')
+
+        if 'Pupil' in self.nwbfile.processing:
+            settings['Pupil']= dict(fig_fraction=2, subsampling=1, color='#d62728')
+
+        if 'ophys' in self.nwbfile.processing:
+            settings['CaImaging'] = dict(fig_fraction=4, subsampling=1, 
+                                         subquantity='dF/F', color='#2ca02c',
+                                         roiIndices=np.sort(np.random.choice(np.arange(np.sum(self.iscell)),
+                                             np.min([Nmax, self.iscell.sum()]), replace=False)))
+
+        if 'ophys' in self.nwbfile.processing:
+            settings['CaImagingRaster'] = dict(fig_fraction=3, subsampling=1,
+                                               roiIndices='all',
+                                               normalization='per-line',
+                                               subquantity='dF/F')
+
+        if self.metadata['VisualStim']:
+            settings['VisualStim'] = dict(fig_fraction=.5, color='black')
+
+        return settings 
+
     def plot_raw_data(self, 
                       tlim=[0,100],
-                      settings={'Photodiode':dict(fig_fraction=.1, subsampling=10, color='grey'),
-                                'Locomotion':dict(fig_fraction=1, subsampling=10, color='b'),
-                                'FaceMotion':dict(fig_fraction=1, subsampling=10, color='purple'),
-                                'Pupil':dict(fig_fraction=2, subsampling=10, color='red'),
-                                'CaImaging':dict(fig_fraction=4, 
-                                                 subquantity='dFoF', color='green',
-                                                 roiIndices='all'),
-                                'VisualStim':dict(fig_fraction=0, color='black')},                    
-                      figsize=(3,3), Tbar=0., zoom_area=None,
+                      settings = None,
+                      figsize=(3,5), Tbar=0., zoom_area=None,
                       ax=None):
 
+        if settings is None:
+            settings = self.find_default_plot_settings()
+
         if ax is None:
-            fig, ax = ge.figure(figsize=figsize, bottom=.3, left=.5)
+            fig, ax = ge.figure(figsize=figsize, bottom=.3, left=.5, right=2)
         else:
             fig = None
             
@@ -1005,20 +1039,21 @@ if __name__=='__main__':
     
     if args.ops=='raw':
         data = MultimodalData(args.datafile)
-        data.plot_raw_data(args.tlim, 
-                  settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
-                                                   roiIndices='all',
-                                                   normalization='per-line',
-                                                   subquantity='dF/F'),
-                            'CaImaging':dict(fig_fraction=3, subsampling=1, 
-                                             subquantity='dF/F', color='#2ca02c',
-                                             roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), np.min([args.Nmax, data.iscell.sum()]), replace=False))),
-                            'Locomotion':dict(fig_fraction=1, subsampling=1, color='#1f77b4'),
-                            'Pupil':dict(fig_fraction=2, subsampling=1, color='#d62728'),
-                            'GazeMovement':dict(fig_fraction=1, subsampling=1, color='#ff7f0e'),
-                            'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
-                            'VisualStim':dict(fig_fraction=.5, color='black')},
-                            Tbar=5)
+        # data.plot_raw_data(args.tlim, 
+                  # settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
+                                                   # roiIndices='all',
+                                                   # normalization='per-line',
+                                                   # subquantity='dF/F'),
+                            # 'CaImaging':dict(fig_fraction=3, subsampling=1, 
+                                             # subquantity='dF/F', color='#2ca02c',
+                                             # roiIndices=np.sort(np.random.choice(np.arange(np.sum(data.iscell)), np.min([args.Nmax, data.iscell.sum()]), replace=False))),
+                            # 'Locomotion':dict(fig_fraction=1, subsampling=1, color='#1f77b4'),
+                            # 'Pupil':dict(fig_fraction=2, subsampling=1, color='#d62728'),
+                            # 'GazeMovement':dict(fig_fraction=1, subsampling=1, color='#ff7f0e'),
+                            # 'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
+                            # 'VisualStim':dict(fig_fraction=.5, color='black')},
+                            # Tbar=5)
+        data.plot_raw_data(args.tlim)
         
     elif args.ops=='trial-average':
         episodes = EpisodeResponse(args.datafile,

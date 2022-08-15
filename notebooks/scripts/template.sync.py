@@ -13,6 +13,7 @@
 #     name: python3
 # ---
 
+# %%
 bug = ('keep this line for having jupyter_ascending.vim working')
 
 # %% [markdown]
@@ -23,7 +24,7 @@ bug = ('keep this line for having jupyter_ascending.vim working')
 
 # %%
 # general python modules
-import sys, os
+import sys, os, pprint
 import numpy as np
 import matplotlib.pylab as plt
 
@@ -38,15 +39,29 @@ sys.path.append(os.path.join(physion_folder, 'dataviz', 'datavyz'))
 from datavyz import ge
 
 # %% [markdown]
+# ## Inspect a data folder
+
+# %%
+data_folder =  os.path.join(os.path.expanduser('~'), 'DATA', 'taddy_GluN3KO')
+FILES, _, _ = scan_folder_for_NWBfiles(data_folder) 
+print(FILES)
+
+# %% [markdown]
 # ## Load a datafile
 
 # %%
-data_folder =  os.path.join(os.path.expanduser('~'), 'DATA')
-FILES, _, _ = scan_folder_for_NWBfiles(data_folder) 
+# let's pick the first one
 data = Data(FILES[0])
 
 # %%
-print(data)
+# the different protocols are listed in data.protocols
+for i, protocol in enumerate(data.protocols):
+    print('  - protocol #%i: "%s"' % (i+1, protocol))
+
+# %%
+# metadata in the data.metadata dictionary
+pprint.pprint(data.metadata)
+#print(data.metadata.keys())
 
 # %% [markdown]
 # ## Plot the raw data
@@ -57,4 +72,7 @@ mdata = MultimodalData(FILES[0])
 # %%
 mdata.plot_raw_data()
 
+# %%
+FILES[0]
 
+# %%
