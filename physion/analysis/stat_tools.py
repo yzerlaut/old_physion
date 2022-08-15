@@ -9,7 +9,8 @@ class StatTest:
     
     def __init__(self, x, y,
                  test='wilcoxon',
-                 positive=False):
+                 positive=False,
+                 verbose=True):
 
         self.x, self.y = np.array(x), np.array(y)
         for key in ['pvalue', 'statistic']:
@@ -36,10 +37,11 @@ class StatTest:
             else:
                 print(' "%s" test not implemented ! ' % test)
         except (ValueError, TypeError):
-            print(' -----------------   ')
-            print('x, y = ', x, y)
-            print('  statistical test failed   ')
-            print(' -----------------   ')
+            if verbose:
+                print(' -----------------   ')
+                print('x, y = ', x, y)
+                print('  statistical test failed   ')
+                print(' -----------------   ')
             self.r, self.sign = 0, 0
             self.pvalue, self.statistic = 1, 0
 

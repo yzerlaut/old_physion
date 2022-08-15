@@ -310,7 +310,8 @@ class EpisodeResponse:
                                        response_args={},
                                        interval_pre=[-2,0], interval_post=[1,3],
                                        test='wilcoxon',
-                                       positive=True):
+                                       positive=True,
+                                       verbose=True):
         """
         """
         response = self.get_response(**response_args)
@@ -324,10 +325,12 @@ class EpisodeResponse:
         if len(response.shape)>1 and (np.sum(episode_cond)>1):
             return stat_tools.StatTest(response[episode_cond,:][:,pre_cond].mean(axis=1),
                                        response[episode_cond,:][:,post_cond].mean(axis=1),
-                                       test=test, positive=positive)
+                                       test=test, positive=positive,
+                                       verbose=verbose)
         else:
             return stat_tools.StatTest(None, None,
-                                       test=test, positive=positive)
+                                       test=test, positive=positive,
+                                       verbose=verbose)
 
 
     def compute_stats_over_repeated_trials(self, key, index,
@@ -353,7 +356,8 @@ class EpisodeResponse:
     def compute_summary_data(self, stat_test_props,
                              exclude_keys=['repeat'],
                              response_args={},
-                             response_significance_threshold=0.01):
+                             response_significance_threshold=0.01,
+                             verbose=True):
 
         VARIED_KEYS, VARIED_VALUES, VARIED_INDICES, Nfigs, VARIED_BINS = [], [], [], 1, []
         for key in self.varied_parameters:
@@ -376,6 +380,7 @@ class EpisodeResponse:
                 stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
                                                                                                 list(indices)),
                                                             response_args=response_args,
+                                                            verbose=verbose,
                                                             **stat_test_props)
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
