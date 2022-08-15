@@ -72,7 +72,19 @@ mdata = MultimodalData(FILES[0])
 # %%
 mdata.plot_raw_data()
 
+# %% [markdown]
+# # Plot the trial average|
+
 # %%
-FILES[0]
+episodes = EpisodeResponse(FILES[0],
+                           protocol_id=data.get_protocol_id('ff-gratings-8orientation-2contrasts-10repeats'),
+                           quantities=['dFoF'],
+                           prestim_duration=3,
+                           verbose=True)
+
+# %%
+episodes.plot_trial_average(column_key='angle',
+                            #roiIndex=2,
+                            with_std=False);
 
 # %%

@@ -83,10 +83,12 @@ def OS_ROI_analysis(datafile,
                            xticks=angles, size='small'), m='o', ms=2, lw=1)
 
     SI = orientation_selectivity_index(angles, y)
-    ge.annotate(fig, 'SI=%.2f ' % SI, (1, 0.97), va='top', ha='right', xycoords='figure fraction',
+    ge.annotate(fig, 'SI=%.2f ' % SI, (1, 0.97),
+                va='top', ha='right', xycoords='figure fraction',
                 weight='bold', fontsize=8, color=('k' if responsive else 'lightgray'))
     ge.annotate(fig, ('responsive' if responsive else 'unresponsive'), (0.78, 0.98), ha='left', va='top',
-                xycoords='figure fraction', weight='bold', fontsize=8, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
+                xycoords='figure fraction', weight='bold', fontsize=8,
+                color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
     
     if with_responsive_angles:
         return fig, SI, responsive, responsive_angles

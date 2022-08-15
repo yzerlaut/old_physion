@@ -1090,6 +1090,7 @@ if __name__=='__main__':
                                               # fig_preset='raw-traces-preset', color='#1f77b4', label='test\n')
 
     elif args.ops=='evoked-raster':
+
         episodes = EpisodeResponse(args.datafile,
                                    protocol_id=args.protocol_id,
                                    quantities=[args.quantity])

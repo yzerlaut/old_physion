@@ -32,236 +32,151 @@ from dataviz.show_data import MultimodalData, EpisodeResponse
 sys.path.append(os.path.join(physion_folder, 'dataviz', 'datavyz'))
 from datavyz import ge
 
+
+# %% [markdown]
+# ## Some useful functions
+
 # %%
-# general modules
-import pynwb, os, sys
-import numpy as np
-import matplotlib.pylab as plt
-plt.style.use('ggplot')
-
-# custom modules
-sys.path.append('..')
-from physion.dataviz import plots
-from physion.analysis.read_NWB import read as read_NWB
-from physion.analysis.trial_averaging import build_episodes
-from physion.visual_stim.psychopy_code.stimuli import build_stim
-
-# we define a data object fitting this analysis purpose
-
-class Data:
-    def __init__(self, filename, verbose=False):
-        """ opens data file """
-        read_NWB(self, filename, verbose=verbose)
-        
-class CellResponse:
-    
-    def __init__(self, data,
-                 protocol_id=0,
-                 quantity='CaImaging', 
-                 subquantity='Fluorescence', 
-                 roiIndex = 0,
-                 verbose=False):
-        """ build the episodes corresponding to a specific protocol and a ROIR"""
-        for key in data.__dict__.keys():
-            setattr(self, key, getattr(data, key))
-        if verbose:
-            print('Building episodes for "%s"' % self.protocols[protocol_id])
-        data.CaImaging_key, data.roiIndices = subquantity, [roiIndex]
-        self.EPISODES = build_episodes(data, protocol_id=protocol_id, quantity=quantity)
-        self.varied_parameters = data.varied_parameters
-        self.metadata = data.metadata
-        
-    def compute_repeated_trials(self, key, index):
-        cond = (self.EPISODES[key]==self.varied_parameters[key][index])
-        return np.mean(self.EPISODES['resp'][cond,:], axis=0), np.std(self.EPISODES['resp'][cond,:], axis=0)
-    
-    def compute_integral_responses(self, key):
-        integrals = []
-        for i, value in enumerate(self.varied_parameters[key]):
-            mean_response, _ = self.compute_repeated_trials(key, i)
-            pre_cond = (self.EPISODES['t']<=0)
-            stim_cond = (self.EPISODES['t']>0) & (self.EPISODES['t']<=data.EPISODES['time_duration'][0])
-            integrals.append(np.trapz(mean_response[stim_cond]-np.mean(mean_response[pre_cond])))        
-        return self.varied_parameters[key], np.array(integrals)
-    
-    def plot(self, key, index, ax=None, with_std=True, with_bars={}):
-        if ax is None:
-            _, ax = plt.subplots(1)
-            ax.axis('off')
-        my, sy = self.compute_repeated_trials(key, index)
-        ax.plot(self.EPISODES['t'], my, color='k', lw=1)
-        if with_std:
-            ax.fill_between(self.EPISODES['t'], my-sy, my+sy, alpha=0.1, color='k', lw=0)
-            
-    def add_stim(self, ax):
-        ylim = ax.get_ylim()
-        ax.fill_between([0, data.EPISODES['time_duration'][0]], 
-                        ylim[0]*np.ones(2), ylim[1]*np.ones(2), lw=0, color='grey', alpha=0.1)
-    
-    
-    def show_stim(self, key, figsize=(15,2), with_arrow=False):
-        fig, AX = plt.subplots(1, len(self.varied_parameters[key]), figsize=figsize)
-        self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
-        visual_stim = build_stim(self.metadata, no_psychopy=True)
-        for i, value in enumerate(self.varied_parameters[key]):
-            AX[i].set_title('%.0f$^o$' % value)
-            icond = np.argwhere(self.nwbfile.stimulus[key].data[:]==value)[0][0]
-            if with_arrow:
-                visual_stim.show_frame(icond, ax=AX[i],
-                                       arrow={'direction':value, 'center':(0,0),
-                                              'length':25,
-                                              'width_factor':0.1, 'color':'red'},
-                                    label={'degree':10, 'shift_factor':0.02, 'lw':1, 'fontsize':11})
-            else:
-                visual_stim.show_frame(icond, ax=AX[i],
-                                    label={'degree':10, 'shift_factor':0.02, 'lw':1, 'fontsize':11})
-        return fig, AX
-            
-def add_bar(ax, Ybar=1, Ybar_unit='$\Delta$F/F', Xbar=1, Xbar_unit='s', fontsize=11):
-    xlim, ylim = ax.get_xlim(), ax.get_ylim()
-    dx, dy = .02*(xlim[1]-xlim[0]), .02*(ylim[1]-ylim[0])
-    ax.plot([xlim[0]-dx, xlim[0]-dx+Xbar], [ylim[1]-dy, ylim[1]-dy], 'k', lw=1)
-    ax.plot([xlim[0]-dx, xlim[0]-dx], [ylim[1]-dy, ylim[1]-dy-Ybar], 'k', lw=1)
-    ax.annotate(str(Ybar)+Ybar_unit, (xlim[0], ylim[1]), xycoords='data', ha='right', va='top', rotation=90, fontsize=12)
-    ax.annotate(str(Xbar)+Xbar_unit, (xlim[0], ylim[1]), xycoords='data', fontsize=12)
-    
-
-def orientation_selectivity_index(angles, resp):
+def selectivity_index(angles, resp):
+    """
+    computes the selectivity index: (Pref-Orth)/(Pref+Orth)
+    clipped in [0,1]
+    """
     imax = np.argmax(resp)
     iop = np.argmin(((angles[imax]+90)%(180)-angles)**2)
-    return min([1,max([0,(resp[imax]-resp[iop])/(resp[imax]+resp[iop])])])
+    if (resp[imax]>0):
+        return min([1,max([0,(resp[imax]-resp[iop])/(resp[imax]+resp[iop])])])
+    else:
+        return 0
 
-def orientation_selectivity_plot(angles, responses, ax=None, figsize=(2.5,1.5)):
-    if ax is None:
-        fig, ax = plt.subplots(1, figsize=figsize)
-    ax.plot(angles, responses/1e3, color='k', lw=2) # CHECK UNITS
-    ax.annotate('SI=%.2f ' % orientation_selectivity_index(angles, responses), (1, 1), 
-                va='top', ha='right', xycoords='axes fraction', weight='bold')
-    ax.set_xticks(angles)
-    ax.set_ylabel('resp. integral ($\Delta$F/F.s)')
-    ax.set_xlabel('angle ($^o$)')
-
-def direction_selectivity_plot(angles, responses, ax=None, figsize=(1.5,1.5)):
-    if ax is None:
-        plt.figure(figsize=figsize)
-        ax = plt.axes([0,0,1,1], projection='polar')
-    ax.set_theta_direction(-1)
-    Angles = angles*np.pi/180.
-    ax.plot(np.concatenate([Angles, [Angles[0]]]), np.concatenate([responses, [responses[0]]]), color='k', lw=2)
-    ax.fill_between(np.concatenate([Angles, [Angles[0]]]), np.zeros(len(Angles)+1),
-                    np.concatenate([responses, [responses[0]]]), color='k', lw=0, alpha=0.3)
-    ax.set_rticks([])
-    ax.annotate('SI=%.2f ' % orientation_selectivity_index(angles, responses), (1, 1), 
-                va='top', ha='right', xycoords='figure fraction', weight='bold', fontsize=12)
+def shift_orientation_according_to_pref(angle, 
+                                        pref_angle=0, 
+                                        start_angle=-45, 
+                                        angle_range=360):
+    new_angle = (angle-pref_angle)%angle_range
+    if new_angle>=angle_range+start_angle:
+        return new_angle-angle_range
+    else:
+        return new_angle
 
 
 
 # %% [markdown]
-# ## Datafile
-#
-# We take a datafile that intermixes static and drifting gratings visual stimulation in a pseudo-randomized sequence
+# ## Load and plot raw data
 
 # %%
-filename = os.path.join(os.path.expanduser('~'), 'DATA', 'data.nwb')
-FullData= Data(filename)
-print('the datafile has %i validated ROIs (over %i from the full suite2p output) ' % (np.sum(FullData.iscell),
-                                                                                      len(FullData.iscell)))
+data_folder =  os.path.join(os.path.expanduser('~'), 'DATA', 'taddy_GluN3KO')
+FILES, _, _ = scan_folder_for_NWBfiles(data_folder)
+
+# %%
+EPISODES = EpisodeResponse(FILES[0],
+                           quantities=['dFoF'],
+                           protocol_id=0,
+                           verbose=True)
+
+# %%
+Nsamples = 10
+
+fig, AX = ge.figure((len(EPISODES.varied_parameters['angle']), Nsamples),
+                    figsize=(.8,.9), right=10)
+
+stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2],
+                     test='ttest', positive=True)
+response_significance_threshold = 0.01
+
+for i, r in enumerate(np.random.choice(np.arange(EPISODES.data.iscell.sum()), 
+                                       Nsamples, replace=False)):
+    
+    # SHOW trial-average
+    EPISODES.plot_trial_average(column_key='angle',
+                                #condition=EPISODES.find_episode_cond(key='contrast', value=1.),
+                                #color_key='contrast',
+                                quantity='dF/F',
+                                ybar=1., ybarlabel='1dF/F',
+                                xbar=1., xbarlabel='1s',
+                                roiIndex=r,
+                                AX=[AX[i]], no_set=False)
+    ge.annotate(AX[i][0], 'roi #%i  ' % (r+1), (0,0), ha='right')
+    
+    # SHOW summary angle dependence
+    inset = ge.inset(AX[i][-1], (2, 0.2, 1.2, 0.8))
+    
+    angles, y, sy, responsive_angles = [], [], [], []
+    responsive = False
+    
+    for a, angle in enumerate(EPISODES.varied_parameters['angle']):
+
+        stats = EPISODES.stat_test_for_evoked_responses(episode_cond=EPISODES.find_episode_cond('angle', a),
+                                                        response_args=dict(quantity='dFoF', roiIndex=r),
+                                                        **stat_test_props)
+        
+        angles.append(angle)
+        y.append(np.mean(stats.y))    # means "post"
+        sy.append(np.std(stats.y))    # std "post"
+        
+        if stats.significant(threshold=response_significance_threshold):
+            responsive = True
+            responsive_angles.append(angle)
+            
+    ge.plot(angles, np.array(y), sy=np.array(sy), ax=inset,
+            axes_args=dict(ylabel='<post dF/F>         ', xlabel='angle ($^{o}$)',
+                           xticks=angles, size='small'), 
+            m='o', ms=2, lw=1)
+
+    SI = selectivity_index(angles, y)
+    ge.annotate(inset, 'SI=%.2f ' % SI, (0, 1), ha='right', weight='bold', fontsize=8,
+                color=('k' if responsive else 'lightgray'))
+    ge.annotate(inset, ('responsive' if responsive else 'unresponsive'), (1, 1), ha='right',
+                weight='bold', fontsize=6, color=(plt.cm.tab10(2) if responsive else plt.cm.tab10(3)))
 
 # %% [markdown]
-# # Orientation selectivity
+# ## Summary data
 
 # %%
-# Load data for FIRST PROTOCOL
-data = CellResponse(FullData, protocol_id=0, quantity='CaImaging', subquantity='dF/F', roiIndex = 8)
-# Show stimulation
-fig, AX = data.show_stim('angle', figsize=(20,2))
-# Compute and plot trial-average responses
-fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(17,2.))
-for i, angle in enumerate(data.varied_parameters['angle']):
-    data.plot('angle',i, ax=AX[i], with_std=False)
-    AX[i].set_title('%.0f$^o$' % angle)
-# put all on the same axis range
-YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
-for ax in AX:
-    ax.set_ylim(YLIM)
-    data.add_stim(ax)
-    ax.axis('off')
-# add scale bar
-add_bar(AX[0], Xbar=2, Ybar=0.5)
-# Orientation selectivity plot based on the integral of the trial-averaged response
-orientation_selectivity_plot(*data.compute_integral_responses('angle'))
-# close the nwbfile
-#data.io.close()
-
-# %% [markdown]
-# # Direction selectivity
+print(EPISODES.varied_parameters['angle'])
+shifted_angle = EPISODES.varied_parameters['angle']-EPISODES.varied_parameters['angle'][1]
+print(shifted_angle)
 
 # %%
-# Load data for FIRST PROTOCOL
-data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = 8)
-# Show stimulation
-fig, AX = data.show_stim('angle', figsize=(20,2), with_arrow=True)
-# Compute and plot trial-average responses
-fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(17,2.))
-for i, angle in enumerate(data.varied_parameters['angle']):
-    data.plot('angle',i, ax=AX[i], with_std=False)
-    AX[i].set_title('%.0f$^o$' % angle)
-# put all on the same axis range
-YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
-for ax in AX:
-    ax.set_ylim(YLIM)
-    data.add_stim(ax)
-    ax.axis('off')
-# add scale bar
-add_bar(AX[0], Xbar=2, Ybar=0.5)
-# Orientation selectivity plot based on the integral of the trial-averaged response
-direction_selectivity_plot(*data.compute_integral_responses('angle'))
-# close the nwbfile
-#data.io.close()
+stat_test_props=dict(interval_pre=[-1,0], interval_post=[1,2],
+                     test='ttest', positive=True)
+response_significance_threshold = 0.01
+
+RESPONSES = []
+
+for roi in np.arange(EPISODES.data.iscell.sum()):
+    
+    cell_resp = EPISODES.compute_summary_data(response_significance_threshold=response_significance_threshold,
+                                              response_args=dict(quantity='dFoF', roiIndex=roi),
+                                              stat_test_props=stat_test_props)
+    
+    condition = np.ones(len(cell_resp['angle']), dtype=bool) # no condition
+    # condition = (cell_resp['contrast']==1.) # if specific condition
+    
+    if np.sum(cell_resp['significant'][condition]):
+        
+        ipref = np.argmax(cell_resp['value'][condition])
+        prefered_angle = cell_resp['angle'][condition][ipref]
+        
+        RESPONSES.append(np.zeros(len(shifted_angle)))
+        
+        for a, angle in enumerate(cell_resp['angle'][condition]):
+            
+            new_angle = shift_orientation_according_to_pref(angle, 
+                                                            pref_angle=prefered_angle, 
+                                                            start_angle=shifted_angle[0], 
+                                                            angle_range=180)
+            iangle = np.argwhere(shifted_angle==new_angle)[0][0]
+            RESPONSES[-1][iangle] = cell_resp['value'][a]
 
 # %%
-def direction_selectivity_analysis(FullData, roiIndex=0):
-    data = CellResponse(FullData, protocol_id=1, quantity='CaImaging', subquantity='dF/F', roiIndex = roiIndex)
-    fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(17,2.))
-    plt.subplots_adjust(right=.85)
-    for i, angle in enumerate(data.varied_parameters['angle']):
-        data.plot('angle',i, ax=AX[i], with_std=False)
-        AX[i].set_title('%.0f$^o$' % angle)
-    # put all on the same axis range
-    YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
-    for ax in AX:
-        ax.set_ylim(YLIM)
-        data.add_stim(ax)
-        ax.axis('off')
-    # add scale bar
-    add_bar(AX[0], Xbar=2, Ybar=0.5)
-    # Orientation selectivity plot based on the integral of the trial-averaged response
-    ax = plt.axes([0.85,0.1,0.15,0.8], projection='polar')
-    direction_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax)
-    return fig
-fig = direction_selectivity_analysis(FullData, roiIndex=8)
-
-
-# %%
-def orientation_selectivity_analysis(FullData, roiIndex=0):
-    data = CellResponse(FullData, protocol_id=0, quantity='CaImaging', subquantity='dF/F', roiIndex = 8)
-    fig, AX = plt.subplots(1, len(data.varied_parameters['angle']), figsize=(14,2.))
-    plt.subplots_adjust(right=.8)
-    for i, angle in enumerate(data.varied_parameters['angle']):
-        data.plot('angle',i, ax=AX[i], with_std=False)
-        AX[i].set_title('%.0f$^o$' % angle)
-    YLIM = (np.min([ax.get_ylim()[0] for ax in AX]), np.max([ax.get_ylim()[1] for ax in AX]))
-    for ax in AX:
-        ax.set_ylim(YLIM)
-        data.add_stim(ax)
-        ax.axis('off')
-    add_bar(AX[0], Xbar=2, Ybar=0.5)
-    ax = plt.axes([0.85,0.1,0.15,0.8])
-    orientation_selectivity_plot(*data.compute_integral_responses('angle'), ax=ax)
-orientation_selectivity_analysis(FullData, roiIndex=8)
-
-# %%
-fig, AX = data.show_stim('angle', figsize=(20,2), with_arrow=True)
-fig.savefig('/home/yann/Desktop/data2/stim.svg')
-
-# %%
+fig, AX = ge.figure(axes=(2,1), wspace=2)
+# raw
+ge.scatter(shifted_angle, np.mean(RESPONSES, axis=0), 
+           sy=np.std(RESPONSES, axis=0), ms=4, lw=1, ax=AX[0],
+           xlabel='angle ($^o$)', ylabel='$\Delta$F/F', title='raw resp.')
+# peak normalized
+N_RESP = [resp/np.max(resp) for resp in RESPONSES]
+ge.scatter(shifted_angle, np.mean(N_RESP, axis=0), sy=np.std(N_RESP, axis=0),
+           ms=4, lw=1, ax=AX[1], axes_args={'yticks':[0,1]},
+           xlabel='angle ($^o$)', ylabel='n. $\Delta$F/F', title='peak normalized')
