@@ -1,11 +1,13 @@
-import os, pynwb, itertools, skimage
+import os, sys, pathlib, pynwb, itertools, skimage
 from scipy.ndimage.filters import gaussian_filter1d
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib import colorbar, colors
 from skimage import measure
 from scipy.interpolate import interp1d
-from analyz.processing.filters import butter_highpass_filter, butter_bandpass_filter
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.analysis.analyz.analyz.processing.filters import butter_highpass_filter, butter_bandpass_filter
 
 
 def resample_data(array, old_time, time):
