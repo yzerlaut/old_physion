@@ -241,11 +241,10 @@ class MainWindow(NewWindow):
         
         self.Nrepeat = int(self.repeatBox.text()) #
         self.period = float(self.periodBox.text()) # degree / second
-        self.tstop = self.Nrepeat*self.period+self.delay 
+        self.tstop = 1+self.Nrepeat*self.period+1 # 1s hard-coded security around TOI
 
-        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.freqBox.text())
+        self.dt = 1./float(self.freqBox.text())
         self.protocol, self.label = '', ''
-        self.Npoints = int(self.period/self.dt_save)
         self.times = []
 
         # initialize one episode:
@@ -293,7 +292,7 @@ class MainWindow(NewWindow):
 
         self.tSave = time.time()
 
-        while (time.time()-self.tSave)<=self.dt_save:
+        while (time.time()-self.tSave)<=self.dt:
 
             self.t = time.time()
 
@@ -336,7 +335,7 @@ class MainWindow(NewWindow):
         if os.path.isfile(self.filename.replace('metadata', 'NIdaq')):
             NIdaq_data = np.load(self.filename.replace('metadata', 'NIdaq'),
                     allow_pickle=True).item()
-            puff_data = NIdaq_data['analog'][5]
+            puff_data = NIdaq_data['analog'][0]
         else:
             puff_data = np.zeros(int(self.tstop/1e-3)) # 
 
@@ -345,10 +344,16 @@ class MainWindow(NewWindow):
                                 timestamps=1e-3*np.arange(len(puff_data)))
         nwbfile.add_acquisition(puff)
 
+        # we resample the data to a regularly sample dataset
+        func = interp1d(self.times,
+                        np.array(self.FRAMES, dtype=np.float64),
+                        axis=0)
+        new_t = np.arange(int(self.period*self.Nrepeat/self.dt))*self.dt+\
+                self.times[0]+self.dt
         images = pynwb.image.ImageSeries(name='image_timeseries',
-                                         data=np.array(self.FRAMES, dtype=np.float64),
+                                         data=func(new_t),
                                          unit='a.u.',
-                                         timestamps=self.times)
+                                         timestamps=new_t)
 
         nwbfile.add_acquisition(images)
         
@@ -656,9 +661,12 @@ class AnalysisWindow(NewWindow):
         for plot in [self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
+        print('- (1) average on pixel-selected data')
         xpix, ypix = self.get_pixel_value()
 
-        print('- loading data [...]')
+
+        print('- (2) s.d. amplitude map of trial-average traces')
+
 
         self.params = np.load(os.path.join(self.get_datafolder(),
                              'metadata.npy'), allow_pickle=True).item()
@@ -696,12 +704,12 @@ class AnalysisWindow(NewWindow):
         x = np.arange(len(power))
         self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
         self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
-        self.spectrum_power.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
-                                 [np.log10(power[1+int(self.params['Nrepeat'])])],
+        self.spectrum_power.plot([np.log10(x[int(self.params['Nrepeat'])])],
+                                 [np.log10(power[int(self.params['Nrepeat'])])],
                                  size=10, symbolPen='g',
                                  symbol='o')
-        self.spectrum_phase.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
-                                 [phase[1+int(self.params['Nrepeat'])]],
+        self.spectrum_phase.plot([np.log10(x[int(self.params['Nrepeat'])])],
+                                 [phase[int(self.params['Nrepeat'])]],
                                  size=10, symbolPen='g',
                                  symbol='o')
 
@@ -710,7 +718,6 @@ class AnalysisWindow(NewWindow):
 
         power_map, phase_map = analysis.perform_fft_analysis(self.data, self.params['Nrepeat'],
                                                              high_pass_filtering=float(self.hpBox.text()),
-                                                             plus_one_convention=True,
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
         xpix, ypix = self.get_pixel_value()
@@ -720,27 +727,6 @@ class AnalysisWindow(NewWindow):
         self.img1.setImage(power_map)
         
 
-    def compute_retinotopic_maps(self):
-
-        power_map, retinotopy_map = analysis.get_retinotopic_maps(self.get_datafolder(),
-                                                                  self.mapBox.currentText(),
-                                                                  run_id=self.numBox.currentText(),
-                                                                  zero_two_pi_convention=self.twoPiBox.isChecked())
-
-        
-        self.img1.setLookupTable(phase_color_map)
-        self.img2.setLookupTable(power_color_map)
-        self.img1.setImage(retinotopy_map)
-        self.img2.setImage(power_map)
-        
-
-    def perform_area_segmentation(self):
-        
-        data = analysis.build_trial_data(self.get_datafolder(),
-                                         zero_two_pi_convention=self.twoPiBox.isChecked())
-        trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
-
-        trial.processTrial(isPlot=True)
         
 
     def get_datafolder(self):
