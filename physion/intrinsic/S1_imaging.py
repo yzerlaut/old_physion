@@ -215,15 +215,17 @@ class MainWindow(NewWindow):
 
         self.acq = None # by default
 
-        output_steps = [{"channel":0,
-		         "onset": self.delay+Dt,
-		         "duration":0.5,
-		         "value":5.0} for Dt in np.arange(self.Nrepeat)*self.period]
+        output_steps = [{"channel":0, "onset":1, "duration":0.1, "value":0},
+                        {"channel":1, "onset":1, "duration":0.1, "value":0}]+\
+                       [{"channel":2,
+		                 "onset": self.delay+Dt,
+		                 "duration":0.5,
+		                 "value":5.0} for Dt in np.arange(self.Nrepeat)*self.period]
 
         if not self.demoBox.isChecked():
             try:
                 self.acq = Acquisition(dt=1e-3, # forced to 1kHz
-                                       Nchannel_analog_in=1,
+                                       Nchannel_analog_in=6,
                                        Nchannel_digital_in=0,
                                        max_time=self.tstop,
                                        output_steps=output_steps,
@@ -329,12 +331,12 @@ class MainWindow(NewWindow):
                 'Intrinsic Imaging data following whisker stimulation',
                                 identifier=self.filename,
                                 session_start_time=\
-                                        datetime.datetime.now(datetime.timezone.utc))
+                                datetime.datetime.now(datetime.timezone.utc))
 
         if os.path.isfile(self.filename.replace('metadata', 'NIdaq')):
             NIdaq_data = np.load(self.filename.replace('metadata', 'NIdaq'),
                     allow_pickle=True).item()
-            puff_data = NIdaq_data['analog'][0]
+            puff_data = NIdaq_data['analog'][5]
         else:
             puff_data = np.zeros(int(self.tstop/1e-3)) # 
 
