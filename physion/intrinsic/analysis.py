@@ -7,7 +7,8 @@ from skimage import measure
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
-from physion.analysis.analyz.analyz.processing.filters import butter_highpass_filter, butter_bandpass_filter
+from physion.analysis.analyz.analyz.processing.filters \
+        import butter_highpass_filter, butter_bandpass_filter
 
 
 def resample_data(array, old_time, time):
