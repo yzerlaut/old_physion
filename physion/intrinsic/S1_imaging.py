@@ -370,6 +370,7 @@ class MainWindow(NewWindow):
                     'acq-freq':float(self.freqBox.text()),
                     'period':float(self.periodBox.text()),
                     'Nrepeat':int(self.repeatBox.text()),
+                    'delay':self.delay,
                     'imgsize':self.imgsize}
         
         np.save(self.filename, metadata)
@@ -553,7 +554,11 @@ class AnalysisWindow(NewWindow):
         self.temporalSmoothingBox.setText('100')
         self.add_widget(self.temporalSmoothingBox, spec='small-right')
 
-        self.mapButton = QtWidgets.QPushButton(" === show map === ", self)
+        self.avgButton = QtWidgets.QPushButton(" === average === ", self)
+        self.avgButton.clicked.connect(self.compute_avgs)
+        self.add_widget(self.avgButton)
+
+        self.mapButton = QtWidgets.QPushButton(" === compute map === ", self)
         self.mapButton.clicked.connect(self.compute_maps)
         self.add_widget(self.mapButton)
 
@@ -645,6 +650,62 @@ class AnalysisWindow(NewWindow):
     def process(self):
         self.compute_maps()
         
+    def compute_avgs(self):
+
+        # clear previous plots
+        for plot in [self.spectrum_power, self.spectrum_phase]:
+            plot.clear()
+
+        xpix, ypix = self.get_pixel_value()
+
+        print('- loading data [...]')
+
+        self.params = np.load(os.path.join(self.get_datafolder(),
+                             'metadata.npy'), allow_pickle=True).item()
+
+        io = pynwb.NWBHDF5IO(os.path.join(self.get_datafolder(),
+                                         'intrinsic-whisker-stim.nwb'), 'r')
+
+        nwbfile = io.read()
+
+        self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
+            nwbfile.acquisition['image_timeseries'].data[:,:,:]
+
+        io.close()
+
+        print('- data loaded !')
+
+        new_data = self.data[:,xpix, ypix]
+        self.img1.setImage(self.data[0, :, :])
+
+        if float(self.hpBox.text())>0:
+            self.raw_trace.plot(t, new_data-new_data.mean())
+            new_data = analysis.butter_highpass_filter(new_data-new_data.mean(),
+                                                       float(self.hpBox.text()),
+                                                       1, order=5)
+            self.raw_trace.plot(self.t, new_data, pen='r')
+        else:
+            self.raw_trace.plot(self.t, new_data, pen='r')
+
+        spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
+        if self.twoPiBox.isChecked():
+            power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
+        else:
+            power, phase = np.abs(spectrum), np.angle(spectrum)
+
+        x = np.arange(len(power))
+        self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
+        self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
+        self.spectrum_power.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
+                                 [np.log10(power[1+int(self.params['Nrepeat'])])],
+                                 size=10, symbolPen='g',
+                                 symbol='o')
+        self.spectrum_phase.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
+                                 [phase[1+int(self.params['Nrepeat'])]],
+                                 size=10, symbolPen='g',
+                                 symbol='o')
+
+
     def compute_maps(self):
 
         power_map, phase_map = analysis.perform_fft_analysis(self.data, self.params['Nrepeat'],

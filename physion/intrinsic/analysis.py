@@ -72,6 +72,7 @@ def perform_fft_analysis(data, nrepeat,
         power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
     else:
         power, phase = np.abs(spectrum), -np.angle(spectrum)
+
     if plus_one_convention:
         return power[nrepeat+1, :, :], phase[nrepeat+1, :, :]
     else:
