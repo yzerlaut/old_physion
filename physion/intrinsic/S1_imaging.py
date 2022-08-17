@@ -195,7 +195,7 @@ class MainWindow(NewWindow):
 
         # then keep a version to store with imaging:
         self.vasculature_img = self.get_frame()
-        self.pimg.setImage(img) # show on displayn
+        self.pimg.setImage(self.vasculature_img) # show on display
 
     
     def open_analysis(self):
@@ -472,7 +472,8 @@ class AnalysisWindow(NewWindow):
                                              title='intrinsic imaging analysis')
 
         self.datafolder, self.img, self.vasculature_img = '', None, None
-        
+        self.data = None
+
         if args is not None:
             self.datafolder = args.datafile
         else:
@@ -492,7 +493,7 @@ class AnalysisWindow(NewWindow):
         
         # --- ROW (Nx_wdgt), COLUMN (Ny_wdgt)
         self.raw_trace = self.graphics_layout.addPlot(row=0, col=2, rowspan=1, colspan=10)
-        self.puff_trace = self.graphics_layout.addPlot(row=1, col=2, rowspan=1, colspan=10)
+        self.mean_trace = self.graphics_layout.addPlot(row=1, col=2, rowspan=1, colspan=10)
         
         self.spectrum_power = self.graphics_layout.addPlot(row=2, col=2, rowspan=2, colspan=5)
         self.spDot = pg.ScatterPlotItem()
@@ -559,11 +560,11 @@ class AnalysisWindow(NewWindow):
         self.temporalSmoothingBox.setText('100')
         self.add_widget(self.temporalSmoothingBox, spec='small-right')
 
-        self.avgButton = QtWidgets.QPushButton(" === average === ", self)
+        self.avgButton = QtWidgets.QPushButton(" === avg std map === ", self)
         self.avgButton.clicked.connect(self.compute_avgs)
         self.add_widget(self.avgButton)
 
-        self.mapButton = QtWidgets.QPushButton(" === compute map === ", self)
+        self.mapButton = QtWidgets.QPushButton(" === power map === ", self)
         self.mapButton.clicked.connect(self.compute_maps)
         self.add_widget(self.mapButton)
 
@@ -571,6 +572,7 @@ class AnalysisWindow(NewWindow):
                              pen=pg.mkPen((255,0,0,255)),
                              rotatable=False,resizable=False)
         self.img1B.addItem(self.pixROI)
+        self.pixROI.sigRegionChangeFinished.connect(self.refresh)
 
         self.show()
 
@@ -593,31 +595,37 @@ class AnalysisWindow(NewWindow):
     def refresh(self):
         self.show_raw_data()
 
+    def load_data(self):
+
+        self.params = np.load(os.path.join(self.get_datafolder(),
+                             'metadata.npy'), allow_pickle=True).item()
+
+        io = pynwb.NWBHDF5IO(os.path.join(self.get_datafolder(),
+                                         'intrinsic-whisker-stim.nwb'), 'r')
+
+        nwbfile = io.read()
+
+        self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
+            nwbfile.acquisition['image_timeseries'].data[:,:,:]
+
+        self.Nsamples_per_episode = int(self.data.shape[0]/self.params['Nrepeat'])
+
+        io.close()
+
+        print('- data loaded !')
+
         
     def show_raw_data(self, with_raw_img=False):
         
         # clear previous plots
-        for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
+        for plot in [self.raw_trace, self.mean_trace, self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
+        if self.data is None:
+            self.load_data()
+
+        # now pixel data
         xpix, ypix = self.get_pixel_value()
-
-        print('- loading data [...]')
-
-        self.params = np.load(os.path.join(self.get_datafolder(),
-                             'metadata.npy'), allow_pickle=True).item()
-
-        io = pynwb.NWBHDF5IO(os.path.join(self.get_datafolder(),
-                                         'intrinsic-whisker-stim.nwb'), 'r')
-
-        nwbfile = io.read()
-
-        self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
-            nwbfile.acquisition['image_timeseries'].data[:,:,:]
-
-        io.close()
-
-        print('- data loaded !')
 
         new_data = self.data[:,xpix, ypix]
         self.img1.setImage(self.data[0, :, :])
@@ -632,70 +640,7 @@ class AnalysisWindow(NewWindow):
             self.raw_trace.plot(self.t, new_data, pen='r')
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
-        if self.twoPiBox.isChecked():
-            power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
-        else:
-            power, phase = np.abs(spectrum), np.angle(spectrum)
 
-        x = np.arange(len(power))
-        self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
-        self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
-        self.spectrum_power.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
-                                 [np.log10(power[1+int(self.params['Nrepeat'])])],
-                                 size=10, symbolPen='g',
-                                 symbol='o')
-        self.spectrum_phase.plot([np.log10(x[1+int(self.params['Nrepeat'])])],
-                                 [phase[1+int(self.params['Nrepeat'])]],
-                                 size=10, symbolPen='g',
-                                 symbol='o')
-
-    def hitting_space(self):
-        self.show_raw_data()
-
-    def process(self):
-        self.compute_maps()
-        
-    def compute_avgs(self):
-
-        # clear previous plots
-        for plot in [self.spectrum_power, self.spectrum_phase]:
-            plot.clear()
-
-        print('- (1) average on pixel-selected data')
-        xpix, ypix = self.get_pixel_value()
-
-
-        print('- (2) s.d. amplitude map of trial-average traces')
-
-
-        self.params = np.load(os.path.join(self.get_datafolder(),
-                             'metadata.npy'), allow_pickle=True).item()
-
-        io = pynwb.NWBHDF5IO(os.path.join(self.get_datafolder(),
-                                         'intrinsic-whisker-stim.nwb'), 'r')
-
-        nwbfile = io.read()
-
-        self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
-            nwbfile.acquisition['image_timeseries'].data[:,:,:]
-
-        io.close()
-
-        print('- data loaded !')
-
-        new_data = self.data[:,xpix, ypix]
-        self.img1.setImage(self.data[0, :, :])
-
-        if float(self.hpBox.text())>0:
-            self.raw_trace.plot(t, new_data-new_data.mean())
-            new_data = analysis.butter_highpass_filter(new_data-new_data.mean(),
-                                                       float(self.hpBox.text()),
-                                                       1, order=5)
-            self.raw_trace.plot(self.t, new_data, pen='r')
-        else:
-            self.raw_trace.plot(self.t, new_data, pen='r')
-
-        spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
         if self.twoPiBox.isChecked():
             power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
         else:
@@ -713,6 +658,26 @@ class AnalysisWindow(NewWindow):
                                  size=10, symbolPen='g',
                                  symbol='o')
 
+        self.mean_trace.plot(np.arange(self.Nsamples_per_episode)/self.params['acq-freq'],
+                self.data[:,xpix,ypix].reshape(self.params['Nrepeat'], self.Nsamples_per_episode).mean(axis=0), pen='b')
+
+
+    def hitting_space(self):
+        self.show_raw_data()
+
+    def process(self):
+        self.compute_maps()
+        
+    def compute_avgs(self):
+
+        # clear previous plots
+        for plot in [self.spectrum_power, self.spectrum_phase]:
+            plot.clear()
+
+        std_map = self.data.reshape(self.params['Nrepeat'], self.Nsamples_per_episode,
+                        self.data.shape[1], self.data.shape[2]).mean(axis=0).std(axis=0)
+        self.img1.setImage(std_map)
+
 
     def compute_maps(self):
 
@@ -720,14 +685,8 @@ class AnalysisWindow(NewWindow):
                                                              high_pass_filtering=float(self.hpBox.text()),
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
-        xpix, ypix = self.get_pixel_value()
-        print('power @ pix: ', power_map[xpix, ypix])
-        # print('phase @ pix', phase_map[xpix, ypix])
-
         self.img1.setImage(power_map)
-        
-
-        
+       
 
     def get_datafolder(self):
 
@@ -754,6 +713,7 @@ class AnalysisWindow(NewWindow):
             self.datafolder = folder
         else:
             print('data-folder not set !')
+
 
     def launch_analysis(self):
         print('launching analysis [...]')
