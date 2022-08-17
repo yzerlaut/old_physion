@@ -676,16 +676,20 @@ class AnalysisWindow(NewWindow):
 
         std_map = self.data.reshape(self.params['Nrepeat'], self.Nsamples_per_episode,
                         self.data.shape[1], self.data.shape[2]).mean(axis=0).std(axis=0)
-        self.img1.setImage(std_map)
+        #self.img1.setImage(std_map)
+        self.img1.setImage(std_map/self.data.mean(axis=0))
 
 
     def compute_maps(self):
 
+        print('computing FFT [...]')
         power_map, phase_map = analysis.perform_fft_analysis(self.data, self.params['Nrepeat'],
                                                              high_pass_filtering=float(self.hpBox.text()),
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
-        self.img1.setImage(power_map)
+        print('Done !')
+        self.img1.setImage(power_map/self.data.mean(axis=0))
+        #self.img1.setImage(power_map/self.data.std(axis=0))
        
 
     def get_datafolder(self):
