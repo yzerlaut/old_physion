@@ -554,7 +554,7 @@ class AnalysisWindow(NewWindow):
         self.twoPiBox.setStyleSheet("color: gray;")
         self.add_widget(self.twoPiBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
+        self.add_widget(QtWidgets.QLabel('  - high pass filtering (Hz): '),
                         spec='large-left')
         self.hpBox = QtWidgets.QLineEdit()
         self.hpBox.setText('0')
@@ -566,7 +566,7 @@ class AnalysisWindow(NewWindow):
         self.spatialSmoothingBox.setText('0')
         self.add_widget(self.spatialSmoothingBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (#):'),
+        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (s):'),
                         spec='large-left')
         self.temporalSmoothingBox = QtWidgets.QLineEdit()
         self.temporalSmoothingBox.setText('0')
@@ -631,7 +631,7 @@ class AnalysisWindow(NewWindow):
         self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
             nwbfile.acquisition['image_timeseries'].data[:,:,:]
         self.pData = None
-
+        
         self.Nsamples_per_episode = int(self.data.shape[0]/self.params['Nrepeat'])
 
         io.close()
@@ -707,7 +707,7 @@ class AnalysisWindow(NewWindow):
         for plot in [self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
-        self.pData = analysis.preprocess_data(self.data,
+        self.pData = analysis.preprocess_data(self.data, self.params['acq-freq'],
                                               temporal_smoothing=float(self.temporalSmoothingBox.text()),
                                               spatial_smoothing=int(self.spatialSmoothingBox.text()),
                                               high_pass_filtering=float(self.hpBox.text()))
@@ -723,7 +723,7 @@ class AnalysisWindow(NewWindow):
     def compute_maps(self):
 
         print('computing FFT [...]')
-        self.pData = analysis.preprocess_data(self.data,
+        self.pData = analysis.preprocess_data(self.data, self.params['acq-freq'],
                                               temporal_smoothing=float(self.temporalSmoothingBox.text()),
                                               spatial_smoothing=int(self.spatialSmoothingBox.text()),
                                               high_pass_filtering=float(self.hpBox.text()))

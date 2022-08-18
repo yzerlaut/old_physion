@@ -67,7 +67,7 @@ def load_raw_data(datafolder, protocol,
         return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))
 
 
-def preprocess_data(data,
+def preprocess_data(data, Facq,
                     temporal_smoothing=0,
                     spatial_smoothing=0,
                     high_pass_filtering=0):
@@ -75,9 +75,9 @@ def preprocess_data(data,
     pData = resample_img(data, spatial_smoothing) # pre-processed data
 
     if high_pass_filtering>0:
-        pData = butter_highpass_filter(pData, high_pass_filtering, 1., axis=0)
+        pData = butter_highpass_filter(pData-pData.mean(axis=0), high_pass_filtering, Facq, axis=0)
     if temporal_smoothing>0:
-        pData = gaussian_filter1d(pData, temporal_smoothing, axis=0)
+        pData = gaussian_filter1d(pData, Facq*temporal_smoothing, axis=0)
        
     return pData
 
