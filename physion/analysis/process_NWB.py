@@ -354,10 +354,14 @@ class EpisodeResponse:
 
 
     def compute_summary_data(self, stat_test_props,
+                             episode_cond=None,
                              exclude_keys=['repeat'],
                              response_args={},
                              response_significance_threshold=0.01,
                              verbose=True):
+
+        if episode_cond is None:
+            episode_cond = self.find_episode_cond() # all true by default
 
         VARIED_KEYS, VARIED_VALUES, VARIED_INDICES, Nfigs, VARIED_BINS = [], [], [], 1, []
         for key in self.varied_parameters:
@@ -378,23 +382,34 @@ class EpisodeResponse:
         if len(VARIED_KEYS)>0:
             for indices in itertools.product(*VARIED_INDICES):
                 stats = self.stat_test_for_evoked_responses(episode_cond=self.find_episode_cond(VARIED_KEYS,
-                                                                                                list(indices)),
+                                                                                                list(indices)) &\
+                                                                          episode_cond,
                                                             response_args=response_args,
                                                             verbose=verbose,
                                                             **stat_test_props)
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
-                summary_data['value'].append(np.mean(stats.y-stats.x))
-                summary_data['std-value'].append(np.std(stats.y-stats.x))
-                summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
-                summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+                # if (stats.x is not None) and (stats.y is not None):
+                if stats.r!=0:
+                    summary_data['value'].append(np.mean(stats.y-stats.x))
+                    summary_data['std-value'].append(np.std(stats.y-stats.x))
+                    summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
+                    summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+                else:
+                    for kk in ['value', 'std-value', 'significant', 'relative_value']:
+                        summary_data[kk].append(np.nan)
         else:
             stats = self.stat_test_for_evoked_responses(response_args=response_args,
                                                         **stat_test_props)
-            summary_data['value'].append(np.mean(stats.y-stats.x))
-            summary_data['std-value'].append(np.std(stats.y-stats.x))
-            summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
-            summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
+            # if (stats.x is not None) and (stats.y is not None):
+            if stats.r!=0:
+                summary_data['value'].append(np.mean(stats.y-stats.x))
+                summary_data['std-value'].append(np.std(stats.y-stats.x))
+                summary_data['significant'].append(stats.significant(threshold=response_significance_threshold))
+                summary_data['relative_value'].append(np.mean((stats.y-stats.x)/stats.x))
+            else:
+                for kk in ['value', 'std-value', 'significant', 'relative_value']:
+                    summary_data[kk].append(np.nan)
 
         for key in summary_data:
             summary_data[key] = np.array(summary_data[key])

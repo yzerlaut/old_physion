@@ -596,7 +596,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             no_set=no_set
 
         # get response reshape in 
-        response = tools.normalize(self.get_response(**dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=True)
+        response = tools.normalize(self.get_response(**dict(quantity=quantity, roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=verbose)
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
