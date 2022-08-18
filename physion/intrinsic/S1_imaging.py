@@ -218,14 +218,14 @@ class MainWindow(NewWindow):
         output_steps = [{"channel":0, "onset":1, "duration":0.1, "value":0},
                         {"channel":1, "onset":1, "duration":0.1, "value":0}]+\
                        [{"channel":2,
-		                 "onset": self.delay+Dt,
-		                 "duration":0.5,
-		                 "value":5.0} for Dt in np.arange(self.Nrepeat)*self.period]
+		         "onset": self.delay+Dt,
+		         "duration":0.5,
+		         "value":5.0} for Dt in np.arange(self.Nrepeat)*self.period]
 
         if not self.demoBox.isChecked():
             try:
                 self.acq = Acquisition(dt=1e-3, # forced to 1kHz
-                                       Nchannel_analog_in=6,
+                                       Nchannel_analog_in=1,
                                        Nchannel_digital_in=0,
                                        max_time=self.tstop,
                                        output_steps=output_steps,
@@ -247,12 +247,11 @@ class MainWindow(NewWindow):
         self.protocol, self.label = '', ''
         self.times = []
 
+        self.save_metadata()
+
         # initialize one episode:
         self.iEp, self.iTime, self.t0 = 0, 0, time.time()
-
         self.img, self.nSave = self.new_img(), 0
-
-        self.save_metadata()
         
         print('- initializing whisker stim on NIdaq [...]')
         self.init_whisker_stim()
@@ -262,13 +261,6 @@ class MainWindow(NewWindow):
         # while loop:
         self.update_dt()
 
-
-    def refresh(self):
-        # to have the "r" shortcut working
-        if self.running:
-            self.stop_protocol()
-        else:
-            self.launch_protocol()
 
     def new_img(self):
         return np.zeros(self.imgsize, dtype=np.float64)
@@ -282,8 +274,8 @@ class MainWindow(NewWindow):
             self.pimg.setImage(self.img)
 
         # NEED TO STORE DATA HERE
-        self.times.append(time.time()-self.t0)
         self.FRAMES.append(self.img)
+        self.times.append(time.time()-self.t0)
 
         # re-init time step of acquisition
         self.img, self.nSave = self.new_img(), 0
@@ -415,6 +407,13 @@ class MainWindow(NewWindow):
         else:
             print('acquisition not launched')
 
+    def refresh(self):
+        # to have the "r" shortcut working
+        if self.running:
+            self.stop_protocol()
+        else:
+            self.launch_protocol()
+
     def get_frame(self, force_HQ=False):
         
         if self.exposure>0:
@@ -425,8 +424,8 @@ class MainWindow(NewWindow):
                              newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
         else:
             img = np.random.randn(720, 1280)
-            if int(1000*(time.time()-self.t0-self.delay))%(int(1000*self.period))<(1000*0.3):
-                img[300:500,200:600] = 1
+            if int(1000*(time.time()-self.t0-self.delay-1))%(int(1000*self.period))<(1000*0.3):
+                img[300:500,200:600] = -1
 
         if (int(self.spatialBox.text())>1) and not force_HQ:
             return 1.0*analysis.resample_img(img, int(self.spatialBox.text()))
@@ -472,7 +471,7 @@ class AnalysisWindow(NewWindow):
                                              title='intrinsic imaging analysis')
 
         self.datafolder, self.img, self.vasculature_img = '', None, None
-        self.data = None
+        self.data, self.pData = None, None
 
         if args is not None:
             self.datafolder = args.datafile
@@ -489,43 +488,54 @@ class AnalysisWindow(NewWindow):
         # layout (from NewWindow class)
         self.init_basic_widget_grid(wdgt_length=3,
                                     Ncol_wdgt=13,
-                                    Nrow_wdgt=10)
+                                    Nrow_wdgt=20)
         
         # --- ROW (Nx_wdgt), COLUMN (Ny_wdgt)
-        self.raw_trace = self.graphics_layout.addPlot(row=0, col=2, rowspan=1, colspan=10)
-        self.mean_trace = self.graphics_layout.addPlot(row=1, col=2, rowspan=1, colspan=10)
+        self.raw_trace = self.graphics_layout.addPlot(row=0, col=2, rowspan=5, colspan=10)
+
+        self.mean_trace = self.graphics_layout.addPlot(row=5, col=2, rowspan=5, colspan=5)
         
-        self.spectrum_power = self.graphics_layout.addPlot(row=2, col=2, rowspan=2, colspan=5)
+        self.spectrum_power = self.graphics_layout.addPlot(row=10, col=2, rowspan=5, colspan=5)
         self.spDot = pg.ScatterPlotItem()
         self.spectrum_power.addItem(self.spDot)
         
-        self.spectrum_phase = self.graphics_layout.addPlot(row=2, col=7, rowspan=2, colspan=5)
+        self.spectrum_phase = self.graphics_layout.addPlot(row=15, col=2, rowspan=5, colspan=5)
         self.sphDot = pg.ScatterPlotItem()
         self.spectrum_phase.addItem(self.sphDot)
 
         # # images
-        self.add_widget(QtWidgets.QLabel('folder:'), spec='small-left')
-        self.folderB = QtWidgets.QComboBox(self)
-        self.folderB.addItems(FOLDERS.keys())
-        self.add_widget(self.folderB, spec='large-right')
-
-        self.img1B = self.graphics_layout.addViewBox(row=4, col=2, rowspan=6, colspan=10,
+        self.img1B = self.graphics_layout.addViewBox(row=5, col=7, rowspan=15, colspan=5,
                                                      lockAspect=True, invertY=True)
         self.img1 = pg.ImageItem()
         self.img1B.addItem(self.img1)
         self.img = np.random.randn(30,30)
         self.img1.setImage(self.img)
 
-        self.graphics_layout.ci.layout.setRowStretchFactor(4, 5)
 
-        self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
+        self.add_widget(QtWidgets.QLabel('folder:'), spec='small-left')
+        self.folderB = QtWidgets.QComboBox(self)
+        self.folderB.addItems(FOLDERS.keys())
+        self.add_widget(self.folderB, spec='large-right')
+
+        self.folderButton = QtWidgets.QPushButton("open data [O]", self)
         self.folderButton.clicked.connect(self.open_file)
         self.add_widget(self.folderButton, spec='large-left')
         self.lastBox = QtWidgets.QCheckBox("last ")
         self.lastBox.setStyleSheet("color: gray;")
         self.add_widget(self.lastBox, spec='small-right')
         self.lastBox.setChecked((self.datafolder==''))
+        self.dataLabel = QtWidgets.QLabel('...')
+        self.add_widget(self.dataLabel)
 
+        self.add_widget(QtWidgets.QLabel(' '))
+        # self.delayLabel = QtWidgets.QLabel(' - Delay= ... ')
+        # self.add_widget(self.delayLabel)
+        self.repeatLabel = QtWidgets.QLabel(' - Nrepeat')
+        self.add_widget(self.repeatLabel)
+        self.periodLabel = QtWidgets.QLabel(' - Period')
+        self.add_widget(self.periodLabel)
+        self.freqLabel = QtWidgets.QLabel(' - Acq-Freq')
+        self.add_widget(self.freqLabel)
         self.add_widget(QtWidgets.QLabel(' '))
 
         self.vdButton = QtWidgets.QPushButton("vasculature img", self)
@@ -538,27 +548,33 @@ class AnalysisWindow(NewWindow):
         self.rdButton.clicked.connect(self.show_raw_data)
         self.add_widget(self.rdButton)
 
+        self.add_widget(QtWidgets.QLabel('  - phase conv.:'),
+                        spec='large-left')
+        self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
+        self.twoPiBox.setStyleSheet("color: gray;")
+        self.add_widget(self.twoPiBox, spec='small-right')
+
         self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
                         spec='large-left')
         self.hpBox = QtWidgets.QLineEdit()
         self.hpBox.setText('0')
         self.add_widget(self.hpBox, spec='small-right')
 
-        self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
-        self.twoPiBox.setStyleSheet("color: gray;")
-        self.add_widget(self.twoPiBox, spec='small-right')
-
         self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
                         spec='large-left')
         self.spatialSmoothingBox = QtWidgets.QLineEdit()
-        self.spatialSmoothingBox.setText('5')
+        self.spatialSmoothingBox.setText('0')
         self.add_widget(self.spatialSmoothingBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
+        self.add_widget(QtWidgets.QLabel('  - temporal smoothing (#):'),
                         spec='large-left')
         self.temporalSmoothingBox = QtWidgets.QLineEdit()
-        self.temporalSmoothingBox.setText('100')
+        self.temporalSmoothingBox.setText('0')
         self.add_widget(self.temporalSmoothingBox, spec='small-right')
+
+        self.stdNormBox = QtWidgets.QCheckBox("std norm.[0,2pi]")
+        self.stdNormBox.setStyleSheet("color: gray;")
+        self.add_widget(self.stdNormBox, spec='large-right')
 
         self.avgButton = QtWidgets.QPushButton(" === avg std map === ", self)
         self.avgButton.clicked.connect(self.compute_avgs)
@@ -568,22 +584,22 @@ class AnalysisWindow(NewWindow):
         self.mapButton.clicked.connect(self.compute_maps)
         self.add_widget(self.mapButton)
 
-        self.pixROI = pg.ROI((10, 10), size=(10,10),
-                             pen=pg.mkPen((255,0,0,255)),
+        self.pixROI = pg.ROI((10, 10), size=(5,5),
+                             pen=pg.mkPen((255,0,0,255), width=4),
                              rotatable=False,resizable=False)
         self.img1B.addItem(self.pixROI)
-        self.pixROI.sigRegionChangeFinished.connect(self.refresh)
+        self.pixROI.sigRegionChangeFinished.connect(self.traces_update)
 
         self.show()
 
     def set_pixROI(self, img=None):
         if self.img is not None:
             img = self.img
-        self.pixROI.setSize((10,10))
+        self.pixROI.setSize((5,5))
         return 
     
     def get_pixel_value(self):
-        y, x = int(self.pixROI.pos()[0]), int(self.pixROI.pos()[1])
+        y, x = int(self.pixROI.pos()[0]+2), int(self.pixROI.pos()[1]+2) # because size=(5,5)
         return x, y
         
 
@@ -600,6 +616,13 @@ class AnalysisWindow(NewWindow):
         self.params = np.load(os.path.join(self.get_datafolder(),
                              'metadata.npy'), allow_pickle=True).item()
 
+        self.dataLabel.setText('rec: 202%s' % self.get_datafolder().split('202')[1])
+
+        # self.delayLabel.setText(' - delay = %.1fs' % self.params['delay'])
+        self.repeatLabel.setText(' - Nrepeat = %i' % self.params['Nrepeat'])
+        self.periodLabel.setText(' - period (s)= %.1f' % self.params['period'])
+        self.freqLabel.setText(' - acq-freq (Hz)= %.1f' % self.params['acq-freq'])
+
         io = pynwb.NWBHDF5IO(os.path.join(self.get_datafolder(),
                                          'intrinsic-whisker-stim.nwb'), 'r')
 
@@ -607,6 +630,7 @@ class AnalysisWindow(NewWindow):
 
         self.t, self.data = nwbfile.acquisition['image_timeseries'].timestamps[:],\
             nwbfile.acquisition['image_timeseries'].data[:,:,:]
+        self.pData = None
 
         self.Nsamples_per_episode = int(self.data.shape[0]/self.params['Nrepeat'])
 
@@ -614,30 +638,21 @@ class AnalysisWindow(NewWindow):
 
         print('- data loaded !')
 
-        
-    def show_raw_data(self, with_raw_img=False):
-        
-        # clear previous plots
+       
+    def traces_update(self):
+
         for plot in [self.raw_trace, self.mean_trace, self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
-        if self.data is None:
-            self.load_data()
-
-        # now pixel data
+        # pixel position 
         xpix, ypix = self.get_pixel_value()
 
-        new_data = self.data[:,xpix, ypix]
-        self.img1.setImage(self.data[0, :, :])
-
-        if float(self.hpBox.text())>0:
-            self.raw_trace.plot(t, new_data-new_data.mean())
-            new_data = analysis.butter_highpass_filter(new_data-new_data.mean(),
-                                                       float(self.hpBox.text()),
-                                                       1, order=5)
-            self.raw_trace.plot(self.t, new_data, pen='r')
+        if self.pData is None:
+            new_data = self.data[:,xpix, ypix]
         else:
-            self.raw_trace.plot(self.t, new_data, pen='r')
+            new_data = self.pData[:,xpix, ypix]
+
+        self.raw_trace.plot(self.t, new_data, pen='r')
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
 
@@ -647,20 +662,38 @@ class AnalysisWindow(NewWindow):
             power, phase = np.abs(spectrum), np.angle(spectrum)
 
         x = np.arange(len(power))
-        self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
-        self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
+        # self.spectrum_power.plot(x[1:], power[1:])
+        # self.spectrum_power.plot([x[int(self.params['Nrepeat'])]],
+                                 # [power[int(self.params['Nrepeat'])]],
+                                 # size=10, symbolPen='g',
+                                 # symbol='o')
+        self.spectrum_power.plot(np.log10(x[1:int(len(x)/2)]), np.log10(power[1:int(len(x)/2)]))
         self.spectrum_power.plot([np.log10(x[int(self.params['Nrepeat'])])],
                                  [np.log10(power[int(self.params['Nrepeat'])])],
                                  size=10, symbolPen='g',
                                  symbol='o')
+
+        self.spectrum_phase.plot(np.log10(x[1:int(len(x)/2)]), phase[1:int(len(x)/2)])
         self.spectrum_phase.plot([np.log10(x[int(self.params['Nrepeat'])])],
                                  [phase[int(self.params['Nrepeat'])]],
                                  size=10, symbolPen='g',
                                  symbol='o')
 
         self.mean_trace.plot(np.arange(self.Nsamples_per_episode)/self.params['acq-freq'],
-                self.data[:,xpix,ypix].reshape(self.params['Nrepeat'], self.Nsamples_per_episode).mean(axis=0), pen='b')
+                new_data.reshape(self.params['Nrepeat'], self.Nsamples_per_episode).mean(axis=0), pen='b')
 
+
+    def show_raw_data(self, with_raw_img=False):
+        
+        if self.data is None:
+            self.load_data()
+
+        if self.pData is None:
+            self.img1.setImage(self.data[0, :, :])
+        else:
+            self.img1.setImage(self.pData[0, :, :])
+
+        self.traces_update()
 
     def hitting_space(self):
         self.show_raw_data()
@@ -674,22 +707,36 @@ class AnalysisWindow(NewWindow):
         for plot in [self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
-        std_map = self.data.reshape(self.params['Nrepeat'], self.Nsamples_per_episode,
-                        self.data.shape[1], self.data.shape[2]).mean(axis=0).std(axis=0)
-        #self.img1.setImage(std_map)
-        self.img1.setImage(std_map/self.data.mean(axis=0))
+        self.pData = analysis.preprocess_data(self.data,
+                                              temporal_smoothing=float(self.temporalSmoothingBox.text()),
+                                              spatial_smoothing=int(self.spatialSmoothingBox.text()),
+                                              high_pass_filtering=float(self.hpBox.text()))
+
+        std_map = self.pData.reshape(self.params['Nrepeat'], self.Nsamples_per_episode,
+                        self.pData.shape[1], self.pData.shape[2]).mean(axis=0).std(axis=0)
+        if self.stdNormBox.isChecked():
+            self.img1.setImage(std_map/self.pData.std(axis=0))
+        else:
+            self.img1.setImage(std_map)
 
 
     def compute_maps(self):
 
         print('computing FFT [...]')
-        power_map, phase_map = analysis.perform_fft_analysis(self.data, self.params['Nrepeat'],
-                                                             high_pass_filtering=float(self.hpBox.text()),
+        self.pData = analysis.preprocess_data(self.data,
+                                              temporal_smoothing=float(self.temporalSmoothingBox.text()),
+                                              spatial_smoothing=int(self.spatialSmoothingBox.text()),
+                                              high_pass_filtering=float(self.hpBox.text()))
+
+        power_map, phase_map = analysis.perform_fft_analysis(self.pData, self.params['Nrepeat'],
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
         print('Done !')
-        self.img1.setImage(power_map/self.data.mean(axis=0))
-        #self.img1.setImage(power_map/self.data.std(axis=0))
+        if self.stdNormBox.isChecked():
+            self.img1.setImage(power_map/self.pData.std(axis=0))
+        else:
+            self.img1.setImage(power_map)
+
        
 
     def get_datafolder(self):
@@ -718,6 +765,7 @@ class AnalysisWindow(NewWindow):
         else:
             print('data-folder not set !')
 
+        self.load_data()
 
     def launch_analysis(self):
         print('launching analysis [...]')

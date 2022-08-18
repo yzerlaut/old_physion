@@ -5,6 +5,7 @@ import matplotlib.pylab as plt
 from matplotlib import colorbar, colors
 from skimage import measure
 from scipy.interpolate import interp1d
+from scipy.ndimage.filters import gaussian_filter1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from physion.analysis.analyz.analyz.processing.filters \
@@ -21,9 +22,17 @@ def resample_data(array, old_time, time):
             new_array[i1] = array[cond][0]
     return new_array
 
+
 def resample_img(img, Nsubsampling):
     if Nsubsampling>1:
-        return measure.block_reduce(img, block_size=(Nsubsampling,
+        if len(img.shape)==3:
+            # means movie !
+            return measure.block_reduce(img, block_size=(1,
+                                                         Nsubsampling,
+                                                         Nsubsampling), func=np.mean)
+
+        else:
+            return measure.block_reduce(img, block_size=(Nsubsampling,
                                                      Nsubsampling), func=np.mean)
     else:
         return img
@@ -58,15 +67,26 @@ def load_raw_data(datafolder, protocol,
         return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))
 
 
+def preprocess_data(data,
+                    temporal_smoothing=0,
+                    spatial_smoothing=0,
+                    high_pass_filtering=0):
+
+    pData = resample_img(data, spatial_smoothing) # pre-processed data
+
+    if high_pass_filtering>0:
+        pData = butter_highpass_filter(pData, high_pass_filtering, 1., axis=0)
+    if temporal_smoothing>0:
+        pData = gaussian_filter1d(pData, temporal_smoothing, axis=0)
+       
+    return pData
+
 def perform_fft_analysis(data, nrepeat,
-                         high_pass_filtering=0,
                          zero_two_pi_convention=False,
                          plus_one_convention=False):
 
-    if high_pass_filtering>0:
-        spectrum = np.fft.fft(butter_highpass_filter(data, high_pass_filtering, 1., axis=0), axis=0)
-    else:
-        spectrum = np.fft.fft(data, axis=0)
+
+    spectrum = np.fft.fft(data, axis=0)
         
     if zero_two_pi_convention:
         power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
