@@ -161,7 +161,7 @@ accuracies_GB = [run_model(episodes_GB,
 
 # %%
 fig, ax = ge.bar([100*np.mean(accuracies_NI), 100*np.mean(accuracies_GB)],
-       sy=[100*np.std(accuracies_NI), 100*np.std(accuracies_GB)])
+                 sy=[100*np.std(accuracies_NI), 100*np.std(accuracies_GB)])
 ge.set_plot(ax, ylabel='neurometric task\naccuracy (%)', xticks=[0,1], 
             xticks_labels=['NI-identification', 'Cue-detection'],
             yticks=[0,50,100],

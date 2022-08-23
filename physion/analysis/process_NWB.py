@@ -193,8 +193,7 @@ class EpisodeResponse:
                     if verbose:
                         print('----')
                         print(be)
-                        print(tfull[ep_cond][0]-tstart, tfull[ep_cond][-1]-tstart, tstop-tstart)
-                        
+                        # print(tfull[ep_cond][0]-tstart, tfull[ep_cond][-1]-tstart, tstop-tstart)
                         print('Problem with episode %i between (%.2f, %.2f)s' % (iEp, tstart, tstop))
                         
 
@@ -430,11 +429,12 @@ if __name__=='__main__':
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
-                                  protocol_id=None,
-                                  quantities=['dFoF'],
-                                  prestim_duration=3.,
+                                  protocol_id=0,
+                                  quantities=['dFoF', 'Pupil'],
+                                  prestim_duration=1.,
                                   dt_sampling=10)
 
+        """
         fig0, ax = ge.figure()
         fig, AX = ge.figure(axes=(3,10), figsize=(.8,.9))
 
@@ -458,6 +458,7 @@ if __name__=='__main__':
                 episode.dFoF[cond,:,:].mean(axis=(0,1)),
                 color=ge.tab10(i))
         ge.show()
+        """
 
     else:
         print('/!\ Need to provide a NWB datafile as argument ')
