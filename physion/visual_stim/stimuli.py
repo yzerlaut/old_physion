@@ -1335,7 +1335,7 @@ def get_NaturalImages_as_array(screen):
         return NIarray
     else:
         print(' /!\  Natural Images folder not found !!! /!\  ')
-        return [np.ones(10,10)*0.5 for i in range(5)]
+        return [np.ones((10,10))*0.5 for i in range(5)]
     
 
 class natural_image(visual_stim):

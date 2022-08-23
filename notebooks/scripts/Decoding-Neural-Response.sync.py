@@ -19,23 +19,34 @@
 # We implement here a nearest-neighbor decoder of neural activity.
 
 # %%
-# general modules
-import pynwb, os, sys, pprint, itertools
+# general python modules
+import sys, os, pprint
 import numpy as np
 import matplotlib.pylab as plt
 
-# custom modules
-sys.path.append('../physion')
+# *_-= physion =-_*
+physion_folder = os.path.join(os.path.expanduser('~'), 'work', 'physion') # UPDATE to your folder location
+# -- physion core
+sys.path.append(os.path.join(physion_folder, 'physion'))
+from analysis.read_NWB import Data, scan_folder_for_NWBfiles
 from dataviz.show_data import MultimodalData, EpisodeResponse
-from datavyz import graph_env_manuscript as ge
+# -- physion data visualization
+sys.path.append(os.path.join(physion_folder, 'dataviz', 'datavyz'))
+from datavyz import ge
 
 # %% [markdown]
 # ## Loading data and preprocessing
 
 # %%
-root_datafolder = os.path.join(os.path.expanduser('~'), 'UNPROCESSED')
+root_datafolder = os.path.join(os.path.expanduser('~'), 'DATA', 'curated')
 filename = '2022_06_13-14-17-33.nwb'
+data = Data(os.path.join(root_datafolder, filename))
+print(data.protocols)
 
+# %% [markdown]
+# ### Natural Images episodes
+
+# %%
 episodes_NI = EpisodeResponse(os.path.join(root_datafolder, filename), 
                               quantities=['dFoF'],
                               protocol_id=1,
@@ -44,6 +55,9 @@ episodes_NI = EpisodeResponse(os.path.join(root_datafolder, filename),
 
 print('episodes_NI:', episodes_NI.protocol_name)
 print('varied parameters:', episodes_NI.varied_parameters)
+
+# %% [markdown]
+# ### Gaussian Blobs episodes
 
 # %%
 episodes_GB = EpisodeResponse(os.path.join(root_datafolder, filename), 

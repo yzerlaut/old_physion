@@ -4,6 +4,7 @@ import pynwb, PIL
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.interpolate import interp1d
+
 try:
     from pycromanager import Bridge
 except ModuleNotFoundError:
@@ -237,16 +238,16 @@ class MainWindow(NewWindow):
         self.subjectBox.addItems(self.subjects.keys())
 
         
-    def init_visual_stim(self, demo=True):
+    # def init_visual_stim(self, demo=True):
 
-        with open(os.path.join(pathlib.Path(__file__).resolve().parents[1], 'intrinsic', 'vis_stim', 'up.json'), 'r') as fp:
-            protocol = json.load(fp)
+        # with open(os.path.join(pathlib.Path(__file__).resolve().parents[1], 'intrinsic', 'vis_stim', 'up.json'), 'r') as fp:
+            # protocol = json.load(fp)
 
-        if self.demoBox.isChecked():
-            protocol['demo'] = True
+        # if self.demoBox.isChecked():
+            # protocol['demo'] = True
 
-        self.stim = visual_stim.build_stim(protocol)
-        self.parent = dummy_parent()
+        # self.stim = visual_stim.build_stim(protocol)
+        # self.parent = dummy_parent()
 
         
     def get_patterns(self, protocol, angle, size,
@@ -262,6 +263,7 @@ class MainWindow(NewWindow):
                                                   z[1]-z[0]),
                                             pos=(self.stim.angle_to_pix(angle), z[i]),
                                             units='pix', fillColor=1))
+
         if protocol in ['up', 'down']:
             x = np.linspace(-self.stim.screen['resolution'][0], self.stim.screen['resolution'][0], Npatch)
             for i in np.arange(len(x)-1)[(1 if self.flip else 0)::2]:
@@ -279,7 +281,8 @@ class MainWindow(NewWindow):
         
         self.stim = visual_stim({"Screen": "Dell-2020",
                                  "presentation-prestim-screen": -1,
-                                 "presentation-poststim-screen": -1}, demo=self.demoBox.isChecked())
+                                 "presentation-poststim-screen": -1}, 
+                                 demo=self.demoBox.isChecked())
 
         self.Nrepeat = int(self.repeatBox.text()) #
         self.period = float(self.periodBox.text()) # degree / second
@@ -325,7 +328,7 @@ class MainWindow(NewWindow):
         self.iEp, self.iTime, self.t0_episode = 0, 0, time.time()
 
         self.img, self.nSave = self.new_img(), 0
-
+    
         self.save_metadata()
         
         print('acquisition running [...]')
@@ -451,6 +454,7 @@ class MainWindow(NewWindow):
     def launch_protocol(self):
 
         if not self.running:
+
             self.running = True
 
             # initialization of data
@@ -463,6 +467,7 @@ class MainWindow(NewWindow):
             self.run()
             
         else:
+
             print(' /!\  --> pb in launching acquisition (either already running or missing camera)')
 
     def live_view(self):
@@ -480,12 +485,15 @@ class MainWindow(NewWindow):
     def get_frame(self, force_HQ=False):
         
         if self.exposure>0:
+
             self.core.snap_image()
             tagged_image = self.core.get_tagged_image()
             #pixels by default come out as a 1D array. We can reshape them into an image
             img = np.reshape(tagged_image.pix,
                              newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
+
         elif (self.stim is not None) and (self.STIM is not None):
+
             it = int((time.time()-self.t0_episode)/self.dt_save)%int(self.period/self.dt_save)
             protocol = self.STIM['label'][self.iEp%len(self.STIM['label'])]
             if protocol=='left':
@@ -513,7 +521,6 @@ class MainWindow(NewWindow):
         else:
             return 1.0*img
 
-
         
         
     def update_Image(self):
@@ -525,11 +532,13 @@ class MainWindow(NewWindow):
         if self.running:
             QtCore.QTimer.singleShot(1, self.update_Image)
                 
+
     def hitting_space(self):
         if not self.running:
             self.launch_protocol()
         else:
             self.stop_protocol()
+
 
     def process(self):
         self.launch_analysis()
