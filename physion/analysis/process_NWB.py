@@ -186,7 +186,7 @@ class EpisodeResponse:
                         func = interp1d(tfull[ep_cond]-tstart, valfull[ep_cond],
                                         kind=interpolation)
                         RESPS.append(func(self.t))
-                        
+
                 except BaseException as be:
 
                     success=False # we switch this off to remove the episode in all modalities
@@ -281,7 +281,7 @@ class EpisodeResponse:
         'key' and 'index' can be either lists of values
         """
         
-        cond = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
+        cond = np.ones(len(self.time_start), dtype=bool)
         
         if (type(key) in [list, np.ndarray, tuple]) and\
                 (type(index) in [list, np.ndarray, tuple]):
