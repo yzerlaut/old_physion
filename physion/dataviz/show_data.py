@@ -480,7 +480,7 @@ class MultimodalData(read_NWB.Data):
 
 class EpisodeResponse(process_NWB.EpisodeResponse):
 
-    def __init__(self, filename,
+    def __init__(self, Input,
                  protocol_id=None, protocol_name=None,
                  quantities=['dFoF'],
                  quantities_args=None,
@@ -488,21 +488,31 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                  dt_sampling=10, # ms
                  verbose=False,
                  with_visual_stim=False):
-        """ plot Episode Response """
+        """ plot Episode Response 
+        Input can be either a datafile filename or an EpisodeResponse object
+        """
 
-        # load data first
-        self.data = MultimodalData(filename,
-                                   with_visual_stim=with_visual_stim,
-                                   verbose=verbose)
+        if os.path.isfile(filename):
+            # if we start from a datafile
 
-        # initialize episodes
-        super().__init__(self.data,
-                         protocol_id=protocol_id, protocol_name=protocol_name,
-                         quantities=quantities,
-                         quantities_args=quantities_args,
-                         prestim_duration=prestim_duration,
-                         dt_sampling=dt_sampling,
-                         verbose=verbose)
+            # load data first
+            self.data = MultimodalData(filename,
+                                       with_visual_stim=with_visual_stim,
+                                       verbose=verbose)
+
+            # initialize episodes
+            super().__init__(self.data,
+                             protocol_id=protocol_id, protocol_name=protocol_name,
+                             quantities=quantities,
+                             quantities_args=quantities_args,
+                             prestim_duration=prestim_duration,
+                             dt_sampling=dt_sampling,
+                             verbose=verbose)
+
+        elif type(Input)==process_NWB.EpisodeResponse:
+            for x in dir(Input):
+                if x[:2]!='__':
+                    setattr(self, x, getattr(Input, x))
         
     def plot_trial_average(self,
                            # episodes props
