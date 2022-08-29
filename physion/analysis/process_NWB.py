@@ -6,11 +6,18 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from Ca_imaging import tools as Ca_imaging_tools
 from scipy.interpolate import interp1d
 from analysis import stat_tools
+from visual_stim.stimuli import build_stim
 
 
 class EpisodeResponse:
     """
-    - Using the photodiode-signal-derived timestamps to build "episode response" by interpolating the raw signal on a fixed time interval (surrounding the stim)
+    Object to Analyze Responses to several Episodes 
+        - episodes should have the same durations
+        - episodes can correspond to diverse stimulation parameters
+
+    - Using the photodiode-signal-derived timestamps 
+            to build "episode response" by interpolating
+            the raw signal on a fixed time interval (surrounding the stim)
     - Using metadata to store stimulus informations per episode
     """
 
@@ -21,28 +28,93 @@ class EpisodeResponse:
                  prestim_duration=None, # to force the prestim window otherwise, half the value in between episodes
                  dt_sampling=1, # ms
                  interpolation='linear',
+                 with_visual_stim=True,
                  tfull=None,
                  verbose=True):
 
         self.dt_sampling = dt_sampling
+        self.verbose = verbose
+      
+        self.select_protocol_from(full_data, 
+                                  protocol_id=protocol_id,
+                                  protocol_name=protocol_name)
         
+        ################################################
+        #          Episode Calculations 
+        ################################################
+
+        self.set_quantities(full_data, quantities,
+                            quantities_args=quantities_args,
+                            prestim_duration=prestim_duration,
+                            dt_sampling=dt_sampling,
+                            interpolation=interpolation,
+                            tfull=tfull)
+
+        ################################################i
+        #           some clean up
+        ################################################i
+        
+        if (protocol_id is not None):
+            # we overwrite those to single values
+            self.protocol_id = protocol_id
+            self.protocol_name = full_data.protocols[self.protocol_id]
+
+        elif (protocol_name is not None):
+            # we overwrite those to single values
+            self.protocol_id = full_data.get_protocol_id(protocol_name)
+            self.protocol_name = protocol_name 
+
+        else:
+            print(' /!\ need to pass either a protocol_id or a protocol_name /!\ \n')
+
+            # # REMOVE THIS IN THE FUTURE (> 09/2022)
+            # setattr(self, 'protocol_name', np.array([full_data.protocols[i] for i in self.protocol_id], dtype=str))
+            # pass # --> self.protocol_id is an array with the different protocol ids per episode
+        
+        # VISUAL STIM
+        if with_visual_stim:
+            self.init_visual_stim(full_data)
+        else:
+            self.visual_stim = None
+
+        if self.verbose:
+            print('  -> [ok] episodes ready !')
+
+
+    ##############################################
+    ###########   --- METHODS ---  ###############
+    ##############################################
+
+    def select_protocol_from(self, full_data, 
+                             protocol_id=None,
+                             protocol_name=None):
+
         # choosing protocol (if multiprotocol)
         if (protocol_id is not None):
             self.protocol_cond_in_full_data = full_data.get_protocol_cond(protocol_id)
+
         elif (protocol_name is not None):
             self.protocol_id = full_data.get_protocol_id(protocol_name)
             self.protocol_cond_in_full_data = full_data.get_protocol_cond(self.protocol_id)
+
         else:
             self.protocol_cond_in_full_data = np.ones(full_data.nwbfile.stimulus['time_start_realigned'].data.shape[0],
                                                       dtype=bool)
             # self.protocol_name set at the end !
-            
+           
+    def set_quantities(self, full_data, quantities,
+                       quantities_args=None,
+                       prestim_duration=None,
+                       dt_sampling=1, # ms
+                       interpolation='linear',
+                       tfull=None):
+
         if quantities_args is None:
             quantities_args = [{} for q in quantities]
         for q in quantities_args:
-            q['verbose'] = verbose 
+            q['verbose'] = self.verbose 
 
-        if verbose:
+        if self.verbose:
             print('  Number of episodes over the whole recording: %i/%i (with protocol condition)' % (np.sum(self.protocol_cond_in_full_data), len(self.protocol_cond_in_full_data)))
             print('  building episodes with %i modalities [...]' % len(quantities))
 
@@ -190,7 +262,7 @@ class EpisodeResponse:
                 except BaseException as be:
 
                     success=False # we switch this off to remove the episode in all modalities
-                    if verbose:
+                    if self.verbose:
                         print('----')
                         print(be)
                         # print(tfull[ep_cond][0]-tstart, tfull[ep_cond][-1]-tstart, tstop-tstart)
@@ -218,20 +290,6 @@ class EpisodeResponse:
         self.index_from_start = np.arange(len(self.protocol_cond_in_full_data))[self.protocol_cond_in_full_data][:getattr(self, QUANTITIES[0]).shape[0]]
         self.quantities = QUANTITIES
 
-        if (protocol_id is not None):
-            # we overwrite those to single values
-            self.protocol_id = protocol_id
-            self.protocol_name = full_data.protocols[self.protocol_id]
-        elif (protocol_name is not None):
-            # we overwrite those to single values
-            self.protocol_id = full_data.get_protocol_id(protocol_name)
-            self.protocol_name = protocol_name 
-        else:
-            setattr(self, 'protocol_name', np.array([full_data.protocols[i] for i in self.protocol_id], dtype=str))
-            pass # --> self.protocol_id is an array with the different protocol ids per episode
-        
-        if verbose:
-            print('  -> [ok] episodes ready !')
 
 
     def get_response(self, quantity=None, roiIndex=None, roiIndices='all', average_over_rois=True):
@@ -414,7 +472,20 @@ class EpisodeResponse:
             summary_data[key] = np.array(summary_data[key])
     
         return summary_data
+
+    def init_visual_stim(self, full_data):
+        """
+        initialize visual stimulation specific to those episodes
+        """
+        stim_data = {}
+        for key in full_data.metadata:
+            if ('Protocol-%i-' % (self.protocol_id+1)) in key:
+                stim_data[key.replace('Protocol-%i-' % (self.protocol_id+1), '')]=full_data.metadata[key]
+
+        self.visual_stim = build_stim(stim_data)
+        
     
+
 if __name__=='__main__':
 
     from analysis.read_NWB import Data
@@ -430,7 +501,8 @@ if __name__=='__main__':
 
         episode = EpisodeResponse(data,
                                   protocol_id=0,
-                                  quantities=['dFoF', 'Pupil'],
+                                  # quantities=['dFoF', 'Pupil'],
+                                  quantities=['Photodiode-Signal'],
                                   prestim_duration=1.,
                                   dt_sampling=10)
 

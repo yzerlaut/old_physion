@@ -470,6 +470,13 @@ class visual_stim:
         else:
             return img.T
 
+    def get_vse(self, episode, parent=None):
+        """
+        Virtual Scene Exploration dictionary
+        None by default, should be overriden by method in children class
+        """
+        return None
+
     def show_frame(self, episode,
                    time_from_episode_start=0,
                    parent=None,
@@ -515,11 +522,7 @@ class visual_stim:
             print(' /!\ pb in get stim /!\  ')
 
         if vse:
-            if not hasattr(self, 'vse'):
-                if hasattr(self, 'get_vse'):
-                    self.vse = self.get_vse(episode, parent=cls)
-                else:
-                    self.vse = None
+            self.vse = self.get_vse(episode, parent=cls)
             if self.vse is not None:
                 self.add_vse(ax, self.vse)
 
@@ -683,6 +686,8 @@ class multiprotocol(visual_stim):
         return self.STIM[self.experiment['protocol_id'][episode]].get_image(episode, time_from_episode_start=time_from_episode_start, parent=self)
     def plot_stim_picture(self, episode, ax=None, parent=None, label=None, vse=False):
         return self.STIM[self.experiment['protocol_id'][episode]].plot_stim_picture(episode, ax=ax, parent=self, label=label, vse=vse)
+    def get_vse(self, episode, ax=None, parent=None, label=None, vse=False):
+        return self.STIM[self.experiment['protocol_id'][episode]].get_vse(episode, parent=self)
 
 
 

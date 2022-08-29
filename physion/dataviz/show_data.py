@@ -486,13 +486,13 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                  quantities_args=None,
                  prestim_duration=None,
                  dt_sampling=10, # ms
-                 verbose=False,
-                 with_visual_stim=False):
+                 with_visual_stim=True,
+                 verbose=False):
         """ plot Episode Response 
         Input can be either a datafile filename or an EpisodeResponse object
         """
 
-        if os.path.isfile(Input):
+        if (type(Input) in [str, os.PathLike]) and os.path.isfile(Input):
             # if we start from a datafile
 
             # load data first
@@ -507,6 +507,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                              quantities_args=quantities_args,
                              prestim_duration=prestim_duration,
                              dt_sampling=dt_sampling,
+                             with_visual_stim=with_visual_stim,
                              verbose=verbose)
 
         elif type(Input)==process_NWB.EpisodeResponse:
@@ -517,6 +518,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         else:
             print('input "%s" not recognized' % Input)
         
+
+
     def plot_trial_average(self,
                            # episodes props
                            quantity='dFoF', roiIndex=None, roiIndices='all',
@@ -554,9 +557,10 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         response_args = dict(roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)
 
-        if with_screen_inset and (self.data.visual_stim is None):
-            print('initializing stim [...]')
-            self.data.init_visual_stim()
+        if with_screen_inset and (self.visual_stim is None):
+            print('\n /!\ visual stim of episodes was not initialized  /!\  ')
+            print('    --> screen_inset display desactivated ' )
+            with_screen_inset = False
         
         if condition is None:
             condition = np.ones(np.sum(self.protocol_cond_in_full_data), dtype=bool)
@@ -639,8 +643,10 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             
                     if with_screen_inset:
                         inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
-                        self.data.visual_stim.plot_stim_picture(self.index_from_start[cond][0],
-                                                           ax=inset)
+                        # self.visual_stim.plot_stim_picture(self.index_from_start[cond][0],
+                                                                # ax=inset)
+                        self.visual_stim.plot_stim_picture(np.flatnonzero(cond)[0],
+                                                            ax=inset)
                         
                     if with_annotation:
                         
@@ -771,16 +777,17 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             fig = None
 
         
-        first_pattern_resp_index = np.arange(len(pattern_cond))[pattern_cond][0]
+        if with_stim_inset and (self.visual_stim is None):
+            print('\n /!\ visual stim of episodes was not initialized  /!\  ')
+            print('    --> screen_inset display desactivated ' )
+            with_screen_inset = False
+       
         if with_stim_inset:
-            if self.data.visual_stim is None:
-                self.data.init_visual_stim()
             stim_inset = ge.inset(axR, [0.2,1.3,0.6,0.6])
-            self.data.visual_stim.plot_stim_picture(first_pattern_resp_index,
-                                                    ax=stim_inset,
-                                                    vse=True)
-            if hasattr(self.data.visual_stim, 'get_vse'):
-                vse = self.data.visual_stim.get_vse(first_pattern_resp_index)
+            self.visual_stim.plot_stim_picture(np.flatnonzero(pattern_cond)[0],
+                                               ax=stim_inset,
+                                               vse=True)
+            vse = self.visual_stim.get_vse(np.flatnonzero(pattern_cond)[0])
 
         # mean response for raster
         mean_resp = resp[pattern_cond,:,:].mean(axis=0)
@@ -843,7 +850,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                       no_ticks=True,
                       orientation='vertical')
 
-        if hasattr(self.data.visual_stim, 'get_vse'):
+        if vse is not None:
             for t in [0]+vse['t']:
                 axR.plot([t,t], axR.get_ylim(), 'r-', lw=0.3)
                 axT.plot([t,t], axT.get_ylim(), 'r-', lw=0.3)
@@ -898,10 +905,12 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         ROW_CONDS = self.data.get_stimulus_conditions([np.sort(np.unique(self.data.nwbfile.stimulus[row_key].data[Pcond]))],
                                                  [row_key], protocol_id)
 
-        if with_screen_inset and (self.data.visual_stim is None):
-            print('initializing stim [...]')
-            self.init_visual_stim()
+        if with_screen_inset and (self.visual_stim is None):
+            print('\n /!\ visual stim of episodes was not initialized  /!\  ')
+            print('    --> screen_inset display desactivated ' )
+            with_screen_inset = False
         
+
         if condition is None:
             condition = np.ones(np.sum(Pcond), dtype=bool)
         elif len(condition)==len(Pcond):
@@ -950,12 +959,13 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                                 t0 = self.data.nwbfile.stimulus['center-time'].data[np.argwhere(cond)[0][0]]
                             else:
                                 t0 = 0
-                            self.data.visual_stim.show_frame(ALL_ROIS[0].index_from_start[np.argwhere(cond)[0][0]],
-                                                             time_from_episode_start=t0,
-                                                             ax=inset,
-                                                             label=({'degree':15,
-                                                                     'shift_factor':0.03,
-                                                                     'lw':0.5, 'fontsize':7} if (icol==1) else None))
+                            # self.visual_stim.show_frame(ALL_ROIS[0].index_from_start[np.argwhere(cond)[0][0]],
+                            self.visual_stim.show_frame(np.flatnonzero(cond)[0],
+                                                         time_from_episode_start=t0,
+                                                         ax=inset,
+                                                         label=({'degree':15,
+                                                                 'shift_factor':0.03,
+                                                                 'lw':0.5, 'fontsize':7} if (icol==1) else None))
                                             
                 AX[irow][icol].axis('off')
 
@@ -1051,7 +1061,9 @@ if __name__=='__main__':
     args = parser.parse_args()
     
     if args.ops=='raw':
+
         data = MultimodalData(args.datafile)
+
         # data.plot_raw_data(args.tlim, 
                   # settings={'CaImagingRaster':dict(fig_fraction=4, subsampling=1,
                                                    # roiIndices='all',
@@ -1066,6 +1078,7 @@ if __name__=='__main__':
                             # 'Photodiode':dict(fig_fraction=.5, subsampling=1, color='grey'),
                             # 'VisualStim':dict(fig_fraction=.5, color='black')},
                             # Tbar=5)
+
         data.plot_raw_data(args.tlim)
         
     elif args.ops=='trial-average':
@@ -1076,7 +1089,7 @@ if __name__=='__main__':
                                    prestim_duration=3,
                                    verbose=args.verbose)
 
-        episodes.plot_trial_average()
+        episodes.plot_trial_average(with_screen_inset=True)
 
         # episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
                                     # row_key='patch-delay',
