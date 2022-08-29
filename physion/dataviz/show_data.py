@@ -492,11 +492,11 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         Input can be either a datafile filename or an EpisodeResponse object
         """
 
-        if os.path.isfile(filename):
+        if os.path.isfile(Input):
             # if we start from a datafile
 
             # load data first
-            self.data = MultimodalData(filename,
+            self.data = MultimodalData(Input,
                                        with_visual_stim=with_visual_stim,
                                        verbose=verbose)
 
@@ -513,6 +513,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             for x in dir(Input):
                 if x[:2]!='__':
                     setattr(self, x, getattr(Input, x))
+
+        else:
+            print('input "%s" not recognized' % Input)
         
     def plot_trial_average(self,
                            # episodes props
