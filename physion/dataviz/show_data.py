@@ -524,11 +524,17 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
     ###-----------------------------
 
     def behavior_variability(self, 
-                             quantity1='pupil_diameter', label1='pupil size (mm)',
-                             quantity2='running_speed', label2='run. speed (cm/s)',
+                             quantity1='pupil_diameter', 
+                             quantity2='running_speed',
+                             episode_condition=None,
+                             label1='pupil size (mm)',
+                             label2='run. speed (cm/s)',
                              threshold1=None, threshold2=None,
                              color_above=ge.blue, color_below=ge.orange,
                              ax=None):
+
+        if episode_condition is None:
+            episode_condition = self.find_episode_cond()
 
         if ax is None:
             fig, ax = ge.figure()
@@ -537,27 +543,29 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
         if threshold1 is None and threshold2 is None:
 
-            ge.scatter(np.mean(getattr(self, quantity1), axis=1), 
-                       np.mean(getattr(self, quantity2), axis=1),
+            ge.scatter(np.mean(getattr(self, quantity1)[episode_condition], axis=1), 
+                       np.mean(getattr(self, quantity2)[episode_condition], axis=1),
                        ax=ax, no_set=True, color='k', ms=4)
-            ge.annotate(ax, '%iep.' % getattr(self, quantity2).shape[0],
+            ge.annotate(ax, '%iep.' % getattr(self, quantity2)[episode_condition].shape[0],
                         (0,1), va='top')
 
         else:
             if threshold2 is not None:
-                above = np.mean(getattr(self, quantity2), axis=1)>threshold2
+                above = episode_condition & (np.mean(getattr(self, quantity2), axis=1)>threshold2)
+                below = episode_condition & (np.mean(getattr(self, quantity2), axis=1)<=threshold2)
             else:
-                above = np.mean(getattr(self, quantity1), axis=1)>threshold1
+                above = episode_condition & (np.mean(getattr(self, quantity1), axis=1)>threshold1)
+                below = episode_condition & (np.mean(getattr(self, quantity1), axis=1)<=threshold1)
 
             ge.scatter(np.mean(getattr(self, quantity1)[above], axis=1), 
                        np.mean(getattr(self, quantity2)[above], axis=1),
                        ax=ax, no_set=True, color=color_above, ms=5)
-            ge.scatter(np.mean(getattr(self, quantity1)[~above], axis=1), 
-                       np.mean(getattr(self, quantity2)[~above], axis=1),
+            ge.scatter(np.mean(getattr(self, quantity1)[below], axis=1), 
+                       np.mean(getattr(self, quantity2)[below], axis=1),
                        ax=ax, no_set=True, color=color_below, ms=5)
 
             ge.annotate(ax, '%iep.' % np.sum(above), (0,1), va='top', color=color_above)
-            ge.annotate(ax, '\n%iep.' % np.sum(~above), (0,1), va='top', color=color_below)
+            ge.annotate(ax, '\n%iep.' % np.sum(below), (0,1), va='top', color=color_below)
 
             if threshold2 is not None:
                 ax.plot(ax.get_xlim(), threshold2*np.ones(2), 'k--', lw=0.5)
@@ -565,6 +573,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                 ax.plot(threshold1*np.ones(2), ax.get_ylim(), 'k--', lw=0.5)
 
         ge.set_plot(ax, xlabel=label1, ylabel=label2)
+
         return fig, ax
 
 
@@ -887,18 +896,20 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                 ge.plot(self.t, ir+roi_resp.mean(axis=0), 
                         sy=roi_resp.std(axis=0),ax=axT, no_set=True)
             ge.annotate(axT, 'roi#%i' % (r+1), (self.t[0], ir), xycoords='data',
-                        rotation=90, ha='right', size='xx-small')
+                        #rotation=90, 
+                        ha='right', size='xx-small')
             for iep in range(np.sum(pattern_cond)):
                 axT.plot(self.t, ir+roi_resp[iep,:], color=ge.tab10(iep/(np.sum(pattern_cond)-1)), lw=.5)
+
         ge.annotate(axT, '1$\Delta$F/F', (self.t[-1], 0), xycoords='data',
                     rotation=90, size='small')
         ge.set_plot(axT, [], xlim=[self.t[0], self.t[-1]])
         ge.draw_bar_scales(axT, Xbar=Tbar, Xbar_label=str(Tbar)+'s', Ybar=1e-12)
 
-        ge.bar_legend(axT, X=np.arange(10),
+        ge.bar_legend(axT, X=np.arange(np.sum(pattern_cond)),
                       colorbar_inset=dict(rect=[1.1,1-.8/factor_for_traces,
                                                 .04,.8/factor_for_traces], facecolor=None),
-                      colormap=ge.tab10,
+                      colormap=ge.jet,
                       label='trial ID',
                       no_ticks=True,
                       orientation='vertical')
@@ -1142,8 +1153,9 @@ if __name__=='__main__':
                                    prestim_duration=2,
                                    verbose=args.verbose)
 
-
-        episodes.behavior_variability(threshold2=0.1)
+        print(episodes.varied_parameters)
+        episodes.behavior_variability(episode_condition=episodes.find_episode_cond('Image-ID', 0),
+                                      threshold2=0.1)
 
 
     elif args.ops=='trial-average':
