@@ -474,7 +474,7 @@ class MultimodalData(read_NWB.Data):
 
     
 ###------------------------------------------
-### ----- Trial Average plot components -----
+### ----- Episode plot components -----
 ###------------------------------------------
 
 
@@ -511,6 +511,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                              verbose=verbose)
 
         elif type(Input)==process_NWB.EpisodeResponse:
+            # we start from an EpisodeResponse object
             for x in dir(Input):
                 if x[:2]!='__':
                     setattr(self, x, getattr(Input, x))
@@ -518,7 +519,59 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         else:
             print('input "%s" not recognized' % Input)
         
+    ###-------------------------------
+    ### ----- Behavior --------------
+    ###-----------------------------
 
+    def behavior_variability(self, 
+                             quantity1='pupil_diameter', label1='pupil size (mm)',
+                             quantity2='running_speed', label2='run. speed (cm/s)',
+                             threshold1=None, threshold2=None,
+                             color_above=ge.blue, color_below=ge.orange,
+                             ax=None):
+
+        if ax is None:
+            fig, ax = ge.figure()
+        else:
+            fig = None
+
+        if threshold1 is None and threshold2 is None:
+
+            ge.scatter(np.mean(getattr(self, quantity1), axis=1), 
+                       np.mean(getattr(self, quantity2), axis=1),
+                       ax=ax, no_set=True, color='k', ms=4)
+            ge.annotate(ax, '%iep.' % getattr(self, quantity2).shape[0],
+                        (0,1), va='top')
+
+        else:
+            if threshold2 is not None:
+                above = np.mean(getattr(self, quantity2), axis=1)>threshold2
+            else:
+                above = np.mean(getattr(self, quantity1), axis=1)>threshold1
+
+            ge.scatter(np.mean(getattr(self, quantity1)[above], axis=1), 
+                       np.mean(getattr(self, quantity2)[above], axis=1),
+                       ax=ax, no_set=True, color=color_above, ms=5)
+            ge.scatter(np.mean(getattr(self, quantity1)[~above], axis=1), 
+                       np.mean(getattr(self, quantity2)[~above], axis=1),
+                       ax=ax, no_set=True, color=color_below, ms=5)
+
+            ge.annotate(ax, '%iep.' % np.sum(above), (0,1), va='top', color=color_above)
+            ge.annotate(ax, '\n%iep.' % np.sum(~above), (0,1), va='top', color=color_below)
+
+            if threshold2 is not None:
+                ax.plot(ax.get_xlim(), threshold2*np.ones(2), 'k--', lw=0.5)
+            else:
+                ax.plot(threshold1*np.ones(2), ax.get_ylim(), 'k--', lw=0.5)
+
+        ge.set_plot(ax, xlabel=label1, ylabel=label2)
+        return fig, ax
+
+
+
+    ### ---------------------------------
+    ###  -- Trial Average response  --
+    ### ---------------------------------
 
     def plot_trial_average(self,
                            # episodes props
@@ -1081,6 +1134,18 @@ if __name__=='__main__':
 
         data.plot_raw_data(args.tlim)
         
+    elif args.ops=='behavior':
+
+        episodes = EpisodeResponse(args.datafile,
+                                   protocol_id=args.protocol_id,
+                                   quantities=['running_speed', 'pupil_diameter'],
+                                   prestim_duration=2,
+                                   verbose=args.verbose)
+
+
+        episodes.behavior_variability(threshold2=0.1)
+
+
     elif args.ops=='trial-average':
 
         episodes = EpisodeResponse(args.datafile,

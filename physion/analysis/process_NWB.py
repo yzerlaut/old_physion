@@ -160,6 +160,13 @@ class EpisodeResponse:
                 QUANTITY_TIMES.append(tfull)
                 QUANTITIES.append('quant_%i' % iq)
                 
+            elif quantity in ['running_speed', 'Running-Speed', 'RunningSpeed', 'Locomotion']:
+                if not hasattr(full_data, 'running_speed'):
+                    full_data.build_running_speed(**quantity_args)
+                QUANTITY_VALUES.append(full_data.running_speed)
+                QUANTITY_TIMES.append(full_data.t_running_speed)
+                QUANTITIES.append('running_speed')
+
             elif quantity in ['dFoF', 'dF/F']:
                 if not hasattr(full_data, 'dFoF'):
                     full_data.build_dFoF(**quantity_args)
@@ -188,19 +195,19 @@ class EpisodeResponse:
                 QUANTITY_TIMES.append(full_data.t_rawFluo)
                 QUANTITIES.append('rawFluo')
                 
-            elif quantity in ['Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter', 'pupil']:
+            elif quantity in ['pupil_diameter', 'Pupil', 'pupil-size', 'Pupil-diameter', 'pupil-diameter', 'pupil']:
                 if not hasattr(full_data, 'pupil_diameter'):
                     full_data.build_pupil_diameter(**quantity_args)
                 QUANTITY_VALUES.append(full_data.pupil_diameter)
                 QUANTITY_TIMES.append(full_data.t_pupil)
-                QUANTITIES.append('pupilSize')
+                QUANTITIES.append('pupil_diameter')
 
             elif quantity in ['gaze', 'Gaze', 'gaze_movement', 'gazeMovement', 'gazeDirection']:
                 if not hasattr(full_data, 'gaze_movement'):
                     full_data.build_gaze_movement(**quantity_args)
                 QUANTITY_VALUES.append(full_data.gaze_movement)
                 QUANTITY_TIMES.append(full_data.t_pupil)
-                QUANTITIES.append('gazeDirection')
+                QUANTITIES.append('gaze_movement')
                 
             elif quantity in ['facemotion', 'FaceMotion', 'faceMotion']:
                 if not hasattr(full_data, 'facemotion'):
@@ -501,8 +508,9 @@ if __name__=='__main__':
 
         episode = EpisodeResponse(data,
                                   protocol_id=0,
+                                  quantities=['Running-Speed', 'Pupil'],
                                   # quantities=['dFoF', 'Pupil'],
-                                  quantities=['Photodiode-Signal'],
+                                  # quantities=['Photodiode-Signal'],
                                   prestim_duration=1.,
                                   dt_sampling=10)
 
