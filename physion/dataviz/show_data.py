@@ -915,7 +915,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                       orientation='vertical')
 
         if vse is not None:
-            for t in [0]+vse['t']:
+            for t in [0]+list(vse['t'][vse['t']<self.visual_stim.protocol['presentation-duration']]):
                 axR.plot([t,t], axR.get_ylim(), 'r-', lw=0.3)
                 axT.plot([t,t], axT.get_ylim(), 'r-', lw=0.3)
                 
@@ -1153,7 +1153,6 @@ if __name__=='__main__':
                                    prestim_duration=2,
                                    verbose=args.verbose)
 
-        print(episodes.varied_parameters)
         episodes.behavior_variability(episode_condition=episodes.find_episode_cond('Image-ID', 0),
                                       threshold2=0.1)
 
