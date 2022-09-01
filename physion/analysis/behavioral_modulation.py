@@ -67,7 +67,6 @@ def plot_resp_dependency(Episodes,
     Episodes.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
                                               ax=stim_inset, vse=True)
 
-    resp_inset = ge.inset(fig, [0.88,0.65,0.06,0.1])
     if responsive_rois is not None:
         resp_inset = ge.inset(fig, [0.88,0.65,0.06,0.1])
         frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[0]
