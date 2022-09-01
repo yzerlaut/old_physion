@@ -34,6 +34,10 @@ from datavyz import ge
 
 
 # %%
+############################################################
+### --- define a few functions required for this analysis 
+############################################################
+
 def selectivity_index(angles, resp):
     """
     computes the selectivity index: (Pref-Orth)/(Pref+Orth)
@@ -58,6 +62,9 @@ def shift_orientation_according_to_pref(angle,
 
 
 
+# %% [markdown]
+# ## Load data
+
 # %%
 data_folder =  os.path.join(os.path.expanduser('~'), 'DATA', 'taddy_GluN3KO')
 FILES, _, _ = scan_folder_for_NWBfiles(data_folder)
@@ -71,25 +78,17 @@ Nep = EPISODES.dFoF.shape[0]
 # ## Look for episodes of different behavioral level
 
 # %%
-fig, ax = ge.figure(figsize=(1.2,1.5))
+running_threshold = 0.1 # cm/s
 
-threshold = 0.2 # cm/s
+_ = EPISODES.behavior_variability(quantity1='pupil_diameter',
+                                  quantity2='running_speed',
+                                  threshold2=threshold)
 
-running = np.mean(EPISODES.RunningSpeed, axis=1)>threshold
-
-ge.scatter(np.mean(EPISODES.pupilSize, axis=1)[running], 
-           np.mean(EPISODES.RunningSpeed, axis=1)[running],
-           ax=ax, no_set=True, color=ge.blue, ms=5)
-ge.scatter(np.mean(EPISODES.pupilSize, axis=1)[~running], 
-           np.mean(EPISODES.RunningSpeed, axis=1)[~running],
-           ax=ax, no_set=True, color=ge.orange, ms=5)
-ge.set_plot(ax, xlabel='pupil size (mm)', ylabel='run. speed (cm/s)')
-ax.plot(ax.get_xlim(), threshold*np.ones(2), 'k--', lw=0.5)
-ge.annotate(ax, 'n=%i' % np.sum(running), (0,1), va='top', color=ge.blue)
-ge.annotate(ax, '\nn=%i' % np.sum(~running), (0,1), va='top', color=ge.orange)
+# SETTING UP THE "RUNNING" condition
+running = EPISODES.running_speed.mean(axis=1)>running_threshold
 
 # %%
-Nsamples = 20 #EPISODES.data.nROIs
+Nsamples = np.min([20, EPISODES.data.nROIs])
 
 fig, AX = ge.figure((len(EPISODES.varied_parameters['angle']), Nsamples),
                     figsize=(.8,.9), right=10)
@@ -293,5 +292,3 @@ ge.scatter(shifted_angle, np.mean(N_RESP, axis=0),
            sy=np.std(N_RESP, axis=0),
            ms=3, lw=1, ax=AX[1], axes_args={'yticks':[0,1]}, color=ge.blue,
            xlabel='angle from pref. ($^o$)', ylabel='n. $\Delta$F/F', title='peak normalized')
-
-# %%

@@ -492,7 +492,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
         Input can be either a datafile filename or an EpisodeResponse object
         """
 
-        if (type(Input) in [str, os.PathLike]) and os.path.isfile(Input):
+        if (type(Input) in [np.str_, str, os.PathLike]) and os.path.isfile(Input):
             # if we start from a datafile
 
             # load data first
