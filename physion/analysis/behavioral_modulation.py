@@ -6,10 +6,151 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from physion.dataviz.datavyz.datavyz import graph_env_manuscript as ge
-from physion.analysis.read_NWB import Data
-from physion.analysis.process_NWB import EpisodeResponse
+from physion.analysis import read_NWB
+from physion.analysis import process_NWB import EpisodeResponse
+from physion.dataviz.show_data import EpisodeResponse
 from physion.analysis.tools import summary_pdf_folder
 from physion.analysis.protocol_scripts.orientation_direction_selectivity import shift_orientation_according_to_pref
+
+
+def plot_resp_dependency(Episodes,
+                         stim_keys=['Image-ID', 'VSE-seed'],
+                         stim_indices=[0,0],
+                         responsive_rois=None,
+                         running_threshold=0.1,
+                         selection_seed=0, N_selected=7):
+    """
+    """
+    # different episode conditions :
+    all_eps = Episodes.find_episode_cond(stim_keys, stim_indices)
+    running = all_eps & (Episodes.running_speed.mean(axis=1)>running_threshold)
+    still = all_eps & (Episodes.running_speed.mean(axis=1)<=running_threshold)
+
+    if responsive_rois is not None:
+        np.random.seed(selection_seed)
+        selected_rois=np.random.choice(responsive_rois, N_selected, replace=False)
+    else:
+        selected_rois = np.random.choice(np.arange(Episodes.dFoF.shape[0]), N_selected, replace=False)
+
+
+    fig, AX = ge.figure(axes_extents=[[[1,3] for i in range(4)],
+                                     [[1,6] for i in range(4)]],
+                        figsize=(1,.2), left=0.5, right=2, wspace=0.4)
+
+
+    # RASTER SHOWING RAW VALUES OF dFoF but over a clipped range defined:
+    min_dFoF = np.min(Episodes_NI.dFoF[:,selected_rois,:].mean(axis=0).min(axis=-1))
+    max_dFoF = 0.8*np.max(Episodes_NI.dFoF[:,selected_rois,:].mean(axis=0).max(axis=-1))
+
+    ge.bar_legend(AX[0][0],
+                  colorbar_inset=dict(rect=[-0.5,.2,.03,.6], facecolor=None),
+                  colormap=ge.binary,
+                  bar_legend_args={},
+                  #label='n. $\Delta$F/F', bounds=None, ticks = None, ticks_labels=None, no_ticks=False,
+                  #label='$\Delta$F/F', bounds=[0,2], ticks = [0,1,2], ticks_labels=['0','1','>2'], no_ticks=False,
+                  label='$\Delta$F/F',
+                  bounds=[min_dFoF, max_dFoF], ticks=[min_dFoF,max_dFoF],
+                  ticks_labels=['<%.1f' % min_dFoF, '>%.1f' % max_dFoF], no_ticks=False,
+                  orientation='vertical')
+
+
+    ge.bar_legend(AX[1][0],
+                  colorbar_inset=dict(rect=[-0.5,.2,.02,.6], facecolor=None),
+                  colormap=ge.jet,
+                  bar_legend_args={},
+                  label='single trials', bounds=None, ticks = None, ticks_labels=None, no_ticks=False,
+                  orientation='vertical')
+
+    ##### ---- INSETS ---- #####
+
+    stim_inset = ge.inset(fig, [0.9,0.85,0.1,0.15])
+    Episodes_NI.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
+                                              ax=stim_inset, vse=True)
+
+    if responsive_rois is not None:
+        resp_inset = ge.inset(fig, [0.9,0.67,0.05,0.09])
+        frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[0]
+        ge.pie([frac_resp, 100-frac_resp], COLORS=[ge.green, ge.grey],
+               ax=resp_inset)
+        ge.title(resp_inset, '%.1f%% resp.' % frac_resp, size='xx-small', color=ge.green)
+
+
+    behav_inset = ge.inset(fig, [0.76,0.8,0.1,0.2])
+    Episodes_NI.behavior_variability(episode_condition=all_eps,
+                                     threshold2=running_threshold, ax=behav_inset)
+
+
+    #norm_ROIS = [(np.inf,-np.inf) for r in range(selected_rois)]
+    scale_ROIS = np.ones(len(selected_rois))
+
+    for cond, axP, axT, label, color in zip([all_eps, still, running], AX[0], AX[1],
+                    ['all eps', 'still', 'running'], ['k', ge.blue, ge.orange]):
+
+        ge.title(axP, '%s (n=%i)' % (label, np.sum(cond)), color=color)
+
+        axP.imshow(np.clip(Episodes_NI.dFoF.mean(axis=0), min_dFoF, max_dFoF),
+                   cmap=ge.binary,
+                   aspect='auto', interpolation='none',
+                   vmin=min_dFoF, vmax=max_dFoF,
+                   origin='lower',
+                   extent = (Episodes_NI.t[0], Episodes_NI.t[-1],
+                             0, Episodes_NI.dFoF.shape[1]))
+        min_dFoF_range = 1.2
+        for ir, r in enumerate(selected_rois):
+            roi_resp = Episodes_NI.dFoF[cond, r, :]
+            scale = max([min_dFoF_range, np.max(roi_resp-roi_resp.mean())]) # 2 dFoF is the min scale range
+            # plotting eps with that scale
+            for iep in range(np.sum(cond)):
+                axT.plot(Episodes.t, ir+(roi_resp[iep,:]-roi_resp.mean())/scale,
+                         color=ge.jet(iep/(np.sum(cond)-1)), lw=.5)
+            # plotting scale
+            axT.plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+
+            if 'all' in label:
+                ge.annotate(axT, 'roi#%i ' % (r+1), (Episodes.t[0], ir), xycoords='data',
+                            ha='right', size='xx-small')
+                scale_ROIS[ir] = scale
+
+            if label=='running':
+                ge.plot(Episodes.t,
+                        ir+Episodes_NI.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                        sy=Episodes_NI.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                        ax=AX[1][3], color=color, no_set=True)
+
+            if label=='still':
+                ge.plot(Episodes.t,
+                        ir+Episodes_NI.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                        sy=Episodes_NI.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                        ax=AX[1][3], color=color, no_set=True)
+                AX[1][3].plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+
+        ge.annotate(axT, '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data',
+                    rotation=90, size='small')
+        ge.set_plot(axT, [], xlim=[Episodes.t[0], Episodes.t[-1]])
+        ge.draw_bar_scales(axT, Xbar=1, Xbar_label='1s', Ybar=1e-12)
+
+    ge.set_plot(AX[1][3], [], xlim=[Episodes.t[0], Episodes.t[-1]])
+    ge.draw_bar_scales(AX[1][3], Xbar=1, Xbar_label='1s', Ybar=1e-12)
+
+    AX[0][3].axis('off')
+    # comparison
+    ge.annotate(AX[1][3], '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data',
+                    rotation=90, size='small')
+
+    vse_shifts = Episodes.visual_stim.vse['t'][Episodes.visual_stim.vse['t']<Episodes.visual_stim.protocol['presentation-duration']]
+
+    for ax,ax1 in zip(AX[0][:3], AX[1][:3]):
+        ge.set_plot(ax, [], xlim=[Episodes.t[0], Episodes.t[-1]])
+        ge.annotate(ax, 'ROIs', (0,0.5), rotation=90, ha='right', va='center')
+        ge.annotate(ax, '1', (0,0), ha='right', size='x-small', va='center')
+        ge.annotate(ax, '%i' % Episodes.dFoF.shape[1], (0,1), ha='right', size='x-small', va='center')
+        for t in [0]+list(vse_shifts)+[Episodes.visual_stim.protocol['presentation-duration']]:
+            ax.plot(t*np.ones(2), ax.get_ylim(), 'r--', lw=0.3)
+            ax1.plot(t*np.ones(2), ax1.get_ylim(), 'r--', lw=0.3)
+
+    return fig, AX
+
+
 
 def compute_DS_population_resp(filename, options,
                                protocol_id=0,
@@ -21,7 +162,7 @@ def compute_DS_population_resp(filename, options,
 
     # load datafile
     data = Data(filename)
-    Episodes = EpisodeResponse(data, 
+    Episodes = process_NWB.EpisodeResponse(data, 
                                quantities=['dFoF', 'Pupil', 'Facemotion', 'Running-Speed'])
                                 
 
@@ -297,17 +438,30 @@ if __name__=='__main__':
     # else:
     #     print('/!\ Need to provide a NWB datafile as argument ')
 
-    options = dict(subquantity='d(F-0.7*Fneu)',
-                   dt_sampling=1, prestim_duration=2, 
-                   verbose=False)
+    # options = dict(subquantity='d(F-0.7*Fneu)',
+                   # dt_sampling=1, prestim_duration=2, 
+                   # verbose=False)
 
-    full_resp = compute_DS_population_resp(args.datafile, options, Nmax=args.Nmax)
-    if len(full_resp['roi'])>0:
-        fig = population_tuning_fig(full_resp)
-        curves = compute_behavior_mod_population_tuning(full_resp,
-                                                        running_speed_threshold = 0.2,
-                                                        pupil_threshold=2.1)
-        fig1, fig2 = tuning_modulation_fig(curves, full_resp=full_resp)
+    # full_resp = compute_DS_population_resp(args.datafile, options, Nmax=args.Nmax)
+    # if len(full_resp['roi'])>0:
+        # fig = population_tuning_fig(full_resp)
+        # curves = compute_behavior_mod_population_tuning(full_resp,
+                                                        # running_speed_threshold = 0.2,
+                                                        # pupil_threshold=2.1)
+        # fig1, fig2 = tuning_modulation_fig(curves, full_resp=full_resp)
+
+    # load data
+    data = read_NWB.Data(args.datafile)
+    episodes_NI = process_NWB.EpisodeResponse(data,
+                                      protocol_id=1,#data.get_protocol_id('NI-VSE-3images-2vse-30trials'),
+                                      quantities=['dFoF', 'Pupil', 'Running-Speed'],
+                                      dt_sampling=30, # ms, to avoid to consume to much memory
+                                      verbose=True, prestim_duration=1.5)
+
+    Episodes_NI = EpisodeResponse(episodes_NI)
+    plot_resp_dependency(Episodes_NI, 
+                     running_threshold=0.2,
+                     N_selected=8, selection_seed=20)
     ge.show()
 
 
