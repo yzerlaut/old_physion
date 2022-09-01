@@ -39,8 +39,8 @@ def plot_resp_dependency(Episodes,
 
 
     # RASTER SHOWING RAW VALUES OF dFoF but over a clipped range defined:
-    min_dFoF = np.min(Episodes_NI.dFoF[:,selected_rois,:].mean(axis=0).min(axis=-1))
-    max_dFoF = 0.8*np.max(Episodes_NI.dFoF[:,selected_rois,:].mean(axis=0).max(axis=-1))
+    min_dFoF = np.min(Episodes.dFoF[:,selected_rois,:].mean(axis=0).min(axis=-1))
+    max_dFoF = 0.8*np.max(Episodes.dFoF[:,selected_rois,:].mean(axis=0).max(axis=-1))
 
     _, cb = ge.bar_legend(AX[0][0],
                   colorbar_inset=dict(rect=[-0.5,.1,.03,.8], facecolor=None),
@@ -64,7 +64,7 @@ def plot_resp_dependency(Episodes,
     ##### ---- INSETS ---- #####
 
     stim_inset = ge.inset(fig, [0.86,0.81,0.12,0.15])
-    Episodes_NI.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
+    Episodes.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
                                               ax=stim_inset, vse=True)
 
     resp_inset = ge.inset(fig, [0.88,0.65,0.06,0.1])
@@ -77,7 +77,7 @@ def plot_resp_dependency(Episodes,
 
 
     behav_inset = ge.inset(fig, [0.75,0.8,0.08,0.15])
-    Episodes_NI.behavior_variability(episode_condition=all_eps,
+    Episodes.behavior_variability(episode_condition=all_eps,
                                      threshold2=running_threshold, ax=behav_inset)
 
 
@@ -89,16 +89,16 @@ def plot_resp_dependency(Episodes,
 
         ge.title(axP, '%s (n=%i)' % (label, np.sum(cond)), color=color)
 
-        axP.imshow(np.clip(Episodes_NI.dFoF.mean(axis=0), min_dFoF, max_dFoF),
+        axP.imshow(np.clip(Episodes.dFoF.mean(axis=0), min_dFoF, max_dFoF),
                    cmap=ge.binary,
                    aspect='auto', interpolation='none',
                    vmin=min_dFoF, vmax=max_dFoF,
                    origin='lower',
-                   extent = (Episodes_NI.t[0], Episodes_NI.t[-1],
-                             0, Episodes_NI.dFoF.shape[1]))
+                   extent = (Episodes.t[0], Episodes.t[-1],
+                             0, Episodes.dFoF.shape[1]))
         min_dFoF_range = 1.2
         for ir, r in enumerate(selected_rois):
-            roi_resp = Episodes_NI.dFoF[cond, r, :]
+            roi_resp = Episodes.dFoF[cond, r, :]
             scale = max([min_dFoF_range, np.max(roi_resp-roi_resp.mean())]) # 2 dFoF is the min scale range
             # plotting eps with that scale
             for iep in range(np.sum(cond)):
@@ -114,14 +114,14 @@ def plot_resp_dependency(Episodes,
 
             if label=='running':
                 ge.plot(Episodes.t,
-                        ir+Episodes_NI.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
-                        sy=Episodes_NI.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                        ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                        sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
                         ax=AX[1][3], color=color, no_set=True)
 
             if label=='still':
                 ge.plot(Episodes.t,
-                        ir+Episodes_NI.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
-                        sy=Episodes_NI.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                        ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                        sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
                         ax=AX[1][3], color=color, no_set=True)
                 AX[1][3].plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
 
