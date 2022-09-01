@@ -441,6 +441,7 @@ class EpisodeResponse:
         summary_data = {'value':[], 'std-value':[], 'significant':[], 'relative_value':[]}
         for key, bins in zip(VARIED_KEYS, VARIED_BINS):
             summary_data[key] = []
+            summary_data[key+'-index'] = []
             summary_data[key+'-bins'] = bins
 
         if len(VARIED_KEYS)>0:
@@ -453,6 +454,7 @@ class EpisodeResponse:
                                                             **stat_test_props)
                 for key, index in zip(VARIED_KEYS, indices):
                     summary_data[key].append(self.varied_parameters[key][index])
+                    summary_data[key+'-index'].append(index)
                 # if (stats.x is not None) and (stats.y is not None):
                 if stats.r!=0:
                     summary_data['value'].append(np.mean(stats.y-stats.x))

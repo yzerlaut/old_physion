@@ -15,7 +15,7 @@ from physion.analysis.tools import summary_pdf_folder
 
 def plot_resp_dependency(Episodes,
                          stim_keys=['Image-ID', 'VSE-seed'],
-                         stim_indices=[0,0],
+                         stim_indices=[0,1],
                          responsive_rois=None,
                          running_threshold=0.1,
                          selection_seed=0, N_selected=7):
@@ -31,11 +31,12 @@ def plot_resp_dependency(Episodes,
         selected_rois=np.random.choice(responsive_rois, N_selected, replace=False)
     else:
         selected_rois = np.random.choice(np.arange(Episodes.dFoF.shape[0]), N_selected, replace=False)
+    N_selected = np.min([N_selected, len(selected_rois)])
 
 
     fig, AX = ge.figure(axes_extents=[[[1,3] for i in range(4)],
-                                     [[1,8] for i in range(4)]],
-                        figsize=(1.3, .3), left=1, right=4, top=5, wspace=0.4)
+                                     [[1, N_selected] for i in range(4)]],
+                        figsize=(1.3,.25), left=1, right=4, top=5, wspace=0.4)
 
 
     # RASTER SHOWING RAW VALUES OF dFoF but over a clipped range defined:
@@ -63,19 +64,24 @@ def plot_resp_dependency(Episodes,
 
     ##### ---- INSETS ---- #####
 
-    stim_inset = ge.inset(fig, [0.86,0.81,0.12,0.15])
+    stim_inset = ge.inset(AX[0][3], [0.7, 0.4, 0.9, 1])
     Episodes.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
                                               ax=stim_inset, vse=True)
 
-    if responsive_rois is not None:
-        resp_inset = ge.inset(fig, [0.88,0.65,0.06,0.1])
+    # if responsive_rois is not None:
+    responsive_rois=selected_rois
+    if True:
+        resp_inset = ge.inset(AX[0][3], [0.95,-0.4,0.5,0.8])
         frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[0]
         ge.pie([frac_resp, 100-frac_resp], COLORS=[ge.green, ge.grey],
                ax=resp_inset)
-        ge.title(resp_inset, '%.1f%% resp.' % frac_resp, size='x-small', color=ge.green)
+        ge.annotate(resp_inset, '%.1f%% resp.' % frac_resp, 
+                    (1.1,0.9), rotation=90, ha='right',va='top',
+                    color=ge.green)
 
 
-    behav_inset = ge.inset(fig, [0.75,0.8,0.08,0.15])
+    # behav_inset = ge.inset(fig, [0.75,0.8,0.08,0.15])
+    behav_inset = ge.inset(AX[0][3], [0.2,0.3,0.45,.7])
     Episodes.behavior_variability(episode_condition=all_eps,
                                      threshold2=running_threshold, ax=behav_inset)
 
@@ -134,8 +140,7 @@ def plot_resp_dependency(Episodes,
 
     AX[0][3].axis('off')
     # comparison
-    ge.annotate(AX[1][3], '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data',
-                    rotation=90, size='small')
+    ge.annotate(AX[1][3], '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data', rotation=90)
 
     vse_shifts = Episodes.visual_stim.vse['t'][Episodes.visual_stim.vse['t']<Episodes.visual_stim.protocol['presentation-duration']]
 
@@ -458,8 +463,8 @@ if __name__=='__main__':
                                   verbose=True, prestim_duration=1.5)
     # plot
     plot_resp_dependency(Episodes_NI, 
-                     running_threshold=0.2,
-                     N_selected=8, selection_seed=20)
+                     running_threshold=0.5,
+                     N_selected=20, selection_seed=20)
     ge.show()
 
 
