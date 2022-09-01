@@ -511,7 +511,7 @@ class visual_stim:
             img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
                                                        time_from_episode_start=time_from_episode_start,
                                                        parent=cls), psychopy_to_numpy=True),
-                            extent=(0, 0, self.screen['resolution'][0], self.screen['resolution'][1]),
+                            extent=(0, self.screen['resolution'][0], 0, self.screen['resolution'][1]),
                       cmap='gray', vmin=0, vmax=1,
                       origin='lower',
                       aspect='equal')
@@ -528,7 +528,7 @@ class visual_stim:
 
         if label is not None:
             nz, nx = self.x.shape
-            L, shift = nx/(self.x[0][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
+            L, shift = nx/(self.x[-1][-1]-self.x[0][0])*label['degree'], label['shift_factor']*nx
             ax.plot([-shift, -shift], [-shift,L-shift], 'k-', lw=label['lw'])
             ax.plot([-shift, L-shift], [-shift,-shift], 'k-', lw=label['lw'])
             ax.annotate('%.0f$^o$ ' % label['degree'], (-shift, -shift), fontsize=label['fontsize'], ha='right', va='bottom')
