@@ -127,9 +127,6 @@ class visual_stim:
     ################################
     #  ---       Geometry      --- #
     ################################
-    def pixel_meshgrid(self):
-        return np.meshgrid(np.arange(self.screen['resolution'][0]),
-                           np.arange(self.screen['resolution'][1]))
 
     def cm_to_angle(self, value):
         return 180./np.pi*np.arctan(value/self.screen['distance_from_eye'])
@@ -514,6 +511,7 @@ class visual_stim:
             img = ax.imshow(cls.image_to_frame(cls.get_image(episode,
                                                        time_from_episode_start=time_from_episode_start,
                                                        parent=cls), psychopy_to_numpy=True),
+                            extent=(0, 0, self.screen['resolution'][0], self.screen['resolution'][1]),
                       cmap='gray', vmin=0, vmax=1,
                       origin='lower',
                       aspect='equal')
@@ -562,7 +560,8 @@ class visual_stim:
     def add_vse(self, ax, vse):
         x0, x1 = ax.get_xlim()
         y0, y1 = ax.get_ylim()
-        ax.plot(vse['x'], vse['y'], 'o-', color='#d62728', lw=0.5, ms=2)
+        ax.plot([self.screen['resolution'][0]/2.]+list(vse['x']),
+                [self.screen['resolution'][1]/2.]+list(vse['y']), 'o-', color='#d62728', lw=0.5, ms=2)
 
 
 #####################################################
