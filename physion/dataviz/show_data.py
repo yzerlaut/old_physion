@@ -530,7 +530,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                              label1='pupil size (mm)',
                              label2='run. speed (cm/s)',
                              threshold1=None, threshold2=None,
-                             color_above=ge.blue, color_below=ge.orange,
+                             color_above=ge.orange, color_below=ge.blue,
                              ax=None):
 
         if episode_condition is None:
