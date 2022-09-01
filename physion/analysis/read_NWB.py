@@ -20,7 +20,7 @@ class Data:
                  with_tlim=True,
                  metadata_only=False,
                  with_visual_stim=False,
-                 verbose=False):
+                 verbose=True):
 
         self.tlim, self.visual_stim, self.nwbfile = None, None, None
         self.metadata, self.df_name = None, ''
@@ -41,7 +41,7 @@ class Data:
             self.read_data()
 
         if with_visual_stim:
-            self.init_visual_stim()
+            self.init_visual_stim(verbose=verbose)
 
         if metadata_only:
             self.close()
@@ -144,14 +144,16 @@ class Data:
             
 
     def resample(self, x, y, new_time_sampling,
-                 interpolation='linear'):
+                 interpolation='linear',
+                 verbose=True):
         try:
             func = interp1d(x, y,
                             kind=interpolation)
             return func(new_time_sampling)
         except ValueError:
-            print(' /!\ ValueError: A value in x_new is above the interpolation range /!\ ' )
-            print('   -->  interpolated at boundaries with mean value ' )
+            if verbose:
+                print(' /!\ ValueError: A value in x_new is above the interpolation range /!\ ' )
+                print('   -->  interpolated at boundaries with mean value ' )
             func = interp1d(x, y,
                             kind=interpolation,
                             bounds_error=False,
@@ -282,7 +284,7 @@ class Data:
     def compute_ROI_indices(self,
                             roiIndex=None, roiIndices='all',
                             verbose=True):
-        if not hasattr(self, 'nROIs'):
+        if not hasattr(self, 'nROIs') and verbose:
             print(' /!\ ROIs did not go through the "positive F0" criterion /!\ \n       --> need to call "data.build_dFoF()" first !  ')
 
         if roiIndex is not None:
@@ -336,8 +338,9 @@ class Data:
     #       episodes and visual stim protocols     #
     ################################################
     
-    def init_visual_stim(self):
+    def init_visual_stim(self, verbose=True):
         self.metadata['load_from_protocol_data'], self.metadata['no-window'] = True, True
+        self.metadata['verbose'] = verbose
         self.visual_stim = build_stim(self.metadata)
 
         

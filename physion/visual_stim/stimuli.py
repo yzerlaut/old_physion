@@ -1146,11 +1146,9 @@ class mixed_moving_dots_static_patch(vis_stim_image_built):
 
         direction = cls.experiment['direction'][episode]
 
-        print(direction)
         arrow['direction'] = direction
         # arrow['direction'] = ((direction+180)%180)+180
         # print(arrow['direction'])
-        print(cls.screen, cls.x)
 
         for shift in [-1, 0, 1]:
             arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
@@ -1298,11 +1296,9 @@ class mixed_random_dots_static_patch(vis_stim_image_built):
 
         direction = cls.experiment['direction'][episode]
 
-        print(direction)
         arrow['direction'] = direction
         # arrow['direction'] = ((direction+180)%180)+180
         # print(arrow['direction'])
-        print(cls.screen, cls.x)
 
         for shift in [-1, 0, 1]:
             arrow['center'] = [shift*np.sin(np.pi/180.*direction)*np.max(cls.x)/3.,
@@ -1551,7 +1547,6 @@ class gaussian_blobs(vis_stim_image_built):
         if 'movie_refresh_freq' not in protocol:
             protocol['movie_refresh_freq'] = 5.
         self.refresh_freq = protocol['movie_refresh_freq']
-        print('refresh freq', self.refresh_freq)
 
         super().__init__(protocol,
                          ['x-center', 'y-center', 'radius',

@@ -486,6 +486,7 @@ class EpisodeResponse:
         """
         stim_data = {}
         for key in full_data.metadata:
+            stim_data[key]=full_data.metadata[key]
             if ('Protocol-%i-' % (self.protocol_id+1)) in key:
                 stim_data[key.replace('Protocol-%i-' % (self.protocol_id+1), '')]=full_data.metadata[key]
 

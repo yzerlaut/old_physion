@@ -17,12 +17,14 @@ def load(image_path):
     
     return np.rot90(np.array(img), k=3) # needs rotation
     
-def img_after_hist_normalization(img):
+def img_after_hist_normalization(img, verbose=False):
     """
     for NATURAL IMAGES:
     histogram normalization to get comparable images
     """
-    print('Performing histogram normalization [...]')
+    if verbose:
+        print('Performing histogram normalization [...]')
+
     flat = np.array(1000*img.flatten(), dtype=int)
 
     cumsum = np.cumsum(np.histogram(flat, bins=np.arange(1001))[0])
@@ -33,9 +35,10 @@ def img_after_hist_normalization(img):
     return new_img.reshape(img.shape)
 
 
-def adapt_to_screen_resolution(img, new_screen):
+def adapt_to_screen_resolution(img, new_screen, verbose=False):
 
-    print('Adapting image to chosen screen resolution [...]')
+    if verbose:
+        print('Adapting image to chosen screen resolution [...]')
     
     old_X = np.arange(img.shape[0])
     old_Y = np.arange(img.shape[1])

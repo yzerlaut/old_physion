@@ -528,7 +528,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                              quantity2='running_speed',
                              episode_condition=None,
                              label1='pupil size (mm)',
-                             label2='run. speed (cm/s)',
+                             label2='run. speed (cm/s)    ',
                              threshold1=None, threshold2=None,
                              color_above=ge.orange, color_below=ge.blue,
                              ax=None):
@@ -545,7 +545,7 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
 
             ge.scatter(np.mean(getattr(self, quantity1)[episode_condition], axis=1), 
                        np.mean(getattr(self, quantity2)[episode_condition], axis=1),
-                       ax=ax, no_set=True, color='k', ms=4)
+                       ax=ax, no_set=True, color='k', ms=5)
             ge.annotate(ax, '%iep.' % getattr(self, quantity2)[episode_condition].shape[0],
                         (0,1), va='top')
 
