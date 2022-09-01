@@ -68,9 +68,7 @@ def plot_resp_dependency(Episodes,
     Episodes.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
                                               ax=stim_inset, vse=True)
 
-    # if responsive_rois is not None:
-    responsive_rois=selected_rois
-    if True:
+    if responsive_rois is not None:
         resp_inset = ge.inset(AX[0][3], [0.95,-0.4,0.5,0.8])
         frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[0]
         ge.pie([frac_resp, 100-frac_resp], COLORS=[ge.green, ge.grey],
