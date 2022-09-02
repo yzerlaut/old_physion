@@ -28,11 +28,15 @@ def plot_resp_dependency(Episodes,
 
     if responsive_rois is not None:
         np.random.seed(selection_seed)
-        selected_rois=np.random.choice(responsive_rois, N_selected, replace=False)
+        if len(responsive_rois)>=N_selected:
+            selected_rois=np.random.choice(responsive_rois, N_selected, replace=False)
+        else:
+            selected_rois = np.concatenate([responsive_rois,
+                                            np.random.choice(np.arange(Episodes.dFoF.shape[1]),
+                                               N_selected-len(responsive_rois), replace=False)])
     else:
-        selected_rois = np.random.choice(np.arange(Episodes.dFoF.shape[0]), N_selected, replace=False)
-    N_selected = np.min([N_selected, len(selected_rois)])
-
+        selected_rois = np.random.choice(np.arange(Episodes.dFoF.shape[1]), N_selected, replace=False)
+    selected_rois = np.array(selected_rois, dtype=int)
 
     fig, AX = ge.figure(axes_extents=[[[1,3] for i in range(4)],
                                      [[1, N_selected] for i in range(4)]],
@@ -70,7 +74,7 @@ def plot_resp_dependency(Episodes,
 
     if responsive_rois is not None:
         resp_inset = ge.inset(AX[0][3], [0.95,-0.4,0.5,0.8])
-        frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[0]
+        frac_resp = 100.*len(responsive_rois)/Episodes.dFoF.shape[1]
         ge.pie([frac_resp, 100-frac_resp], COLORS=[ge.green, ge.grey],
                ax=resp_inset)
         ge.annotate(resp_inset, '%.1f%% resp.' % frac_resp, 
@@ -78,13 +82,12 @@ def plot_resp_dependency(Episodes,
                     color=ge.green)
 
 
-    # behav_inset = ge.inset(fig, [0.75,0.8,0.08,0.15])
-    behav_inset = ge.inset(AX[0][3], [0.2,0.3,0.45,.7])
-    Episodes.behavior_variability(episode_condition=all_eps,
-                                     threshold2=running_threshold, ax=behav_inset)
+    if hasattr(Episodes, 'pupil_diameter'):
+        behav_inset = ge.inset(AX[0][3], [0.2,0.3,0.45,.7])
+        Episodes.behavior_variability(episode_condition=all_eps,
+                                      threshold2=running_threshold, ax=behav_inset)
 
 
-    #norm_ROIS = [(np.inf,-np.inf) for r in range(selected_rois)]
     scale_ROIS = np.ones(len(selected_rois))
 
     for cond, axP, axT, label, color in zip([all_eps, still, running], AX[0], AX[1],
@@ -92,41 +95,48 @@ def plot_resp_dependency(Episodes,
 
         ge.title(axP, '%s (n=%i)' % (label, np.sum(cond)), color=color)
 
-        axP.imshow(np.clip(Episodes.dFoF.mean(axis=0), min_dFoF, max_dFoF),
-                   cmap=ge.binary,
-                   aspect='auto', interpolation='none',
-                   vmin=min_dFoF, vmax=max_dFoF,
-                   origin='lower',
-                   extent = (Episodes.t[0], Episodes.t[-1],
-                             0, Episodes.dFoF.shape[1]))
-        min_dFoF_range = 1.2
-        for ir, r in enumerate(selected_rois):
-            roi_resp = Episodes.dFoF[cond, r, :]
-            scale = max([min_dFoF_range, np.max(roi_resp-roi_resp.mean())]) # 2 dFoF is the min scale range
-            # plotting eps with that scale
-            for iep in range(np.sum(cond)):
-                axT.plot(Episodes.t, ir+(roi_resp[iep,:]-roi_resp.mean())/scale,
-                         color=ge.jet(iep/np.sum(cond)), lw=.5)
-            # plotting scale
-            axT.plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+        if np.sum(cond)>0:
 
-            if 'all' in label:
-                ge.annotate(axT, 'roi#%i ' % (r+1), (Episodes.t[0], ir), xycoords='data',
-                            ha='right', size='small')
-                scale_ROIS[ir] = scale
+            axP.imshow(np.clip(Episodes.dFoF[cond,:,:].mean(axis=0), min_dFoF, max_dFoF),
+                       cmap=ge.binary,
+                       aspect='auto', interpolation='none',
+                       vmin=min_dFoF, vmax=max_dFoF,
+                       origin='lower',
+                       extent = (Episodes.t[0], Episodes.t[-1],
+                                 0, Episodes.dFoF.shape[1]))
 
-            if label=='running':
-                ge.plot(Episodes.t,
-                        ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
-                        sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
-                        ax=AX[1][3], color=color, no_set=True)
+            min_dFoF_range = 1.2
 
-            if label=='still':
-                ge.plot(Episodes.t,
-                        ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
-                        sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
-                        ax=AX[1][3], color=color, no_set=True)
-                AX[1][3].plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+            for ir, r in enumerate(selected_rois):
+
+                roi_resp = Episodes.dFoF[cond, r, :]
+                scale = max([min_dFoF_range, np.max(roi_resp-roi_resp.mean())]) # 2 dFoF is the min scale range
+                # plotting eps with that scale
+                for iep in range(np.sum(cond)):
+                    axT.plot(Episodes.t, ir+(roi_resp[iep,:]-roi_resp.mean())/scale,
+                             color=ge.jet(iep/np.sum(cond)), lw=.5)
+                # plotting scale
+                axT.plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+
+                if 'all' in label:
+                    ge.annotate(axT, 'roi#%i ' % (r+1), (Episodes.t[0], ir), xycoords='data',
+                                ha='right', size='small')
+                    scale_ROIS[ir] = scale
+
+                if label=='running':
+                    ge.plot(Episodes.t,
+                            ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                            sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                            ax=AX[1][3], color=color, no_set=True)
+
+                if label=='still':
+                    ge.plot(Episodes.t,
+                            ir+Episodes.dFoF[cond, r, :].mean(axis=0)/scale_ROIS[ir],
+                            sy=Episodes.dFoF[cond, r, :].std(axis=0)/scale_ROIS[ir],
+                            ax=AX[1][3], color=color, no_set=True)
+
+                    AX[1][3].plot([Episodes.t[-1], Episodes.t[-1]], [.25+ir, .25+ir+1./scale], 'k-', lw=1.5)
+
 
         ge.annotate(axT, '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data',
                     rotation=90)
@@ -459,10 +469,19 @@ if __name__=='__main__':
                                   quantities=['dFoF', 'Pupil', 'Running-Speed'],
                                   dt_sampling=30, # ms, to avoid to consume to much memory
                                   verbose=True, prestim_duration=1.5)
+
+    ROI_SUMMARIES = [Episodes_NI.compute_summary_data(dict(\
+                                interval_pre=[-Episodes_NI.visual_stim.protocol['presentation-interstim-period'],0],
+                                interval_post=[0,Episodes_NI.visual_stim.protocol['presentation-duration']],
+                                test='wilcoxon', positive=True),
+                         response_args={'quantity':'dFoF', 
+                                        'roiIndex':roi},
+                         response_significance_threshold=0.01) for roi in range(Episodes_NI.dFoF.shape[1])]
+
     # plot
     plot_resp_dependency(Episodes_NI, 
-                     running_threshold=0.5,
-                     N_selected=20, selection_seed=20)
+                         running_threshold=0.5,
+                         N_selected=20, selection_seed=20)
     ge.show()
 
 

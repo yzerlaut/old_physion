@@ -486,7 +486,7 @@ class EpisodeResponse:
         """
         initialize visual stimulation specific to those episodes
         """
-        stim_data = {}
+        stim_data = {'no-window':True}
         for key in full_data.metadata:
             stim_data[key]=full_data.metadata[key]
             if ('Protocol-%i-' % (self.protocol_id+1)) in key:
