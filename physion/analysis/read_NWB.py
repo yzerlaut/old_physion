@@ -448,7 +448,7 @@ def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
     
     for f in FILES[:Nmax]:
         try:
-            data = Data(f, metadata_only=True)
+            data = Data(f, metadata_only=True, verbose=False)
             PROTOCOLS.append(data.protocols)
             SUBJECTS.append(data.metadata['subject_ID'])
         except BaseException as be:
