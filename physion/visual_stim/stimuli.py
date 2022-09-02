@@ -934,6 +934,7 @@ class center_drifting_grating(vis_stim_image_built):
                            cls.experiment['y-center'][episode]]
         self.add_arrow(arrow, ax)
         return ax
+drifting_center_grating = center_drifting_grating
 
 
 #####################################################

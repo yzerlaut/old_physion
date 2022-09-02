@@ -150,16 +150,17 @@ def plot_resp_dependency(Episodes,
     # comparison
     ge.annotate(AX[1][3], '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data', rotation=90)
 
-    vse_shifts = Episodes.visual_stim.vse['t'][Episodes.visual_stim.vse['t']<Episodes.visual_stim.protocol['presentation-duration']]
+    if Episodes.visual_stim.vse is not None:
+        vse_shifts = Episodes.visual_stim.vse['t'][Episodes.visual_stim.vse['t']<Episodes.visual_stim.protocol['presentation-duration']]
 
-    for ax,ax1 in zip(AX[0][:3], AX[1][:3]):
-        ge.set_plot(ax, [], xlim=[Episodes.t[0], Episodes.t[-1]])
-        ge.annotate(ax, 'ROIs', (0,0.5), rotation=90, ha='right', va='center')
-        ge.annotate(ax, '1', (0,0), ha='right', size='x-small', va='center')
-        ge.annotate(ax, '%i' % Episodes.dFoF.shape[1], (0,1), ha='right', size='x-small', va='center')
-        for t in [0]+list(vse_shifts)+[Episodes.visual_stim.protocol['presentation-duration']]:
-            ax.plot(t*np.ones(2), ax.get_ylim(), 'r--', lw=0.3)
-            ax1.plot(t*np.ones(2), ax1.get_ylim(), 'r--', lw=0.3)
+        for ax,ax1 in zip(AX[0][:3], AX[1][:3]):
+            ge.set_plot(ax, [], xlim=[Episodes.t[0], Episodes.t[-1]])
+            ge.annotate(ax, 'ROIs', (0,0.5), rotation=90, ha='right', va='center')
+            ge.annotate(ax, '1', (0,0), ha='right', size='x-small', va='center')
+            ge.annotate(ax, '%i' % Episodes.dFoF.shape[1], (0,1), ha='right', size='x-small', va='center')
+            for t in [0]+list(vse_shifts)+[Episodes.visual_stim.protocol['presentation-duration']]:
+                ax.plot(t*np.ones(2), ax.get_ylim(), 'r--', lw=0.3)
+                ax1.plot(t*np.ones(2), ax1.get_ylim(), 'r--', lw=0.3)
 
     return fig, AX
 
