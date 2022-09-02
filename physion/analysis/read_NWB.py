@@ -435,18 +435,21 @@ class Data:
             
         
 def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
-
+    """
+    scan folders for protocols and returns
+    """
     if verbose:
         print('inspecting the folder "%s" [...]' % folder)
         t0 = time.time()
 
     FILES = get_files_with_extension(folder, extension='.nwb', recursive=True)
     DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
-    SUBJECTS = []
+    SUBJECTS, PROTOCOLS = [], []
     
     for f in FILES[:Nmax]:
         try:
             data = Data(f, metadata_only=True)
+            PROTOCOLS.append(data.protocols)
             SUBJECTS.append(data.metadata['subject_ID'])
         except BaseException as be:
             SUBJECTS.append('N/A')
@@ -457,22 +460,26 @@ def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
     if verbose:
         print(' -> found n=%i datafiles (in %.1fs) ' % (len(FILES), (time.time()-t0)))
 
-    return np.array(FILES), np.array(DATES), np.array(SUBJECTS)
+    return {'files':np.array(FILES), 
+            'dates':np.array(DATES),
+            'subjects':np.array(SUBJECTS),
+            'protocols':PROTOCOLS}
 
 
 if __name__=='__main__':
 
-    # FILES, DATES, SUBJECTS = scan_folder_for_NWBfiles('/home/yann/DATA/', Nmax=500)
+    folder = scan_folder_for_NWBfiles(sys.argv[-1], Nmax=500)
+    print(folder)
     # for f, d, s in zip(FILES, DATES, SUBJECTS):
     #     print(f, d, s)
     # print(np.unique(SUBJECTS))
 
-    data = Data(sys.argv[-1], metadata_only=True)
+    # data = Data(sys.argv[-1], metadata_only=True)
     # print(data.nwbfile.processing['ophys'])
     # data.build_dFoF()
     # print(data.get_protocol_id('static-patch'))
     # print(data.get_protocol_id('bleble'))
-    print(data.metadata['intervention'])
+    # print(data.metadata['intervention'])
     
     
 
