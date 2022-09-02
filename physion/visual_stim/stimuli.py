@@ -6,8 +6,8 @@ except ModuleNotFoundError:
     pass
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
+
 from screens import SCREENS
-#from psychopy_code.noise import sparse_noise_generator, dense_noise_generator
 from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 

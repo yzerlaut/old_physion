@@ -14,6 +14,7 @@ except ModuleNotFoundError:
     print('Experiment & Visual-Stim modules disabled !')
     no_psychopy = True
 
+
 CHILDREN_PROCESSES = []
 class MainWindow(QtWidgets.QMainWindow):
     
@@ -128,25 +129,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def launch_electrophy(self):
         self.statusBar.showMessage('Electrophy module not implemented yet')
 
-    # def launch_bash_script(self):
-    #     self.statusBar.showMessage('Batch processing launched !')
-    #     import subprocess
-    #     script = os.path.join(str(pathlib.Path(__file__).resolve().parent),'script.sh')
-    #     fileS = open(script, 'r')
-    #     Lines = fileS.readlines()
-    #     # subprocess.run('bash %s' % script, shell=True)
-    #     PROCESSES = []
-    #     for i, l in enumerate(Lines):
-    #         print(""" %i) launching process:
-    #         %s """ % (i+1, l))
-    #         subprocess.Popen(l, shell=True,
-    #                          stdout=subprocess.PIPE,
-    #                          stderr=subprocess.STDOUT)
-    #     # then clean batch file
-    #     fileS.close()
-    #     open(script, 'w').close()
-
-        
     def launch_visualization(self):
         self.statusBar.showMessage('Loading Visualization Module [...]')
         from physion.dataviz.gui import run as RunAnalysisGui
