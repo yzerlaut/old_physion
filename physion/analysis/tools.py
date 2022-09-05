@@ -6,7 +6,6 @@ from scipy.interpolate import interp1d
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 
-
 def normalize(response, norm_type, verbose=False):
     """
     

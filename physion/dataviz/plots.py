@@ -1,10 +1,13 @@
+import os, sys, pathlib
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore
-import os, sys, pathlib
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from pupil import roi, process
-from dataviz.tools import *
+from dataviz.tools import convert_times_to_indices, convert_index_to_time,\
+        convert_time_to_index, scale_and_position
+
 
 def raw_data_plot(self, tzoom,
                   plot_update=True,

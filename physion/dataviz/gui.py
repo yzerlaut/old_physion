@@ -3,24 +3,21 @@ import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
+import plots
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder, generate_filename_path, list_dayfolder, get_files_with_extension
+
+from assembling.saving import day_folder, generate_filename_path,\
+        list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
-from dataviz import plots
 from analysis.trial_averaging import TrialAverageWindow
 from analysis.read_NWB import Data
 from analysis.summary_pdf import summary_pdf_folder
 from misc.folders import FOLDERS, python_path
 from misc import guiparts
 from visual_stim.stimuli import build_stim # we'll load it without psychopy
+from analysis.make_figures import FiguresWindow
 
-try:
-    from analysis.make_figures import FiguresWindow
-except ModuleNotFoundError:
-    print('--------------------------------------------')
-    print('  "datavyz" submodule not found')
-    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
-    print('             (after a "git submodule init; git submodule update" if not already done) ')
 
 settings = {
     'window_size':(1000,600),
@@ -38,6 +35,8 @@ settings = {
               'CaImaging':(0,255,0,255)},#'green'},
     # general settings
     'Npoints':500}
+
+
 
 class MainWindow(guiparts.NewWindow):
     
@@ -783,7 +782,8 @@ def run(app, args=None, parent=None,
                       args=args,
                       raw_data_visualization=raw_data_visualization,
                       parent=parent)
-    
+
+
 if __name__=='__main__':
     
     from misc.colors import build_dark_palette

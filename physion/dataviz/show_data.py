@@ -5,10 +5,12 @@ import matplotlib.pylab as plt
 
 # custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from dataviz import tools as dv_tools
 from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
+
 
 class MultimodalData(read_NWB.Data):
     """
@@ -31,9 +33,11 @@ class MultimodalData(read_NWB.Data):
     ### ----- RAW DATA PLOT components -----
     ###-------------------------------------
 
+
     def shifted_start(self, tlim, frac_shift=0.01):
         return tlim[0]-0.01*(tlim[1]-tlim[0])
     
+
     def plot_scaled_signal(self, ax, t, signal, tlim, scale_bar, ax_fraction_extent, ax_fraction_start,
                            color='#1f77b4', scale_unit_string='%.1f'):
         # generic function to add scaled signal
@@ -818,14 +822,12 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             with_mean_trace=False,
                             factor_for_traces=2,
                             raster_norm='full',
-                            Tbar=1, Nbar=None,
+                            Tbar=1,
                             min_dFof_range=4,
                             figsize=(1.3,.3), axR=None, axT=None):
 
         resp = np.array(getattr(self, quantity))
 
-        if Nbar is None:
-            Nbar = int(resp.shape[1]/4)
         if rois is None:
             rois = np.random.choice(np.arange(resp.shape[1]), 5, replace=False)
 
@@ -868,8 +870,9 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                              0, resp.shape[1]))
 
         ge.set_plot(axR, [], xlim=[self.t[0], self.t[-1]])
-        axR.plot([self.t[0], self.t[0]], [0, Nbar], 'k-', lw=2)
-        ge.annotate(axR, '%i rois' % Nbar, (self.t[0], 0), rotation=90, xycoords='data', ha='right')
+        ge.annotate(axR, '1 ', (0,0), ha='right', va='center', size='small')
+        ge.annotate(axR, '%i ' % resp.shape[1], (0,1), ha='right', va='center', size='small')
+        ge.annotate(axR, 'ROIs', (0,0.5), ha='right', va='center', size='small', rotation=90)
         ge.annotate(axR, 'n=%i trials' % np.sum(pattern_cond), (self.t[-1], resp.shape[1]),
                     xycoords='data', ha='right', size='x-small')
 

@@ -1579,6 +1579,7 @@ class gaussian_blobs(vis_stim_image_built):
 
         return ax
 
+
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
 #####################################################

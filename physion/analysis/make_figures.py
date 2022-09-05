@@ -2,10 +2,11 @@ import sys, time, tempfile, os, pathlib, json, datetime, string
 from PyQt5 import QtGui, QtWidgets, QtCore
 import numpy as np
 import pyqtgraph as pg
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from assembling.saving import day_folder
 
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 # custom submodules
+from assembling.saving import day_folder
 from misc.guiparts import NewWindow, smallfont
 from dataviz.show_data import MultimodalData, format_key_value
 from dataviz import tools as dv_tools
@@ -13,9 +14,8 @@ from scipy.interpolate import interp1d
 from analysis.process_NWB import EpisodeResponse
 
 # datavyz submodule
-sys.path.append(os.path.join(pathlib.Path(__file__).resolve().parent, 'datavyz'))
-from datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png
-from datavyz import graph_env_manuscript as ge
+# from dataviz.datavyz.datavyz.stack_plots import add_plot_to_svg, export_drawing_as_png # NEED TO PUT BACK
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 
 
 class FiguresWindow(NewWindow):

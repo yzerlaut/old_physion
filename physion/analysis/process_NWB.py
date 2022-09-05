@@ -510,13 +510,19 @@ if __name__=='__main__':
         data.build_dFoF()
 
         episode = EpisodeResponse(data,
-                                  protocol_id=0,
+                                  protocol_id=1,
                                   quantities=['Running-Speed', 'Pupil'],
                                   # quantities=['dFoF', 'Pupil'],
                                   # quantities=['Photodiode-Signal'],
                                   prestim_duration=1.,
+                                  with_visual_stim=True,
                                   dt_sampling=10)
 
+       
+        print(getattr(episode, 'center-time')[:50])
+        print(episode.visual_stim.experiment['center-time'][:50])
+        
+        
         """
         fig0, ax = ge.figure()
         fig, AX = ge.figure(axes=(3,10), figsize=(.8,.9))

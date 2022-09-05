@@ -3,19 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-# datavyz submodule
-try:
-    from datavyz import graph_env_manuscript as ge
-except ModuleNotFoundError:
-    print('--------------------------------------------')
-    print('  "datavyz" submodule not found')
-    print('  -> install with "pip install ./physion/dataviz/datavyz/."')
-    print('             (after a "git submodule init; git submodule update" if not already done) ')
-
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+# datavyz submodule
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 from dataviz.show_data import MultimodalData
 from dataviz import tools
-
 from analysis.tools import *
 
 def raw_data_plot_settings(data,
