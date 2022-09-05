@@ -22,6 +22,7 @@ def plot_resp_dependency(Episodes,
     """
     """
     # different episode conditions :
+
     all_eps = Episodes.find_episode_cond(stim_keys, stim_indices)
     running = all_eps & (Episodes.running_speed.mean(axis=1)>running_threshold)
     still = all_eps & (Episodes.running_speed.mean(axis=1)<=running_threshold)
@@ -69,8 +70,11 @@ def plot_resp_dependency(Episodes,
     ##### ---- INSETS ---- #####
 
     stim_inset = ge.inset(AX[0][3], [0.7, 0.4, 0.9, 1])
+
     Episodes.visual_stim.plot_stim_picture(np.flatnonzero(all_eps)[0],
-                                              ax=stim_inset, vse=True)
+                                           ax=stim_inset, vse=True)
+    stim_inset.annotate('t=%.1fs' % getattr(Episodes, 'center-time')[np.flatnonzero(all_eps)[0]],
+            (1,1), xycoords='axes fraction', ha='right', va='top', size=8, color='w')
 
     if responsive_rois is not None:
         resp_inset = ge.inset(AX[0][3], [0.95,-0.4,0.5,0.8])
@@ -150,7 +154,7 @@ def plot_resp_dependency(Episodes,
     # comparison
     ge.annotate(AX[1][3], '1$\Delta$F/F', (Episodes.t[-1], 0), xycoords='data', rotation=90)
 
-    if Episodes.visual_stim.vse is not None:
+    if hasattr(Episodes.visual_stim, 'vse') and (Episodes.visual_stim.vse is not None):
         vse_shifts = Episodes.visual_stim.vse['t'][Episodes.visual_stim.vse['t']<Episodes.visual_stim.protocol['presentation-duration']]
 
         for ax,ax1 in zip(AX[0][:3], AX[1][:3]):
@@ -481,6 +485,8 @@ if __name__=='__main__':
 
     # plot
     plot_resp_dependency(Episodes_NI, 
+                         stim_keys=['center-time'], 
+                         stim_indices=[0],
                          running_threshold=0.5,
                          N_selected=20, selection_seed=20)
     ge.show()

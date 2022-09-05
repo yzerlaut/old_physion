@@ -289,6 +289,7 @@ class visual_stim:
         else:
             self.off.draw()
 
+
     ##########################################################
     #############      PRESENTING STIMULI    #################
     ##########################################################
@@ -1566,6 +1567,17 @@ class gaussian_blobs(vis_stim_image_built):
                           t0=cls.experiment['center-time'][index],
                           sT=cls.experiment['extent-time'][index])
         return img    
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None,
+                          label=None, vse=False):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode,
+                             time_from_episode_start=cls.experiment['center-time'][episode],
+                             ax=ax, parent=parent)
+
+        return ax
 
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
