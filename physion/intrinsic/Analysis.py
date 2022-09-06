@@ -59,12 +59,15 @@ def load_raw_data(datafolder, protocol,
                      allow_pickle=True).item()
 
     if run_id=='sum':
-        Data, times = [], []
+        Data = []
         for i in range(1, 15): # no more than 15 repeats...(but some can be removed, hence the "for" loop)
             if os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
                 t, data  = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
                 Data.append(data) 
-        return params, (t, np.mean(Data, axis=0)) 
+        if len(Data)>0: 
+            return params, (t, np.mean(Data, axis=0)) 
+        else:
+            return params, (None, None)
 
     elif os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
         return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))

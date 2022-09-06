@@ -15,7 +15,6 @@ from misc.guiparts import NewWindow
 from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
 from visual_stim.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
-from intrinsic import RetinotopicMapping
 from intrinsic import Analysis as intrinsic_analysis
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
@@ -144,7 +143,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - stim. period (s):'),
                         spec='large-left')
         self.periodBox = QtWidgets.QLineEdit()
-        self.periodBox.setText('10')
+        self.periodBox.setText('12')
         self.add_widget(self.periodBox, spec='small-right')
         
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
@@ -290,7 +289,7 @@ class MainWindow(NewWindow):
         self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
         
         xmin, xmax = 1.15*np.min(self.stim.x), 1.15*np.max(self.stim.x)
-        zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
+        zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
 
         self.angle_start, self.angle_max, self.protocol, self.label = 0, 0, '', ''
         self.Npoints = int(self.period/self.dt)
@@ -378,8 +377,7 @@ class MainWindow(NewWindow):
                 self.nSave+=1.0
 
             # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
-            if self.iTime%2==0:
-                self.flip = (False if self.flip else True) # flip the flag
+            self.flip = (False if self.flip else True) # flip the flag
 
             # update time
             self.t = time.time()
@@ -888,11 +886,13 @@ class AnalysisWindow(NewWindow):
 
     def perform_area_segmentation(self):
         
-        data = intrinsic_analysis.build_trial_data(self.get_datafolder(),
-                                         zero_two_pi_convention=self.twoPiBox.isChecked())
-        trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
+        
+        print('disabled for now... ')
+        #data = intrinsic_analysis.build_trial_data(self.get_datafolder(),
+        #                                 zero_two_pi_convention=self.twoPiBox.isChecked())
+        #trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
 
-        trial.processTrial(isPlot=True)
+        #trial.processTrial(isPlot=True)
         
 
     def get_datafolder(self):
