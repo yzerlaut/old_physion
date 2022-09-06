@@ -12,6 +12,7 @@ from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
 
 
+
 class MultimodalData(read_NWB.Data):
     """
     # we define a data object fitting this analysis purpose
