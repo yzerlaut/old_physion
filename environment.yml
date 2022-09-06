@@ -1,12 +1,3 @@
-#    - rastermap>0.1.0
-#    - scanimage-tiff-reader>=1.4.1
-#    - importlib-metadata
-#    - nidaqmx
-#    - pygame
-#    - svgutils
-#    - opencv-python    
-#    - tifffile
-
 name: physion
 channels:
   - conda-forge

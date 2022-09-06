@@ -51,20 +51,10 @@ def load_raw_data(datafolder, protocol,
                   run_id='sum'):
     params = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
 
-    if run_id=='sum':
-        data = np.zeros((len(params['STIM']['%s-times' % protocol]), *params['imgsize']))
-        n=0
-        for i in range(1, 15): # no more than 15 repeats...(but some can be removed, hence the "for" loop)
-            if os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
-                t, D = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
-                data += D
-                n+=1
-        if n>0:
-            data /= (1.0*n)
-        return params, (t, data)
-
-    elif os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
+    if os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
         return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))
+    else:
+        print(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)), ' not found')
 
 
 def preprocess_data(data, Facq,

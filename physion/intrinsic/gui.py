@@ -16,7 +16,8 @@ from misc.guiparts import NewWindow
 from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
 from visual_stim.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
-from intrinsic import analysis, RetinotopicMapping
+from intrinsic import RetinotopicMapping
+from intrinsic import Analysis as intrinsic_analysis
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
 
@@ -162,14 +163,14 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('10')
+        self.freqBox.setText('5')
         self.add_widget(self.freqBox, spec='small-right')
 
-        # self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
-        #                 spec='large-left')
-        # self.flickBox = QtWidgets.QLineEdit()
-        # self.flickBox.setText('10')
-        # self.add_widget(self.flickBox, spec='small-right')
+        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
+                        spec='large-left')
+        self.flickBox = QtWidgets.QLineEdit()
+        self.flickBox.setText('10')
+        self.add_widget(self.flickBox, spec='small-right')
         
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
@@ -287,14 +288,13 @@ class MainWindow(NewWindow):
         self.Nrepeat = int(self.repeatBox.text()) #
         self.period = float(self.periodBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-        # self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
-        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.freqBox.text())
+        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
         
         xmin, xmax = 1.15*np.min(self.stim.x), 1.15*np.max(self.stim.x)
         zmin, zmax = 1.3*np.min(self.stim.z), 1.3*np.max(self.stim.z)
 
         self.angle_start, self.angle_max, self.protocol, self.label = 0, 0, '', ''
-        self.Npoints = int(self.period/self.dt_save)
+        self.Npoints = int(self.period/self.dt)
 
         if self.protocolBox.currentText()=='ALL':
             self.STIM = {'angle_start':[zmin, xmax, zmax, xmin],
@@ -320,13 +320,12 @@ class MainWindow(NewWindow):
             self.label = self.protocolBox.currentText()
             
         for il, label in enumerate(self.STIM['label']):
-            self.STIM[label+'-times'] = np.arange(self.Npoints*self.Nrepeat)*self.dt_save
+            self.STIM[label+'-times'] = np.arange(self.Npoints*self.Nrepeat)*self.dt
             self.STIM[label+'-angle'] = np.concatenate([np.linspace(self.STIM['angle_start'][il],
                                                                     self.STIM['angle_stop'][il], self.Npoints) for n in range(self.Nrepeat)])
 
         # initialize one episode:
-        self.iEp, self.iTime, self.t0_episode = 0, 0, time.time()
-
+        self.iEp, self.t0_episode = 0, time.time()
         self.img, self.nSave = self.new_img(), 0
     
         self.save_metadata()
@@ -347,6 +346,7 @@ class MainWindow(NewWindow):
             self.pimg.setImage(self.img)
 
         # NEED TO STORE DATA HERE
+        self.TIMES.append(time.time()-self.t0_episode)
         self.FRAMES.append(self.img)
 
         # re-init time step of acquisition
@@ -355,14 +355,17 @@ class MainWindow(NewWindow):
     def update_dt(self):
 
         self.tSave = time.time()
+        self.t = self.tSave
 
-        while (time.time()-self.tSave)<=self.dt_save:
+        while (self.t-self.tSave)<=self.dt_save:
 
             self.t = time.time()
-            # show image
+
+            self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
+            angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
             patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
-                                         self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime],
-                                         self.bar_size)
+                                         angle, self.bar_size)
+
             for pattern in patterns:
                 pattern.draw()
             try:
@@ -376,22 +379,25 @@ class MainWindow(NewWindow):
                 self.nSave+=1.0
 
             # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
-            # self.flip = (False if self.flip else True) # flip the flag
+            if self.iTime%2==0:
+                self.flip = (False if self.flip else True) # flip the flag
+
+            # update time
+            self.t = time.time()
             
-        self.flip = (False if self.flip else True) # flip the flag
+        # self.flip = (False if self.flip else True) # flip the flag
         
         if self.camBox.isChecked():
-            self.save_img() # re-init image here
+            self.save_img() # after saving, e-init image to zero here
 
-        self.iTime += 1
         
         # checking if not episode over
-        if not (self.iTime<len(self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'])):
+        if (time.time()-self.t0_episode)>(self.period*self.Nrepeat):
             if self.camBox.isChecked():
                 self.write_data() # writing data when over
+            # print('time since episode start:', time.time()-self.t0_episode)
             self.t0_episode, self.img, self.nSave = time.time(), self.new_img(), 0
-            self.FRAMES = [] # re init data
-            self.iTime = 0  
+            self.FRAMES, self.TIMES = [], [] # re init data
             self.iEp += 1
             
         # continuing ?
@@ -458,7 +464,7 @@ class MainWindow(NewWindow):
             self.running = True
 
             # initialization of data
-            self.FRAMES = []
+            self.FRAMES, self.TIMES = [], []
             self.img = self.get_frame()
             self.imgsize = self.img.shape
             self.pimg.setImage(self.img)
@@ -490,7 +496,8 @@ class MainWindow(NewWindow):
             tagged_image = self.core.get_tagged_image()
             #pixels by default come out as a 1D array. We can reshape them into an image
             img = np.reshape(tagged_image.pix,
-                             newshape=[tagged_image.tags['Height'], tagged_image.tags['Width']])
+                             newshape=[tagged_image.tags['Height'],
+                                       tagged_image.tags['Width']])
 
         elif (self.stim is not None) and (self.STIM is not None):
 
@@ -514,10 +521,11 @@ class MainWindow(NewWindow):
                     np.exp(-self.stim.x**2/2./15**2)
                 
         else:
-            img = np.random.randn(720, 1280)
+            time.sleep(0.03) # grabbing frames takes minimum 30ms
+            img = np.random.randn(800, 450)
 
         if (int(self.spatialBox.text())>1) and not force_HQ:
-            return 1.0*analysis.resample_img(img, int(self.spatialBox.text()))
+            return 1.0*intrinsic_analysis.resample_img(img, int(self.spatialBox.text()))
         else:
             return 1.0*img
 
@@ -780,7 +788,7 @@ class AnalysisWindow(NewWindow):
             plot.clear()
 
         # load data
-        p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
+        p, (t, data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
                                               self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
         self.img = data[0,:,:]
@@ -792,7 +800,7 @@ class AnalysisWindow(NewWindow):
         new_data = data[:,xpix, ypix]
         if float(self.hpBox.text())>0:
             self.raw_trace.plot(t, new_data-new_data.mean())
-            new_data = analysis.butter_highpass_filter(new_data-new_data.mean(),
+            new_data = intrinsic_analysis.butter_highpass_filter(new_data-new_data.mean(),
                                                        float(self.hpBox.text()),
                                                        1, order=5)
             self.raw_trace.plot(t, new_data, pen='r')
@@ -827,10 +835,10 @@ class AnalysisWindow(NewWindow):
         self.compute_phase_maps()
         
     def compute_phase_maps(self):
-        p, (t, data) = analysis.load_raw_data(self.get_datafolder(),
+        p, (t, data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
                                               self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
-        power_map, phase_map = analysis.perform_fft_analysis(data, p['Nrepeat'],
+        power_map, phase_map = intrinsic_analysis.perform_fft_analysis(data, p['Nrepeat'],
                                                              high_pass_filtering=float(self.hpBox.text()),
                                                              zero_two_pi_convention=self.twoPiBox.isChecked())
 
@@ -847,7 +855,7 @@ class AnalysisWindow(NewWindow):
 
     def compute_retinotopic_maps(self):
 
-        power_map, retinotopy_map = analysis.get_retinotopic_maps(self.get_datafolder(),
+        power_map, retinotopy_map = intrinsic_analysis.get_retinotopic_maps(self.get_datafolder(),
                                                                   self.mapBox.currentText(),
                                                                   run_id=self.numBox.currentText(),
                                                                   zero_two_pi_convention=self.twoPiBox.isChecked())
@@ -861,7 +869,7 @@ class AnalysisWindow(NewWindow):
 
     def perform_area_segmentation(self):
         
-        data = analysis.build_trial_data(self.get_datafolder(),
+        data = intrinsic_analysis.build_trial_data(self.get_datafolder(),
                                          zero_two_pi_convention=self.twoPiBox.isChecked())
         trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
 
@@ -899,7 +907,7 @@ class AnalysisWindow(NewWindow):
         if self.datafolder=='' and self.lastBox.isChecked():
             self.datafolder = last_datafolder_in_dayfolder(day_folder(os.path.join(FOLDERS[self.folderB.currentText()])),
                                                            with_NIdaq=False)
-        analysis.run(self.datafolder, show=True)
+        intrinsic_analysis.run(self.datafolder, show=True)
         print('-> analysis done !')
 
     def pick_display(self):
