@@ -39,22 +39,35 @@ def resample_img(img, Nsubsampling):
 
 
 def load_single_datafile(datafile):
+    """
+    the image data need interpolation to get regularly spaced data for FFT
+    """
     io = pynwb.NWBHDF5IO(datafile, 'r')
     nwbfile = io.read()
     t, x = nwbfile.acquisition['image_timeseries'].timestamps[:],\
         nwbfile.acquisition['image_timeseries'].data[:,:,:]
+    interp_func = interp1d(t, x, axis=0, kind='nearest', fill_value='extrapolate')
+    real_t = nwbfile.acquisition['angle_timeseries'].timestamps[:]
     io.close()
-    return t, x
+    return real_t, interp_func(real_t)
 
 
 def load_raw_data(datafolder, protocol,
                   run_id='sum'):
-    params = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
 
-    if os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
+    params = np.load(os.path.join(datafolder, 'metadata.npy'),
+                     allow_pickle=True).item()
+
+    if run_id=='sum':
+        Data, times = [], []
+        for i in range(1, 15): # no more than 15 repeats...(but some can be removed, hence the "for" loop)
+            if os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
+                t, data  = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
+                Data.append(data) 
+        return params, (t, np.mean(Data, axis=0)) 
+
+    elif os.path.isfile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id))):
         return params, load_single_datafile(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)))
-    else:
-        print(os.path.join(datafolder, '%s-%s.nwb' % (protocol, run_id)), ' not found')
 
 
 def preprocess_data(data, Facq,

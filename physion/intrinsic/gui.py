@@ -3,7 +3,6 @@ import numpy as np
 import pynwb, PIL
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-from scipy.interpolate import interp1d
 
 try:
     from pycromanager import Bridge
@@ -424,7 +423,7 @@ class MainWindow(NewWindow):
         images = pynwb.image.ImageSeries(name='image_timeseries',
                                          data=np.array(self.FRAMES, dtype=np.float64),
                                          unit='a.u.',
-                                         timestamps=self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-times'])
+                                         timestamps=np.array(self.TIMES, dtype=np.float64))
 
         nwbfile.add_acquisition(images)
         
@@ -519,10 +518,12 @@ class MainWindow(NewWindow):
                 img = np.random.randn(*self.stim.x.shape)+\
                     np.exp(-(self.stim.z+(40*it/self.Npoints-20))**2/2./10**2)*\
                     np.exp(-self.stim.x**2/2./15**2)
+
+            img = img.T+.2*(time.time()-self.t0_episode)/10.
                 
         else:
             time.sleep(0.03) # grabbing frames takes minimum 30ms
-            img = np.random.randn(800, 450)
+            img = np.random.randn(450, 800)
 
         if (int(self.spatialBox.text())>1) and not force_HQ:
             return 1.0*intrinsic_analysis.resample_img(img, int(self.spatialBox.text()))
@@ -644,11 +645,18 @@ class AnalysisWindow(NewWindow):
         self.rdButton = QtWidgets.QPushButton(" === show raw data === ", self)
         self.rdButton.clicked.connect(self.show_raw_data)
         self.add_widget(self.rdButton, 'large-right')
-        self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
+
+        # self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
+                        # spec='large-left')
+        # self.hpBox = QtWidgets.QLineEdit()
+        # self.hpBox.setText('0')
+        # self.add_widget(self.hpBox, spec='small-right')
+        self.add_widget(QtWidgets.QLabel('  - slow fluct. (s):'),
                         spec='large-left')
         self.hpBox = QtWidgets.QLineEdit()
         self.hpBox.setText('0')
         self.add_widget(self.hpBox, spec='small-right')
+
         self.add_widget(QtWidgets.QLabel('  - protocol:'),
                         spec='small-left')
         self.protocolBox = QtWidgets.QComboBox(self)
@@ -781,7 +789,7 @@ class AnalysisWindow(NewWindow):
         self.show_raw_data()
 
         
-    def show_raw_data(self, with_raw_img=False):
+    def show_raw_data(self, with_raw_img=True):
         
         # clear previous plots
         for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
@@ -792,17 +800,21 @@ class AnalysisWindow(NewWindow):
                                               self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
         self.img = data[0,:,:]
-        # print(self.img.shape)
         xpix, ypix = self.get_pixel_value()
 
-        
-        
         new_data = data[:,xpix, ypix]
+
         if float(self.hpBox.text())>0:
+            # add raw data first
             self.raw_trace.plot(t, new_data-new_data.mean())
-            new_data = intrinsic_analysis.butter_highpass_filter(new_data-new_data.mean(),
-                                                       float(self.hpBox.text()),
-                                                       1, order=5)
+            # high pass filter
+            # new_data = intrinsic_analysis.butter_highpass_filter(new_data-new_data.mean(),
+                                                       # float(self.hpBox.text()),
+                                                       # 1, order=5)
+            # substracting sliding average
+            new_data = new_data-intrinsic_analysis.gaussian_filter1d(new_data,
+                                                    int(self.hpBox.text())*p['acq-freq'],
+                                                    mode='nearest')
             self.raw_trace.plot(t, new_data, pen='r')
         else:
             new_data = data[:,xpix, ypix]
@@ -835,12 +847,16 @@ class AnalysisWindow(NewWindow):
         self.compute_phase_maps()
         
     def compute_phase_maps(self):
+        print('computing phase maps [...]')
         p, (t, data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
                                               self.protocolBox.currentText(),
                                               run_id=self.numBox.currentText())
+        if float(self.hpBox.text())>0:
+            data = data-intrinsic_analysis.gaussian_filter1d(data,
+                                                    int(self.hpBox.text())*p['acq-freq'],
+                                                    mode='nearest', axis=0)
         power_map, phase_map = intrinsic_analysis.perform_fft_analysis(data, p['Nrepeat'],
-                                                             high_pass_filtering=float(self.hpBox.text()),
-                                                             zero_two_pi_convention=self.twoPiBox.isChecked())
+                                        zero_two_pi_convention=self.twoPiBox.isChecked())
 
         xpix, ypix = self.get_pixel_value()
         print('')
@@ -851,20 +867,23 @@ class AnalysisWindow(NewWindow):
         self.img2.setLookupTable(power_color_map)
         self.img1.setImage(phase_map)
         self.img2.setImage(power_map)
+        print('     -> phase maps calculus done !')
         
 
     def compute_retinotopic_maps(self):
 
-        power_map, retinotopy_map = intrinsic_analysis.get_retinotopic_maps(self.get_datafolder(),
-                                                                  self.mapBox.currentText(),
-                                                                  run_id=self.numBox.currentText(),
-                                                                  zero_two_pi_convention=self.twoPiBox.isChecked())
-
+        print('computing retinotopic maps [...]')
+        power_map, retinotopy_map = intrinsic_analysis.get_retinotopic_maps(\
+                self.get_datafolder(),
+                self.mapBox.currentText(),
+                run_id=self.numBox.currentText(),
+                zero_two_pi_convention=self.twoPiBox.isChecked())
         
         self.img1.setLookupTable(phase_color_map)
         self.img2.setLookupTable(power_color_map)
         self.img1.setImage(retinotopy_map)
         self.img2.setImage(power_map)
+        print('     -> retinotopic maps calculus done !')
         
 
     def perform_area_segmentation(self):
