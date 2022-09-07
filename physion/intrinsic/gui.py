@@ -64,7 +64,7 @@ class MainWindow(NewWindow):
         self.running, self.stim, self.STIM = False, None, None
         self.datafolder, self.img, self.vasculature_img = '', None, None
         
-        self.t0, self.period = 0, 1
+        self.t0, self.period, self.TIMES = 0, 1, []
         
         ### trying the camera
         try:
@@ -340,8 +340,8 @@ class MainWindow(NewWindow):
         if self.nSave>0:
             self.img /= self.nSave
 
-        if True: # live display
-            self.pimg.setImage(self.img)
+        # live display
+        # self.pimg.setImage(self.img)
 
         # NEED TO STORE DATA HERE
         self.TIMES.append(time.time()-self.t0_episode)
@@ -387,7 +387,6 @@ class MainWindow(NewWindow):
         if self.camBox.isChecked():
             self.save_img() # after saving, e-init image to zero here
 
-        
         # checking if not episode over
         if (time.time()-self.t0_episode)>(self.period*self.Nrepeat):
             if self.camBox.isChecked():
@@ -475,6 +474,7 @@ class MainWindow(NewWindow):
 
     def live_view(self):
         self.running, self.t0 = True, time.time()
+        self.TIMES = []
         self.update_Image()
         
     def stop_protocol(self):
@@ -482,6 +482,8 @@ class MainWindow(NewWindow):
             self.running = False
             if self.stim is not None:
                 self.stim.close()
+            if len(self.TIMES)>5:
+                print('average frame rate: %.1f FPS' % (1./np.mean(np.diff(self.TIMES))))
         else:
             print('acquisition not launched')
 
@@ -533,9 +535,8 @@ class MainWindow(NewWindow):
     def update_Image(self):
         # plot it
         self.pimg.setImage(self.get_frame())
-        new_t0 = time.time()
-        print('dt=%.1f ms' % (1e3*(new_t0-self.t0)))
-        self.t0 = new_t0
+        #self.get_frame() # to test only the frame grabbing code
+        self.TIMES.append(time.time())
         if self.running:
             QtCore.QTimer.singleShot(1, self.update_Image)
                 
