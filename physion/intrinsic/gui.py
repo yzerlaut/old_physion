@@ -352,47 +352,32 @@ class MainWindow(NewWindow):
         
     def update_dt(self):
 
-        self.tSave = time.time()
-        self.t = self.tSave
+        self.t = time.time()
 
-        while (self.t-self.tSave)<=self.dt_save:
+        self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
+        angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
+        patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
+                                     angle, self.bar_size)
 
-            self.t = time.time()
+        for pattern in patterns:
+            pattern.draw()
+        try:
+            self.stim.win.flip()
+        except BaseException:
+            pass
 
-            self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
-            angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
-            patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
-                                         angle, self.bar_size)
-
-            for pattern in patterns:
-                pattern.draw()
-            try:
-                self.stim.win.flip()
-            except BaseException:
-                pass
-
-            if self.camBox.isChecked():
-                # # fetch image
-                self.img += self.get_frame()
-                self.nSave+=1.0
-
-            # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
-            self.flip = (False if self.flip else True) # flip the flag
-
-            # update time
-            self.t = time.time()
-            
-        # self.flip = (False if self.flip else True) # flip the flag
-        
         if self.camBox.isChecked():
-            self.save_img() # after saving, e-init image to zero here
+            self.TIMES.append(time.time()-self.t0_episode)
+            self.FRAMES.append(self.get_frame())
+
+        self.flip = (False if self.flip else True) # flip the flag at each frame
 
         # checking if not episode over
         if (time.time()-self.t0_episode)>(self.period*self.Nrepeat):
             if self.camBox.isChecked():
                 self.write_data() # writing data when over
             # print('time since episode start:', time.time()-self.t0_episode)
-            self.t0_episode, self.img, self.nSave = time.time(), self.new_img(), 0
+            self.t0_episode = time.time()
             self.FRAMES, self.TIMES = [], [] # re init data
             self.iEp += 1
             
