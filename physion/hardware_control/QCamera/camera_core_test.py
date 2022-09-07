@@ -14,7 +14,6 @@ with Bridge() as bridge:
     #get object representing micro-manager core
     core = bridge.get_core()
 
-
     #### Calling core functions ###
     exposure = core.get_exposure()
 
