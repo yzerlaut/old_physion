@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 from matplotlib import colorbar, colors
 from skimage import measure
 from scipy.interpolate import interp1d
-from scipy.ndimage.filters import gaussian_filter1d
+from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 from physion.analysis.analyz.analyz.processing.filters \

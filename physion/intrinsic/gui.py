@@ -21,7 +21,7 @@ subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp',
 
 phase_color_map = pg.ColorMap(pos=np.linspace(0.0, 1.0, 3),
                               color=[(255, 0, 0),
-                                     (100, 200, 100),
+                                     (200, 200, 200),
                                      (0, 0, 255)]).getLookupTable(0.0, 1.0, 256)
 
 power_color_map = pg.ColorMap(pos=np.linspace(0.0, 1.0, 3),
@@ -571,7 +571,7 @@ class AnalysisWindow(NewWindow):
         super(AnalysisWindow, self).__init__(i=2,
                                          title='intrinsic imaging analysis')
 
-        self.datafolder, self.img, self.vasculature_img = '', None, None
+        self.datafolder, self.IMAGES = '', {} 
         
         if args is not None:
             self.datafolder = args.datafile
@@ -629,32 +629,13 @@ class AnalysisWindow(NewWindow):
         self.graphics_layout.ci.layout.setRowStretchFactor(1, 4)
         self.graphics_layout.ci.layout.setRowStretchFactor(3, 5)
             
-        self.folderButton = QtWidgets.QPushButton("load data [Ctrl+O]", self)
+        self.folderButton = QtWidgets.QPushButton("Open file [Ctrl+O]", self)
         self.folderButton.clicked.connect(self.open_file)
         self.add_widget(self.folderButton, spec='large-left')
         self.lastBox = QtWidgets.QCheckBox("last ")
         self.lastBox.setStyleSheet("color: gray;")
         self.add_widget(self.lastBox, spec='small-right')
         self.lastBox.setChecked((self.datafolder==''))
-
-        self.add_widget(QtWidgets.QLabel(' '))
-        self.vdButton = QtWidgets.QPushButton("vasc. img", self)
-        self.vdButton.clicked.connect(self.show_vasc_pic)
-        self.add_widget(self.vdButton, 'small-left')
-        self.rdButton = QtWidgets.QPushButton(" === show raw data === ", self)
-        self.rdButton.clicked.connect(self.show_raw_data)
-        self.add_widget(self.rdButton, 'large-right')
-
-        # self.add_widget(QtWidgets.QLabel('  - high pass filtering:'),
-                        # spec='large-left')
-        # self.hpBox = QtWidgets.QLineEdit()
-        # self.hpBox.setText('0')
-        # self.add_widget(self.hpBox, spec='small-right')
-        self.add_widget(QtWidgets.QLabel('  - slow fluct. (s):'),
-                        spec='large-left')
-        self.hpBox = QtWidgets.QLineEdit()
-        self.hpBox.setText('0')
-        self.add_widget(self.hpBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - protocol:'),
                         spec='small-left')
@@ -666,47 +647,41 @@ class AnalysisWindow(NewWindow):
         self.numBox.addItems(['sum']+[str(i) for i in range(1,10)])
         self.add_widget(self.numBox,
                         spec='small-right')
-        self.pmButton = QtWidgets.QPushButton(" ==== compute phase maps ==== ", self)
+
+        self.add_widget(QtWidgets.QLabel('  - slow fluct. substr. (s):'),
+                        spec='large-left')
+        self.hpBox = QtWidgets.QLineEdit()
+        self.hpBox.setText('0')
+        self.add_widget(self.hpBox, spec='small-right')
+        
+        self.add_widget(QtWidgets.QLabel('  - spatial-smoothing (pix):'),
+                        spec='large-left')
+        self.ssBox = QtWidgets.QLineEdit()
+        self.ssBox.setText('0')
+        self.add_widget(self.ssBox, spec='small-right')
+        
+        self.loadButton = QtWidgets.QPushButton(" === load data === ", self)
+        self.loadButton.clicked.connect(self.load_data)
+        self.add_widget(self.loadButton)
+
+        # -------------------------------------------------------
+        self.add_widget(QtWidgets.QLabel(''))
+
+        self.pmButton = QtWidgets.QPushButton(" == compute phase/power maps == ", self)
         self.pmButton.clicked.connect(self.compute_phase_maps)
         self.add_widget(self.pmButton)
         
-        self.add_widget(QtWidgets.QLabel('  - direction:'),
-                        spec='small-left')
-        self.mapBox = QtWidgets.QComboBox(self)
-        self.mapBox.addItems(['azimuth', 'altitude'])
-        self.add_widget(self.mapBox,
-                        spec='small-middle')
+        self.rmButton = QtWidgets.QPushButton(" = retinotopic maps = ", self)
+        self.rmButton.clicked.connect(self.compute_retinotopic_maps)
+        self.add_widget(self.rmButton, spec='large-left')
+
         self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
         self.twoPiBox.setStyleSheet("color: gray;")
         self.add_widget(self.twoPiBox, spec='small-right')
 
-        self.rmButton = QtWidgets.QPushButton(" === compute retinotopic maps === ", self)
-        self.rmButton.clicked.connect(self.compute_retinotopic_maps)
-        self.add_widget(self.rmButton)
-        
-        # self.add_widget(QtWidgets.QLabel('  - spatial smoothing (px):'),
-        #                 spec='large-left')
-        # self.spatialSmoothingBox = QtWidgets.QLineEdit()
-        # self.spatialSmoothingBox.setText('5')
-        # self.add_widget(self.spatialSmoothingBox, spec='small-right')
 
-        # self.add_widget(QtWidgets.QLabel('  - temporal smoothing (ms):'),
-        #                 spec='large-left')
-        # self.temporalSmoothingBox = QtWidgets.QLineEdit()
-        # self.temporalSmoothingBox.setText('100')
-        # self.add_widget(self.temporalSmoothingBox, spec='small-right')
-
-        
-        self.add_widget(QtWidgets.QLabel(' '))
-        self.pasButton = QtWidgets.QPushButton(" == perform area segmentation == ", self)
-        self.pasButton.clicked.connect(self.perform_area_segmentation)
-        self.add_widget(self.pasButton)
-        self.add_widget(QtWidgets.QLabel('  - display:'),
-                        spec='small-left')
-        self.displayBox = QtWidgets.QComboBox(self)
-        self.displayBox.addItems(['sign map', 'areas (+vasc.)'])
-        self.add_widget(self.displayBox,
-                        spec='large-right')
+        # -------------------------------------------------------
+        self.add_widget(QtWidgets.QLabel(''))
 
         # === -- parameters for area segmentation -- ===
         
@@ -758,12 +733,32 @@ class AnalysisWindow(NewWindow):
         self.mergeOverlapThrBox.setToolTip('Considering a patch pair (A and B) with same sign, A has visual coverage a deg2 and B has visual coverage b deg2 and the overlaping visual coverage between this pair is c deg2.\n Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged.\n FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0.\n Small "mergeOverlapThr" will merge less patches.\n Large "mergeOverlapThr" will merge more patches.')
         self.add_widget(self.mergeOverlapThrBox, spec='small-right')
         
+        self.pasButton = QtWidgets.QPushButton(" == perform area segmentation == ", self)
+        self.pasButton.clicked.connect(self.perform_area_segmentation)
+        self.add_widget(self.pasButton)
+
+        # -------------------------------------------------------
+        self.add_widget(QtWidgets.QLabel(''))
+
+        self.add_widget(QtWidgets.QLabel('Image 1: '), 'small-left')
+        self.img1Button = QtWidgets.QComboBox(self)
+        self.add_widget(self.img1Button, 'large-right')
+        self.img1Button.currentIndexChanged.connect(self.update_img1)
+
+        self.add_widget(QtWidgets.QLabel('Image 2: '), 'small-left')
+        self.img2Button = QtWidgets.QComboBox(self)
+        self.add_widget(self.img2Button, 'large-right')
+        self.img2Button.currentIndexChanged.connect(self.update_img2)
+
+        # -------------------------------------------------------
         self.pixROI = pg.ROI((10, 10), size=(10,10),
                              pen=pg.mkPen((255,0,0,255)),
                              rotatable=False,resizable=False)
+        self.pixROI.sigRegionChangeFinished.connect(self.moved_pixels)
         self.img1B.addItem(self.pixROI)
 
-        
+       
+        self.data = None
         self.show()
 
     def set_pixROI(self, img=None):
@@ -776,6 +771,28 @@ class AnalysisWindow(NewWindow):
         y, x = int(self.pixROI.pos()[0]), int(self.pixROI.pos()[1])
         return x, y
         
+    def moved_pixels(self):
+        for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
+            plot.clear()
+        if self.data is not None:
+            self.show_raw_data()         
+
+    def update_img(self, img, imgButton):
+        if imgButton.currentText() in self.IMAGES:
+            img.setImage(self.IMAGES[imgButton.currentText()])
+            if 'phase' in imgButton.currentText():
+                img.setLookupTable(phase_color_map)
+            elif 'power' in imgButton.currentText():
+                img.setLookupTable(power_color_map)
+            else:
+                img.setLookupTable(signal_color_map)
+
+
+    def update_img1(self):
+        self.update_img(self.img1, self.img1Button)
+
+    def update_img2(self):
+        self.update_img(self.img2, self.img2Button)
 
     def show_vasc_pic(self):
         pic = os.path.join(self.get_datafolder(), 'vasculature.npy')
@@ -787,25 +804,69 @@ class AnalysisWindow(NewWindow):
     def refresh(self):
         self.show_raw_data()
 
+    def update_imgButtons(self):
+        self.img1Button.clear()
+        self.img2Button.clear()
+        self.img1Button.addItems(list(self.IMAGES.keys()))
+        self.img2Button.addItems(list(self.IMAGES.keys()))
+
+       
+    def reset(self):
+        self.IMAGES = {}
+
+    def load_data(self):
         
+        print('- loading and preprocessing data [...]')
+        # clear previous plots
+        for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
+            plot.clear()
+
+        # load data
+        self.params,\
+            (self.t, self.data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
+                                                                   self.protocolBox.currentText(),
+                                                                   run_id=self.numBox.currentText())
+
+        if float(self.hpBox.text())>0:
+            print('    - slow fluct removal [...]')
+            self.data = self.data-intrinsic_analysis.gaussian_filter1d(self.data,
+                                                    int(self.hpBox.text())*self.params['acq-freq'],
+                                                    mode='nearest', axis=0)
+
+        if float(self.ssBox.text())>0:
+            print('    - spatial smoothing [...]')
+            self.data = self.data-intrinsic_analysis.gaussian_filter(self.data,
+                                                    sigma=(0,\
+                                                        int(self.ssBox.text())*self.params['acq-freq'],
+                                                        int(self.ssBox.text())*self.params['acq-freq']))
+
+
+
+        vasc_img = os.path.join(self.get_datafolder(), 'vasculature.npy')
+        if os.path.isfile(vasc_img):
+            self.IMAGES['vasculature'] = np.load(vasc_img)
+
+        self.IMAGES['raw-img-start'] = self.data[0,:,:]
+        self.IMAGES['raw-img-mid'] = self.data[int(self.data.shape[0]/2),:,:]
+        self.IMAGES['raw-img-stop'] = self.data[-1,:,:]
+       
+        self.update_imgButtons()
+
+        print('- data loaded !')
+
     def show_raw_data(self, with_raw_img=True):
         
         # clear previous plots
         for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
             plot.clear()
 
-        # load data
-        p, (t, data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
-                                              self.protocolBox.currentText(),
-                                              run_id=self.numBox.currentText())
-        self.img = data[0,:,:]
         xpix, ypix = self.get_pixel_value()
 
-        new_data = data[:,xpix, ypix]
+        new_data = self.data[:,xpix, ypix]
 
         if float(self.hpBox.text())>0:
             # add raw data first
-            self.raw_trace.plot(t, new_data-new_data.mean())
+            self.raw_trace.plot(self.t, new_data-new_data.mean())
             # high pass filter
             # new_data = intrinsic_analysis.butter_highpass_filter(new_data-new_data.mean(),
                                                        # float(self.hpBox.text()),
@@ -814,31 +875,26 @@ class AnalysisWindow(NewWindow):
             new_data = new_data-intrinsic_analysis.gaussian_filter1d(new_data,
                                                     int(self.hpBox.text())*p['acq-freq'],
                                                     mode='nearest')
-            self.raw_trace.plot(t, new_data, pen='r')
+            self.raw_trace.plot(self.t, new_data, pen='r')
         else:
-            new_data = data[:,xpix, ypix]
-            self.raw_trace.plot(t, new_data)
-
-        if with_raw_img:
-            self.img1.setLookupTable(signal_color_map)
-            self.img2.setLookupTable(signal_color_map)
-            self.img1.setImage(data[0, :, :])
-            self.img2.setImage(data[-1, :, :])
+            new_data = self.data[:,xpix, ypix]
+            self.raw_trace.plot(self.t, new_data)
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
         if self.twoPiBox.isChecked():
             power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
         else:
             power, phase = np.abs(spectrum), np.angle(spectrum)
+
         x = np.arange(len(power))
         self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
         self.spectrum_phase.plot(np.log10(x[1:]), phase[1:])
-        self.spectrum_power.plot([np.log10(x[int(p['Nrepeat'])])],
-                                 [np.log10(power[int(p['Nrepeat'])])],
+        self.spectrum_power.plot([np.log10(x[int(self.params['Nrepeat'])])],
+                                 [np.log10(power[int(self.params['Nrepeat'])])],
                                  size=10, symbolPen='g',
                                  symbol='o')
-        self.spectrum_phase.plot([np.log10(x[int(p['Nrepeat'])])],
-                                 [phase[int(p['Nrepeat'])]],
+        self.spectrum_phase.plot([np.log10(x[int(self.params['Nrepeat'])])],
+                                 [phase[int(self.params['Nrepeat'])]],
                                  size=10, symbolPen='g',
                                  symbol='o')
 
@@ -846,42 +902,37 @@ class AnalysisWindow(NewWindow):
         self.compute_phase_maps()
         
     def compute_phase_maps(self):
-        print('computing phase maps [...]')
-        p, (t, data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
-                                              self.protocolBox.currentText(),
-                                              run_id=self.numBox.currentText())
-        if float(self.hpBox.text())>0:
-            data = data-intrinsic_analysis.gaussian_filter1d(data,
-                                                    int(self.hpBox.text())*p['acq-freq'],
-                                                    mode='nearest', axis=0)
-        power_map, phase_map = intrinsic_analysis.perform_fft_analysis(data, p['Nrepeat'],
+
+        print('- computing phase maps [...]')
+
+        power_map, phase_map = intrinsic_analysis.perform_fft_analysis(self.data, 
+                                                                       self.params['Nrepeat'],
                                         zero_two_pi_convention=self.twoPiBox.isChecked())
 
-        xpix, ypix = self.get_pixel_value()
-        print('')
-        print('power @ pix', power_map[xpix, ypix])
-        print('phase @ pix', phase_map[xpix, ypix])
+        self.IMAGES['phase-map-%s' % self.protocolBox.currentText()] = phase_map 
+        self.IMAGES['power-map-%s' % self.protocolBox.currentText()] = power_map 
 
-        self.img1.setLookupTable(phase_color_map)
-        self.img2.setLookupTable(power_color_map)
-        self.img1.setImage(phase_map)
-        self.img2.setImage(power_map)
-        print('     -> phase maps calculus done !')
+        self.update_imgButtons()
+        print(' -> phase maps calculus done !')
         
 
     def compute_retinotopic_maps(self):
 
-        print('computing retinotopic maps [...]')
-        power_map, retinotopy_map = intrinsic_analysis.get_retinotopic_maps(\
-                self.get_datafolder(),
-                self.mapBox.currentText(),
-                run_id=self.numBox.currentText(),
-                zero_two_pi_convention=self.twoPiBox.isChecked())
-        
-        self.img1.setLookupTable(phase_color_map)
-        self.img2.setLookupTable(power_color_map)
-        self.img1.setImage(retinotopy_map)
-        self.img2.setImage(power_map)
+        print('- computing retinotopic maps [...]')
+
+        if ('phase-map-up' in self.IMAGES) and ('phase-map-down' in self.IMAGES):
+            self.IMAGES['phase-map-altitude'] = .5*(self.IMAGES['phase-map-down']-self.IMAGES['phase-map-up'])
+            self.IMAGES['power-map-altitude'] = .5*(self.IMAGES['power-map-down']+self.IMAGES['power-map-up'])
+        else:
+            print(' /!\ need both "up" and "down" maps to compute the altitude map !! /!\   ')
+            
+        if ('phase-map-right' in self.IMAGES) and ('phase-map-left' in self.IMAGES):
+            self.IMAGES['phase-map-azimuth'] = .5*(self.IMAGES['phase-map-left']-self.IMAGES['phase-map-right'])
+            self.IMAGES['power-map-azimuth'] = .5*(self.IMAGES['power-map-left']+self.IMAGES['power-map-right'])
+        else:
+            print(' /!\ need both "up" and "down" maps to compute the altitude map !! /!\   ')
+
+        self.update_imgButtons()
         print('     -> retinotopic maps calculus done !')
         
 
