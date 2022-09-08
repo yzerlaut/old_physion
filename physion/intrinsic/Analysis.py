@@ -90,19 +90,20 @@ def preprocess_data(data, Facq,
 def perform_fft_analysis(data, nrepeat,
                          zero_two_pi_convention=False,
                          plus_one_convention=False):
-
-
+    """
+    Fourier transform
+        we center the phase around 0 (by shifting by pi)
+    """
     spectrum = np.fft.fft(data, axis=0)
-        
-    if zero_two_pi_convention:
-        power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
-    else:
-        power, phase = np.abs(spectrum), -np.angle(spectrum)
 
-    if plus_one_convention:
-        return power[nrepeat+1, :, :], phase[nrepeat+1, :, :]
-    else:
-        return power[nrepeat, :, :], phase[nrepeat, :, :]
+    power = np.abs(spectrum)
+    phase = -np.angle(spectrum)    #   [-pi,pi] by default
+
+    if np.mean(np.abs(phase[nrepeat,:,:]))>np.pi/2.:
+        # in [0,2.pi] and then substracted by pi
+        phase = (-np.angle(spectrum))%(2.*np.pi)-np.pi
+
+    return power[nrepeat, :, :], phase[nrepeat, :, :]
 
 
 def compute_maps(data):
@@ -125,7 +126,6 @@ def compute_retinotopic_maps(datafolder, map_type,
                              altitude_Zero_shift=10,
                              azimuth_Zero_shift=60,
                              run_id='sum',
-                             zero_two_pi_convention=False,
                              verbose=True):
 
     if verbose:
@@ -133,29 +133,15 @@ def compute_retinotopic_maps(datafolder, map_type,
 
     if map_type=='altitude':
         # load raw data
-        p, (t, data1) = load_raw_data(datafolder, 'up',
-                                      run_id=run_id)
-        p, (t, data2) = load_raw_data(datafolder, 'down',
-                                      run_id=run_id)
-        # translate phase to angle of stimulus
-        if zero_two_pi_convention:
-            phase_to_angle_func = interp1d(np.linspace(0, 2*np.pi, len(p['STIM']['up-angle'])),
-                                           p['STIM']['up-angle'], kind='linear')
-        else:
-            phase_to_angle_func = interp1d(np.linspace(-np.pi, np.pi, len(p['STIM']['up-angle'])),
-                                           p['STIM']['up-angle'], kind='linear')
+        p, (t, data1) = load_raw_data(datafolder, 'up', run_id=run_id)
+        p, (t, data2) = load_raw_data(datafolder, 'down', run_id=run_id)
+        phase_to_angle_func = interp1d(np.linspace(-np.pi, np.pi, len(p['STIM']['up-angle'])),
+                                       p['STIM']['up-angle'], kind='linear')
         
     else:
-        p, (t, data1) = load_raw_data(datafolder, 'left',
-                                      run_id=run_id)
-        p, (t, data2) = load_raw_data(datafolder, 'right',
-                                      run_id=run_id)
-
-        if zero_two_pi_convention:
-            phase_to_angle_func = interp1d(np.linspace(0, 2*np.pi, len(p['STIM']['left-angle'])),
-                                       p['STIM']['left-angle'], kind='linear')
-        else:
-            phase_to_angle_func = interp1d(np.linspace(-np.pi, np.pi, len(p['STIM']['left-angle'])),
+        p, (t, data1) = load_raw_data(datafolder, 'left', run_id=run_id)
+        p, (t, data2) = load_raw_data(datafolder, 'right', run_id=run_id)
+        phase_to_angle_func = interp1d(np.linspace(-np.pi, np.pi, len(p['STIM']['left-angle'])),
                                        p['STIM']['left-angle'], kind='linear')
 
     power1, phase1 = perform_fft_analysis(data1, p['Nrepeat'],
@@ -164,17 +150,13 @@ def compute_retinotopic_maps(datafolder, map_type,
     power2, phase2 = perform_fft_analysis(data2, p['Nrepeat'],
                                           zero_two_pi_convention=zero_two_pi_convention)
 
-    retinotopy = .5*(phase2-phase1)
-
-    if zero_two_pi_convention:
-        retinotopy = np.clip(retinotopy, 0, 2*np.pi)
-    else:
-        retinotopy = np.clip(retinotopy, -np.pi, np.pi)
+    retinotopy = phase_to_angle_func(.5*(phase2-phase1))
         
     if verbose:
         print('-> retinotopic map calculation over ! ')
 
-    return .5*(power1+power2), retinotopy
+    return {'%s-power' % map_type:.5*(power1+power2),
+            '%s-retinotopy' % map_type:retinotopy}
 
 
 def build_trial_data(datafolder,

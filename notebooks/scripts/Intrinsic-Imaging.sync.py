@@ -29,14 +29,20 @@ datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
 params, (t, data) = physion.intrinsic.Analysis.load_raw_data(datafolder,
                                                             'up', run_id=2)
+spectrum = np.fft.fft(data, axis=0)
+phase = -np.angle(spectrum)
+if np.mean(np.abs(phase[params['Nrepeat'],:,:]))>np.pi/2.:
+   phase = (-np.angle(spectrum))%(2.*np.pi)-np.pi 
+plt.hist(phase[params['Nrepeat'],:,:].flatten())
 
 # %%
 # plot raw data
 def show_raw_data(t, data, params, maps,
+                  zero_two_pi_convention=True,
                   pixel=(200,200)):
     
     fig, AX = ge.figure(axes_extents=[[[5,1]],[[5,1]],[[1,1] for i in range(5)]],
-                        wspace=1.2, figsize=(1.,1.1))
+                        wspace=1.2, figsize=(1,1.1))
 
     AX[0][0].plot(t, data[:,pixel[0], pixel[1]], 'k', lw=1)
     ge.set_plot(AX[0][0], ylabel='pixel\n intensity (a.u.)', xlabel='time (s)',
@@ -60,7 +66,10 @@ def show_raw_data(t, data, params, maps,
              title='t=%.1fs' % t[-1])
 
     spectrum = np.fft.fft(data[:,pixel[0], pixel[1]], axis=0)
-    power, phase = np.abs(spectrum), np.angle(spectrum)
+    if zero_two_pi_convention:
+        power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
+    else:
+        power, phase = np.abs(spectrum), -np.angle(spectrum)
 
     AX[2][3].plot(np.arange(1, len(power)), power[1:], color=ge.gray, lw=1)
     AX[2][3].plot([params['Nrepeat']], [power[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
@@ -80,7 +89,7 @@ show_raw_data(t, data, params, maps, pixel=(150,150))
 # %%
 # compute maps
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
-maps = physion.intrinsic.Analysis.get_retinotopic_maps(datafolder, 'altitude')
+maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'altitude')
 
 
 # %%
