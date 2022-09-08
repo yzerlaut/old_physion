@@ -802,7 +802,7 @@ class AnalysisWindow(NewWindow):
             
             
     def refresh(self):
-        self.show_raw_data()
+        self.load_data()
 
     def update_imgButtons(self):
         self.img1Button.clear()
@@ -816,43 +816,52 @@ class AnalysisWindow(NewWindow):
 
     def load_data(self):
         
-        print('- loading and preprocessing data [...]')
-        # clear previous plots
-        for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
-            plot.clear()
+        datafolder = self.get_datafolder()
 
-        # load data
-        self.params,\
-            (self.t, self.data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
-                                                                   self.protocolBox.currentText(),
-                                                                   run_id=self.numBox.currentText())
+        if os.path.isdir(datafolder):
 
-        if float(self.hpBox.text())>0:
-            print('    - slow fluct removal [...]')
-            self.data = self.data-intrinsic_analysis.gaussian_filter1d(self.data,
-                                                    int(self.hpBox.text())*self.params['acq-freq'],
-                                                    mode='nearest', axis=0)
+            print('- loading and preprocessing data [...]')
+            # clear previous plots
+            for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
+                plot.clear()
 
-        if float(self.ssBox.text())>0:
-            print('    - spatial smoothing [...]')
-            self.data = self.data-intrinsic_analysis.gaussian_filter(self.data,
-                                                    sigma=(0,\
-                                                        int(self.ssBox.text())*self.params['acq-freq'],
-                                                        int(self.ssBox.text())*self.params['acq-freq']))
+            # load data
+            self.params,\
+                (self.t, self.data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
+                                                                       self.protocolBox.currentText(),
+                                                                       run_id=self.numBox.currentText())
+
+            if float(self.hpBox.text())>0:
+                print('    - slow fluct removal [...]')
+                self.data = self.data-intrinsic_analysis.gaussian_filter1d(self.data,
+                                                        int(self.hpBox.text())*self.params['acq-freq'],
+                                                        mode='nearest', axis=0)
+
+            if float(self.ssBox.text())>0:
+
+                print('    - spatial smoothing [...]')
+                self.data = self.data-intrinsic_analysis.gaussian_filter(self.data,
+                                                        sigma=(0,\
+                                                            int(self.ssBox.text())*self.params['acq-freq'],
+                                                            int(self.ssBox.text())*self.params['acq-freq']))
 
 
 
-        vasc_img = os.path.join(self.get_datafolder(), 'vasculature.npy')
-        if os.path.isfile(vasc_img):
-            self.IMAGES['vasculature'] = np.load(vasc_img)
+            vasc_img = os.path.join(self.get_datafolder(), 'vasculature.npy')
+            if os.path.isfile(vasc_img):
+                self.IMAGES['vasculature'] = np.load(vasc_img)
 
-        self.IMAGES['raw-img-start'] = self.data[0,:,:]
-        self.IMAGES['raw-img-mid'] = self.data[int(self.data.shape[0]/2),:,:]
-        self.IMAGES['raw-img-stop'] = self.data[-1,:,:]
-       
-        self.update_imgButtons()
+            self.IMAGES['raw-img-start'] = self.data[0,:,:]
+            self.IMAGES['raw-img-mid'] = self.data[int(self.data.shape[0]/2),:,:]
+            self.IMAGES['raw-img-stop'] = self.data[-1,:,:]
+           
+            self.update_imgButtons()
 
-        print('- data loaded !')
+            print('- data loaded !')
+
+        else:
+            print(' Data "%s" not found' % datafolder)
+
 
     def show_raw_data(self, with_raw_img=True):
         
@@ -933,7 +942,12 @@ class AnalysisWindow(NewWindow):
             print(' /!\ need both "up" and "down" maps to compute the altitude map !! /!\   ')
 
         self.update_imgButtons()
+
         print('     -> retinotopic maps calculus done !')
+
+        print(' current maps saved as: ', os.path.join(self.datafolder, 'draft-maps.npy'))
+
+        np.save(os.path.join(self.datafolder, 'draft-maps.npy'), self.IMAGES)
         
 
     def perform_area_segmentation(self):
@@ -950,13 +964,13 @@ class AnalysisWindow(NewWindow):
     def get_datafolder(self):
 
         if self.lastBox.isChecked():
-            self.datafolder = last_datafolder_in_dayfolder(day_folder(FOLDERS[self.folderB.currentText()])
-                                                           ,
-                                              with_NIdaq=False)
+            try:
+                self.datafolder = last_datafolder_in_dayfolder(day_folder(FOLDERS[self.folderB.currentText()]),
+                                                               with_NIdaq=False)
+            except FileNotFoundError:
+                pass # we do not update it
             #
-        elif self.datafolder!='':
-            pass
-        else:
+        if self.datafolder=='':
             print('need to set a proper datafolder !')
 
         return self.datafolder

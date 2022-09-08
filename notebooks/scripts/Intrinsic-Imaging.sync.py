@@ -14,163 +14,74 @@
 # ---
 
 # %%
+# --- import standard and custom modules
+import pprint, os, sys
 import numpy as np
-import pprint, os
 
-from physion.intrinsic.analysis import *
-
-from datavyz import graph_env_notebook as ge
-
-# %%
-FOLDERS = []
-root_datafolder = os.path.join(os.path.expanduser('~'), 'UNPROCESSED', 'intrinsic')
-for df in os.listdir(root_datafolder):
-    for tf in os.listdir(os.path.join(root_datafolder, df)):
-        FOLDERS.append(os.path.join(root_datafolder, df, tf))
-        print(len(FOLDERS)-1, ') ', len(os.listdir(FOLDERS[-1])))
+sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
+import physion
+from physion.dataviz.datavyz.datavyz import graph_env
+ge = graph_env('manuscript')
 
 # %%
-data['metadata']
-
+# --- load a data folder
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
+maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
+params, (t, data) = physion.intrinsic.Analysis.load_raw_data(datafolder,
+                                                            'up', run_id=2)
 
 # %%
-def init_data(datafolder,
-              spatial_subsampling=0):
+# plot raw data
+def show_raw_data(t, data, params, maps,
+                  pixel=(200,200)):
     
-    data = {}
+    fig, AX = ge.figure(axes_extents=[[[5,1]],[[5,1]],[[1,1] for i in range(5)]],
+                        wspace=1.2, figsize=(1.,1.1))
 
-    # # determining sampling time
-    success = True
-    for (l1, l2) in [('up', 'down'), ('left', 'right')]:
-        try:
-            io1 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l1), 'r')
-            io2 = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-1.nwb' % l2), 'r')
-            nwbfile1, nwbfile2 = io1.read(), io2.read()
-            imshape = resample_img(nwbfile1.acquisition['image_timeseries'].data[0,:,:], spatial_subsampling).shape
-            t = nwbfile1.acquisition['image_timeseries'].timestamps[:]
-            for l in [l1, l2]:
-                data[l] = {'t':[], 'movie':[], 'angle':[]}
-            data['dt'] = t[1]-t[0]
-            data['imshape'] = imshape
-            io1.close()
-            io2.close()
-        except BaseException as be:
-            print(be)
-            success = False
+    AX[0][0].plot(t, data[:,pixel[0], pixel[1]], 'k', lw=1)
+    ge.set_plot(AX[0][0], ylabel='pixel\n intensity (a.u.)', xlabel='time (s)',
+                xlim=[t[0], t[-1]])
+    ge.annotate(AX[0][0], 'pixel: (%i, %i) ' % pixel, (1,1), ha='right', color='r', size='x-small')
 
-    if success:
-        return data
-    else:
-        return None
+    AX[1][0].plot(params['STIM']['up-times'], params['STIM']['up-angle'], 'k', lw=1)
+    ge.set_plot(AX[1][0], ['left'], 
+                ylabel='bar stim.\n angle ($^o$)',
+                xlim=[t[0], t[-1]])
 
-def get_data(datafolder,
-             spatial_subsampling=0,
-             temporal_smoothing=0,
-             exclude=[],
-             std_exclude_factor=100.):
+    ge.image(np.rot90(maps['vasculature'], k=1), ax=AX[2][0],
+             title='green light')
 
-    data = init_data(datafolder, spatial_subsampling=spatial_subsampling)
-    data['folder'] = datafolder
-    if data is not None:
-        
-        # load metadata
-        if os.path.isfile(os.path.join(datafolder, 'metadata.npy')):
-            data['metadata'] = np.load(os.path.join(datafolder, 'metadata.npy'), allow_pickle=True).item()
-        
-        # average all data across recordings
-        for l, label in enumerate(['up', 'down', 'left', 'right']):
-            i=1
-            while os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (label, i))):
-                include = True
-                for e in exclude:
-                    if e in '%s-%i.nwb' % (label, i):
-                        include = False
+    AX[2][1].scatter([pixel[0]], [pixel[1]], s=100, color='none', edgecolor='r', lw=2)
+    ge.image(np.rot90(data[0,:,:], k=1), ax=AX[2][1],
+             title='t=%.1fs' % t[0])
 
-                if include:
-                    io = pynwb.NWBHDF5IO(os.path.join(datafolder, '%s-%i.nwb' % (label, i)), 'r')
-                    nwbfile = io.read()
-                    movie = nwbfile.acquisition['image_timeseries'].data[:,:,:]
+    AX[2][2].scatter([pixel[0]], [pixel[1]], s=100, color='none', edgecolor='r', lw=2)
+    ge.image(np.rot90(data[-1,:,:], k=1), ax=AX[2][2],
+             title='t=%.1fs' % t[-1])
 
-                    for j in range(movie.shape[0]):
-                        data[label]['movie'].append(resample_img(movie[j,:,:], spatial_subsampling))
-                        data[label]['angle'].append(nwbfile.acquisition['angle_timeseries'].data[j])
-                    
-                i+=1
-                
-            data[label]['movie'] = np.array(data[label]['movie'])
-            data[label]['t'] = np.arange(data[label]['movie'].shape[0])*data['dt']
-            data[label]['nrepeat'] = i-1
-            
-        compute_maps(data)
-        
-        
-        
-        return data
-    else:
-        return None
-    
-def perform_fft_analysis(data, direction):
-    
-    spectrum = np.fft.fft(data[direction]['movie'], axis=0)
+    spectrum = np.fft.fft(data[:,pixel[0], pixel[1]], axis=0)
     power, phase = np.abs(spectrum), np.angle(spectrum)
-    
-    return power[data[direction]['nrepeat'], :, :], phase[data[direction]['nrepeat'], :, :]
 
-def compute_maps(data):
-    # compute maps
-    for l, label in enumerate(['up', 'down', 'left', 'right']):
-        power, phase = perform_fft_analysis(data, label)
-        data[label]['power_map'] = power
-        data[label]['phase_map'] = phase
+    AX[2][3].plot(np.arange(1, len(power)), power[1:], color=ge.gray, lw=1)
+    AX[2][3].plot([params['Nrepeat']], [power[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
+    ge.annotate(AX[2][3], ' stim. freq.', (params['Nrepeat'], power[params['Nrepeat']]), 
+                color=ge.blue, xycoords='data', ha='left')
 
-    # altitude map
-    data['altitude_delay_map'] = 0.5*(data['up']['phase_map']-data['down']['phase_map'])
-    data['altitude_power_map'] = 0.5*(data['up']['power_map']+data['down']['power_map'])
+    AX[2][4].plot(np.arange(1, len(power)), phase[1:], color=ge.gray, lw=1)
+    AX[2][4].plot([params['Nrepeat']], [phase[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
 
-    # azimuthal map
-    data['azimuth_delay_map'] = 0.5*(data['left']['phase_map']-data['right']['phase_map'])
-    data['azimuth_power_map'] = 0.5*(data['left']['power_map']+data['right']['power_map'])
+    ge.set_plot(AX[2][3], xscale='log', yscale='log', 
+                xlim=[.99,101], xlabel='freq (sample unit)', ylabel='power (a.u.)')
+    ge.set_plot(AX[2][4], xscale='log', 
+                xlim=[.99,101], xlabel='freq (sample unit)', ylabel='phase (Rd)')
 
-
+show_raw_data(t, data, params, maps, pixel=(150,150))
 
 # %%
+# compute maps
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
+maps = physion.intrinsic.Analysis.get_retinotopic_maps(datafolder, 'altitude')
 
-def show_raw_data(data, pixel=(200,200), direction='down'):
-    
-    fig, AX = ge.figure(axes_extents=[[[5,1]],[[1,1],[2,1],[2,1]]], hspace=0.2)
-    
-    AX[0][0].plot(data[direction]['t'], data[direction]['movie'][:,pixel[0], pixel[1]], 'k', lw=1)
-    yscale=np.diff(AX[0][0].get_ylim())[0]/4.
-    ge.draw_bar_scales(AX[0][0], Xbar=10, Xbar_label='10s', Ybar=yscale, 
-                      Ybar_label='$%.0f\perthousand$' % (1000*yscale/data[direction]['movie'][:,pixel[0], pixel[1]].mean()))
-    ge.set_plot(AX[0][0], [], xlim=[0, data[direction]['t'][-1]], 
-                title='raw reflect. data, pixel: (%i,%i), protocol "%s", %s' % (*pixel, direction, 
-                                                                              '202'+data['folder'].split('202')[1]))
-    
-    AX[1][0].imshow(data[direction]['movie'][0,:,:], cmap='gray')
-    AX[1][0].scatter([pixel[0]], [pixel[1]], s=100, color='none', edgecolor='r', lw=3)
-    AX[1][0].set_title('pixel loc.')
-    
-    spectrum = np.fft.fft(data[direction]['movie'][:,pixel[0], pixel[1]], axis=0)
-    power, phase = np.abs(spectrum), np.angle(spectrum)
-    AX[1][1].plot(power, color=ge.gray)
-    AX[1][1].plot([data[direction]['nrepeat']], [power[data[direction]['nrepeat']]], 'o', color=ge.blue, ms=10)
-    ge.annotate(AX[1][1], 'stim. freq. \n', (data[direction]['nrepeat'], power[data[direction]['nrepeat']]), 
-                color=ge.blue, xycoords='data', ha='right')
-    AX[1][2].plot(phase, color=ge.gray)
-    AX[1][2].plot([data[direction]['nrepeat']], [phase[data[direction]['nrepeat']]], 'o', color=ge.blue, ms=10)
-    ge.set_plot(AX[1][1], xscale='log', yscale='log', 
-                ylim=[power.min(), 10*power[data[direction]['nrepeat']]],
-                xlabel='freq (sample unit)', ylabel='power', xlim=[0.9, len(power)])
-    ge.set_plot(AX[1][2], xscale='log', xlabel='freq (sample unit)', ylabel='phase (Rd)', yticks=[-np.pi, 0, np.pi],
-                yticks_labels=['-$\pi$', '0', '$\pi$'], xlim=[0.9, len(power)])
-    
-    return fig
-    
-ge.save_on_desktop(show_raw_data(DATA[0], (200,200), 'left'), 'fig.png')
-#show_raw_data(DATA[1], (250,210), 'down')
-#show_raw_data(DATA[1], (250,210), 'right')
-#show_raw_data(DATA[1], (250,210), 'left')
 
 # %%
 DATA = []

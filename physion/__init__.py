@@ -4,7 +4,8 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from misc.style import set_dark_style, set_app_icon
 from misc.colors import build_dark_palette
-import analysis, dataviz, visual_stim, assembling
+
+import analysis, dataviz, visual_stim, assembling, intrinsic
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 try:

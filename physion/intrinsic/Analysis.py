@@ -105,18 +105,39 @@ def perform_fft_analysis(data, nrepeat,
         return power[nrepeat, :, :], phase[nrepeat, :, :]
 
 
-def get_retinotopic_maps(datafolder, map_type,
-                         altitude_Zero_shift=10,
-                         azimuth_Zero_shift=60,
-                         run_id='sum',
-                         zero_two_pi_convention=False):
+def compute_maps(data):
+    # compute maps
+    for l, label in enumerate(['up', 'down', 'left', 'right']):
+        power, phase = perform_fft_analysis(data, label)
+        data[label]['power_map'] = power
+        data[label]['phase_map'] = phase
+
+    # altitude map
+    data['altitude_delay_map'] = 0.5*(data['up']['phase_map']-data['down']['phase_map'])
+    data['altitude_power_map'] = 0.5*(data['up']['power_map']+data['down']['power_map'])
+
+    # azimuthal map
+    data['azimuth_delay_map'] = 0.5*(data['left']['phase_map']-data['right']['phase_map'])
+    data['azimuth_power_map'] = 0.5*(data['left']['power_map']+data['right']['power_map'])
+
+
+def compute_retinotopic_maps(datafolder, map_type,
+                             altitude_Zero_shift=10,
+                             azimuth_Zero_shift=60,
+                             run_id='sum',
+                             zero_two_pi_convention=False,
+                             verbose=True):
+
+    if verbose:
+        print('- computing retinotopic maps [...] ')
 
     if map_type=='altitude':
+        # load raw data
         p, (t, data1) = load_raw_data(datafolder, 'up',
                                       run_id=run_id)
         p, (t, data2) = load_raw_data(datafolder, 'down',
                                       run_id=run_id)
-
+        # translate phase to angle of stimulus
         if zero_two_pi_convention:
             phase_to_angle_func = interp1d(np.linspace(0, 2*np.pi, len(p['STIM']['up-angle'])),
                                            p['STIM']['up-angle'], kind='linear')
@@ -139,6 +160,7 @@ def get_retinotopic_maps(datafolder, map_type,
 
     power1, phase1 = perform_fft_analysis(data1, p['Nrepeat'],
                                           zero_two_pi_convention=zero_two_pi_convention)
+
     power2, phase2 = perform_fft_analysis(data2, p['Nrepeat'],
                                           zero_two_pi_convention=zero_two_pi_convention)
 
@@ -149,7 +171,11 @@ def get_retinotopic_maps(datafolder, map_type,
     else:
         retinotopy = np.clip(retinotopy, -np.pi, np.pi)
         
+    if verbose:
+        print('-> retinotopic map calculation over ! ')
+
     return .5*(power1+power2), retinotopy
+
 
 def build_trial_data(datafolder,
                      zero_two_pi_convention=False):

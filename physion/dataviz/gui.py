@@ -3,10 +3,10 @@ import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 import pyqtgraph as pg
 
-import plots
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
+from . import plots
 from assembling.saving import day_folder, generate_filename_path,\
         list_dayfolder, get_files_with_extension
 from assembling.dataset import Dataset, MODALITIES
