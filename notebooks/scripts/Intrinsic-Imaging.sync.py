@@ -14,10 +14,11 @@
 # ---
 
 # %%
-# --- import standard and custom modules
+# --- load standard modules
 import pprint, os, sys
 import numpy as np
-
+import matplotlib.pylab as plt
+# --- physion modules
 sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
 import physion
 from physion.dataviz.datavyz.datavyz import graph_env
@@ -28,12 +29,19 @@ ge = graph_env('manuscript')
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
 params, (t, data) = physion.intrinsic.Analysis.load_raw_data(datafolder,
-                                                            'up', run_id=2)
+                                                             'up', run_id=2)
 spectrum = np.fft.fft(data, axis=0)
-phase = -np.angle(spectrum)
-if np.mean(np.abs(phase[params['Nrepeat'],:,:]))>np.pi/2.:
-   phase = (-np.angle(spectrum))%(2.*np.pi)-np.pi 
+
+# %%
+rel_power = np.abs(spectrum)[params['Nrepeat'],:,:]/data.mean(axis=0)
+
+# %%
+phase = (np.angle(spectrum)+2*np.pi)%(2*np.pi)-np.pi
+#phase = np.angle(spectrum)
+#if np.mean(np.abs(phase[params['Nrepeat'],:,:]))>np.pi/2.:
+#phase = (-np.angle(spectrum))%(2.*np.pi)-np.pi 
 plt.hist(phase[params['Nrepeat'],:,:].flatten())
+
 
 # %%
 # plot raw data
@@ -73,110 +81,44 @@ def show_raw_data(t, data, params, maps,
 
     AX[2][3].plot(np.arange(1, len(power)), power[1:], color=ge.gray, lw=1)
     AX[2][3].plot([params['Nrepeat']], [power[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
-    ge.annotate(AX[2][3], ' stim. freq.', (params['Nrepeat'], power[params['Nrepeat']]), 
+    ge.annotate(AX[2][3], '  stim. freq.', (params['Nrepeat'], power[params['Nrepeat']]), 
                 color=ge.blue, xycoords='data', ha='left')
 
     AX[2][4].plot(np.arange(1, len(power)), phase[1:], color=ge.gray, lw=1)
     AX[2][4].plot([params['Nrepeat']], [phase[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
 
     ge.set_plot(AX[2][3], xscale='log', yscale='log', 
-                xlim=[.99,101], xlabel='freq (sample unit)', ylabel='power (a.u.)')
+                xlim=[.99,101], ylim=[power[1:].max()/120.,1.5*power[1:].max()],
+                xlabel='freq (sample unit)', ylabel='power (a.u.)')
     ge.set_plot(AX[2][4], xscale='log', 
                 xlim=[.99,101], xlabel='freq (sample unit)', ylabel='phase (Rd)')
 
 show_raw_data(t, data, params, maps, pixel=(150,150))
 
 # %%
+# --- load standard modules
+import pprint, os, sys
+import numpy as np
+import matplotlib.pylab as plt
+# --- physion modules
+sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
+import physion
+from physion.dataviz.datavyz.datavyz import graph_env
+ge = graph_env('manuscript')
+
 # compute maps
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
 maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'altitude')
-
-
-# %%
-DATA = []
-for f in FOLDERS:
-    data = get_data(f)
-    show_retinotopic_maps(data)
-
+maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'azimuth')
 
 # %%
-def show_single_cond_maps(data, direction='azimuthal'):
-    
-    if direction=='altitude':
-        plus, minus = 'up', 'down'
-    else:
-        plus, minus = 'left', 'right'
-        
-    fig, AX = ge.figure(axes=(2,3), top=1, wspace=0.3, hspace=0.5, right=3)
-    ge.annotate(AX[0][0], '%s maps' % direction, (0.5,1), ha='center', va='top', 
-                xycoords='figure fraction', size='small')
-    
-    AX[0][0].imshow(data[plus]['phase_map'], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    AX[0][1].imshow(data[minus]['phase_map'], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    ge.annotate(AX[0][0], '$\phi$+', (1,1), ha='right', va='top', color='w')
-    ge.annotate(AX[0][1], '$\phi$-', (1,1), ha='right', va='top', color='w')
-    ge.title(AX[0][0], 'phase map: "%s"' % plus, size='xx-small')
-    ge.title(AX[0][1], 'phase map: "%s"' % minus, size='xx-small')
-    ge.bar_legend(fig, X=[-np.pi, 0, np.pi], label='phase', 
-                  colormap=plt.cm.brg, continuous=True,
-                  ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$', '0', '$\pi$'],
-                  bounds=[-np.pi, np.pi], 
-                  colorbar_inset=dict(rect=[.85,.8,.02,.15], facecolor=None))
-    
-    AX[1][0].imshow(data[plus]['power_map'], cmap=plt.cm.binary)
-    AX[1][1].imshow(data[minus]['power_map'], cmap=plt.cm.binary)
-    ge.title(AX[1][0], 'power map: "%s"' % plus, size='xx-small')
-    ge.title(AX[1][1], 'power map: "%s"' % minus, size='xx-small')
-    ge.bar_legend(fig, label='power', colormap=plt.cm.binary,
-                  colorbar_inset=dict(rect=[.85,.5, .02,.15], facecolor=None))
-    
-    AX[2][0].imshow(data[plus]['phase_map']-data[minus]['phase_map'], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    AX[2][1].imshow(data[plus]['phase_map']+data[minus]['phase_map'], cmap=plt.cm.viridis)
-    ge.annotate(AX[2][0], '$\phi^{+}$-$\phi^{-}$', (1,1), ha='right', va='top', color='w')
-    ge.annotate(AX[2][1], '$\phi^{+}$+$\phi^{-}$', (1,1), ha='right', va='top', color='w')
-    ge.title(AX[2][0], 'double retinotopy map', size='xx-small')
-    ge.title(AX[2][1], 'double delay map', size='xx-small')
-    
-    for ax in ge.flat(AX):
-        ax.axis('off')
-        
-    return fig
-
-ge.save_on_desktop(show_single_cond_maps(DATA[0],  'azimuth'), 'fig.png')
-#fig = show_maps(DATA[1],  'azimuthal')
-
+fig = physion.intrinsic.Analysis.plot_delay_power_maps(maps, 'down')
 
 # %%
-def show_retinotopic_maps(data):
-    
-    fig, AX = ge.figure(axes=(2,2), top=1, wspace=0., hspace=0.2, right=6, bottom=0, left=0.2)
-    
-    ge.title(AX[0][0], 'altitude maps')
-    ge.title(AX[0][1], 'azimuth maps')
-    ge.annotate(AX[0][0], 'delay', (0,0.5), ha='right', va='center', rotation=90)
-    ge.annotate(AX[1][0], 'magnitude', (0,0.5), ha='right', va='center', rotation=90)
-    
-    AX[0][0].imshow(data['altitude_delay_map'], cmap=plt.cm.brg, vmin=-np.pi/2, vmax=np.pi/2)
-    AX[0][1].imshow(data['azimuth_delay_map'], cmap=plt.cm.brg, vmin=-np.pi/2, vmax=np.pi/2)
-    
-    ge.bar_legend(fig, X=[-np.pi, 0, np.pi], label='phase', 
-                  colormap=plt.cm.brg, continuous=True,
-                  ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$/2', '0', '$\pi$/2'],
-                  bounds=[-np.pi, np.pi], 
-                  colorbar_inset=dict(rect=[.8,.6,.015,.3], facecolor=None))
-    
-    AX[1][0].imshow(data['altitude_power_map'], cmap=plt.cm.binary)
-    AX[1][1].imshow(data['azimuth_power_map'], cmap=plt.cm.binary)
-    ge.bar_legend(fig, label='power', colormap=plt.cm.binary,
-                  colorbar_inset=dict(rect=[.8,.05, .015,.3], facecolor=None))
-    
-    
-    for ax in ge.flat(AX):
-        ax.axis('off')
-        
-    return fig
+fig = physion.intrinsic.Analysis.plot_retinotopic_maps(maps, 'azimuth')
 
-ge.save_on_desktop(show_retinotopic_maps(DATA[0]), 'fig.png')
+# %%
+trial = physion.intrinsic.Analysis.build_trial_data(maps)
 
 # %% [markdown]
 # # Visual Area segmentation
@@ -218,15 +160,7 @@ params = {
 # ### Generating visual sign map
 
 # %%
-data = DATA[0]
-trial = rm.RetinotopicMappingTrial(altPosMap=data['altitude_delay_map']*40/np.pi*2,
-                                   aziPosMap=data['azimuth_delay_map']*40/np.pi*2,
-                                   altPowerMap=data['altitude_power_map']*10,
-                                   aziPowerMap=data['azimuth_power_map']*10,
-                                   vasculatureMap=data['up']['movie'][0,:,:],
-                                   mouseID=data['metadata']['subject'].replace('Mouse', 'ouse'),
-                                   dateRecorded='202'+data['folder'].split('202')[1],
-                                   comments='This is an example.',
+trial = rm.RetinotopicMappingTrial(**trial,
                                    params=params)
 
 # %%
@@ -271,10 +205,10 @@ _ = trial.plotFinalPatchBorders2()
 
 # %% [markdown]
 # # Demo of FFT analysis of periodic stimulation
+# Strategy of Kalatsky & Stryker, _Neuron_ (2003). See: http://doi.org/10.1016/s0896-6273(03)00286-1
 
 # %%
 # demo of analysis motivation
-from datavyz import graph_env_notebook as ge
 import numpy as np
 
 max_sample = 20
@@ -285,21 +219,25 @@ def from_angle_to_fraction(angle):
 def demo_fig(max_sample,
              nrepeat=10,
              n_sample_per_repeat= 137,
+             signal_amplitude=0.8,
              noise_fraction=0.2,
              slow_fraction=0.2,
              seed=10):
     
     np.random.seed(seed)
     fig, AX = ge.figure(axes_extents=[[[2,1]],[[1,1],[1,1]]], figsize=(1.4,1), wspace=0.7, hspace=0.2)
+    
     x = -np.exp(-(np.arange(n_sample_per_repeat)-max_sample)**2/30)+3500
     X = np.concatenate([x for n in range(nrepeat)])
     X += noise_fraction*np.random.randn(len(X))+slow_fraction*np.sin(np.linspace(0, 10, len(X)))
+    
     AX[0][0].plot(X, 'k-')
     AX[0][0].plot(x, lw=3, color=ge.orange)
-    ge.draw_bar_scales(AX[0][0], Xbar=n_sample_per_repeat, Xbar_label='1 repeat', Ybar=1, Ybar_label='signal', remove_axis=True)
+    ge.draw_bar_scales(AX[0][0], Xbar=n_sample_per_repeat, Xbar_label='1repeat',
+                       Ybar=1, Ybar_label='signal', remove_axis=True)
     ge.title(AX[0][0], 'for one repeat, event @ sample: %i /%i , %i repeats' % (max_sample, n_sample_per_repeat, nrepeat), size='small')
     spectrum = np.fft.fft(X)
-    power, phase = np.abs(spectrum), np.angle(spectrum)
+    power, phase = np.abs(spectrum)/len(x), np.angle(spectrum)
     AX[1][0].plot(power)
     AX[1][0].plot([nrepeat], [power[nrepeat]], 'o', color=ge.red)
     AX[1][1].plot(phase)

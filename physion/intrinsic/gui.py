@@ -617,10 +617,6 @@ class AnalysisWindow(NewWindow):
         self.img2 = pg.ImageItem()
         self.img2B.addItem(self.img2)
 
-        self.img = np.random.randn(30,30)
-        self.img1.setImage(self.img)
-        self.img2.setImage(self.img)
-
         for i in range(3):
             self.graphics_layout.ci.layout.setColumnStretchFactor(i, 1)
         self.graphics_layout.ci.layout.setColumnStretchFactor(3, 2)
@@ -751,7 +747,7 @@ class AnalysisWindow(NewWindow):
         self.img2Button.currentIndexChanged.connect(self.update_img2)
 
         # -------------------------------------------------------
-        self.pixROI = pg.ROI((10, 10), size=(10,10),
+        self.pixROI = pg.ROI((0, 0), size=(10,10),
                              pen=pg.mkPen((255,0,0,255)),
                              rotatable=False,resizable=False)
         self.pixROI.sigRegionChangeFinished.connect(self.moved_pixels)
@@ -814,6 +810,9 @@ class AnalysisWindow(NewWindow):
     def reset(self):
         self.IMAGES = {}
 
+    def hitting_space(self):
+        self.load_data()
+
     def load_data(self):
         
         datafolder = self.get_datafolder()
@@ -821,6 +820,7 @@ class AnalysisWindow(NewWindow):
         if os.path.isdir(datafolder):
 
             print('- loading and preprocessing data [...]')
+
             # clear previous plots
             for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
                 plot.clear()
@@ -832,6 +832,7 @@ class AnalysisWindow(NewWindow):
                                                                        run_id=self.numBox.currentText())
 
             if float(self.hpBox.text())>0:
+
                 print('    - slow fluct removal [...]')
                 self.data = self.data-intrinsic_analysis.gaussian_filter1d(self.data,
                                                         int(self.hpBox.text())*self.params['acq-freq'],
@@ -857,13 +858,18 @@ class AnalysisWindow(NewWindow):
            
             self.update_imgButtons()
 
+            xpix, ypix = self.get_pixel_value()
+            if (xpix+ypix)==0:
+                self.pixROI.setPos((int(self.data.shape[1]/2), int(self.data.shape[2]/2)))
+            self.show_raw_data()
+
             print('- data loaded !')
 
         else:
             print(' Data "%s" not found' % datafolder)
 
 
-    def show_raw_data(self, with_raw_img=True):
+    def show_raw_data(self):
         
         # clear previous plots
         for plot in [self.raw_trace, self.spectrum_power, self.spectrum_phase]:
@@ -890,10 +896,11 @@ class AnalysisWindow(NewWindow):
             self.raw_trace.plot(self.t, new_data)
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
-        if self.twoPiBox.isChecked():
-            power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
-        else:
-            power, phase = np.abs(spectrum), np.angle(spectrum)
+        power, phase = np.abs(spectrum), (2*np.pi+np.angle(spectrum))%(2.*np.pi)-np.pi
+        # if self.twoPiBox.isChecked():
+            # power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
+        # else:
+            # power, phase = np.abs(spectrum), np.angle(spectrum)
 
         x = np.arange(len(power))
         self.spectrum_power.plot(np.log10(x[1:]), np.log10(power[1:]))
@@ -914,12 +921,16 @@ class AnalysisWindow(NewWindow):
 
         print('- computing phase maps [...]')
 
-        power_map, phase_map = intrinsic_analysis.perform_fft_analysis(self.data, 
-                                                                       self.params['Nrepeat'],
-                                        zero_two_pi_convention=self.twoPiBox.isChecked())
+        intrinsic_analysis.compute_delay_power_maps(self.get_datafolder(), 
+                                                    self.protocolBox.currentText(),
+                                                    run_id=self.numBox.currentText(),
+                                                    maps=self.IMAGES)
 
-        self.IMAGES['phase-map-%s' % self.protocolBox.currentText()] = phase_map 
-        self.IMAGES['power-map-%s' % self.protocolBox.currentText()] = power_map 
+
+        intrinsic_analysis.plot_delay_power_maps(self.IMAGES,
+                                                 self.protocolBox.currentText())
+
+        intrinsic_analysis.ge.show()
 
         self.update_imgButtons()
         print(' -> phase maps calculus done !')
@@ -927,38 +938,48 @@ class AnalysisWindow(NewWindow):
 
     def compute_retinotopic_maps(self):
 
-        print('- computing retinotopic maps [...]')
 
-        if ('phase-map-up' in self.IMAGES) and ('phase-map-down' in self.IMAGES):
-            self.IMAGES['phase-map-altitude'] = .5*(self.IMAGES['phase-map-down']-self.IMAGES['phase-map-up'])
-            self.IMAGES['power-map-altitude'] = .5*(self.IMAGES['power-map-down']+self.IMAGES['power-map-up'])
+        if ('up-phase' in self.IMAGES) and ('down-phase' in self.IMAGES):
+            print('- computing altitude map [...]')
+            intrinsic_analysis.compute_retinotopic_maps(None, 'altitude',
+                                                        maps=self.IMAGES,
+                                                        keep_maps=True)
+            fig1 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
+                                                            'altitude')
         else:
+            fig1 = None
             print(' /!\ need both "up" and "down" maps to compute the altitude map !! /!\   ')
             
-        if ('phase-map-right' in self.IMAGES) and ('phase-map-left' in self.IMAGES):
-            self.IMAGES['phase-map-azimuth'] = .5*(self.IMAGES['phase-map-left']-self.IMAGES['phase-map-right'])
-            self.IMAGES['power-map-azimuth'] = .5*(self.IMAGES['power-map-left']+self.IMAGES['power-map-right'])
+        if ('right-phase' in self.IMAGES) and ('left-phase' in self.IMAGES):
+            print('- computing azimuth map [...]')
+            intrinsic_analysis.compute_retinotopic_maps(None, 'azimuth',
+                                                        maps=self.IMAGES,
+                                                        keep_maps=True)
+            fig2 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
+                                                            'azimuth')
         else:
-            print(' /!\ need both "up" and "down" maps to compute the altitude map !! /!\   ')
+            fig2 = None
+            print(' /!\ need both "right" and "left" maps to compute the altitude map !! /!\   ')
+
+        if (fig1 is not None) or (fig2 is not None):
+            intrinsic_analysis.ge.show()
 
         self.update_imgButtons()
 
-        print('     -> retinotopic maps calculus done !')
+        print(' -> retinotopic maps calculus done !')
 
-        print(' current maps saved as: ', os.path.join(self.datafolder, 'draft-maps.npy'))
+        print('         current maps saved as: ', os.path.join(self.datafolder, 'draft-maps.npy'))
 
         np.save(os.path.join(self.datafolder, 'draft-maps.npy'), self.IMAGES)
         
 
     def perform_area_segmentation(self):
         
-        
-        print('disabled for now... ')
-        #data = intrinsic_analysis.build_trial_data(self.get_datafolder(),
-        #                                 zero_two_pi_convention=self.twoPiBox.isChecked())
-        #trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
-
-        #trial.processTrial(isPlot=True)
+        print('- performing area segmentation [...]')
+        data = intrinsic_analysis.build_trial_data(self.IMAGES)
+        trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
+        trial.processTrial(isPlot=True)
+        print(' -> area segmentation done ! ')
         
 
     def get_datafolder(self):
