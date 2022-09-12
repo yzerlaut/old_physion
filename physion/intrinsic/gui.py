@@ -149,7 +149,7 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - bar size (degree):'),
                         spec='large-left')
         self.barBox = QtWidgets.QLineEdit()
-        self.barBox.setText('6')
+        self.barBox.setText('10')
         self.add_widget(self.barBox, spec='small-right')
 
         self.add_widget(QtWidgets.QLabel('  - spatial sub-sampling (px):'),
@@ -161,15 +161,9 @@ class MainWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - acq. freq. (Hz):'),
                         spec='large-left')
         self.freqBox = QtWidgets.QLineEdit()
-        self.freqBox.setText('5')
+        self.freqBox.setText('20')
         self.add_widget(self.freqBox, spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - flick. freq. (Hz) /!\ > acq:'),
-                        spec='large-left')
-        self.flickBox = QtWidgets.QLineEdit()
-        self.flickBox.setText('10')
-        self.add_widget(self.flickBox, spec='small-right')
-        
         self.demoBox = QtWidgets.QCheckBox("demo mode")
         self.demoBox.setStyleSheet("color: gray;")
         self.add_widget(self.demoBox, spec='large-left')
@@ -286,8 +280,9 @@ class MainWindow(NewWindow):
         self.Nrepeat = int(self.repeatBox.text()) #
         self.period = float(self.periodBox.text()) # degree / second
         self.bar_size = float(self.barBox.text()) # degree / second
-        self.dt_save, self.dt = 1./float(self.freqBox.text()), 1./float(self.flickBox.text())
-        
+        self.dt = 1./float(self.freqBox.text())
+        self.flip_index=0
+
         xmin, xmax = 1.15*np.min(self.stim.x), 1.15*np.max(self.stim.x)
         zmin, zmax = 1.2*np.min(self.stim.z), 1.2*np.max(self.stim.z)
 
@@ -352,49 +347,38 @@ class MainWindow(NewWindow):
         
     def update_dt(self):
 
-        self.tSave = time.time()
-        self.t = self.tSave
+        self.t = time.time()
 
-        while (self.t-self.tSave)<=self.dt_save:
+        # fetch camera frame
+        if self.camBox.isChecked():
+            self.TIMES.append(time.time()-self.t0_episode)
+            self.FRAMES.append(self.get_frame())
 
-            self.t = time.time()
-            
-            # camera frame first
-            if self.camBox.isChecked():
-                # # fetch image
-                self.img += self.get_frame()
-                self.nSave+=1.0
 
-            # then preenting stim
+        # update presented stim every X frame
+        self.flip_index += 1
+        if self.flip_index==3:
+
             self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
             angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
-            #patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
-            #                             angle, self.bar_size)
+            patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
+                                         angle, self.bar_size)
+            for pattern in patterns:
+                pattern.draw()
+            try:
+                self.stim.win.flip()
+            except BaseException:
+                pass
+            self.flip_index=0
 
-            #for pattern in patterns:
-            #    pattern.draw()
-            #try:
-            #    self.stim.win.flip()
-            #except BaseException:
-            #    pass
-
-            # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
-            self.flip = (False if self.flip else True) # flip the flag
-
-            # update time
-            self.t = time.time()
-            
-        # self.flip = (False if self.flip else True) # flip the flag
-        
-        if self.camBox.isChecked():
-            self.save_img() # after saving, e-init image to zero here
+        self.flip = (False if self.flip else True) # flip the flag at each frame
 
         # checking if not episode over
         if (time.time()-self.t0_episode)>(self.period*self.Nrepeat):
             if self.camBox.isChecked():
                 self.write_data() # writing data when over
-            # print('time since episode start:', time.time()-self.t0_episode)
-            self.t0_episode, self.img, self.nSave = time.time(), self.new_img(), 0
+            self.t0_episode = time.time()
+            self.flip_index=0
             self.FRAMES, self.TIMES = [], [] # re init data
             self.iEp += 1
             
@@ -462,7 +446,7 @@ class MainWindow(NewWindow):
             self.running = True
 
             # initialization of data
-            self.FRAMES, self.TIMES = [], []
+            self.FRAMES, self.TIMES, self.flip_index = [], [], 0
             self.img = self.get_frame()
             self.imgsize = self.img.shape
             self.pimg.setImage(self.img)
@@ -502,7 +486,7 @@ class MainWindow(NewWindow):
 
         elif (self.stim is not None) and (self.STIM is not None):
 
-            it = int((time.time()-self.t0_episode)/self.dt_save)%int(self.period/self.dt_save)
+            it = int((time.time()-self.t0_episode)/self.dt)%int(self.period/self.dt)
             protocol = self.STIM['label'][self.iEp%len(self.STIM['label'])]
             if protocol=='left':
                 img = np.random.randn(*self.stim.x.shape)+\
