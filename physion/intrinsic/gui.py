@@ -358,23 +358,25 @@ class MainWindow(NewWindow):
         while (self.t-self.tSave)<=self.dt_save:
 
             self.t = time.time()
-
-            self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
-            angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
-            patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
-                                         angle, self.bar_size)
-
-            for pattern in patterns:
-                pattern.draw()
-            try:
-                self.stim.win.flip()
-            except BaseException:
-                pass
-
+            
+            # camera frame first
             if self.camBox.isChecked():
                 # # fetch image
                 self.img += self.get_frame()
                 self.nSave+=1.0
+
+            # then preenting stim
+            self.iTime = int(((self.t-self.t0_episode)%self.period)/self.dt) # find image time, here %period
+            angle = self.STIM[self.STIM['label'][self.iEp%len(self.STIM['label'])]+'-angle'][self.iTime]
+            #patterns = self.get_patterns(self.STIM['label'][self.iEp%len(self.STIM['label'])],
+            #                             angle, self.bar_size)
+
+            #for pattern in patterns:
+            #    pattern.draw()
+            #try:
+            #    self.stim.win.flip()
+            #except BaseException:
+            #    pass
 
             # time.sleep(max([self.dt-(time.time()-self.t), 0])) 
             self.flip = (False if self.flip else True) # flip the flag
