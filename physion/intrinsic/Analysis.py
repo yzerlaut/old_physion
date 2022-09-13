@@ -199,42 +199,33 @@ def build_trial_data(maps):
 def plot_delay_power_maps(maps, direction):
 
 
-    fig, AX = ge.figure(axes=(1,3), top=1.5, wspace=0.3, hspace=0.5, 
+    fig, AX = ge.figure(axes=(1,2), top=1.5, wspace=0.3, hspace=0.5, 
                         left=0.2, bottom=0.5, right=5, reshape_axes=False)
 
     ge.annotate(fig, '\n"%s" protocol' % direction, (0.5,1), ha='center', va='top',
                 xycoords='figure fraction', size='small')
 
-    AX[0][0].imshow(maps['%s-phase' % direction], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    ge.title(AX[0][0], 'phase map', size='xx-small')
-
-    ge.bar_legend(AX[0][0], X=[-np.pi, 0, np.pi], label='phase (Rd)',
-                  colormap=plt.cm.brg, continuous=True,
-                  ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$', '0', '$\pi$'],
-                  bounds=[-np.pi, np.pi],
-                  colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
-
+    # power first
     bounds = [np.min(maps['%s-power' % direction]),
               np.max(maps['%s-power' % direction])]
 
-    AX[1][0].imshow(maps['%s-power' % direction], cmap=plt.cm.binary, vmin=bounds[0], vmax=bounds[1])
+    AX[0][0].imshow(maps['%s-power' % direction], cmap=plt.cm.binary, vmin=bounds[0], vmax=bounds[1])
 
-    ge.title(AX[1][0], 'power map', size='xx-small')
+    ge.title(AX[0][0], 'power map', size='xx-small')
 
-    ge.bar_legend(AX[1][0],
+    ge.bar_legend(AX[0][0],
                   label=' rel. power \n ($10^{-4}$ a.u.)', colormap=plt.cm.binary,
                   bounds=bounds, ticks=bounds, ticks_labels=['%.1f'%(1e4*b) for b in bounds],
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
 
-    bounds = [np.min(maps['%s-angle' % direction]),
-              np.max(maps['%s-angle' % direction])]
+    # then phase of the stimulus
+    AX[1][0].imshow(maps['%s-phase' % direction], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
+    ge.title(AX[1][0], 'phase map', size='xx-small')
 
-    AX[2][0].imshow(maps['%s-angle' % direction], cmap=plt.cm.PRGn, vmin=bounds[0], vmax=bounds[1])
-    ge.title(AX[2][0], 'angle/delay map', size='xx-small')
-
-    ge.bar_legend(AX[2][0],
-                  label='angle (deg.)\n visual field', colormap=plt.cm.PRGn,
-                  bounds=bounds, ticks=bounds, ticks_labels=['%i'%b for b in bounds],
+    ge.bar_legend(AX[1][0], X=[-np.pi, 0, np.pi], label='stimulus\n phase (Rd)',
+                  colormap=plt.cm.brg, continuous=True,
+                  ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$', '0', '$\pi$'],
+                  bounds=[-np.pi, np.pi],
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
 
     for ax in ge.flat(AX):

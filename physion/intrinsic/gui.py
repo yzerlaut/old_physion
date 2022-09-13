@@ -789,8 +789,8 @@ class AnalysisWindow(NewWindow):
     def update_imgButtons(self):
         self.img1Button.clear()
         self.img2Button.clear()
-        self.img1Button.addItems(list(self.IMAGES.keys()))
-        self.img2Button.addItems(list(self.IMAGES.keys()))
+        self.img1Button.addItems([f for f in self.IMAGES.keys() if 'func' not in f])
+        self.img2Button.addItems([f for f in self.IMAGES.keys() if 'func' not in f])
 
        
     def reset(self):
