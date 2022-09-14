@@ -17,6 +17,80 @@ import skimage.transform as tsfm
 import cv2
 import matplotlib.colors as col
 from matplotlib import cm
+import scipy.ndimage as ni
+
+def plot_mask(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=None, closingIteration=None):
+    """
+    plot mask borders in a given color
+    """
+
+    if not plotAxis:
+        f = plt.figure()
+        plotAxis = f.add_subplot(111)
+
+    cmap1 = col.ListedColormap(color, 'temp')
+    cm.register_cmap(cmap=cmap1)
+
+    if zoom != 1:
+        mask = ni.interpolation.zoom(mask, zoom, order=0)
+
+    mask2 = mask.astype(np.float32)
+    mask2[np.invert(np.isnan(mask2))] = 1.
+    mask2[np.isnan(mask2)] = 0.
+
+    struc = ni.generate_binary_structure(2, 2)
+    if borderWidth:
+        border = mask2 - ni.binary_erosion(mask2, struc, iterations=borderWidth).astype(np.float32)
+    else:
+        border = mask2 - ni.binary_erosion(mask2, struc).astype(np.float32)
+
+    if closingIteration:
+        border = ni.binary_closing(border, iterations=closingIteration).astype(np.float32)
+
+    border[border == 0] = np.nan
+
+    currfig = plotAxis.imshow(border, cmap='temp', interpolation='nearest')
+
+    return currfig
+
+
+def plot_mask_borders(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=2, closingIteration=None,
+                      is_filled=False, **kwargs):
+    """
+    plot mask (ROI) borders by using pyplot.contour function. all the 0s and Nans in the input mask will be considered
+    as background, and non-zero, non-nan pixel will be considered in ROI.
+    """
+    if not plotAxis:
+        f = plt.figure()
+        plotAxis = f.add_subplot(111)
+
+    plotingMask = np.ones(mask.shape, dtype=np.uint8)
+
+    plotingMask[np.logical_or(np.isnan(mask), mask == 0)] = 0
+
+    if zoom != 1:
+        plotingMask = cv2.resize(plotingMask.astype(np.float),
+                                 dsize=(int(plotingMask.shape[1] * zoom), int(plotingMask.shape[0] * zoom)))
+        plotingMask[plotingMask < 0.5] = 0
+        plotingMask[plotingMask >= 0.5] = 1
+        plotingMask = plotingMask.astype(np.uint8)
+
+    if closingIteration is not None:
+        plotingMask = ni.binary_closing(plotingMask, iterations=closingIteration).astype(np.uint8)
+
+    if is_filled:
+        currfig = plotAxis.contourf(plotingMask, levels=[0.5, 1], colors=color, **kwargs)
+    else:
+        currfig = plotAxis.contour(plotingMask, levels=[0.5], colors=color, linewidths=borderWidth, **kwargs)
+
+    # put y axis in decreasing order
+    y_lim = list(plotAxis.get_ylim())
+    y_lim.sort()
+    plotAxis.set_ylim(y_lim[::-1])
+
+    plotAxis.set_aspect('equal')
+
+    return currfig
 
 def int2str(num,length=None):
     '''
@@ -764,10 +838,10 @@ def plotPatchBorders2(patches, plotAxis=None, plotSize=None, borderWidth=2, zoom
 
         # ploting current border
         if value[3] == -1:
-            pt.plot_mask(value[2], plotAxis=plotAxis, color='#0000ff', borderWidth=borderWidth,
+            plot_mask(value[2], plotAxis=plotAxis, color='#0000ff', borderWidth=borderWidth,
                          closingIteration=closeIteration)
         elif value[3] == 1:
-            pt.plot_mask(value[2], plotAxis=plotAxis, color='#ff0000', borderWidth=borderWidth,
+            plot_mask(value[2], plotAxis=plotAxis, color='#ff0000', borderWidth=borderWidth,
                          closingIteration=closeIteration)
 
         # expanding center coordinate for each patch
@@ -893,11 +967,11 @@ def plotPatchBorders3(patches, altPosMap, aziPosMap, plotAxis=None, plotSize=Non
 
         # ploting current border
         if currPatch.sign == -1:
-            pt.plot_mask(zoomedArray, plotAxis=plotAxis, color='#0000ff', borderWidth=borderWidth,
+            plot_mask(zoomedArray, plotAxis=plotAxis, color='#0000ff', borderWidth=borderWidth,
                          closingIteration=closeIteration)
             plotAxis.plot(zoomedCenter[1], zoomedCenter[0], '.b', markersize=markerSize)
         elif currPatch.sign == 1:
-            pt.plot_mask(zoomedArray, plotAxis=plotAxis, color='#ff0000', borderWidth=borderWidth,
+            plot_mask(zoomedArray, plotAxis=plotAxis, color='#ff0000', borderWidth=borderWidth,
                          closingIteration=closeIteration)
             plotAxis.plot(zoomedCenter[1], zoomedCenter[0], '.r', markersize=markerSize)
 
@@ -2176,7 +2250,7 @@ class RetinotopicMappingTrial(object):
             else:
                 plotColor = '#000000'
 
-            im = pt.plot_mask(mask, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
+            im = plot_mask(mask, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
             im.set_interpolation(interpolation)
             if plotName:
                 center = patch.getCenter()
@@ -2229,7 +2303,7 @@ class RetinotopicMappingTrial(object):
                 plotColor = '#000000'
 
             currArray = ni.binary_erosion(patch.array, iterations=1)
-            im = pt.plot_mask_borders(currArray, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
+            im = plot_mask_borders(currArray, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
             if plotName:
                 center = patch.getCenter()
                 plotAxis.text(center[1] * zoom, center[0] * zoom, key, verticalalignment='center',
@@ -2275,7 +2349,7 @@ class RetinotopicMappingTrial(object):
                 plotColor = '#000000'
 
             currArray = ni.binary_erosion(patch.array, iterations=1)
-            im = pt.plot_mask_borders(currArray, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
+            im = plot_mask_borders(currArray, plotAxis=plotAxis, color=plotColor, zoom=zoom, borderWidth=borderWidth)
             if plotName:
                 center = patch.getCenter()
                 plotAxis.text(center[1] * zoom, center[0] * zoom, key, verticalalignment='center',
@@ -2573,7 +2647,7 @@ class RetinotopicMappingTrial(object):
         mask = mask.astype(np.float)
         mask[mask == 0] = np.nan
 
-        pt.plot_mask(mask, plotAxis=plotAxis, color=color, borderWidth=borderWidth)
+        plot_mask(mask, plotAxis=plotAxis, color=color, borderWidth=borderWidth)
 
     def plotPatchesWithName(self, patchDict, plotAxis=None):
 

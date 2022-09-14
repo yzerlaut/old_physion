@@ -142,26 +142,26 @@ import physion.intrinsic.RetinotopicMapping as rm
 
 # %%
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+#datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '14-35-08')
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
-trial_data = physion.intrinsic.Analysis.build_trial_data(maps)
+trial_data = physion.intrinsic.Analysis.build_trial_data(maps, with_params=False)
 
 # %%
 params = {
-          'phaseMapFilterSigma': 1,
-          'signMapFilterSigma': 3.,
-          'signMapThr': 0.35,
-          'eccMapFilterSigma': 15.0,
+          'phaseMapFilterSigma': 2,
+          'signMapFilterSigma': 4,
+          'signMapThr': 0.6,
+          'eccMapFilterSigma': 10.0,
           'splitLocalMinCutStep': 5.,
           'closeIter': 3,
           'openIter': 3,
           'dilationIter': 15,
           'borderWidth': 1,
           'smallPatchThr': 100,
-          'visualSpacePixelSize': 0.5,
+          'visualSpacePixelSize': 1,
           'visualSpaceCloseIter': 15,
           'splitOverlapThr': 1.1,
-          'mergeOverlapThr': 0.1
-          }
+          'mergeOverlapThr': 0.1}
 
 # %% [markdown]
 # ### Generating visual sign map
@@ -172,7 +172,6 @@ trial = rm.RetinotopicMappingTrial(**trial_data,
 
 # %%
 _ = trial._getSignMap(isPlot=True)
-plt.show()
 
 # %% [markdown]
 # ### Binarizing filtered visual signmap
@@ -184,7 +183,9 @@ _ = trial._getRawPatchMap(isPlot=True)
 # ### Generating raw patches
 
 # %%
-_ = trial._getRawPatches(isPlot=True)
+plt.close('all')
+trial._getRawPatches(isPlot=True)
+#ge.save_on_desktop('fig.png', fig)
 
 # %% [markdown]
 # ### Generating determinant map
@@ -206,6 +207,36 @@ _ = trial._mergePatches(isPlot=True)
 
 # %%
 _ = trial.plotFinalPatchBorders2()
+
+# %%
+names = [
+         ['patch01', 'V1'],
+         ['patch02', 'PM'],
+         ['patch03', 'RL'],
+         ['patch04', 'P'],
+         ['patch05', 'LM'],
+         ['patch06', 'AM'],
+         #['patch07', 'LI'],
+         #['patch08', 'MMA'],
+         #['patch09', 'AL'],
+         #['patch10', 'RLL'],
+         #['patch11', 'LLA'],
+         #['patch12', 'MMP'],
+         #['patch13', 'MMP']
+         ]
+
+finalPatchesMarked = dict(trial.finalPatches)
+
+for i, namePair in enumerate(names):
+    currPatch = finalPatchesMarked.pop(namePair[0])
+    newPatchDict = {namePair[1]:currPatch}
+    finalPatchesMarked.update(newPatchDict)
+    
+trial.finalPatchesMarked = finalPatchesMarked
+
+# %%
+_ = trial.plotFinalPatchBorders2()
+#plt.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'fig.svg'))
 
 # %% [markdown]
 # # Demo of FFT analysis of periodic stimulation
@@ -260,5 +291,3 @@ demo_fig(96);
 
 # %%
 ge.save_on_desktop(demo_fig(96, noise_fraction=0.8, nrepeat=15), 'fig.png')
-
-# %%
