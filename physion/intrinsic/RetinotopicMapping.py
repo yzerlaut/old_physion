@@ -385,7 +385,8 @@ def visualCoverage(patch, altMap, aziMap, pixelSize=2., closeIter=None, isPlot=F
     return visualSpace, uniqueArea, visualAltCenter, visualAziCenter
 
 
-def plotVisualCoverage(visualSpace, pixelSize, altStart=-40, aziStart=-20, tickSpace=10, plotAxis=None):
+def plotVisualCoverage(visualSpace, pixelSize,
+                       altStart=-40, aziStart=-20, tickSpace=10, plotAxis=None):
     """
     plot visual space in given plotAxis
     """
@@ -1024,8 +1025,7 @@ class RetinotopicMappingTrial(object):
                      'visualSpacePixelSize': 0.5,
                      'visualSpaceCloseIter': 15,
                      'splitOverlapThr': 1.1
-                 },
-                 ):
+                 }):
 
         self.mouseID = mouseID
         self.dateRecorded = dateRecorded

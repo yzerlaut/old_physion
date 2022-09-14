@@ -16,6 +16,7 @@ from assembling.saving import generate_filename_path, day_folder, last_datafolde
 from visual_stim.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
 from intrinsic import Analysis as intrinsic_analysis
+from intrinsic import RetinotopicMapping
 
 subjects_path = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'exp', 'subjects')
 
@@ -907,13 +908,13 @@ class AnalysisWindow(NewWindow):
 
         print('- computing phase maps [...]')
 
-        intrinsic_analysis.compute_delay_power_maps(self.get_datafolder(), 
+        intrinsic_analysis.compute_phase_power_maps(self.get_datafolder(), 
                                                     self.protocolBox.currentText(),
                                                     run_id=self.numBox.currentText(),
                                                     maps=self.IMAGES)
 
 
-        intrinsic_analysis.plot_delay_power_maps(self.IMAGES,
+        intrinsic_analysis.plot_phase_power_maps(self.IMAGES,
                                                  self.protocolBox.currentText())
 
         intrinsic_analysis.ge.show()
@@ -954,9 +955,11 @@ class AnalysisWindow(NewWindow):
 
         print(' -> retinotopic maps calculus done !')
 
-        print('         current maps saved as: ', os.path.join(self.datafolder, 'draft-maps.npy'))
+        print('         current maps saved as: ', \
+                os.path.join(self.datafolder, 'draft-maps.npy'))
 
-        np.save(os.path.join(self.datafolder, 'draft-maps.npy'), self.IMAGES)
+        intrinsic_analysis.save_maps(self.IMAGES,
+                os.path.join(self.datafolder, 'draft-maps.npy'))
         
 
     def perform_area_segmentation(self):
@@ -1010,17 +1013,17 @@ class AnalysisWindow(NewWindow):
             print('show vertical map')
             
 
-    
-        
 def run(app, args=None, parent=None):
     return MainWindow(app,
                       args=args,
                       parent=parent)
 
+
 def runAnalysis(app, args=None, parent=None):
     return AnalysisWindow(app,
                           args=args,
                           parent=parent)
+
 
 if __name__=='__main__':
     

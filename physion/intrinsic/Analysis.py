@@ -8,6 +8,7 @@ from scipy.interpolate import interp1d
 from scipy.ndimage.filters import gaussian_filter1d, gaussian_filter
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.intrinsic import RetinotopicMapping
 from physion.analysis.analyz.analyz.processing.filters \
         import butter_highpass_filter, butter_bandpass_filter
 from physion.dataviz.datavyz.datavyz import graph_env
@@ -60,13 +61,18 @@ def load_raw_data(datafolder, protocol,
                      allow_pickle=True).item()
 
     if run_id=='sum':
-        Data = []
+        Data, n = None, 0
         for i in range(1, 15): # no more than 15 repeats...(but some can be removed, hence the "for" loop)
             if os.path.isfile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i))):
                 t, data  = load_single_datafile(os.path.join(datafolder, '%s-%i.nwb' % (protocol, i)))
-                Data.append(data) 
-        if len(Data)>0: 
-            return params, (t, np.mean(Data, axis=0)) 
+                if Data is None:
+                    Data = data
+                    n = 1
+                else:
+                    Data += data
+                    n+=1
+        if n>0: 
+            return params, (t, Data/n)
         else:
             return params, (None, None)
 
@@ -97,22 +103,41 @@ def perform_fft_analysis(data, nrepeat,
     Fourier transform
         we center the phase around 0 (by shifting by pi)
     """
-    spectrum = np.fft.fft(data, axis=0)
+    spectrum = np.fft.fft(-data, axis=0)
 
     # relative power w.r.t. luminance
     rel_power = np.abs(spectrum)[nrepeat, :, :]/data.shape[0]/data.mean(axis=0)
-    # phase
-    phase = (np.angle(spectrum)[nrepeat, :, :]+2*np.pi)%(2*np.pi) - np.pi # forced in [-pi,pi]
+
+    # phase in [-pi, pi] interval
+    phase = np.angle(spectrum)[nrepeat, :, :]
 
     return rel_power, phase
 
 
-def compute_delay_power_maps(datafolder, direction,
+def compute_phase_power_maps(datafolder, direction,
                              maps={},
                              run_id='sum'):
 
     # load raw data
     p, (t, data) = load_raw_data(datafolder, direction, run_id=run_id)
+
+
+    if 'vasculature' not in maps:
+        maps['vasculature'] = np.load(os.path.join(datafolder, 'vasculature.npy'))
+
+    # FFT and write maps
+    maps['%s-power' % direction],\
+           maps['%s-phase' % direction] = perform_fft_analysis(data, p['Nrepeat'])
+
+    return maps
+
+def get_phase_to_angle_func(datafolder, direction):
+    """
+    converti stimulus phase to visual angle
+    """
+   
+    p= np.load(os.path.join(datafolder, 'metadata.npy'),
+                     allow_pickle=True).item()
 
     # phase to angle conversion
     if direction=='up':
@@ -124,20 +149,13 @@ def compute_delay_power_maps(datafolder, direction,
     else:
         bounds = [p['STIM']['xmax'], p['STIM']['xmin']]
 
-    if 'vasculature' not in maps:
-        maps['vasculature'] = np.load(os.path.join(datafolder, 'vasculature.npy'))
+    # keep phase to angle relathionship    /!\ [-PI, PI] interval /!\
+    phase_to_angle_func = lambda x: bounds[0]+\
+                    (x+np.pi)/(2*np.pi)*(bounds[1]-bounds[0])
 
-    # FFT and write maps
-    maps['%s-power' % direction],\
-           maps['%s-phase' % direction] = perform_fft_analysis(data, p['Nrepeat'])
+    return phase_to_angle_func
 
-    # keep phase to angle relathionship
-    phase_to_angle_func = lambda x: bounds[0]+(x+np.pi)/(2*np.pi)*(bounds[1]-bounds[0]) # for [-pi,pi] interval !!
-    maps['%s-phase_to_angle_func' % direction] = phase_to_angle_func
-    maps['%s-angle' % direction] = phase_to_angle_func(maps['%s-phase' % direction])
 
-    return maps
-    
 def compute_retinotopic_maps(datafolder, map_type,
                              maps={}, # we fill the dictionary passed as argument
                              altitude_Zero_shift=10,
@@ -154,31 +172,40 @@ def compute_retinotopic_maps(datafolder, map_type,
 
     if map_type=='altitude':
         directions = ['up', 'down']
+        phase_to_angle_func = get_phase_to_angle_func(datafolder, 'up')
     else:
         directions = ['right', 'left']
+        phase_to_angle_func = get_phase_to_angle_func(datafolder, 'right')
 
     for direction in directions:
         if (('%s-power'%direction) not in maps) and not keep_maps:
-            compute_delay_power_maps(datafolder, direction, maps=maps)
+            compute_phase_power_maps(datafolder, direction, maps=maps)
 
     if verbose:
         print('-> retinotopic map calculation over ! ')
 
     # build maps
-    maps['%s-power' % map_type] = .5*(maps['%s-power' % directions[0]]+maps['%s-power' % directions[1]])
-    maps['%s-double-delay' % map_type] = (maps['%s-phase' % directions[1]]+\
-                                          maps['%s-phase' % directions[0]]+\
+    maps['%s-power' % map_type] = .5*(maps['%s-power' % directions[0]]+\
+                                      maps['%s-power' % directions[1]])
+
+    maps['%s-double-delay' % map_type] = (maps['%s-phase' % directions[0]]+\
+                                          maps['%s-phase' % directions[1]]+\
                                           2*np.pi)%(2*np.pi)-np.pi
-    maps['%s-phase-diff' % map_type] = (maps['%s-phase' % directions[1]]-\
-                                        maps['%s-phase' % directions[0]]+\
-                                        2*np.pi)%(2*np.pi)-np.pi
-    maps['%s-retinotopy' % map_type] = maps['%s-phase_to_angle_func' % directions[0]](\
-                                                                        maps['%s-phase-diff' % map_type])
+
+    maps['%s-phase-diff' % map_type] = np.clip((maps['%s-phase' % directions[0]]-\
+                                                maps['%s-phase' % directions[1]]),
+                                                -np.pi, np.pi)
+
+    maps['%s-retinotopy' % map_type] = phase_to_angle_func(\
+                        maps['%s-phase-diff' % map_type])
 
     return maps
 
 
-def build_trial_data(maps):
+def build_trial_data(maps, with_params=False):
+    """
+    prepare the data to be 
+    """
 
     output = {'mouseID':'N/A', 'comments':'', 'dateRecorded':'2022-01-01'}
     for key1, key2 in zip(\
@@ -189,20 +216,40 @@ def build_trial_data(maps):
             output[key2+'Map'] = maps[key1]
         else:
             output[key2+'Map'] = 0.*maps['vasculature']
-            
+   
+    output['altPosMap'] += 10
+    output['aziPosMap'] += 40
+
+    if with_params:
+        output['params']={\
+              'phaseMapFilterSigma': 1,
+              'signMapFilterSigma': 3,
+              'signMapThr': 0.35,
+              'eccMapFilterSigma': 10.0,
+              'splitLocalMinCutStep': 5.,
+              'closeIter': 3,
+              'openIter': 3,
+              'dilationIter': 15,
+              'borderWidth': 1,
+              'smallPatchThr': 100,
+              'visualSpacePixelSize': 0.5,
+              'visualSpaceCloseIter': 15,
+              'splitOverlapThr': 1.1,
+              'mergeOverlapThr': 0.1}
+
     return output
     
 # -------------------------------------------------------------- #
 # ----------- PLOT FUNCTIONS ----------------------------------- #
 # -------------------------------------------------------------- #
 
-def plot_delay_power_maps(maps, direction):
+def plot_phase_power_maps(maps, direction):
 
 
     fig, AX = ge.figure(axes=(1,2), top=1.5, wspace=0.3, hspace=0.5, 
                         left=0.2, bottom=0.5, right=5, reshape_axes=False)
 
-    ge.annotate(fig, '\n"%s" protocol' % direction, (0.5,1), ha='center', va='top',
+    ge.annotate(fig, '\n\n"%s" protocol' % direction, (0.5,.99), ha='center', va='top',
                 xycoords='figure fraction', size='small')
 
     # power first
@@ -219,11 +266,11 @@ def plot_delay_power_maps(maps, direction):
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
 
     # then phase of the stimulus
-    AX[1][0].imshow(maps['%s-phase' % direction], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
+    AX[1][0].imshow(maps['%s-phase' % direction], cmap=plt.cm.twilight, vmin=-np.pi, vmax=np.pi)
     ge.title(AX[1][0], 'phase map', size='xx-small')
 
     ge.bar_legend(AX[1][0], X=[-np.pi, 0, np.pi], label='stimulus\n phase (Rd)',
-                  colormap=plt.cm.brg, continuous=True,
+                  colormap=plt.cm.twilight, continuous=True,
                   ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$', '0', '$\pi$'],
                   bounds=[-np.pi, np.pi],
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
@@ -241,20 +288,20 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
     else:
         plus, minus = 'left', 'right'
         
-    fig, AX = ge.figure(axes=(2,3), left=0.3, top=1.5, wspace=0.3, hspace=0.5, right=3)
+    fig, AX = ge.figure(axes=(2,3), left=0.3, top=1.5, wspace=0.3, hspace=0.5, right=5)
     
-    ge.annotate(fig, '\n"%s" maps' % map_type, (0.5,1), ha='center', va='top', 
+    ge.annotate(fig, '\n\n"%s" maps' % map_type, (0.5,.99), ha='center', va='top', 
                 xycoords='figure fraction', size='small')
     
-    AX[0][0].imshow(maps['%s-phase' % plus], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    AX[0][1].imshow(maps['%s-phase' % minus], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
+    AX[0][0].imshow(maps['%s-phase' % plus], cmap=plt.cm.twilight, vmin=-np.pi, vmax=np.pi)
+    AX[0][1].imshow(maps['%s-phase' % minus], cmap=plt.cm.twilight, vmin=-np.pi, vmax=np.pi)
     
     ge.annotate(AX[0][0], '$\phi$+', (1,1), ha='right', va='top', color='w')
     ge.annotate(AX[0][1], '$\phi$-', (1,1), ha='right', va='top', color='w')
     ge.title(AX[0][0], 'phase map: "%s"' % plus, size='xx-small')
     ge.title(AX[0][1], 'phase map: "%s"' % minus, size='xx-small')
     ge.bar_legend(AX[0][1], X=[-np.pi, 0, np.pi], label='phase (Rd)', 
-                  colormap=plt.cm.brg, continuous=True,
+                  colormap=plt.cm.twilight, continuous=True,
                   ticks=[-np.pi, 0, np.pi], ticks_labels=['-$\pi$', '0', '$\pi$'],
                   bounds=[-np.pi, np.pi], 
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
@@ -276,10 +323,12 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
     bounds = [np.min(maps['%s-retinotopy' % map_type]),
               np.max(maps['%s-retinotopy' % map_type])]
     
-    AX[2][0].imshow(maps['%s-double-delay' % map_type], cmap=plt.cm.brg, vmin=-np.pi, vmax=np.pi)
-    AX[2][1].imshow(maps['%s-retinotopy' % map_type], cmap=plt.cm.PRGn, vmin=bounds[0], vmax=bounds[1])
-    ge.annotate(AX[2][0], '$\phi^{+}$-$\phi^{-}$', (1,1), ha='right', va='top', color='w', size='small')
-    ge.annotate(AX[2][1], 'F[$\phi^{+}$+$\phi^{-}$]', (1,1), ha='right', va='top', color='w', size='xx-small')
+    AX[2][0].imshow(maps['%s-double-delay' % map_type], cmap=plt.cm.twilight,\
+                    vmin=-np.pi, vmax=np.pi)
+    AX[2][1].imshow(maps['%s-retinotopy' % map_type], cmap=plt.cm.PRGn,\
+                    vmin=bounds[0], vmax=bounds[1])
+    ge.annotate(AX[2][0], '$\phi^{+}$+$\phi^{-}$', (1,1), ha='right', va='top', color='w', size='small')
+    ge.annotate(AX[2][1], 'F[$\phi^{+}$-$\phi^{-}$]', (1,0), ha='right', va='bottom', color='k', size='xx-small')
     ge.title(AX[2][0], 'double delay map', size='xx-small')
     ge.title(AX[2][1], 'retinotopy map', size='xx-small')
 
@@ -293,17 +342,72 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
         
     return fig
 
+def save_maps(maps, filename):
+    """ removes the functions from the maps to be able to save """
+    Maps = {}
+    for m in maps:
+        if 'func' not in m:
+            Maps[m] = maps[m]
+
+    np.save(filename, Maps)
+
+
 if __name__=='__main__':
 
-    df = '/home/yann/DATA/2022_01_13/17-41-53/'
+    import argparse
 
-    altitude_power_map, altitude_phase_map = get_retinotopic_maps(df, 'altitude', zero_two_pi_convention=True)
-    plt.imshow(altitude_power_map)
-    plt.title('power map')
-    plt.figure()
-    plt.imshow(altitude_phase_map)
-    plt.title('phase map')
-    plt.colorbar()
-    plt.show()
+    parser=argparse.ArgumentParser(description="Experiment interface",
+                       formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-df', "--datafolder", type=str,default='')
+    parser.add_argument('-p', "--protocol", type=str,default='all')
+    parser.add_argument('-rid', "--run_id", type=int,default=0)
+    parser.add_argument('-s', "--segmentation", action='store_true')
+    parser.add_argument('-v', "--verbose", action="store_true")
     
-    # data = build_trial_data(df)
+    args = parser.parse_args()
+
+    if os.path.isdir(args.datafolder):
+
+        if args.segmentation:
+            maps = np.load(os.path.join(args.datafolder, 'draft-maps.npy'),
+                           allow_pickle=True).item()
+            maps['vasculature'] = np.load(os.path.join(args.datafolder, 'vasculature.npy'))
+            # maps = compute_retinotopic_maps(args.datafolder, 'altitude',
+                                     # maps=maps,
+                                     # keep_maps=True)
+            # maps = compute_retinotopic_maps(args.datafolder, 'azimuth',
+                                     # maps=maps,
+                                     # keep_maps=True)
+            # save_maps(maps,
+                      # os.path.join(args.datafolder, 'draft-maps.npy'))
+            # plot_retinotopic_maps(maps, 'altitude')
+            # plot_retinotopic_maps(maps, 'azimuth')
+
+            # RetinotopicMapping 
+            trial_data = build_trial_data(maps)
+            trial = RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
+            trial.processTrial(isPlot=True)
+            ge.show()
+
+        elif args.protocol=='all':
+            maps = {}
+            maps = compute_retinotopic_maps(args.datafolder, 'altitude',
+                                     maps=maps,
+                                     run_id=(args.run_id if args.run_id>0 else 'all'))
+            maps = compute_retinotopic_maps(args.datafolder, 'azimuth',
+                                     maps=maps,
+                                     run_id=(args.run_id if args.run_id>0 else 'all'))
+            print('         current maps saved as: ', \
+                    os.path.join(args.datafolder, 'draft-maps.npy'))
+            save_maps(maps,
+                      os.path.join(args.datafolder, 'draft-maps.npy'))
+        else:
+            maps = compute_phase_power_maps(args.datafolder,
+                                            args.protocol,
+                                            run_id=(args.run_id if args.run_id>0 else 'all'))
+            plot_phase_power_maps(maps, args.protocol)
+            ge.show()
+                
+    else:
+        print(args.datafolder, 'not found')
+

@@ -26,27 +26,18 @@ ge = graph_env('manuscript')
 
 # %%
 # --- load a data folder
-datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
 params, (t, data) = physion.intrinsic.Analysis.load_raw_data(datafolder,
-                                                             'up', run_id=2)
-spectrum = np.fft.fft(data, axis=0)
+                                                             'up', run_id=1)
 
-# %%
-rel_power = np.abs(spectrum)[params['Nrepeat'],:,:]/data.mean(axis=0)
 
-# %%
-phase = (np.angle(spectrum)+2*np.pi)%(2*np.pi)-np.pi
-#phase = np.angle(spectrum)
-#if np.mean(np.abs(phase[params['Nrepeat'],:,:]))>np.pi/2.:
-#phase = (-np.angle(spectrum))%(2.*np.pi)-np.pi 
-plt.hist(phase[params['Nrepeat'],:,:].flatten())
-
+# %% [markdown]
+# ## raw Intrinsic Imaging data
 
 # %%
 # plot raw data
 def show_raw_data(t, data, params, maps,
-                  zero_two_pi_convention=True,
                   pixel=(200,200)):
     
     fig, AX = ge.figure(axes_extents=[[[5,1]],[[5,1]],[[1,1] for i in range(5)]],
@@ -74,10 +65,8 @@ def show_raw_data(t, data, params, maps,
              title='t=%.1fs' % t[-1])
 
     spectrum = np.fft.fft(data[:,pixel[0], pixel[1]], axis=0)
-    if zero_two_pi_convention:
-        power, phase = np.abs(spectrum), (-np.angle(spectrum))%(2.*np.pi)
-    else:
-        power, phase = np.abs(spectrum), -np.angle(spectrum)
+    
+    power, phase = np.abs(spectrum), np.angle(spectrum)
 
     AX[2][3].plot(np.arange(1, len(power)), power[1:], color=ge.gray, lw=1)
     AX[2][3].plot([params['Nrepeat']], [power[params['Nrepeat']]], 'o', color=ge.blue, ms=4)
@@ -93,32 +82,36 @@ def show_raw_data(t, data, params, maps,
     ge.set_plot(AX[2][4], xscale='log', 
                 xlim=[.99,101], xlabel='freq (sample unit)', ylabel='phase (Rd)')
 
-show_raw_data(t, data, params, maps, pixel=(150,150))
+show_raw_data(t, data, params, maps, pixel=(170,160))
+
+# %% [markdown]
+# ## Compute retinotopic maps
 
 # %%
-# --- load standard modules
-import pprint, os, sys
-import numpy as np
-import matplotlib.pylab as plt
-# --- physion modules
-sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
-import physion
-from physion.dataviz.datavyz.datavyz import graph_env
-ge = graph_env('manuscript')
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+maps = {}
+maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'altitude', maps=maps)
+maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'azimuth', maps=maps)
+np.save(os.path.join(datafolder, 'draft-maps.npy'), maps)
 
-# compute maps
-datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_07', '11-48-37')
-maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'altitude')
-maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'azimuth')
+# %% [markdown]
+# ### Visualizing retinotopic maps
 
 # %%
-fig = physion.intrinsic.Analysis.plot_delay_power_maps(maps, 'down')
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
+fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'up')
+# just one stim: "up"
 
 # %%
+# azimuth = "up" - "down" protocols
+fig = physion.intrinsic.Analysis.plot_retinotopic_maps(maps, 'altitude')
+fig.suptitle('altitude map');
+
+# %%
+# azimuth = "right" - "left" protocols
 fig = physion.intrinsic.Analysis.plot_retinotopic_maps(maps, 'azimuth')
-
-# %%
-trial = physion.intrinsic.Analysis.build_trial_data(maps)
+fig.suptitle('azimuth map');
 
 # %% [markdown]
 # # Visual Area segmentation
@@ -134,15 +127,29 @@ trial = physion.intrinsic.Analysis.build_trial_data(maps)
 #
 
 # %%
-from NeuroAnalysisTools import RetinotopicMapping as rm
+# --- load standard modules
+import pprint, os, sys
+import numpy as np
+import matplotlib.pylab as plt
+
+# --- physion modules
+sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
+import physion
+from physion.dataviz.datavyz.datavyz import graph_env
+ge = graph_env('manuscript')
+
+import physion.intrinsic.RetinotopicMapping as rm
 
 # %%
-     
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
+trial_data = physion.intrinsic.Analysis.build_trial_data(maps)
 
+# %%
 params = {
-          'phaseMapFilterSigma': 2,
-          'signMapFilterSigma': 15.,
-          'signMapThr': 0.1,
+          'phaseMapFilterSigma': 1,
+          'signMapFilterSigma': 3.,
+          'signMapThr': 0.35,
           'eccMapFilterSigma': 15.0,
           'splitLocalMinCutStep': 5.,
           'closeIter': 3,
@@ -160,11 +167,8 @@ params = {
 # ### Generating visual sign map
 
 # %%
-trial = rm.RetinotopicMappingTrial(**trial,
+trial = rm.RetinotopicMappingTrial(**trial_data,
                                    params=params)
-
-# %%
-print(trial)
 
 # %%
 _ = trial._getSignMap(isPlot=True)
