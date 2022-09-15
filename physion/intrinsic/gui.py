@@ -63,7 +63,7 @@ class MainWindow(NewWindow):
 
         # some initialisation
         self.running, self.stim, self.STIM = False, None, None
-        self.datafolder, self.img, self.vasculature_img = '', None, None
+        self.datafolder, self.img, self.vasculature_img, self.fluorescence_img = '', None, None, None
         
         self.t0, self.period, self.TIMES = 0, 1, []
         
