@@ -185,7 +185,7 @@ _ = trial._getRawPatchMap(isPlot=True)
 # %%
 plt.close('all')
 trial._getRawPatches(isPlot=True)
-#ge.save_on_desktop('fig.png', fig)
+plt.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'fig.svg'))
 
 # %% [markdown]
 # ### Generating determinant map
