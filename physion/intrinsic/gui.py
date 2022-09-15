@@ -118,6 +118,9 @@ class MainWindow(NewWindow):
         self.vascButton = QtWidgets.QPushButton(" - = save Vasculature Picture = - ", self)
         self.vascButton.clicked.connect(self.take_vasculature_picture)
         self.add_widget(self.vascButton)
+        self.fluoButton = QtWidgets.QPushButton(" - = save Fluorescence Picture = - ", self)
+        self.fluoButton.clicked.connect(self.take_fluorescence_picture)
+        self.add_widget(self.fluoButton)
         
         self.add_widget(QtWidgets.QLabel(20*' - '))
         
@@ -199,6 +202,24 @@ class MainWindow(NewWindow):
         self.view.autoRange(padding=0.001)
         self.analysisWindow = None
 
+    def take_fluorescence_picture(self):
+
+        filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
+                            filename='fluorescence-%s' % self.subjectBox.currentText(),
+                            extension='.tif')
+        
+        # save HQ image as tiff
+        img = self.get_frame(force_HQ=True)
+        np.save(filename.replace('.tif', '.npy'), img)
+        img = np.array(255*(img-img.min())/(img.max()-img.min()), dtype=np.uint8)
+        im = PIL.Image.fromarray(img)
+        im.save(filename)
+        print('fluorescence image, saved as: %s ' % filename)
+
+        # then keep a version to store with imaging:
+        self.fluorescence_img = self.get_frame()
+        self.pimg.setImage(img) # show on displayn
+
     def take_vasculature_picture(self):
 
         filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
@@ -211,8 +232,7 @@ class MainWindow(NewWindow):
         img = np.array(255*(img-img.min())/(img.max()-img.min()), dtype=np.uint8)
         im = PIL.Image.fromarray(img)
         im.save(filename)
-        print('vasculature image, saved as:')
-        print(filename)
+        print('vasculature image, saved as: %s' % filename)
 
         # then keep a version to store with imaging:
         self.vasculature_img = self.get_frame()
@@ -436,6 +456,9 @@ class MainWindow(NewWindow):
         if self.vasculature_img is not None:
             np.save(filename.replace('metadata', 'vasculature'),
                     self.vasculature_img)
+        if self.fluorescence_img is not None:
+            np.save(filename.replace('metadata', 'fluorescence'),
+                    self.fluorescence_img)
             
         self.datafolder = os.path.dirname(filename)
 
