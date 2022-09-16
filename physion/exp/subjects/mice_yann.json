@@ -11,18 +11,6 @@
 			 "surgery":"headplate+injection",
 			 "surgery_date":"2022_08_21",
 			 "FOVs":"{'1':(0,0)}",
-			 "date_of_birth":"2022_06_13"},
- "Mouse3_SSTcreGluN3KO":{"description":"Mouse3_SSTcreGluN3KO",
-			 "sex":"Male",
-			 "strain":"C57B6/J",
-			 "genotype":"SST-Cre",
-			 "species":"Mouse",
-			 "subject_id":"Mouse3_SSTcreGluN3KO",
-			 "weight":"30g",
-			 "virus_ID":"VR21+VR26",
-			 "injection-location":"VC:-3.0RC,2.1ML",
-			 "surgery":"headplate+injection",
-			 "surgery_date":"2022_08_21",
-			 "FOVs":"{'1':(0,0)}",
-			 "date_of_birth":"2022_06_17"}
+			 "headplate_angle_from_rig_axis_for_recording":"36",
+			 "date_of_birth":"2022_06_13"}
 }
