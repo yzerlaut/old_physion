@@ -191,8 +191,8 @@ def compute_retinotopic_maps(datafolder, map_type,
     maps['%s-power' % map_type] = .5*(maps['%s-power' % directions[0]]+\
                                       maps['%s-power' % directions[1]])
 
-    maps['%s-double-delay' % map_type] = (maps['%s-phase' % directions[0]]+\
-                                          maps['%s-phase' % directions[1]])
+    maps['%s-delay' % map_type] = 0.5*(maps['%s-phase' % directions[0]]+\
+                                       maps['%s-phase' % directions[1]])
 
     maps['%s-phase-diff' % map_type] = (maps['%s-phase' % directions[0]]-
                                         maps['%s-phase' % directions[1]])
@@ -225,7 +225,7 @@ def build_trial_data(maps, with_params=False):
         output['params']={\
               'phaseMapFilterSigma': 1,
               'signMapFilterSigma': 3,
-              'signMapThr': 0.35,
+              'signMapThr': 0.3,
               'eccMapFilterSigma': 10.0,
               'splitLocalMinCutStep': 5.,
               'closeIter': 3,
@@ -268,23 +268,11 @@ def plot_phase_power_maps(maps, direction):
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
 
     # then phase of the stimulus
-    # bounds = [np.min(maps['%s-phase' % direction]),
-              # np.max(maps['%s-phase' % direction])]
-
     AX[1][0].imshow(maps['%s-phase' % direction], cmap=plt.cm.twilight,
                     vmin=0, vmax=2*np.pi)
-                    # vmin=bounds[0], vmax=bounds[1])
 
     ge.title(AX[1][0], 'phase map', size='xx-small')
 
-    # ge.bar_legend(AX[1][0],
-                  # X=np.linspace(*bounds, 3),
-                  # label='stimulus\n phase (Rd)',
-                  # colormap=plt.cm.twilight, continuous=True,
-                  # ticks=[0, np.pi], 
-                  # ticks_labels=['0', '$\pi$'],
-                  # bounds=bounds,
-                  # colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
     ge.bar_legend(AX[1][0],
                   X=np.linspace(0, 2*np.pi, 3),
                   label='stimulus\n phase (Rd)',
@@ -313,18 +301,18 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
     ge.annotate(fig, '\n\n"%s" maps' % map_type, (0.5,.99), ha='center', va='top', 
                 xycoords='figure fraction', size='small')
     
-    AX[0][0].imshow(maps['%s-phase' % plus], cmap=plt.cm.twilight, vmin=-np.pi/2, vmax=np.pi*1.5)
-    AX[0][1].imshow(maps['%s-phase' % minus], cmap=plt.cm.twilight, vmin=-np.pi/2, vmax=np.pi*1.5)
+    AX[0][0].imshow(maps['%s-phase' % plus], cmap=plt.cm.twilight, vmin=0, vmax=2*np.pi)
+    AX[0][1].imshow(maps['%s-phase' % minus], cmap=plt.cm.twilight, vmin=0, vmax=2*np.pi)
     
     ge.annotate(AX[0][0], '$\phi$+', (1,1), ha='right', va='top', color='w')
     ge.annotate(AX[0][1], '$\phi$-', (1,1), ha='right', va='top', color='w')
     ge.title(AX[0][0], 'phase map: "%s"' % plus, size='xx-small')
     ge.title(AX[0][1], 'phase map: "%s"' % minus, size='xx-small')
-    ge.bar_legend(AX[0][1], X=[-np.pi/2, 0, 3*np.pi/2], label='phase (Rd)', 
+    ge.bar_legend(AX[0][1], X=[0, np.pi, 2*np.pi], label='phase (Rd)', 
                   colormap=plt.cm.twilight, continuous=True,
-                  ticks=[-np.pi/2, 0, 3*np.pi/2],
-                  # ticks_labels=['-$\pi$', '0', '$\pi$'],
-                  bounds=[-np.pi/2, np.pi*1.5], 
+                  ticks=[0, np.pi, 2*np.pi],
+                  ticks_labels=['0', '$\pi$', '2$\pi$'],
+                  bounds=[0, 2*np.pi],
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
     
     bounds = [np.min([maps['%s-power' % x].min() for x in [plus, minus]]),
@@ -344,13 +332,13 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
     bounds = [np.min(maps['%s-retinotopy' % map_type]),
               np.max(maps['%s-retinotopy' % map_type])]
     
-    AX[2][0].imshow(maps['%s-double-delay' % map_type], cmap=plt.cm.twilight,\
+    AX[2][0].imshow(maps['%s-delay' % map_type], cmap=plt.cm.twilight,\
                     vmin=-np.pi/2, vmax=3*np.pi/2)
     AX[2][1].imshow(maps['%s-retinotopy' % map_type], cmap=plt.cm.PRGn,\
                     vmin=bounds[0], vmax=bounds[1])
     ge.annotate(AX[2][0], '$\phi^{+}$+$\phi^{-}$', (1,1), ha='right', va='top', color='w', size='small')
     ge.annotate(AX[2][1], 'F[$\phi^{+}$-$\phi^{-}$]', (1,0), ha='right', va='bottom', color='k', size='xx-small')
-    ge.title(AX[2][0], 'double delay map', size='xx-small')
+    ge.title(AX[2][0], '(hemodyn.-)delay map', size='xx-small')
     ge.title(AX[2][1], 'retinotopy map', size='xx-small')
 
     ge.bar_legend(AX[2][1],
