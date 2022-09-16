@@ -192,9 +192,11 @@ def compute_retinotopic_maps(datafolder, map_type,
                                           maps['%s-phase' % directions[1]]+\
                                           2*np.pi)%(2*np.pi)-np.pi
 
-    maps['%s-phase-diff' % map_type] = np.clip((maps['%s-phase' % directions[0]]-\
-                                                maps['%s-phase' % directions[1]]),
-                                                -np.pi, np.pi)
+    # maps['%s-phase-diff' % map_type] = np.clip((maps['%s-phase' % directions[0]]-\
+                                                # maps['%s-phase' % directions[1]]),
+                                                # -np.pi, np.pi)
+    maps['%s-phase-diff' % map_type] = (maps['%s-phase' % directions[0]]-
+                                        maps['%s-phase' % directions[1]])
 
     maps['%s-retinotopy' % map_type] = phase_to_angle_func(\
                         maps['%s-phase-diff' % map_type])
@@ -217,8 +219,8 @@ def build_trial_data(maps, with_params=False):
         else:
             output[key2+'Map'] = 0.*maps['vasculature']
    
-    output['altPosMap'] += 10
-    output['aziPosMap'] += 40
+    # output['altPosMap'] += 10
+    # output['aziPosMap'] += 40
 
     if with_params:
         output['params']={\
@@ -288,7 +290,8 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
     else:
         plus, minus = 'left', 'right'
         
-    fig, AX = ge.figure(axes=(2,3), left=0.3, top=1.5, wspace=0.3, hspace=0.5, right=5)
+    fig, AX = ge.figure(axes=(2,3),
+                        left=0.3, top=1.5, wspace=0.3, hspace=0.5, right=5)
     
     ge.annotate(fig, '\n\n"%s" maps' % map_type, (0.5,.99), ha='center', va='top', 
                 xycoords='figure fraction', size='small')
@@ -361,6 +364,7 @@ if __name__=='__main__':
     parser.add_argument('-df', "--datafolder", type=str,default='')
     parser.add_argument('-p', "--protocol", type=str,default='all')
     parser.add_argument('-rid', "--run_id", type=int,default=0)
+    parser.add_argument("--plot", action='store_true')
     parser.add_argument('-s', "--segmentation", action='store_true')
     parser.add_argument('-v', "--verbose", action="store_true")
     
@@ -368,35 +372,40 @@ if __name__=='__main__':
 
     if os.path.isdir(args.datafolder):
 
-        if args.segmentation:
+        if args.plot:
+
             maps = np.load(os.path.join(args.datafolder, 'draft-maps.npy'),
                            allow_pickle=True).item()
             maps['vasculature'] = np.load(os.path.join(args.datafolder, 'vasculature.npy'))
-            # maps = compute_retinotopic_maps(args.datafolder, 'altitude',
-                                     # maps=maps,
-                                     # keep_maps=True)
-            # maps = compute_retinotopic_maps(args.datafolder, 'azimuth',
-                                     # maps=maps,
-                                     # keep_maps=True)
-            # save_maps(maps,
-                      # os.path.join(args.datafolder, 'draft-maps.npy'))
-            # plot_retinotopic_maps(maps, 'altitude')
-            # plot_retinotopic_maps(maps, 'azimuth')
+
+            plot_retinotopic_maps(maps, 'altitude')
+            plot_retinotopic_maps(maps, 'azimuth')
+
+            ge.show()
+
+        elif args.segmentation:
+
+            maps = np.load(os.path.join(args.datafolder, 'draft-maps.npy'),
+                           allow_pickle=True).item()
+            maps['vasculature'] = np.load(os.path.join(args.datafolder, 'vasculature.npy'))
 
             # RetinotopicMapping 
             trial_data = build_trial_data(maps)
             trial = RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
             trial.processTrial(isPlot=True)
+
             ge.show()
 
         elif args.protocol=='all':
+
             maps = {}
             maps = compute_retinotopic_maps(args.datafolder, 'altitude',
-                                     maps=maps,
-                                     run_id=(args.run_id if args.run_id>0 else 'all'))
+                                            maps=maps,
+                                            run_id=(args.run_id if args.run_id>0 else 'all'))
             maps = compute_retinotopic_maps(args.datafolder, 'azimuth',
-                                     maps=maps,
-                                     run_id=(args.run_id if args.run_id>0 else 'all'))
+                                            maps=maps,
+                                            run_id=(args.run_id if args.run_id>0 else 'all'))
+
             print('         current maps saved as: ', \
                     os.path.join(args.datafolder, 'draft-maps.npy'))
             save_maps(maps,

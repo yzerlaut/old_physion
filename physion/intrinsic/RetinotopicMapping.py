@@ -1,7 +1,14 @@
+"""
+
 #####################################################
-##### copied from https://github.com/zhuangjun1981/NeuroAnalysisTools/blob/master/NeuroAnalysisTools/RetinotopicMapping.py
+
+##### copied/adapted from:
+https://github.com/zhuangjun1981/NeuroAnalysisTools/blob/master/NeuroAnalysisTools/RetinotopicMapping.py
+
 ##### Cite the original work/implementation: Zhuang et al., Elife (2017)
+
 #####################################################
+"""
 
 
 import numpy as np
@@ -19,78 +26,9 @@ import matplotlib.colors as col
 from matplotlib import cm
 import scipy.ndimage as ni
 
-def plot_mask(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=None, closingIteration=None):
-    """
-    plot mask borders in a given color
-    """
 
-    if not plotAxis:
-        f = plt.figure()
-        plotAxis = f.add_subplot(111)
-
-    cmap1 = col.ListedColormap(color, 'temp')
-    cm.register_cmap(cmap=cmap1)
-
-    if zoom != 1:
-        mask = ni.interpolation.zoom(mask, zoom, order=0)
-
-    mask2 = mask.astype(np.float32)
-    mask2[np.invert(np.isnan(mask2))] = 1.
-    mask2[np.isnan(mask2)] = 0.
-
-    struc = ni.generate_binary_structure(2, 2)
-    if borderWidth:
-        border = mask2 - ni.binary_erosion(mask2, struc, iterations=borderWidth).astype(np.float32)
-    else:
-        border = mask2 - ni.binary_erosion(mask2, struc).astype(np.float32)
-
-    if closingIteration:
-        border = ni.binary_closing(border, iterations=closingIteration).astype(np.float32)
-
-    border[border == 0] = np.nan
-
-    currfig = plotAxis.imshow(border, cmap='temp', interpolation='nearest')
-
-    return currfig
-
-
-def plot_mask_borders(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=2, closingIteration=None,
-                      is_filled=False, **kwargs):
-    """
-    plot mask (ROI) borders by using pyplot.contour function. all the 0s and Nans in the input mask will be considered
-    as background, and non-zero, non-nan pixel will be considered in ROI.
-    """
-    if not plotAxis:
-        f = plt.figure()
-        plotAxis = f.add_subplot(111)
-
-    plotingMask = np.ones(mask.shape, dtype=np.uint8)
-
-    plotingMask[np.logical_or(np.isnan(mask), mask == 0)] = 0
-
-    if zoom != 1:
-        plotingMask = cv2.resize(plotingMask.astype(np.float),
-                                 dsize=(int(plotingMask.shape[1] * zoom), int(plotingMask.shape[0] * zoom)))
-        plotingMask[plotingMask < 0.5] = 0
-        plotingMask[plotingMask >= 0.5] = 1
-        plotingMask = plotingMask.astype(np.uint8)
-
-    if closingIteration is not None:
-        plotingMask = ni.binary_closing(plotingMask, iterations=closingIteration).astype(np.uint8)
-
-    if is_filled:
-        currfig = plotAxis.contourf(plotingMask, levels=[0.5, 1], colors=color, **kwargs)
-    else:
-        currfig = plotAxis.contour(plotingMask, levels=[0.5], colors=color, linewidths=borderWidth, **kwargs)
-
-    # put y axis in decreasing order
-    y_lim = list(plotAxis.get_ylim())
-    y_lim.sort()
-    plotAxis.set_ylim(y_lim[::-1])
-
-    plotAxis.set_aspect('equal')
-
-    return currfig
+ALTITUDE_RANGE = np.array([-50., 50.])
+AZIMUTH_RANGE = np.array([-90., 90.])
 
 def int2str(num,length=None):
     '''
@@ -105,6 +43,8 @@ def int2str(num,length=None):
     elif length < len(rawstr): raise ValueError('Length of the number is longer then defined display length!')
     elif length > len(rawstr): return '0'*(length-len(rawstr)) + rawstr
     
+
+
 def array_nor(A, float_bit=64):
     '''
     normalize a np.array to the scale [0, 1]
@@ -128,101 +68,6 @@ def array_nor(A, float_bit=64):
         minv = np.min(B.flat)
 
     return (B - minv) / (maxv - minv)
-
-# from .core import FileTools as ft
-# from .core import ImageAnalysis as ia
-# from .core import PlottingTools as pt
-
-
-# def loadTrial(trialPath):
-#     """
-#     load single retinotopic mapping trial from database
-#     """
-
-#     trialDict = ft.loadFile(trialPath)
-
-#     trial = RetinotopicMappingTrial(mouseID=trialDict['mouseID'],  # str, mouseID
-#                                     dateRecorded=trialDict['dateRecorded'],  # int, date recorded, yearmonthday
-#                                     comments=trialDict['comments'],  # str, number of the trail on that day
-#                                     altPosMap=trialDict['altPosMap'],  # altitude position map
-#                                     aziPosMap=trialDict['aziPosMap'],  # azimuth position map
-#                                     altPowerMap=trialDict['altPowerMap'],  # altitude power map
-#                                     aziPowerMap=trialDict['aziPowerMap'],  # azimuth power map
-#                                     vasculatureMap=trialDict['vasculatureMap'],  # vasculature map
-#                                     params=trialDict['params'])
-
-#     try:
-#         trial.altPosMapf = trialDict['altPosMapf']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.aziPosMapf = trialDict['aziPosMapf']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.altPowerMapf = trialDict['altPowerMapf']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.aziPowerMapf = trialDict['aziPowerMapf']
-#     except KeyError:
-#         pass
-
-#     try:
-#         if isinstance(trialDict['finalPatches'].values()[0], dict):
-#             trial.finalPatches = {}
-#             for area, patchDict in trialDict['finalPatches'].items():
-#                 try:
-#                     trial.finalPatches.update({area: Patch(patchDict['array'], patchDict['sign'])})
-#                 except KeyError:
-#                     trial.finalPatches.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
-#         else:
-#             pass
-#     except KeyError:
-#         pass
-
-#     try:
-#         if isinstance(trialDict['finalPatchesMarked'].values()[0], dict):
-#             trial.finalPatchesMarked = {}
-#             for area, patchDict in trialDict['finalPatchesMarked'].items():
-#                 try:
-#                     trial.finalPatchesMarked.update({area: Patch(patchDict['array'], patchDict['sign'])})
-#                 except KeyError:
-#                     trial.finalPatchesMarked.update({area: Patch(patchDict['sparseArray'], patchDict['sign'])})
-#         else:
-#             pass
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.signMap = trialDict['signMap']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.signMapf = trialDict['signMapf']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.rawPatchMap = trialDict['rawPatchMap']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.rawPatches = trialDict['rawPatches']
-#     except KeyError:
-#         pass
-
-#     try:
-#         trial.eccentricityMapf = trialDict['eccentricityMapf']
-#     except KeyError:
-#         pass
-
-#     return trial
 
 
 def visualSignMap(phasemap1, phasemap2):
@@ -409,7 +254,10 @@ def phaseFilter(phaseMap, filterType='gaussian', filterSize=3, isPositive=True):
     return phaseMapf
 
 
-def visualCoverage(patch, altMap, aziMap, pixelSize=2., closeIter=None, isPlot=False):
+def visualCoverage(patch, altMap, aziMap,
+                   pixelSize=2.,
+                   closeIter=None,
+                   isPlot=False):
     """
     get the visual response coverage of a cortical patch
 
@@ -425,14 +273,11 @@ def visualCoverage(patch, altMap, aziMap, pixelSize=2., closeIter=None, isPlot=F
 
     pixelSize = np.float(pixelSize)
 
-    altRange = np.array([-40., 60.])
-    aziRange = np.array([-20., 120.])
+    gridAzi, gridAlt = np.meshgrid(np.arange(*AZIMUTH_RANGE, pixelSize),
+                                   np.arange(*ALTITUDE_RANGE, pixelSize))
 
-    gridAzi, gridAlt = np.meshgrid(np.arange(aziRange[0], aziRange[1], pixelSize),
-                                   np.arange(altRange[0], altRange[1], pixelSize))
-
-    visualSpace = np.zeros((np.ceil((altRange[1] - altRange[0]) / pixelSize),
-                            np.ceil((aziRange[1] - aziRange[0]) / pixelSize)))
+    visualSpace = np.zeros((np.ceil((ALTITUDE_RANGE[1] - ALTITUDE_RANGE[0]) / pixelSize),
+                            np.ceil((AZIMUTH_RANGE[1] - AZIMUTH_RANGE[0]) / pixelSize)))
 
     patchArray = patch.array
     for i in range(patchArray.shape[0]):
@@ -440,9 +285,9 @@ def visualCoverage(patch, altMap, aziMap, pixelSize=2., closeIter=None, isPlot=F
             if patchArray[i, j]:
                 corAlt = altMap[i, j]
                 corAzi = aziMap[i, j]
-                if (corAlt >= altRange[0]) & (corAlt < altRange[1]) & (corAzi >= aziRange[0]) & (corAzi < aziRange[1]):
-                    indAlt = (corAlt - altRange[0]) // pixelSize
-                    indAzi = (corAzi - aziRange[0]) // pixelSize
+                if (corAlt >= ALTITUDE_RANGE[0]) & (corAlt < ALTITUDE_RANGE[1]) & (corAzi >= AZIMUTH_RANGE[0]) & (corAzi < AZIMUTH_RANGE[1]):
+                    indAlt = (corAlt - ALTITUDE_RANGE[0]) // pixelSize
+                    indAzi = (corAzi - AZIMUTH_RANGE[0]) // pixelSize
                     visualSpace[np.int(indAlt), np.int(indAzi)] = 1
 
     if closeIter >= 1:
@@ -460,7 +305,10 @@ def visualCoverage(patch, altMap, aziMap, pixelSize=2., closeIter=None, isPlot=F
 
 
 def plotVisualCoverage(visualSpace, pixelSize,
-                       altStart=-40, aziStart=-20, tickSpace=10, plotAxis=None):
+                       altStart=ALTITUDE_RANGE[0],
+                       aziStart=AZIMUTH_RANGE[0],
+                       tickSpace=10, 
+                       plotAxis=None):
     """
     plot visual space in given plotAxis
     """
@@ -1151,7 +999,7 @@ class RetinotopicMappingTrial(object):
             f1 = plt.figure(figsize=(18, 9))
             f1_231 = f1.add_subplot(231)
             if isFixedRange:
-                currfig = f1_231.imshow(self.altPosMap, vmin=-40, vmax=60, cmap='hsv', interpolation='nearest')
+                currfig = f1_231.imshow(self.altPosMap, vmin=ALTITUDE_RANGE[0], vmax=ALTITUDE_RANGE[1], cmap='hsv', interpolation='nearest')
             else:
                 currfig = f1_231.imshow(self.altPosMap, cmap='hsv', interpolation='nearest')
             f1.colorbar(currfig)
@@ -1159,7 +1007,9 @@ class RetinotopicMappingTrial(object):
             f1_231.set_title('alt position')
             f1_232 = f1.add_subplot(232)
             if isFixedRange:
-                currfig = f1_232.imshow(self.aziPosMap, vmin=-0, vmax=120, cmap='hsv', interpolation='nearest')
+                currfig = f1_232.imshow(self.aziPosMap, 
+                                        vmin=AZIMUTH_RANGE[0], vmax=AZIMUTH_RANGE[1], 
+                                        cmap='hsv', interpolation='nearest')
             else:
                 currfig = f1_232.imshow(self.aziPosMap, cmap='hsv', interpolation='nearest')
             f1.colorbar(currfig)
@@ -1172,7 +1022,8 @@ class RetinotopicMappingTrial(object):
             f1_233.set_title('sign map')
             f1_234 = f1.add_subplot(234)
             if isFixedRange:
-                currfig = f1_234.imshow(altPosMapf, vmin=-40, vmax=60, cmap='hsv', interpolation='nearest')
+                currfig = f1_234.imshow(altPosMapf,
+                        vmin=ALTITUDE_RANGE[0], vmax=ALTITUDE_RANGE[1], cmap='hsv', interpolation='nearest')
             else:
                 currfig = f1_234.imshow(altPosMapf, cmap='hsv', interpolation='nearest')
             f1.colorbar(currfig)
@@ -1180,7 +1031,10 @@ class RetinotopicMappingTrial(object):
             f1_234.set_title('alt position filtered')
             f1_235 = f1.add_subplot(235)
             if isFixedRange:
-                currfig = f1_235.imshow(aziPosMapf, vmin=0, vmax=120, cmap='hsv', interpolation='nearest')
+                currfig = f1_235.imshow(aziPosMapf, 
+                                        vmin=AZIMUTH_RANGE[0], vmax=AZIMUTH_RANGE[1],
+                                        cmap='hsv', interpolation='nearest')
+                
             else:
                 currfig = f1_235.imshow(aziPosMapf, cmap='hsv', interpolation='nearest')
             f1.colorbar(currfig)
@@ -1456,8 +1310,8 @@ class RetinotopicMappingTrial(object):
                             f122.imshow(currVisualSpace, interpolation='nearest', alpha=0.5, vmin=0,
                                         vmax=len(newPatches.keys()))
 
-                        xlabel = np.arange(-20, 120, visualSpacePixelSize)
-                        ylabel = np.arange(60, -40, -visualSpacePixelSize)
+                        xlabel = np.arange(AZIMUTH_RANGE[0], AZIMUTH_RANGE[1], visualSpacePixelSize)
+                        ylabel = np.arange(ALTITUDE_RANGE[1], ALTITUDE_RANGE[0], -visualSpacePixelSize)
 
                         indSpace = int(10. / visualSpacePixelSize)
 
@@ -1869,7 +1723,9 @@ class RetinotopicMappingTrial(object):
             f_231.set_title('normalized altitude position')
 
             f_232 = f.add_subplot(232)
-            currfig = f_232.imshow(aziPosMapNor, vmin=0, vmax=120, cmap='hsv', interpolation='nearest')
+            currfig = f_232.imshow(aziPosMapNor, 
+                                   vmin=AZIMUTH_RANGE[0], vmax=AZIMUTH_RANGE[1],
+                                   cmap='hsv', interpolation='nearest')
             f.colorbar(currfig)
             f_232.set_axis_off()
             f_232.set_title('normalized altitude position')
@@ -2059,12 +1915,14 @@ class RetinotopicMappingTrial(object):
         f1 = plt.figure(figsize=(18, 9))
         f1.suptitle(trialName)
         f1_231 = f1.add_subplot(231)
-        currfig = f1_231.imshow(self.altPosMapf, vmin=-40, vmax=60, cmap='hsv', interpolation='nearest')
+        currfig = f1_231.imshow(self.altPosMapf, vmin=ALTITUDE_RANGE[0], vmax=ALTITUDE_RANGE[1], cmap='hsv', interpolation='nearest')
         f1.colorbar(currfig)
         f1_231.set_axis_off()
         f1_231.set_title('alt position')
         f1_232 = f1.add_subplot(232)
-        currfig = f1_232.imshow(self.aziPosMapf, vmin=0, vmax=120, cmap='hsv', interpolation='nearest')
+        currfig = f1_232.imshow(self.aziPosMapf, 
+                                vmin=AZIMUTH_RANGE[0], vmax=AZIMUTH_RANGE[1],
+                                cmap='hsv', interpolation='nearest')
         f1.colorbar(currfig)
         f1_232.set_axis_off()
         f1_232.set_title('azi position')
@@ -2098,7 +1956,8 @@ class RetinotopicMappingTrial(object):
         f2.suptitle(trialName)
         f2_221 = f2.add_subplot(221)
         for key, value in self.rawPatches.items():
-            currfig = f2_221.imshow(self.altPosMapf * value.getMask(), vmin=-40, vmax=60, interpolation='nearest')
+            currfig = f2_221.imshow(self.altPosMapf * value.getMask(), 
+                                    vmin=ALTITUDE_RANGE[0], vmax=ALTITUDE_RANGE[1], interpolation='nearest')
         f2.colorbar(currfig)
         plt.tick_params(
             axis='both',  # changes apply to the x-axis
@@ -2113,7 +1972,8 @@ class RetinotopicMappingTrial(object):
 
         f2_222 = f2.add_subplot(222)
         for key, value in self.rawPatches.items():
-            currfig = f2_222.imshow(self.aziPosMapf * value.getMask(), vmin=-10, vmax=120, interpolation='nearest')
+            currfig = f2_222.imshow(self.aziPosMapf * value.getMask(),
+                                    vmin=AZIMUTH_RANGE[0], vmax=AZIMUTH_RANGE[1], interpolation='nearest')
         f2.colorbar(currfig)
         plt.tick_params(
             axis='both',  # changes apply to the x-axis
@@ -2599,7 +2459,9 @@ class RetinotopicMappingTrial(object):
             mask = mask + patch.array.astype(np.float)
 
         mask = ni.binary_closing(mask,
-                                 structure=np.array([[1., 1., 1.], [1., 1., 1.], [1., 1., 1.]]),
+                                 structure=np.array([[1., 1., 1.],
+                                                     [1., 1., 1.],
+                                                     [1., 1., 1.]]),
                                  iterations=self.params['borderWidth'])
 
         return mask.astype(np.int8)
@@ -2708,8 +2570,11 @@ class RetinotopicMappingTrial(object):
 
         return figList, axList
 
-    def plotContours(self, isNormalize=True, altLevels=np.arange(-30., 50., 5.), aziLevels=np.arange(0., 120., 5.),
-                     isPlottingBorder=True, inline=False, lineWidth=3, figSize=(12, 12), fontSize=15, altAxis=None,
+    def plotContours(self, isNormalize=True,
+                     altLevels=np.arange(*ALTITUDE_RANGE, 7),
+                     aziLevels=np.arange(*AZIMUTH_RANGE, 7),
+                     isPlottingBorder=True, inline=False,
+                     lineWidth=3, figSize=(12, 12), fontSize=15, altAxis=None,
                      aziAxis=None):
         """
         plot contours of altitute posititon and azimuth position
@@ -2886,18 +2751,15 @@ class Patch(object):
 
         pixelSize = np.float(pixelSize)
 
-        altRange = np.array([-40., 60.])
-        aziRange = np.array([-20., 120.])
-
         if visualFieldOrigin:
             altMap = altMap - visualFieldOrigin[0]
             aziMap = aziMap - visualFieldOrigin[1]
 
-        gridAzi, gridAlt = np.meshgrid(np.arange(aziRange[0], aziRange[1], pixelSize),
-                                       np.arange(altRange[0], altRange[1], pixelSize))
+        gridAzi, gridAlt = np.meshgrid(np.arange(AZIMUTH_RANGE[0], AZIMUTH_RANGE[1], pixelSize),
+                                       np.arange(ALTITUDE_RANGE[0], ALTITUDE_RANGE[1], pixelSize))
 
-        visualSpace = np.zeros((int(np.ceil((altRange[1] - altRange[0]) / pixelSize)),
-                                int(np.ceil((aziRange[1] - aziRange[0]) / pixelSize))))
+        visualSpace = np.zeros((int(np.ceil((ALTITUDE_RANGE[1] - ALTITUDE_RANGE[0]) / pixelSize)),
+                                int(np.ceil((AZIMUTH_RANGE[1] - AZIMUTH_RANGE[0]) / pixelSize))))
 
         patchArray = self.array
         for i in range(patchArray.shape[0]):
@@ -2905,10 +2767,10 @@ class Patch(object):
                 if patchArray[i, j]:
                     corAlt = altMap[i, j]
                     corAzi = aziMap[i, j]
-                    if (corAlt >= altRange[0]) & (corAlt < altRange[1]) & (corAzi >= aziRange[0]) & (
-                        corAzi < aziRange[1]):
-                        indAlt = (corAlt - altRange[0]) // pixelSize
-                        indAzi = (corAzi - aziRange[0]) // pixelSize
+                    if (corAlt >= ALTITUDE_RANGE[0]) & (corAlt < ALTITUDE_RANGE[1]) & (corAzi >= AZIMUTH_RANGE[0]) & (
+                        corAzi < AZIMUTH_RANGE[1]):
+                        indAlt = (corAlt - ALTITUDE_RANGE[0]) // pixelSize
+                        indAzi = (corAzi - AZIMUTH_RANGE[0]) // pixelSize
                         visualSpace[np.int(indAlt), np.int(indAzi)] = 1
 
         if closeIter >= 1:
@@ -3157,6 +3019,84 @@ class Patch(object):
         cor = np.array(np.where(eccMap2 == np.nanmin(eccMap2))).transpose()
 
         return cor
+
+# ----------------------------------------------------------------
+#           plot functions 
+# ----------------------------------------------------------------
+
+
+def plot_mask(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=None, closingIteration=None):
+    """
+    plot mask borders in a given color
+    """
+
+    if not plotAxis:
+        f = plt.figure()
+        plotAxis = f.add_subplot(111)
+
+    cmap1 = col.ListedColormap(color, 'temp')
+    cm.register_cmap(cmap=cmap1)
+
+    if zoom != 1:
+        mask = ni.interpolation.zoom(mask, zoom, order=0)
+
+    mask2 = mask.astype(np.float32)
+    mask2[np.invert(np.isnan(mask2))] = 1.
+    mask2[np.isnan(mask2)] = 0.
+
+    struc = ni.generate_binary_structure(2, 2)
+    if borderWidth:
+        border = mask2 - ni.binary_erosion(mask2, struc, iterations=borderWidth).astype(np.float32)
+    else:
+        border = mask2 - ni.binary_erosion(mask2, struc).astype(np.float32)
+
+    if closingIteration:
+        border = ni.binary_closing(border, iterations=closingIteration).astype(np.float32)
+
+    border[border == 0] = np.nan
+
+    currfig = plotAxis.imshow(border, cmap='temp', interpolation='nearest')
+
+    return currfig
+
+
+def plot_mask_borders(mask, plotAxis=None, color='#ff0000', zoom=1, borderWidth=2, closingIteration=None,
+                      is_filled=False, **kwargs):
+    """
+    plot mask (ROI) borders by using pyplot.contour function. all the 0s and Nans in the input mask will be considered
+    as background, and non-zero, non-nan pixel will be considered in ROI.
+    """
+    if not plotAxis:
+        f = plt.figure()
+        plotAxis = f.add_subplot(111)
+
+    plotingMask = np.ones(mask.shape, dtype=np.uint8)
+
+    plotingMask[np.logical_or(np.isnan(mask), mask == 0)] = 0
+
+    if zoom != 1:
+        plotingMask = cv2.resize(plotingMask.astype(np.float),
+                                 dsize=(int(plotingMask.shape[1] * zoom), int(plotingMask.shape[0] * zoom)))
+        plotingMask[plotingMask < 0.5] = 0
+        plotingMask[plotingMask >= 0.5] = 1
+        plotingMask = plotingMask.astype(np.uint8)
+
+    if closingIteration is not None:
+        plotingMask = ni.binary_closing(plotingMask, iterations=closingIteration).astype(np.uint8)
+
+    if is_filled:
+        currfig = plotAxis.contourf(plotingMask, levels=[0.5, 1], colors=color, **kwargs)
+    else:
+        currfig = plotAxis.contour(plotingMask, levels=[0.5], colors=color, linewidths=borderWidth, **kwargs)
+
+    # put y axis in decreasing order
+    y_lim = list(plotAxis.get_ylim())
+    y_lim.sort()
+    plotAxis.set_ylim(y_lim[::-1])
+
+    plotAxis.set_aspect('equal')
+
+    return currfig
 
 
 if __name__ == "__main__":
