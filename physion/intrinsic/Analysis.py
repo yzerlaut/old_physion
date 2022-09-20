@@ -14,6 +14,43 @@ from physion.analysis.analyz.analyz.processing.filters \
 from physion.dataviz.datavyz.datavyz import graph_env
 ge = graph_env('screen') # for display on screen
 
+default_segmentation_params={'phaseMapFilterSigma': 1.,
+                             'signMapFilterSigma': 9.,
+                             'signMapThr': 0.35,
+                             'eccMapFilterSigma': 10.,
+                             'splitLocalMinCutStep': 5.,
+                             'mergeOverlapThr': 0.1,
+                             'closeIter': 3,
+                             'openIter': 3,
+                             'dilationIter': 15,
+                             'borderWidth': 1,
+                             'smallPatchThr': 100,
+                             'visualSpacePixelSize': 0.5,
+                             'visualSpaceCloseIter': 15,
+                             'splitOverlapThr': 1.1}
+
+def load_maps(datafolder):
+
+    if os.path.isfile(os.path.join(datafolder, 'draft-maps.npy')):
+        maps = np.load(os.path.join(datafolder, 'draft-maps.npy'),
+                       allow_pickle=True).item()
+    else:
+        maps = {}
+
+    if os.path.isfile(os.path.join(datafolder, 'vasculature.npy')):
+        maps['vasculature'] = np.load(os.path.join(datafolder, 'vasculature.npy'))
+
+    for key in ['vasculature', 'fluorescence']:
+        if os.path.isfile(os.path.join(datafolder, '%s.npy' % key )):
+            maps[key] = np.load(os.path.join(datafolder, '%s.npy' % key))
+
+    if os.path.isfile(os.path.join(datafolder, 'final-patches-params.npy')):
+        maps['params'] = np.load(os.path.join(datafolder, 'final-patches-params.npy'),
+                                 allow_pickle=True).item()
+
+    return maps
+
+    
 def resample_data(array, old_time, time):
     new_array = 0*time
     for i1, i2 in zip(range(len(time)-1), range(1, len(time))):
@@ -218,25 +255,11 @@ def build_trial_data(maps, with_params=False):
         else:
             output[key2+'Map'] = 0.*maps['vasculature']
    
-    # output['altPosMap'] += 10
-    # output['aziPosMap'] += 40
-
     if with_params:
-        output['params']={\
-              'phaseMapFilterSigma': 1,
-              'signMapFilterSigma': 3,
-              'signMapThr': 0.3,
-              'eccMapFilterSigma': 10.0,
-              'splitLocalMinCutStep': 5.,
-              'closeIter': 3,
-              'openIter': 3,
-              'dilationIter': 15,
-              'borderWidth': 1,
-              'smallPatchThr': 100,
-              'visualSpacePixelSize': 0.5,
-              'visualSpaceCloseIter': 15,
-              'splitOverlapThr': 1.1,
-              'mergeOverlapThr': 0.1}
+        if 'params' in maps:
+            output['params']=maps['params']
+        else:
+            output['params']=default_segmentation_params
 
     return output
     
@@ -351,6 +374,26 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
         
     return fig
 
+
+def add_patches(trial, ax):
+
+    signMapf = trial.signMapf
+    rawPatchMap = trial.rawPatchMap
+    
+    patchMapDilated = RetinotopicMapping.dilationPatches2(rawPatchMap,\
+            dilationIter=trial.params['dilationIter'],
+            borderWidth=trial.params['borderWidth'])
+
+    rawPatches = RetinotopicMapping.labelPatches(patchMapDilated, signMapf)
+
+    rawPatches = RetinotopicMapping.sortPatches(rawPatches)
+
+    for key, currPatch in rawPatches.items():
+
+        ax.imshow(currPatch.getSignedMask(),\
+                  vmax=1, vmin=-1, interpolation='nearest', alpha=0.5, cmap='jet')
+
+
 def save_maps(maps, filename):
     """ removes the functions from the maps to be able to save """
     Maps = {}
@@ -383,10 +426,8 @@ if __name__=='__main__':
 
         if args.plot:
 
-            maps = np.load(os.path.join(args.datafolder, 'draft-maps.npy'),
-                           allow_pickle=True).item()
-            maps['vasculature'] = np.load(os.path.join(args.datafolder, 'vasculature.npy'))
-
+            maps = load_maps(args.datafolder)
+            
             for p in ['up', 'down', 'left', 'right']:
                 plot_phase_power_maps(maps, p)
             ge.show()
@@ -398,16 +439,19 @@ if __name__=='__main__':
 
         elif args.segmentation:
 
-            maps = np.load(os.path.join(args.datafolder, 'draft-maps.npy'),
-                           allow_pickle=True).item()
-            maps['vasculature'] = np.load(os.path.join(args.datafolder, 'vasculature.npy'))
+            maps = load_maps(args.datafolder)
 
             # RetinotopicMapping 
             trial_data = build_trial_data(maps)
             trial = RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
             trial.processTrial(isPlot=True)
-
             ge.show()
+
+            answer = input(' Do you want to save the patches map ? [N/y] ')
+            if answer in ['y', 'yes']:
+                trial._getRawPatches(isPlot=True)
+                plt.gcf().savefig(os.path.join(args.datafolder, 'final-patches.png'))
+                np.save(os.path.join(args.datafolder, 'final-patches-params.npy'), default_Segmentation_params)
 
         elif args.protocol=='sum':
 
@@ -425,6 +469,7 @@ if __name__=='__main__':
                     os.path.join(args.datafolder, 'draft-maps.npy'))
             save_maps(maps,
                       os.path.join(args.datafolder, 'draft-maps.npy'))
+
         else:
             maps = compute_phase_power_maps(args.datafolder,
                                             args.protocol,

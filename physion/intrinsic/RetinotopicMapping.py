@@ -1459,14 +1459,15 @@ class RetinotopicMappingTrial(object):
                     # if both of these two patches are still in the 'patches' dictionary
                     if (patch1 in patches.keys()) and (patch2 in patches.keys()):
                         # plot these patches and their visual space
-                        plotPairedPatches(patches[patch1],
-                                          patches[patch2],
-                                          altPosMapf,
-                                          aziPosMapf,
-                                          title='merge iteation:' + str(
-                                              mergeIter) + ' patch1:' + patch1 + ' patch2:' + patch2,
-                                          pixelSize=visualSpacePixelSize,
-                                          closeIter=visualSpaceCloseIter)
+                        if isPlot:
+                            plotPairedPatches(patches[patch1],
+                                              patches[patch2],
+                                              altPosMapf,
+                                              aziPosMapf,
+                                              title='merge iteation:' + str(
+                                                  mergeIter) + ' patch1:' + patch1 + ' patch2:' + patch2,
+                                              pixelSize=visualSpacePixelSize,
+                                              closeIter=visualSpaceCloseIter)
 
                         # remove these two patches from the 'patches' dictionary
                         patches.pop(patch1)

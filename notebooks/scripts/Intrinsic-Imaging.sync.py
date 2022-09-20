@@ -13,6 +13,36 @@
 #     name: python3
 # ---
 
+# %% [markdown]
+# # Perform visual areas identification using Intrinsic Imaging
+
+# %% [markdown]
+# ### Usage
+#
+# #### 1) Generate the intrinsic imaging data
+#
+# Experimental protocol reproduced from: 
+# > [Juavinett et al. "Automated identification of mouse visual areas with intrinsic signal imaging." Nature protocols 12.1 (2017): 32-43.](https://www.nature.com/articles/nprot.2016.158)
+#
+# Using the idea of [Kalatsky & Stryker, _Neuron_ (2003)](http://doi.org/10.1016/s0896-6273(03)00286-1). See demo at the bottom of the notebook.
+#
+# Launch the GUI with:
+#
+# `$ python physion/intrinsic_imaging/gui.py`
+#
+# #### 2) Compute azimuth and altitude maps with
+# `$ python physion/intrinsic_imaging/Analysis.py -df DATAFOLDER`
+#
+# #### 3) Perform area segmentation and visualize the output with:
+# `$ python physion/intrinsic_imaging/Analysis.py -df DATAFOLDER --segmentation`
+#
+# #### 4) Other visualization/debug tools
+#
+# plot single protocol maps (e.e. "up" protocol) with: `$ python physion/intrinsic_imaging/Analysis.py -df DATAFOLDER --plot --protocol up`
+
+# %% [markdown]
+# ### Visualizing output after analysis
+
 # %%
 # --- load standard modules
 import pprint, os, sys
@@ -21,8 +51,34 @@ import matplotlib.pylab as plt
 # --- physion modules
 sys.path.append(os.path.join(os.path.expanduser('~'), 'work', 'physion'))
 import physion
-from physion.dataviz.datavyz.datavyz import graph_env
-ge = graph_env('manuscript')
+from physion.dataviz.datavyz.datavyz import graph_env_manuscript as ge
+
+# %%
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+# -- loading data
+maps = physion.intrinsic.Analysis.load_maps(datafolder)
+
+# -- recompute areas based on stored parameters
+trial_data = physion.intrinsic.Analysis.build_trial_data(maps, with_params=True)
+trial = physion.intrinsic.RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
+trial.processTrial()
+
+# -- plotting maps
+if 'fluorescence' in maps:
+    fig, AX = ge.figure(axes=(3,1), figsize=(1.5,3), wspace=0.1)
+    AX[2].imshow(maps['fluorescence']**.3, cmap='gray', interpolation='nearest')
+else:
+    fig, AX = ge.figure(axes=(2,1), figsize=(1.5,3), wspace=0.1)
+    
+AX[0].imshow(maps['vasculature']**.3, cmap='gray', interpolation='nearest')
+AX[1].imshow(maps['vasculature']**.3, cmap='gray', interpolation='nearest')
+physion.intrinsic.Analysis.add_patches(trial, AX[1])
+for ax, title in zip(AX, ['vasculature', 'visual areas', 'fluorescence']):
+    ax.set_title(title)
+    ax.axis('off')
+
+# %% [markdown]
+# # Implementation details
 
 # %%
 # --- load a data folder
@@ -33,7 +89,7 @@ params, (t, data) = physion.intrinsic.Analysis.load_raw_data(datafolder,
 
 
 # %% [markdown]
-# ## raw Intrinsic Imaging data
+# ## Look at raw Intrinsic Imaging data
 
 # %%
 # plot raw data
@@ -82,7 +138,7 @@ def show_raw_data(t, data, params, maps,
     ge.set_plot(AX[2][4], xscale='log', 
                 xlim=[.99,101], xlabel='freq (sample unit)', ylabel='phase (Rd)')
 
-show_raw_data(t, data, params, maps, pixel=(170,160))
+show_raw_data(t, data, params, maps, pixel=(150,160))
 
 # %% [markdown]
 # ## Compute retinotopic maps
@@ -95,13 +151,16 @@ maps = physion.intrinsic.Analysis.compute_retinotopic_maps(datafolder, 'azimuth'
 np.save(os.path.join(datafolder, 'draft-maps.npy'), maps)
 
 # %% [markdown]
-# ### Visualizing retinotopic maps
+# ## Visualizing retinotopic maps
 
 # %%
+# reloading the above analysis
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
-fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'up')
-# just one stim: "up"
+fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'up') # just one stim: "up"
+
+# %%
+fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'down') # just one stim: "down"
 
 # %%
 # azimuth = "up" - "down" protocols
@@ -140,17 +199,77 @@ ge = graph_env('manuscript')
 
 import physion.intrinsic.RetinotopicMapping as rm
 
-# %%
-datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
-#datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '14-35-08')
-maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
-trial_data = physion.intrinsic.Analysis.build_trial_data(maps, with_params=False)
+# %% [markdown]
+# ## Segmentation parameters  
+#
+# #### */!\* REPRODUCED FROM THE ZHUANG J. NOTEBOOK */!\*
+#
+# - **phaseMapFilterSigma**: The sigma value (in pixels) of Gaussian filter for altitude and azimuth maps. 
+#     - FLOAT, default = 1.0, recommended range: [0.0, 2.0]. 
+#     - Large "phaseMapFilterSigma" gives you more patches. Small "phaseMapFilterSigma" gives you less patches.
+#
+#
+# - **signMapFilterSigma**: The sigma value (in pixels) of Gaussian filter for visual sign maps. 
+#     - FLOAT, default = 9.0, recommended range: [0.6, 10.0]. 
+#     - Large "signMapFilterSigma" gives you less patches. Small "signMapFilterSigma" gives you more patches.
+#
+#
+# - **signMapThr**: Threshold to binarize visual signmap. 
+#     - FLOAT, default = 0.35, recommended range: [0.2, 0.5], allowed range: [0, 1). 
+#     - Large signMapThr gives you fewer patches. Smaller signMapThr gives you more patches.
+#
+#
+# - **closeIter**: Binary close iteration for each raw patches. 
+#     - INT, default = 3. You do not want to change this parameter very often.
+#
+#
+# - **openIter**: Binary open iteration for each raw patches. 
+#     - INT, default = 3. You do not want to change this parameter very often
+#
+#
+# - **dilationIter**: Binary dilation iteration for each raw patches. 
+#     - INT, default = 15. You do not want to change this parameter very often. 
+#
+#
+# - **borderWidth**: Pixel number between adjcent patches. 
+#     - INT, default = 1. You do not want to change this parameter very often.
+#
+#
+# - **smallPatchThr**: The patches with pixel number below smallPatchThr will be discarded. 
+#     - INT, default = 100. You do not want to change this parameter very often.
+#
+#
+# - **eccMapFilterSigma**: The sigma value of Gaussian filter for eccentricity maps. 
+#     - FLOAT, default = 10.0. You do not want to change this parameter very often.
+#
+#
+# - **visualSpacePixelSize**: The pixel size for patch to visual space mapping. 
+#     - FLOAT, default = 0.5. You do not want to change this parameter very often. 
+#
+#
+# - **visualSpaceCloseIter**: The binary iteration for visual space coverage for each patch. 
+#     - INT, default = 15. You do not want to change this parameter very often.
+#
+#
+# - **splitLocalMinCutStep**: The step width for detecting number of local minimums during spliting. The local minimums detected will be used as marker in the following open cv watershed segmentation. 
+#     - FLOAT, default = 5.0, recommend range: [0.5, 15.0]. 
+#     - Small "splitLocalMinCutStep" will make it more likely to split but into less sub patches. Large "splitLocalMinCutStep" will make it less likely to split but into more sub patches. 
+#
+#
+# - **splitOverlapThr**: Patches with overlap ration larger than this value will go through the split procedure. 
+#     - FLOAT, default = 1.1, recommend range: [1.0, 1.2], should be larger than 1.0. 
+#     - Small "splitOverlapThr" will split more patches. Large "splitOverlapThr" will split less patches. 
+#
+#
+# - **mergeOverlapThr**: Considering a patch pair (A and B) with same sign, A has visual coverage a deg<sup>2</sup> and B has visual coverage b deg<sup>2</sup> and the overlaping visual coverage between this pair is c deg<sup>2</sup>. Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged. 
+#     - FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0. 
+#     - Small "mergeOverlapThr" will merge less patches. Large "mergeOverlapThr" will merge more patches.
 
 # %%
-params = {
-          'phaseMapFilterSigma': 2,
-          'signMapFilterSigma': 4,
-          'signMapThr': 0.6,
+# to update parameters
+params = {'phaseMapFilterSigma': 1.,
+          'signMapFilterSigma': 9.,
+          'signMapThr': 0.35,
           'eccMapFilterSigma': 10.0,
           'splitLocalMinCutStep': 5.,
           'closeIter': 3,
@@ -161,14 +280,20 @@ params = {
           'visualSpacePixelSize': 1,
           'visualSpaceCloseIter': 15,
           'splitOverlapThr': 1.1,
-          'mergeOverlapThr': 0.1}
+          'mergeOverlapThr': 0.0}
+
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+# -- loading data
+maps = physion.intrinsic.Analysis.load_maps(datafolder)
+
+trial_data = physion.intrinsic.Analysis.build_trial_data(maps, with_params=False)
+trial = rm.RetinotopicMappingTrial(**trial_data, params=params)
+
+# %% [markdown]
+# ## Run the segmentation procedure
 
 # %% [markdown]
 # ### Generating visual sign map
-
-# %%
-trial = rm.RetinotopicMappingTrial(**trial_data,
-                                   params=params)
 
 # %%
 _ = trial._getSignMap(isPlot=True)
@@ -184,8 +309,7 @@ _ = trial._getRawPatchMap(isPlot=True)
 
 # %%
 plt.close('all')
-trial._getRawPatches(isPlot=True)
-plt.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'fig.svg'))
+_ = trial._getRawPatches(isPlot=True)
 
 # %% [markdown]
 # ### Generating determinant map
@@ -206,6 +330,9 @@ _ = trial._splitPatches(isPlot=True)
 _ = trial._mergePatches(isPlot=True)
 
 # %%
+_ = trial._getRawPatches()
+
+# %%
 _ = trial.plotFinalPatchBorders2()
 
 # %%
@@ -213,16 +340,8 @@ names = [
          ['patch01', 'V1'],
          ['patch02', 'PM'],
          ['patch03', 'RL'],
-         ['patch04', 'P'],
-         ['patch05', 'LM'],
-         ['patch06', 'AM'],
-         #['patch07', 'LI'],
-         #['patch08', 'MMA'],
-         #['patch09', 'AL'],
-         #['patch10', 'RLL'],
-         #['patch11', 'LLA'],
-         #['patch12', 'MMP'],
-         #['patch13', 'MMP']
+         ['patch04', 'AM'],
+         ['patch05', ''],
          ]
 
 finalPatchesMarked = dict(trial.finalPatches)
