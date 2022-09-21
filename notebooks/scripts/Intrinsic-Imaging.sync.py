@@ -54,7 +54,7 @@ import physion
 from physion.dataviz.datavyz.datavyz import graph_env_manuscript as ge
 
 # %%
-datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_15', '14-11-42')
 # -- loading data
 maps = physion.intrinsic.Analysis.load_maps(datafolder)
 
@@ -65,17 +65,20 @@ trial.processTrial()
 
 # -- plotting maps
 if 'fluorescence' in maps:
-    fig, AX = ge.figure(axes=(3,1), figsize=(1.5,3), wspace=0.1)
+    fig, AX = ge.figure(axes=(4,1), figsize=(1.5,3), wspace=0.1)
     AX[2].imshow(maps['fluorescence']**.3, cmap='gray', interpolation='nearest')
+    AX[3].imshow(maps['fluorescence'][::4,::4]**.3, cmap='gray', interpolation='nearest')
+    physion.intrinsic.Analysis.add_patches(trial, AX[3])
 else:
     fig, AX = ge.figure(axes=(2,1), figsize=(1.5,3), wspace=0.1)
     
 AX[0].imshow(maps['vasculature']**.3, cmap='gray', interpolation='nearest')
 AX[1].imshow(maps['vasculature']**.3, cmap='gray', interpolation='nearest')
 physion.intrinsic.Analysis.add_patches(trial, AX[1])
-for ax, title in zip(AX, ['vasculature', 'visual areas', 'fluorescence']):
+for ax, title in zip(AX, ['vasculature', 'visual areas', 'fluorescence', 'visual areas']):
     ax.set_title(title)
     ax.axis('off')
+ge.save_on_desktop(fig, 'fig.png')
 
 # %% [markdown]
 # # Implementation details
