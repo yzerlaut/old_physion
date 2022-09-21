@@ -71,7 +71,7 @@ python assembling/realign_from_photodiode.py EXAMPLE_DATAFOLDER
 it shows up a few of the episodes with the quantities used for the realignement, such as:
 
 <p align="center">
-  <img src="../doc/realignement-from-photodiode.png"/>
+  <img src="../docs/realignement-from-photodiode.png"/>
 </p>
 
 
