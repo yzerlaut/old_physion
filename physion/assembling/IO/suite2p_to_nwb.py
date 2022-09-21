@@ -104,7 +104,7 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml,
             redcell = np.load(os.path.join(pData_folder, 'redcell.npy'))[iscell[:,0], :]
             
     for fstr in file_strs:
-        traces.append(np.load(os.path.join(pData_folder, fstr))[iscell[:,0], :])
+        traces.append(np.load(os.path.join(pData_folder, fstr))[iscell[:,0], :].T) # transposing the traces to fill the NWB requirements ! (Ntime_samples, Nrois)
         
     stat = np.load(os.path.join(pData_folder, 'stat.npy'), allow_pickle=True)
 
@@ -125,9 +125,9 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml,
         region=list(np.arange(0, ncells)),
         description='all ROIs')
 
-    # FLUORESCENCE (all are required)
-    file_strs = ['F.npy', 'Fneu.npy', 'spks.npy']
-    name_strs = ['Fluorescence', 'Neuropil', 'Deconvolved']
+    # FLUORESCENCE (all are required) /!\ YANN: removed spks.npy
+    file_strs = ['F.npy', 'Fneu.npy']
+    name_strs = ['Fluorescence', 'Neuropil']
 
     for i, (fstr,nstr) in enumerate(zip(file_strs, name_strs)):
         roi_resp_series = RoiResponseSeries(
