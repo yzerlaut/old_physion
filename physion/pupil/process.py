@@ -283,6 +283,7 @@ def load_folder(cls):
     """ see assembling/tools.py """
     cls.times, cls.FILES, cls.nframes, cls.Lx, cls.Ly = tools.load_FaceCamera_data(cls.imgfolder)
 
+
 def load_ROI(cls, with_plot=True):
 
     saturation = cls.data['ROIsaturation']
