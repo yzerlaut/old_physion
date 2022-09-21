@@ -330,13 +330,15 @@ class NewWindow(QtWidgets.QMainWindow):
     def select_ROI_from_pick(self, data):
 
         if self.roiPick.text() in ['sum', 'all']:
-            roiIndices = np.arange(np.sum(data.iscell))
+            roiIndices = np.arange(data.nROIs)
+
         elif len(self.roiPick.text().split('-'))>1:
             try:
                 roiIndices = np.arange(int(self.roiPick.text().split('-')[0]), int(self.roiPick.text().split('-')[1]))
             except BaseException as be:
                 print(be)
                 roiIndices = None
+
         elif len(self.roiPick.text().split(','))>1:
             try:
                 roiIndices = np.array([int(ii) for ii in self.roiPick.text().split(',')])
@@ -346,7 +348,7 @@ class NewWindow(QtWidgets.QMainWindow):
         else:
             try:
                 i0 = int(self.roiPick.text())
-                if (i0<0) or (i0>=np.sum(data.iscell)):
+                if (i0<0) or (i0>=data.nROIs):
                     roiIndices = [0]
                     self.statusBar.showMessage(' "%i" not a valid ROI index, roiIndices set to [0]'  % i0)
                 else:
