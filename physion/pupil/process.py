@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from misc.progressBar import printProgressBar
-from assembling.tools import load_FaceCamera_data
+from assembling import tools
 from pupil.outliers import replace_outliers
 from pupil import roi
 import matplotlib.pylab as plt
@@ -281,7 +281,7 @@ def preprocess(cls, with_reinit=True,
 
 def load_folder(cls):
     """ see assembling/tools.py """
-    cls.times, cls.FILES, cls.nframes, cls.Lx, cls.Ly = load_FaceCamera_data(cls.imgfolder)
+    cls.times, cls.FILES, cls.nframes, cls.Lx, cls.Ly = tools.load_FaceCamera_data(cls.imgfolder)
 
 def load_ROI(cls, with_plot=True):
 
