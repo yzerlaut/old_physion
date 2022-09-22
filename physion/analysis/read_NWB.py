@@ -133,7 +133,7 @@ class Data:
             self.read_and_format_ophys_data()
         else:
             for key in ['Segmentation', 'Fluorescence', 'iscell', 'redcell', 'plane',
-                        'valid_roiIndices', 'Neuropil', 'Deconvolved']:
+                        'valid_roiIndices', 'Neuropil']:
                 setattr(self, key, None)
                 
         if 'Pupil' in self.nwbfile.processing:
@@ -171,7 +171,6 @@ class Data:
         ### ROI activity ###
         self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
         self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
-        self.Deconvolved = self.nwbfile.processing['ophys'].data_interfaces['Deconvolved'].roi_response_series['Deconvolved']
         self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
 
         ### ROI properties ###
@@ -179,15 +178,18 @@ class Data:
         self.pixel_masks_index = self.Segmentation.columns[0].data[:]
         self.pixel_masks = self.Segmentation.columns[1].data[:]
         # other ROI properties --- by default:
-        self.iscell = np.ones(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
-        self.valid_roiIndices = np.arange(len(self.Fluorescence.data[:,0])) # POTENTIALLY UPDATED AT THE dF/F calculus point (because of the positive F0 criterion) 
-        self.planeID = np.zeros(len(self.Fluorescence.data[:,0]), dtype=int)
-        self.redcell = np.zeros(len(self.Fluorescence.data[:,0]), dtype=bool) # deprecated
+
+        self.nROIs = self.Segmentation.columns[0].data.shape[0]
+        # initialize rois properties to default values
+        self.iscell = np.ones(self.nROIs, dtype=bool) # deprecated
+        self.valid_roiIndices = np.arange(self.nROIs) # POTENTIALLY UPDATED AT THE dF/F calculus point (because of the positive F0 criterion) 
+        self.planeID = np.zeros(self.nROIs, dtype=int)
+        self.redcell = np.zeros(self.nROIs, dtype=bool) 
         # looping over the table properties (0,1 -> rois locs) for the ROIS to overwrite the defaults:
         for i in range(2, len(self.Segmentation.columns)):
             if self.Segmentation.columns[i].name=='iscell': # DEPRECATED
                 self.iscell = self.Segmentation.columns[i].data[:,0].astype(bool)
-                self.valid_roiIndices = np.arange(len(self.iscell))[self.iscell]
+                self.valid_roiIndices = np.arange(self.nROIs)[self.iscell]
             if self.Segmentation.columns[i].name=='plane':
                 self.planeID = self.Segmentation.columns[i].data[:].astype(int)
             if self.Segmentation.columns[i].name=='redcell':
@@ -284,7 +286,8 @@ class Data:
     def compute_ROI_indices(self,
                             roiIndex=None, roiIndices='all',
                             verbose=True):
-        if not hasattr(self, 'nROIs') and verbose:
+
+        if not hasattr(self, 'dFoF') and verbose:
             print(' /!\ ROIs did not go through the "positive F0" criterion /!\ \n       --> need to call "data.build_dFoF()" first !  ')
 
         if roiIndex is not None:
@@ -296,6 +299,7 @@ class Data:
         
         
     def build_dFoF(self,
+                   roiIndex=None, roiIndices='all',
                    neuropil_correction_factor=NEUROPIL_CORRECTION_FACTOR,
                    method_for_F0=METHOD,
                    percentile=PERCENTILE_SLIDING_MIN,
@@ -305,6 +309,14 @@ class Data:
         """
         creates self.nROIs, self.dFoF, self.t_dFoF
         """
+
+        if not hasattr(self, 'rawFluo'):
+            self.build_rawFluo(roiIndex=roiIndex, roiIndices='all', verbose=verbose)
+        self.t_dFoF = self.t_rawFluo
+
+        if not hasattr(self, 'neuropil'):
+            self.build_neuropil(roiIndex=roiIndex, roiIndices='all', verbose=verbose)
+
         return compute_dFoF(self,
                             neuropil_correction_factor=neuropil_correction_factor,
                             method_for_F0=method_for_F0,
@@ -322,18 +334,36 @@ class Data:
     def build_neuropil(self,
                        roiIndex=None, roiIndices='all',
                        verbose=True):
-        self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
-        if not hasattr(self, 't_Neuropil'):
+        """
+        we build the neuropil matrix in the form (nROIs, time_samples)
+            we need to deal with the fact that matrix orientation was changed because of pynwb complains
+        """
+        if self.nROIs==self.Neuropil.data.shape[0]:
+            self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices),:]
+        else:
+            # transpose in that case
+            self.neuropil = np.array(self.Neuropil.data).T[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices),:]
+        if not hasattr(self, 't_neuropil'):
             self.t_neuropil = self.Neuropil.timestamps[:]
 
     def build_rawFluo(self,
                       roiIndex=None, roiIndices='all',
                       verbose=True):
-        self.rawFluo = self.Fluorescence.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices), :]
+        """
+        same than above for neuropil
+        """
+        if self.nROIs==self.Fluorescence.data.shape[0]:
+            self.rawFluo = self.Fluorescence.data[self.compute_ROI_indices(roiIndex=roiIndex,
+                                                                           roiIndices=roiIndices), :]
+        else:
+            # transpose in that case
+            self.rawFluo = np.array(self.Fluorescence.data).T[self.compute_ROI_indices(roiIndex=roiIndex,
+                                                                             roiIndices=roiIndices),:]
         if not hasattr(self, 't_rawFluo'):
-            self.t_rawFluo = self.Neuropil.timestamps[:]
-        
-    
+            self.t_rawFluo = self.Fluorescence.timestamps[:]
+
+        print(self.rawFluo.shape)
+
     ################################################
     #       episodes and visual stim protocols     #
     ################################################

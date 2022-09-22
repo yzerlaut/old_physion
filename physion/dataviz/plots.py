@@ -238,6 +238,7 @@ def raw_data_plot(self, tzoom,
             self.data.build_rawFluo()
         i1 = convert_time_to_index(self.tzoom[0], self.data.Neuropil, axis=1)
         i2 = convert_time_to_index(self.tzoom[1], self.data.Neuropil, axis=1)
+
         if not self.subsamplingSelect.isChecked():
             isampling = np.arange(i1,i2)
         else:
@@ -253,6 +254,7 @@ def raw_data_plot(self, tzoom,
         else:
 
             for n, ir in enumerate(self.roiIndices):
+                print(n, ir)
                 y = scale_and_position(self, self.data.rawFluo[ir,isampling], i=iplot)+n/2.
                 self.plot.plot(tt, y, pen=pg.mkPen(color=np.random.randint(255, size=3), linewidth=1))
         iplot += 1
