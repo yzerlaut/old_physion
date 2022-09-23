@@ -156,9 +156,9 @@ def build_NWB(args,
             
         success, metadata = realign_from_photodiode(Psignal, metadata,
                                                     sampling_rate=(args.photodiode_sampling if args.photodiode_sampling>0 else None),
-                                                    indices_forced=(metadata['indices_forced'] if ('indices_forced' in metadata) else []),
-                                                    times_forced=(metadata['times_forced'] if ('times_forced' in metadata) else []),
-                                                    durations_forced=(metadata['durations_forced'] if ('durations_forced' in metadata) else []),
+                                                    indices_forced=(metadata['realignement_indices_forced'] if ('realignement_indices_forced' in metadata) else []),
+                                                    times_forced=(metadata['realignement_times_forced'] if ('realignement_times_forced' in metadata) else []),
+                                                    durations_forced=(metadata['realignement_durations_forced'] if ('realignement_durations_forced' in metadata) else []),
                                                     verbose=args.verbose)
 
         if success:
@@ -367,8 +367,6 @@ def build_NWB(args,
                                                                      description='face motion dynamics,\n'+\
                                                                      ' facemotion ROI: (x0,dx,y0,dy)=(%i,%i,%i,%i)\n' % (dataF['ROI'][0],dataF['ROI'][1],
                                                                                                                          dataF['ROI'][2],dataF['ROI'][3]))
-                
-
                 FaceMotionProp = pynwb.TimeSeries(name='face-motion',
                                                   data = dataF['motion'],
                                                   unit='seconds',
