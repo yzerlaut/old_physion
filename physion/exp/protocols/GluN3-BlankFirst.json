@@ -10,5 +10,8 @@
   "presentation-poststim-screen": 0,
   "presentation-interstim-period": 4,
   "presentation-interstim-screen": 0,
+  "realignement_indices_forced":[0],
+  "realignement_times_forced":[5.0],
+  "realignement_durations_forced":[295.0],
   "Screen": "Dell-2020"
 }
