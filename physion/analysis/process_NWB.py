@@ -182,10 +182,10 @@ class EpisodeResponse:
                 QUANTITIES.append('Zscore_dFoF')
 
             elif quantity in ['Neuropil', 'neuropil']:
-                if not hasattr(full_data, 'Neuropil'):
-                    full_data.build_Neuropil(**quantity_args)
-                QUANTITY_VALUES.append(full_data.Neuropil)
-                QUANTITY_TIMES.append(full_data.t_Neuropil)
+                if not hasattr(full_data, 'neuropil'):
+                    full_data.build_neuropil(**quantity_args)
+                QUANTITY_VALUES.append(full_data.neuropil)
+                QUANTITY_TIMES.append(full_data.t_neuropil)
                 QUANTITIES.append('neuropil')
 
             elif quantity in ['Fluorescence', 'rawFluo']:

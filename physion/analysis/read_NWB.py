@@ -133,7 +133,7 @@ class Data:
             self.read_and_format_ophys_data()
         else:
             for key in ['Segmentation', 'Fluorescence', 'iscell', 'redcell', 'plane',
-                        'valid_roiIndices', 'Neuropil']:
+                        'valid_roiIndices', 'neuropil']:
                 setattr(self, key, None)
                 
         if 'Pupil' in self.nwbfile.processing:
@@ -343,6 +343,7 @@ class Data:
         else:
             # transpose in that case
             self.neuropil = np.array(self.Neuropil.data).T[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices),:]
+
         if not hasattr(self, 't_neuropil'):
             self.t_neuropil = self.Neuropil.timestamps[:]
 
@@ -362,7 +363,6 @@ class Data:
         if not hasattr(self, 't_rawFluo'):
             self.t_rawFluo = self.Fluorescence.timestamps[:]
 
-        print(self.rawFluo.shape)
 
     ################################################
     #       episodes and visual stim protocols     #

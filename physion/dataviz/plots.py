@@ -244,8 +244,6 @@ def raw_data_plot(self, tzoom,
         else:
             isampling = np.unique(np.linspace(i1, i2, self.settings['Npoints'], dtype=int))
 
-        
-        
         tt = np.array(self.data.Neuropil.timestamps[:])[isampling]
 
         if self.roiPick.text()=='sum':
