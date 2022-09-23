@@ -402,7 +402,7 @@ class Data:
             Pcond = (self.nwbfile.stimulus['protocol_id'].data[:]==protocol_id)
 
         else:
-            print('no protocol ID')
+            # print('no protocol ID')
             Pcond = np.ones(self.nwbfile.stimulus['time_start'].data.shape[0], dtype=bool)
              
         # limiting to available episodes

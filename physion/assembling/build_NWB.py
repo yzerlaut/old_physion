@@ -156,7 +156,11 @@ def build_NWB(args,
             
         success, metadata = realign_from_photodiode(Psignal, metadata,
                                                     sampling_rate=(args.photodiode_sampling if args.photodiode_sampling>0 else None),
+                                                    indices_forced=(metadata['indices_forced'] if ('indices_forced' in metadata) else []),
+                                                    times_forced=(metadata['times_forced'] if ('times_forced' in metadata) else []),
+                                                    durations_forced=(metadata['durations_forced'] if ('durations_forced' in metadata) else []),
                                                     verbose=args.verbose)
+
         if success:
             timestamps = metadata['time_start_realigned']
             for key in ['time_start_realigned', 'time_stop_realigned']:
