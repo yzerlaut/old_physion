@@ -715,10 +715,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             
                     if with_screen_inset:
                         inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
-                        self.visual_stim.plot_stim_picture(self.index_from_start[cond][0],
-                                                                ax=inset)
-                        # self.visual_stim.plot_stim_picture(np.flatnonzero(cond)[0],
-                                                            # ax=inset)
+                        istim = np.flatnonzero(cond)[0]
+                        self.visual_stim.plot_stim_picture(istim, ax=inset)
                         
                     if with_annotation:
                         
@@ -1174,7 +1172,9 @@ if __name__=='__main__':
                                    prestim_duration=3,
                                    verbose=args.verbose)
 
-        episodes.plot_trial_average(with_screen_inset=True)
+        episodes.plot_trial_average(with_screen_inset=True,
+                                    with_annotation=True,
+                                    column_key='contrast')
 
         # episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
                                     # row_key='patch-delay',

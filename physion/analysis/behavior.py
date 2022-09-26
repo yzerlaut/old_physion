@@ -6,7 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 # datavyz submodule
 from dataviz.datavyz.datavyz import graph_env_manuscript as ge
-from dataviz.show_data import MultimodalData
+from dataviz import show_data 
 from dataviz import tools
 from analysis.tools import *
 
@@ -163,7 +163,7 @@ def analysis_pdf(datafile,
 
     pdf_filename = os.path.join(summary_pdf_folder(datafile), 'behavior.pdf')
 
-    data = MultimodalData(datafile)
+    data = show_data.MultimodalData(datafile)
     
     with PdfPages(pdf_filename) as pdf:
 

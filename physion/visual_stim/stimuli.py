@@ -10,6 +10,8 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from screens import SCREENS
 from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from dataviz.datavyz.datavyz import graph_env_manuscript as ge
 
 def build_stim(protocol):
     """

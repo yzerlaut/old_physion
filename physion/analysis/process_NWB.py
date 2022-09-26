@@ -493,6 +493,16 @@ class EpisodeResponse:
                 stim_data[key.replace('Protocol-%i-' % (self.protocol_id+1), '')]=full_data.metadata[key]
 
         self.visual_stim = build_stim(stim_data)
+
+        # we overwrite the episode values to force it to those of the recording:
+        ##
+        ## CHECK WHY THE visual_stim CAN HAVE DIFFERENT VALUES THAN THE DATA
+        ## is it the seed that is not passed well ?
+        ## (not crucial because it is just for stim visualization purpose, but still...)
+        ##
+        for key in self.visual_stim.experiment:
+            if hasattr(self, key):
+                self.visual_stim.experiment[key] = getattr(self, key)
         
     
 
