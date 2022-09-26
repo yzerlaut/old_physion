@@ -2,9 +2,6 @@ import os, sys, itertools, pathlib
 import numpy as np
 from scipy import stats
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from analysis.read_NWB import Data
-
 class StatTest:
     
     def __init__(self, x, y,
