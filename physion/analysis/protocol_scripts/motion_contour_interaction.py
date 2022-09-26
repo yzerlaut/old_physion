@@ -34,7 +34,7 @@ def find_responsive_cells(episode,
         rois_of_interest['%s_%i' % (param_key, v)] = []
         rois_of_interest['%s_%i_resp' % (param_key, v)] = []
 
-    for roi in range(episode.data.nROIs):
+    for roi in range(episode.dFoF.shape[1]):
         summary_data = episode.compute_summary_data(dict(interval_pre=interval_pre,
                                                          interval_post=interval_post,
                                                          test='anova', positive=True),
