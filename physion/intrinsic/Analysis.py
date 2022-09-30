@@ -311,7 +311,8 @@ def plot_phase_power_maps(maps, direction):
     return fig
 
 
-def plot_retinotopic_maps(maps, map_type='altitude'):
+def plot_retinotopic_maps(maps, map_type='altitude',
+                          max_retinotopic_angle=60):
     
     if map_type=='altitude':
         plus, minus = 'up', 'down'
@@ -352,13 +353,15 @@ def plot_retinotopic_maps(maps, map_type='altitude'):
                   bounds=bounds, ticks=bounds, ticks_labels=['%.1f'%(1e4*b) for b in bounds],
                   colorbar_inset=dict(rect=[1.2,.1,.05,.8], facecolor=None))
     
-    bounds = [np.min(maps['%s-retinotopy' % map_type]),
-              np.max(maps['%s-retinotopy' % map_type])]
+    # bounds = [np.min(maps['%s-retinotopy' % map_type]),
+              # np.max(maps['%s-retinotopy' % map_type])]
+    bounds = [-max_retinotopic_angle, max_retinotopic_angle]
     
     AX[2][0].imshow(maps['%s-delay' % map_type], cmap=plt.cm.twilight,\
                     vmin=-np.pi/2, vmax=3*np.pi/2)
     AX[2][1].imshow(maps['%s-retinotopy' % map_type], cmap=plt.cm.PRGn,\
                     vmin=bounds[0], vmax=bounds[1])
+
     ge.annotate(AX[2][0], '$\phi^{+}$+$\phi^{-}$', (1,1), ha='right', va='top', color='w', size='small')
     ge.annotate(AX[2][1], 'F[$\phi^{+}$-$\phi^{-}$]', (1,0), ha='right', va='bottom', color='k', size='xx-small')
     ge.title(AX[2][0], '(hemodyn.-)delay map', size='xx-small')
@@ -440,6 +443,7 @@ if __name__=='__main__':
         elif args.segmentation:
 
             maps = load_maps(args.datafolder)
+            maps['vasculature'] = maps['vasculature']**.25 # for better display
 
             # RetinotopicMapping 
             trial_data = build_trial_data(maps)
