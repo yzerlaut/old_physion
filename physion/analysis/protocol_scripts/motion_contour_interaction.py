@@ -204,6 +204,7 @@ class MCI_data:
                                                       prestim_duration=prestim_duration, verbose=False)             
         else:
             self.episode_random_dots = None
+
         if 'mixed-random-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
                                                              protocol_name='mixed-random-dots-static-patch',
@@ -263,8 +264,10 @@ class MCI_data:
 
     def get_responses(self, 
                       static_patch_cond,
-                      moving_dots_cond,
-                      mixed_cond,
+                      moving_dots_cond=None,
+                      mixed_cond=None,
+                      random_dots_cond=None,
+                      mixed_random_dots_cond=None,
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
                       integral_window=2., force_delay=None,
@@ -273,8 +276,13 @@ class MCI_data:
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
             # from mixed resp
-            mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
-            scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+            if mixed_cond is not None:
+                mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
+                scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+            elif mixed_random_dots_cond is not None:
+                mixed_resp = self.episode_mixed_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_random_dots_cond,:,:].mean(axis=0) # trial-average
+                scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+
         elif norm=='MinMax-time-variations-after-trial-averaging-per-roi':
             # from static patch
             patch_resp = self.episode_static_patch.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
@@ -291,13 +299,26 @@ class MCI_data:
         responses['contour'] = np.mean(scaling_factor*(resp-resp[:,self.episode_static_patch.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         # moving dots
-        resp = self.episode_moving_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
-        responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['t_motion'] = self.episode_moving_dots.t
+        if moving_dots_cond is not None:
+            resp = self.episode_moving_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
+            responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+            responses['t_motion'] = self.episode_moving_dots.t
+
+            # random dots
+        if random_dots_cond is not None:
+            resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[random_dots_cond,:,:].mean(axis=0) # trial-average
+            responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+            responses['t_random'] = self.episode_random_dots.t
                 
         # mixed stim
-        resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
-        responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+        if mixed_cond is not None:
+            resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
+            responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+        
+        # mixed random dots stim
+        if mixed_random_dots_cond is not None:
+            resp = self.episode_mixed_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_random_dots_cond,:,:].mean(axis=0)
+            responses['mixed-random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_static_patch.protocol_id+1)]
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
@@ -309,23 +330,43 @@ class MCI_data:
         else:
             responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
             
-        # delays
-        delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
 
-        if len(np.unique(delays))==1:
-            responses['delay'] = delays[0] # storing delay for later
-        else:
-            raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+        # ===================================
+        # ----------  linear pred.
 
-        # linear pred.
-        responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
-                                                     delay=responses['delay'],
-                                                     baseline_window=baseline_window)
-        integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
-        responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
-                                                responses['t_motion'][integral_cond])
-        responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),
-                                               responses['t_motion'][integral_cond])
+        if 'motion' in responses:
+            # --- from moving dots stim
+            # dealing with delays
+            delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+            if len(np.unique(delays))==1:
+                responses['delay'] = delays[0] # storing delay for later
+            else:
+                raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+            responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
+                                                         delay=responses['delay'],
+                                                         baseline_window=baseline_window)
+            integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
+            responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
+                                                    responses['t_motion'][integral_cond])
+            responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),
+                                                   responses['t_motion'][integral_cond])
+
+        if 'random' in responses:
+            # from random dots stim
+            # dealing with delays
+            delays = getattr(self.episode_mixed_random_dots, 'patch-delay')[mixed_random_dots_cond]
+            if len(np.unique(delays))==1:
+                responses['delay'] = delays[0] # storing delay for later
+            else:
+                raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+            responses['linear-random'] = self.build_linear_pred(responses['contour'], responses['random'], 
+                                                                delay=responses['delay'],
+                                                                baseline_window=baseline_window)
+            integral_cond = (responses['t_random']>responses['delay']) & (responses['t_random']<responses['delay']+integral_window)
+            responses['linear-random-integral'] = np.trapz(responses['linear-random'][integral_cond]-responses['linear-random'][responses['t_random']<0].mean(),
+                                                    responses['t_random'][integral_cond])
+            responses['mixed-random-integral'] = np.trapz(responses['mixed-random'][integral_cond]-responses['mixed-random'][responses['t_random']<0].mean(),
+                                                          responses['t_random'][integral_cond])
         
         return responses
     
