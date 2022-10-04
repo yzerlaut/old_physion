@@ -202,6 +202,11 @@ class MCI_data:
                                                       protocol_name='random-dots',
                                                       quantities=quantities,            
                                                       prestim_duration=prestim_duration, verbose=False)             
+        elif 'random-line-dots' in data.protocols:
+            self.episode_random_dots = EpisodeResponse(filename,
+                                                      protocol_name='random-line-dots',
+                                                      quantities=quantities,            
+                                                      prestim_duration=prestim_duration, verbose=False)             
         else:
             self.episode_random_dots = None
 
@@ -210,9 +215,15 @@ class MCI_data:
                                                              protocol_name='mixed-random-dots-static-patch',
                                                              quantities=quantities,            
                                                              prestim_duration=prestim_duration, verbose=False)  
+        elif 'random-mixed-moving-dots-static-patch' in data.protocols:
+            self.episode_mixed_random_dots = EpisodeResponse(filename,
+                                                             protocol_name='random-mixed-moving-dots-static-patch',
+                                                             quantities=quantities,            
+                                                             prestim_duration=prestim_duration, verbose=False)  
         else:
             self.episode_mixed_random_dots = None
             
+
 
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
@@ -240,6 +251,8 @@ class MCI_data:
 
         return resp
 
+
+
     def build_contour_pred(self,
                            mixed_resp, mvDot_resp,
                            delay=0,
@@ -261,6 +274,8 @@ class MCI_data:
         resp[:i_patch_start_cntr] = baseline
         
         return resp
+
+
 
     def get_responses(self, 
                       static_patch_cond,
@@ -304,7 +319,7 @@ class MCI_data:
             responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
             responses['t_motion'] = self.episode_moving_dots.t
 
-            # random dots
+        # random dots
         if random_dots_cond is not None:
             resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[random_dots_cond,:,:].mean(axis=0) # trial-average
             responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
