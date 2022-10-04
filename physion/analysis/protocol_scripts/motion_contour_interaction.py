@@ -270,15 +270,18 @@ class MCI_data:
                       mixed_random_dots_cond=None,
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                      integral_window=2., force_delay=None,
+                      integral_window=2.,
                       baseline_window=[-0.1,0],
                       roiIndices=[0]):
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
+
             # from mixed resp
             if mixed_cond is not None:
                 mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
                 scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+
+            # from mixed random dots
             elif mixed_random_dots_cond is not None:
                 mixed_resp = self.episode_mixed_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_random_dots_cond,:,:].mean(axis=0) # trial-average
                 scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
@@ -323,7 +326,14 @@ class MCI_data:
         responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_static_patch.protocol_id+1)]
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
 
-        # speeds
+        # mvDot direction 
+        if hasattr(self.episode_mixed, 'direction'):
+            directions = getattr(self.episode_mixed, 'direction')[mixed_cond]
+            responses['mvDot-direction'] = directions[0]
+        else:
+            responses['mvDot-direction'] = self.episode_mixed.data.metadata['Protocol-%i-direction' % (self.episode_mixed.protocol_id+1)]
+            
+        # mvDot speeds
         if hasattr(self.episode_mixed, 'speed'):
             speeds = getattr(self.episode_mixed, 'speed')[mixed_cond]
             responses['mvDot-speed'] = speeds[0]

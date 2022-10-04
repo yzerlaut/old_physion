@@ -339,10 +339,10 @@ class Data:
             we need to deal with the fact that matrix orientation was changed because of pynwb complains
         """
         if self.nROIs==self.Neuropil.data.shape[0]:
-            self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices),:]
+            self.neuropil = self.Neuropil.data[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices, verbose=verbose),:]
         else:
             # transpose in that case
-            self.neuropil = np.array(self.Neuropil.data).T[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices),:]
+            self.neuropil = np.array(self.Neuropil.data).T[self.compute_ROI_indices(roiIndex=roiIndex, roiIndices=roiIndices, verbose=verbose),:]
 
         if not hasattr(self, 't_neuropil'):
             self.t_neuropil = self.Neuropil.timestamps[:]
@@ -355,11 +355,13 @@ class Data:
         """
         if self.nROIs==self.Fluorescence.data.shape[0]:
             self.rawFluo = self.Fluorescence.data[self.compute_ROI_indices(roiIndex=roiIndex,
-                                                                           roiIndices=roiIndices), :]
+                                                                           roiIndices=roiIndices,
+                                                                           verbose=verbose), :]
         else:
             # transpose in that case
             self.rawFluo = np.array(self.Fluorescence.data).T[self.compute_ROI_indices(roiIndex=roiIndex,
-                                                                             roiIndices=roiIndices),:]
+                                                                             roiIndices=roiIndices,
+                                                                             verbose=verbose),:]
         if not hasattr(self, 't_rawFluo'):
             self.t_rawFluo = self.Fluorescence.timestamps[:]
 
