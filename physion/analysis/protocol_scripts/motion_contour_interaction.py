@@ -285,7 +285,7 @@ class MCI_data:
                       mixed_random_dots_cond=None,
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                      integral_window=2., force_delay=None,
+                      integral_window=2.,
                       baseline_window=[-0.1,0],
                       roiIndices=[0]):
         
@@ -385,17 +385,6 @@ class MCI_data:
         
         return responses
     
-    def add_random_responses(self, responses,
-                             random_cond,
-                             random_mixed_cond,
-                             quantity='dFoF',
-                             roiIndices=[0]):
-        scaling_factor = 1
-        
-        # moving dots
-        resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices)[random_cond].mean(axis=0)
-        responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['random_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
 
 
 def make_proportion_fig(data,
