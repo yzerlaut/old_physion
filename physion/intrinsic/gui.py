@@ -951,7 +951,7 @@ class AnalysisWindow(NewWindow):
 
         if ('up-phase' in self.IMAGES) and ('down-phase' in self.IMAGES):
             print('- computing altitude map [...]')
-            intrinsic_analysis.compute_retinotopic_maps(None, 'altitude',
+            intrinsic_analysis.compute_retinotopic_maps(self.get_datafolder(), 'altitude',
                                                         maps=self.IMAGES,
                                                         keep_maps=True)
             fig1 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
@@ -962,7 +962,7 @@ class AnalysisWindow(NewWindow):
             
         if ('right-phase' in self.IMAGES) and ('left-phase' in self.IMAGES):
             print('- computing azimuth map [...]')
-            intrinsic_analysis.compute_retinotopic_maps(None, 'azimuth',
+            intrinsic_analysis.compute_retinotopic_maps(self.get_datafolder(), 'azimuth',
                                                         maps=self.IMAGES,
                                                         keep_maps=True)
             fig2 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
