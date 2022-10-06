@@ -5,8 +5,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-from screens import SCREENS
-from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+from .screens import SCREENS
+from .preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 
 def build_stim(protocol):
