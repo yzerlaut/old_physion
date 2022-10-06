@@ -680,7 +680,12 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
             no_set=no_set
 
         # get response reshape in 
-        response = tools.normalize(self.get_response(**dict(quantity=quantity, roiIndex=roiIndex, roiIndices=roiIndices, average_over_rois=False)), norm, verbose=verbose)
+        response = tools.normalize(self.get_response(**dict(quantity=quantity,
+                                                            roiIndex=roiIndex,
+                                                            roiIndices=roiIndices,
+                                                            average_over_rois=False)), 
+                                    norm, 
+                                    verbose=verbose)
 
         self.ylim = [np.inf, -np.inf]
         for irow, row_cond in enumerate(ROW_CONDS):
@@ -710,10 +715,8 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                             
                     if with_screen_inset:
                         inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
-                        # self.visual_stim.plot_stim_picture(self.index_from_start[cond][0],
-                                                                # ax=inset)
-                        self.visual_stim.plot_stim_picture(np.flatnonzero(cond)[0],
-                                                            ax=inset)
+                        istim = np.flatnonzero(cond)[0]
+                        self.visual_stim.plot_stim_picture(istim, ax=inset)
                         
                     if with_annotation:
                         
@@ -1067,7 +1070,7 @@ def format_key_value(key, value):
     elif key=='size':
         return '$s$=%.0f$^{o}$' % value
     elif key=='contrast':
-        return '$c$=%.1f' % value
+        return '$c$=%.2f' % value 
     elif key=='repeat':
         return 'trial #%i' % (value+1)
     elif key=='center-time':
@@ -1169,7 +1172,9 @@ if __name__=='__main__':
                                    prestim_duration=3,
                                    verbose=args.verbose)
 
-        episodes.plot_trial_average(with_screen_inset=True)
+        episodes.plot_trial_average(with_screen_inset=True,
+                                    with_annotation=True,
+                                    column_key='contrast')
 
         # episodes.plot_trial_average(column_key=['patch-radius', 'direction'],
                                     # row_key='patch-delay',

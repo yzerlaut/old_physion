@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+# custom modules
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
 
 from dataviz.datavyz.datavyz import graph_env_manuscript as ge
@@ -34,12 +35,13 @@ def find_responsive_cells(episode,
         rois_of_interest['%s_%i' % (param_key, v)] = []
         rois_of_interest['%s_%i_resp' % (param_key, v)] = []
 
-    for roi in range(episode.data.nROIs):
+    for roi in range(episode.dFoF.shape[1]):
         summary_data = episode.compute_summary_data(dict(interval_pre=interval_pre,
                                                          interval_post=interval_post,
                                                          test='anova', positive=True),
                                                          response_args={'quantity':'dFoF', 'roiIndex':roi},
-                                                         response_significance_threshold=response_significance_threshold)
+                                                         response_significance_threshold=\
+                                                                 response_significance_threshold)
         for p, significant, v, rv in zip(param_values, 
                                          summary_data['significant'],
                                          summary_data['value'],
@@ -47,38 +49,49 @@ def find_responsive_cells(episode,
             if significant and rv>minimum_relative_shift:
                 rois_of_interest['%s_%i' % (param_key, p)].append(roi)
                 rois_of_interest['%s_%i_resp' % (param_key, p)].append(v)
+
     return rois_of_interest
 
 
 def exclude_motion_sensitive_cells(rois_of_interest_contour, rois_of_interest_motion,
-                                   activity_factor = 1.):
+                                   activity_factor = 1.,
+                                   verbose=False):
     """
     if the activity_factor * motion response is not smaller than the contour response, excluded
     """
+
     rois_of_interest_contour_only = {}
 
     contour_keys = [key for key in rois_of_interest_contour if 'resp' not in key]
     motion_keys = [k for k in rois_of_interest_motion if 'resp' not in k]
     
     for key in contour_keys:
+
         #print(len(rois_of_interest_contour[key]))
         rois_of_interest_contour_only[key] = []
+
         for k in motion_keys:
-            #print(key, k)
+
             for r, roi in enumerate(rois_of_interest_contour[key]):
+
                 rn = np.argwhere(np.array(rois_of_interest_motion[k])==roi).flatten()
-                #print(roi, rn)
+
                 if len(rn)>0:
                     #print('motion sensitive')
-                    #print(rois_of_interest_motion[k+'_resp'][rn[0]], rois_of_interest_contour[key+'_resp'][r])
-                    if (rois_of_interest_contour[key+'_resp'][r]>(activity_factor*rois_of_interest_motion[k+'_resp'][rn[0]])) and\
-                            (roi not in rois_of_interest_contour_only[key]):
+                    # print(rois_of_interest_motion[k+'_resp'][rn[0]],
+                          # rois_of_interest_contour[key+'_resp'][r])
+                    act_cond = rois_of_interest_contour[key+'_resp'][r]>(activity_factor*\
+                                                                    rois_of_interest_motion[k+'_resp'][rn[0]])
+                    if act_cond and (roi not in rois_of_interest_contour_only[key]):
                         rois_of_interest_contour_only[key].append(roi)
                         #print('   -> but stronger contour')
                 elif roi not in rois_of_interest_contour_only[key]:
                     #print('not motion sensitive')
                     rois_of_interest_contour_only[key].append(roi)
-        print('')
+
+        if verbose:
+            print('fraction ')
+
     return rois_of_interest_contour_only
 
 
@@ -125,7 +138,8 @@ def interaction_fig(responses,
     # static-patch
     cond = responses['t_contour']>tmin/2.
     if 'contour_std' in responses and responses['contour_std'] is not None:
-        ge.plot(responses['t_contour'][cond], responses['contour'][cond], sy=responses['contour_std'][cond] , color='k',ax=AX[0])
+        ge.plot(responses['t_contour'][cond], responses['contour'][cond],
+                sy=responses['contour_std'][cond] , color='k',ax=AX[0])
     else:
         AX[0].plot(responses['t_contour'][cond], responses['contour'][cond],  color='k')
     ge.set_plot(AX[0], [], title = static_patch_label)
@@ -133,7 +147,8 @@ def interaction_fig(responses,
     # mv Dots
     cond = responses['t_motion']>tmin
     if 'motion_std' in responses and responses['motion_std'] is not None:
-        ge.plot(responses['t_motion'][cond], responses['motion'][cond], sy=responses['motion_std'][cond] , color='k',ax=AX[1])
+        ge.plot(responses['t_motion'][cond], responses['motion'][cond],
+                sy=responses['motion_std'][cond] , color='k',ax=AX[1])
     else:
         AX[1].plot(responses['t_motion'][cond], responses['motion' if not random else 'random'][cond],  color='k')
     ge.set_plot(AX[1], [], title = moving_dots_label)
@@ -149,17 +164,26 @@ def interaction_fig(responses,
     ge.set_common_ylims(AX)
     ge.set_common_xlims(AX)
         
-    AX[0].fill_between([0,responses['patch-duration']], AX[0].get_ylim()[0]*np.ones(2), AX[0].get_ylim()[1]*np.ones(2), color=ge.blue, alpha=.3, lw=0)
-    AX[1].fill_between([0,responses['mvDot-duration']], AX[1].get_ylim()[0]*np.ones(2), AX[1].get_ylim()[1]*np.ones(2), color=ge.orange, alpha=.1, lw=0)
+    AX[0].fill_between([0,responses['patch-duration']],
+            AX[0].get_ylim()[0]*np.ones(2), AX[0].get_ylim()[1]*np.ones(2),
+            color=ge.blue, alpha=.3, lw=0)
+    AX[1].fill_between([0,responses['mvDot-duration']], 
+            AX[1].get_ylim()[0]*np.ones(2), AX[1].get_ylim()[1]*np.ones(2),
+            color=ge.orange, alpha=.1, lw=0)
         
-    AX[2].plot(responses['delay']+np.arange(2)*responses['integral_window'], AX[2].get_ylim()[1]*np.ones(2), 'k-')
+    AX[2].plot(responses['delay']+np.arange(2)*responses['integral_window'],
+                AX[2].get_ylim()[1]*np.ones(2), 'k-')
     AX[2].fill_between(responses['delay']+np.arange(2)*responses['patch-duration'], 
-                           AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2), color=ge.blue, alpha=.3, lw=0)
-    AX[2].fill_between([0,responses['mvDot-duration']], AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2), color=ge.orange, alpha=.1, lw=0)
+                           AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2),
+                           color=ge.blue, alpha=.3, lw=0)
+    AX[2].fill_between([0,responses['mvDot-duration']],
+        AX[2].get_ylim()[0]*np.ones(2), AX[2].get_ylim()[1]*np.ones(2),
+        color=ge.orange, alpha=.1, lw=0)
 
     for ax in AX:
         ge.draw_bar_scales(ax, Xbar=1, Xbar_label='1s', Ybar=Ybar, Ybar_label=Ybar_label)
     ge.annotate(fig, ' n=%iROIs' % responses['nROIs'], (0.02,0.02))
+
     return fig, AX, ax
 
 #############################################################################
@@ -171,10 +195,14 @@ def interaction_fig(responses,
 class MCI_data:
     
     
-    def __init__(self, filename, 
+    def __init__(self, 
+                 filename, 
                  quantities=['dFoF'],
-                 prestim_duration=3):
-    
+                 prestim_duration=3,
+                 verbose=False):
+        """
+        compute episodes for the different stimuli of the protocol
+        """
         data = Data(filename, metadata_only=True, verbose=False)
 
         # computing episodes       
@@ -202,21 +230,33 @@ class MCI_data:
                                                       protocol_name='random-dots',
                                                       quantities=quantities,            
                                                       prestim_duration=prestim_duration, verbose=False)             
+        elif 'random-line-dots' in data.protocols:
+            self.episode_random_dots = EpisodeResponse(filename,
+                                                      protocol_name='random-line-dots',
+                                                      quantities=quantities,            
+                                                      prestim_duration=prestim_duration, verbose=False)             
         else:
             self.episode_random_dots = None
+
         if 'mixed-random-dots-static-patch' in data.protocols:
             self.episode_mixed_random_dots = EpisodeResponse(filename,
                                                              protocol_name='mixed-random-dots-static-patch',
+                                                             quantities=quantities,            
+                                                             prestim_duration=prestim_duration, verbose=False)  
+        elif 'random-mixed-moving-dots-static-patch' in data.protocols:
+            self.episode_mixed_random_dots = EpisodeResponse(filename,
+                                                             protocol_name='random-mixed-moving-dots-static-patch',
                                                              quantities=quantities,            
                                                              prestim_duration=prestim_duration, verbose=False)  
         else:
             self.episode_mixed_random_dots = None
             
 
+
     def build_linear_pred(self, 
                           patch_resp, mvDot_resp,
                           delay=0,
-                          baseline_window=[-0.1,0]):
+                          baseline_window=[-0.2,0]):
         """
         the linear prediction is build by adding the patch evoke resp to the motion trace
             we remove the baseline for mthe patch resp so that it has a zero baseline
@@ -239,47 +279,39 @@ class MCI_data:
 
         return resp
 
-    def build_contour_pred(self,
-                           mixed_resp, mvDot_resp,
-                           delay=0,
-                           baseline_window=[-0.1, 0]):
-        
-        resp = 0*self.episode_static_patch.t
-        t_mixed_cond = self.episode_mixed.t>0
-        
-        i_patch_start_mixed = np.argwhere(self.episode_mixed.t>delay)[0][0]
-        i_patch_start_cntr = np.argwhere(self.episode_static_patch.t>0)[0][0]
-        
-        # substracted baseline on moving dots (more repeats)
-        baseline_cond = (self.episode_moving_dots.t>=baseline_window[0]) &\
-                (self.episode_moving_dots.t<=baseline_window[1])
-        baseline = np.mean(mvDot_resp[baseline_cond])
-        
-        resp[i_patch_start_cntr:len(self.episode_static_patch.t)] = mixed_resp[i_patch_start_mixed:i_patch_start_mixed+len(self.episode_static_patch.t)-i_patch_start_cntr]-\
-                                        mvDot_resp[i_patch_start_mixed:i_patch_start_mixed+len(self.episode_static_patch.t)-i_patch_start_cntr]+baseline
-        resp[:i_patch_start_cntr] = baseline
-        
-        return resp
 
     def get_responses(self, 
                       static_patch_cond,
-                      moving_dots_cond,
-                      mixed_cond,
+                      moving_dots_cond=None,
+                      mixed_cond=None,
+                      random_dots_cond=None,
+                      mixed_random_dots_cond=None,
                       quantity='dFoF',
                       norm='', #norm='Zscore-time-variations-after-trial-averaging-per-roi',
-                      integral_window=2., force_delay=None,
+                      integral_window=2.,
                       baseline_window=[-0.1,0],
                       roiIndices=[0]):
         
         if norm=='Zscore-time-variations-after-trial-averaging-per-roi':
+
             # from mixed resp
-            mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
-            scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+            if mixed_cond is not None:
+                mixed_resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0) # trial-average
+                scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+
+            # from mixed random dots
+            elif mixed_random_dots_cond is not None:
+                mixed_resp = self.episode_mixed_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_random_dots_cond,:,:].mean(axis=0) # trial-average
+                scaling_factor = 1./mixed_resp.std(axis=1).reshape(mixed_resp.shape[0],1)
+
         elif norm=='MinMax-time-variations-after-trial-averaging-per-roi':
+
             # from static patch
             patch_resp = self.episode_static_patch.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[static_patch_cond,:,:].mean(axis=0) # trial-average
             scaling_factor = 1./(patch_resp.max(axis=1).reshape(patch_resp.shape[0],1)-patch_resp.min(axis=1).reshape(patch_resp.shape[0],1))
+
         else:
+
             scaling_factor = 1.
             
         responses = {'nROIs':len(roiIndices),
@@ -291,55 +323,69 @@ class MCI_data:
         responses['contour'] = np.mean(scaling_factor*(resp-resp[:,self.episode_static_patch.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         # moving dots
-        resp = self.episode_moving_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
-        responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['t_motion'] = self.episode_moving_dots.t
+        if moving_dots_cond is not None:
+            resp = self.episode_moving_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[moving_dots_cond,:,:].mean(axis=0) # trial-average
+            responses['motion'] = np.mean(scaling_factor*(resp-resp[:,self.episode_moving_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+            responses['t_motion'] = self.episode_moving_dots.t
+
+        # random dots
+        if random_dots_cond is not None:
+            resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[random_dots_cond,:,:].mean(axis=0) # trial-average
+            responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+            responses['t_random'] = self.episode_random_dots.t
                 
         # mixed stim
-        resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
-        responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+        if mixed_cond is not None:
+            resp = self.episode_mixed.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_cond,:,:].mean(axis=0)
+            responses['mixed'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
+        
+        # mixed random dots stim
+        if mixed_random_dots_cond is not None:
+            resp = self.episode_mixed_random_dots.get_response(quantity, roiIndices=roiIndices, average_over_rois=False)[mixed_random_dots_cond,:,:].mean(axis=0)
+            responses['mixed-random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_mixed_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
         
         responses['patch-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_static_patch.protocol_id+1)]
         responses['mvDot-duration'] = self.episode_mixed.data.metadata['Protocol-%i-presentation-duration' % (self.episode_mixed.protocol_id+1)]
 
-        # speeds
-        if hasattr(self.episode_mixed, 'speed'):
-            speeds = getattr(self.episode_mixed, 'speed')[mixed_cond]
-            responses['mvDot-speed'] = speeds[0]
-        else:
-            responses['mvDot-speed'] = self.episode_mixed.data.metadata['Protocol-%i-speed' % (self.episode_mixed.protocol_id+1)]
-            
-        # delays
-        delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+        # ===================================
+        # ----------  linear pred.
 
-        if len(np.unique(delays))==1:
-            responses['delay'] = delays[0] # storing delay for later
-        else:
-            raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+        if 'motion' in responses:
+            # --- from moving dots stim
+            # dealing with delays
+            delays = getattr(self.episode_mixed, 'patch-delay')[mixed_cond]
+            if len(np.unique(delays))==1:
+                responses['delay'] = delays[0] # storing delay for later
+            else:
+                raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+            responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
+                                                         delay=responses['delay'],
+                                                         baseline_window=baseline_window)
+            integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
+            responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
+                                                    responses['t_motion'][integral_cond])
+            responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),
+                                                   responses['t_motion'][integral_cond])
 
-        # linear pred.
-        responses['linear'] = self.build_linear_pred(responses['contour'], responses['motion'], 
-                                                     delay=responses['delay'],
-                                                     baseline_window=baseline_window)
-        integral_cond = (responses['t_motion']>responses['delay']) & (responses['t_motion']<responses['delay']+integral_window)
-        responses['linear-integral'] = np.trapz(responses['linear'][integral_cond]-responses['linear'][responses['t_motion']<0].mean(),
-                                                responses['t_motion'][integral_cond])
-        responses['mixed-integral'] = np.trapz(responses['mixed'][integral_cond]-responses['mixed'][responses['t_motion']<0].mean(),
-                                               responses['t_motion'][integral_cond])
+        if 'random' in responses:
+            # from random dots stim
+            # dealing with delays
+            delays = getattr(self.episode_mixed_random_dots, 'patch-delay')[mixed_random_dots_cond]
+            if len(np.unique(delays))==1:
+                responses['delay'] = delays[0] # storing delay for later
+            else:
+                raise Exception('\n  /!\  no unique delay: %s, \n --> unpossible to build the linear predictions !' % np.unique(delays))
+            responses['linear-random'] = self.build_linear_pred(responses['contour'], responses['random'], 
+                                                                delay=responses['delay'],
+                                                                baseline_window=baseline_window)
+            integral_cond = (responses['t_random']>responses['delay']) & (responses['t_random']<responses['delay']+integral_window)
+            responses['linear-random-integral'] = np.trapz(responses['linear-random'][integral_cond]-responses['linear-random'][responses['t_random']<0].mean(),
+                                                    responses['t_random'][integral_cond])
+            responses['mixed-random-integral'] = np.trapz(responses['mixed-random'][integral_cond]-responses['mixed-random'][responses['t_random']<0].mean(),
+                                                          responses['t_random'][integral_cond])
         
         return responses
     
-    def add_random_responses(self, responses,
-                             random_cond,
-                             random_mixed_cond,
-                             quantity='dFoF',
-                             roiIndices=[0]):
-        scaling_factor = 1
-        
-        # moving dots
-        resp = self.episode_random_dots.get_response(quantity, roiIndices=roiIndices)[random_cond].mean(axis=0)
-        responses['random'] = np.mean(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
-        responses['random_std'] = np.std(scaling_factor*(resp-resp[:,self.episode_random_dots.t<0].mean(axis=1).reshape(resp.shape[0],1)), axis=0)
 
 
 def make_proportion_fig(data,
@@ -550,3 +596,5 @@ if __name__=='__main__':
 
     run_analysis_and_save_figs(args.datafile, 
                                suffix=('-'+args.suffix if args.suffix!='' else ''))
+
+

@@ -140,8 +140,11 @@ def show_raw_data(t, data, params, maps,
                 xlabel='freq (sample unit)', ylabel='power (a.u.)')
     ge.set_plot(AX[2][4], xscale='log', 
                 xlim=[.99,101], xlabel='freq (sample unit)', ylabel='phase (Rd)')
+    
+    return fig
 
-show_raw_data(t, data, params, maps, pixel=(150,160))
+fig = show_raw_data(t, data, params, maps, pixel=(150,160))
+ge.save_on_desktop(fig, 'fig.svg')
 
 # %% [markdown]
 # ## Compute retinotopic maps
@@ -161,9 +164,11 @@ np.save(os.path.join(datafolder, 'draft-maps.npy'), maps)
 datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
 maps = np.load(os.path.join(datafolder, 'draft-maps.npy'), allow_pickle=True).item()
 fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'up') # just one stim: "up"
+ge.save_on_desktop(fig, 'fig.svg')
 
 # %%
 fig = physion.intrinsic.Analysis.plot_phase_power_maps(maps, 'down') # just one stim: "down"
+ge.save_on_desktop(fig, 'fig.svg')
 
 # %%
 # azimuth = "up" - "down" protocols
@@ -285,12 +290,33 @@ params = {'phaseMapFilterSigma': 1.,
           'splitOverlapThr': 1.1,
           'mergeOverlapThr': 0.0}
 
-datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+params = {'phaseMapFilterSigma': 1.,
+          'signMapFilterSigma': 9.,
+          'signMapThr': 0.25,
+          'eccMapFilterSigma': 10.0,
+          'splitLocalMinCutStep': 5.,
+          'closeIter': 3,
+          'openIter': 3,
+          'dilationIter': 15,
+          'borderWidth': 1,
+          'smallPatchThr': 100,
+          'visualSpacePixelSize': 1,
+          'visualSpaceCloseIter': 15,
+          'splitOverlapThr': 1.1,
+          'mergeOverlapThr': 0.0}
+
+#datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '15-26-26')
+datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_13', '14-35-08')
+#datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_15', '14-11-42') # taddy
+#datafolder = os.path.join(os.path.expanduser('~'), 'DATA', '2022_09_27', '12-54-37') # shifted coords
 # -- loading data
 maps = physion.intrinsic.Analysis.load_maps(datafolder)
-
+maps['vasculature'] = maps['vasculature']**.01
 trial_data = physion.intrinsic.Analysis.build_trial_data(maps, with_params=False)
 trial = rm.RetinotopicMappingTrial(**trial_data, params=params)
+plt.close('all')
+fig = trial._getRawPatches(isPlot=True)
+ge.save_on_desktop(plt.gcf(), 'fig.svg')
 
 # %% [markdown]
 # ## Run the segmentation procedure
@@ -300,6 +326,7 @@ trial = rm.RetinotopicMappingTrial(**trial_data, params=params)
 
 # %%
 _ = trial._getSignMap(isPlot=True)
+#plt.savefig(os.path.join(os.path.expanduser('~'), 'Desktop', 'fig.svg'))
 
 # %% [markdown]
 # ### Binarizing filtered visual signmap

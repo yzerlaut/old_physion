@@ -5,8 +5,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parent))
-
 from screens import SCREENS
 from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
