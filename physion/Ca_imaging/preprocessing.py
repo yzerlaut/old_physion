@@ -14,6 +14,15 @@ PREPROCESSING_SETTINGS = {
                       'threshold_scaling':0.5,
                       'cellprob_threshold':0.8,
                       'neucoeff': 0.7},
+    'INT_GCamp6s_1plane':{'cell_diameter':20, # in um
+                      'tau':1.3,
+                      'sparse_mode':False,
+                      'connected':True,
+                      'anatomical_only': 3, # using the mean image only for ROI detection
+                      'high_pass': 1, 
+                      'nonrigid':0,
+                      'cellprob_threshold':0.8,
+                      'neucoeff': 0.7},
     'GCamp6s_1plane_A1':{'cell_diameter':20, # in um
                          'tau':1.3,
                          'nchannels':1,
