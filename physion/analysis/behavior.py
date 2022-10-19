@@ -220,7 +220,7 @@ def population_analysis(FILES,
         
     for f in FILES:
 
-        data = MultimodalData(f)
+        data = show_data.MultimodalData(f)
         if (data.nwbfile is not None) and ('Running-Speed' in data.nwbfile.acquisition):
             speed = data.nwbfile.acquisition['Running-Speed'].data[:]
             max_time = len(speed)/data.nwbfile.acquisition['Running-Speed'].rate
