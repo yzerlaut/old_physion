@@ -443,7 +443,9 @@ class MainWindow(NewWindow):
         
         filename = generate_filename_path(FOLDERS[self.folderB.currentText()],
                                           filename='metadata', extension='.npy')
+
         metadata = {'subject':str(self.subjectBox.currentText()),
+                    'subject_props':self.subjects[self.cbs.currentText()],
                     'exposure':self.exposure,
                     'bar-size':float(self.barBox.text()),
                     'acq-freq':float(self.freqBox.text()),

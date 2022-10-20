@@ -12,7 +12,7 @@ from physion.intrinsic import RetinotopicMapping
 from physion.analysis.analyz.analyz.processing.filters \
         import butter_highpass_filter, butter_bandpass_filter
 from physion.dataviz.datavyz.datavyz import graph_env
-ge = graph_env('screen') # for display on screen
+ge_screen = graph_env('screen') # for display on screen
 
 default_segmentation_params={'phaseMapFilterSigma': 1.,
                              'signMapFilterSigma': 9.,
@@ -267,7 +267,7 @@ def build_trial_data(maps, with_params=False):
 # ----------- PLOT FUNCTIONS ----------------------------------- #
 # -------------------------------------------------------------- #
 
-def plot_phase_power_maps(maps, direction):
+def plot_phase_power_maps(maps, direction, ge=ge_screen):
 
 
     fig, AX = ge.figure(axes=(1,2), top=1.5, wspace=0.3, hspace=0.5, 
@@ -312,15 +312,16 @@ def plot_phase_power_maps(maps, direction):
 
 
 def plot_retinotopic_maps(maps, map_type='altitude',
-                          max_retinotopic_angle=60):
+                          max_retinotopic_angle=80,
+                          ge=ge_screen):
     
     if map_type=='altitude':
         plus, minus = 'up', 'down'
     else:
         plus, minus = 'left', 'right'
         
-    fig, AX = ge.figure(axes=(2,3),
-                        left=0.3, top=1.5, wspace=0.3, hspace=0.5, right=5)
+    fig, AX = ge.figure(axes=(2,3), figsize=(1.2,1.3),
+                        left=0.3, top=2, wspace=0.1, hspace=0.5, right=5)
     
     ge.annotate(fig, '\n\n"%s" maps' % map_type, (0.5,.99), ha='center', va='top', 
                 xycoords='figure fraction', size='small')
@@ -330,8 +331,8 @@ def plot_retinotopic_maps(maps, map_type='altitude',
     
     ge.annotate(AX[0][0], '$\phi$+', (1,1), ha='right', va='top', color='w')
     ge.annotate(AX[0][1], '$\phi$-', (1,1), ha='right', va='top', color='w')
-    ge.title(AX[0][0], 'phase map: "%s"' % plus, size='xx-small')
-    ge.title(AX[0][1], 'phase map: "%s"' % minus, size='xx-small')
+    ge.title(AX[0][0], 'phase map: "%s"' % plus, size='small')
+    ge.title(AX[0][1], 'phase map: "%s"' % minus, size='small')
     ge.bar_legend(AX[0][1], X=[0, np.pi, 2*np.pi], label='phase (Rd)', 
                   colormap=plt.cm.twilight, continuous=True,
                   ticks=[0, np.pi, 2*np.pi],
@@ -345,8 +346,8 @@ def plot_retinotopic_maps(maps, map_type='altitude',
     AX[1][0].imshow(maps['%s-power' % plus], cmap=plt.cm.binary, vmin=bounds[0], vmax=bounds[1])
     AX[1][1].imshow(maps['%s-power' % minus], cmap=plt.cm.binary, vmin=bounds[0], vmax=bounds[1])
     
-    ge.title(AX[1][0], 'power map: "%s"' % plus, size='xx-small')
-    ge.title(AX[1][1], 'power map: "%s"' % minus, size='xx-small')
+    ge.title(AX[1][0], 'power map: "%s"' % plus, size='small')
+    ge.title(AX[1][1], 'power map: "%s"' % minus, size='small')
     
     ge.bar_legend(AX[1][1],
                   label=' rel. power \n ($10^{-4}$a.u./a.u.)', colormap=plt.cm.binary,
@@ -364,8 +365,8 @@ def plot_retinotopic_maps(maps, map_type='altitude',
 
     ge.annotate(AX[2][0], '$\phi^{+}$+$\phi^{-}$', (1,1), ha='right', va='top', color='w', size='small')
     ge.annotate(AX[2][1], 'F[$\phi^{+}$-$\phi^{-}$]', (1,0), ha='right', va='bottom', color='k', size='xx-small')
-    ge.title(AX[2][0], '(hemodyn.-)delay map', size='xx-small')
-    ge.title(AX[2][1], 'retinotopy map', size='xx-small')
+    ge.title(AX[2][0], '(hemodyn.-)delay map', size='small')
+    ge.title(AX[2][1], 'retinotopy map', size='small')
 
     ge.bar_legend(AX[2][1],
                   label='angle (deg.)\n visual field', colormap=plt.cm.PRGn,
@@ -433,12 +434,12 @@ if __name__=='__main__':
             
             for p in ['up', 'down', 'left', 'right']:
                 plot_phase_power_maps(maps, p)
-            ge.show()
+            ge_screen.show()
 
             plot_retinotopic_maps(maps, 'altitude')
             plot_retinotopic_maps(maps, 'azimuth')
 
-            ge.show()
+            ge_screen.show()
 
         elif args.segmentation:
 
@@ -449,7 +450,7 @@ if __name__=='__main__':
             trial_data = build_trial_data(maps)
             trial = RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
             trial.processTrial(isPlot=True)
-            ge.show()
+            ge_screen.show()
 
             answer = input(' Do you want to save the patches map ? [N/y] ')
             if answer in ['y', 'yes']:
@@ -480,7 +481,7 @@ if __name__=='__main__':
                                             run_id=(args.run_id if args.run_id>0 else 'sum'),
                                             phase_shift=args.phase_shift)
             plot_phase_power_maps(maps, args.protocol)
-            ge.show()
+            ge_screen.show()
                 
     else:
         print(args.datafolder, 'not found')
