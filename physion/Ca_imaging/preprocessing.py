@@ -115,7 +115,7 @@ PREPROCESSING_SETTINGS = {
     'INT_GCamp6s_1plane_2chan':{'cell_diameter':20, # in um
                                 'tau':1.3,
                                 'nchannels':2,
-                                'functional_chan':1,
+                                'functional_chan':2,
                                 'align_by_chan':2,
                                 'sparse_mode':False,
                                 'nonrigid':0,
