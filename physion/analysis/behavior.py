@@ -5,7 +5,15 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 # datavyz submodule
-from dataviz.datavyz.datavyz import graph_env_manuscript as ge
+try:
+    from dataviz.datavyz.datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    ge = None
+if ge is None:
+    try:
+        from datavyz import graph_env_manuscript as ge
+    except ModuleNotFoundError:
+        print(' \n Need to install "datavyz" with `pip install git+https://github.com/yzerlaut/datavyz  \n ')
 from dataviz import show_data 
 from dataviz import tools
 from analysis.tools import *
