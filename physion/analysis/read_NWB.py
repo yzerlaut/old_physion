@@ -466,18 +466,30 @@ class Data:
         
             
         
-def scan_folder_for_NWBfiles(folder, Nmax=1000000, verbose=True):
+def scan_folder_for_NWBfiles(folder, 
+                             Nmax=1000000,
+                             exclude_intrinsic_imaging_files=True,
+                             verbose=True):
     """
-    scan folders for protocols and returns
+    scan folders for protocols and returns a A
+
+    by default: exccludes the intrinsic imaging files
     """
     if verbose:
         print('inspecting the folder "%s" [...]' % folder)
         t0 = time.time()
 
     FILES = get_files_with_extension(folder, extension='.nwb', recursive=True)
+    
+    if exclude_intrinsic_imaging_files:
+        FILES = [f for f in FILES if (('left-' not in f) and\
+                                      ('down-' not in f) and\
+                                      ('right-' not in f) and\
+                                      ('up-' not in f))]
+
     DATES = np.array([f.split(os.path.sep)[-1].split('-')[0] for f in FILES])
     SUBJECTS, PROTOCOLS = [], []
-    
+
     for f in FILES[:Nmax]:
         try:
             data = Data(f, metadata_only=True, verbose=False)

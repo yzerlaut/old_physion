@@ -7,7 +7,18 @@ import matplotlib.pylab as plt
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 from dataviz import tools as dv_tools
-from dataviz.datavyz.datavyz import graph_env_manuscript as ge
+try:
+    from dataviz.datavyz.datavyz import graph_env_manuscript as ge
+except ModuleNotFoundError:
+    ge = None
+if ge is None:
+    try:
+        from datavyz import graph_env_manuscript as ge
+    except ModuleNotFoundError:
+        print(' \n Need to install "datavyz" with `pip install git+https://github.com/yzerlaut/datavyz  \n ')
+
+
+
 from analysis import read_NWB, process_NWB, stat_tools, tools
 from visual_stim.stimuli import build_stim
 
