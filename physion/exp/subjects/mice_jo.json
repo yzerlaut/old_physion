@@ -18,5 +18,15 @@
   	  		    "virus_ID":"",
   			    "FOVs":"{'1':(0,0)}",
  			    "headplate_angle_from_rig_axis_for_recording":"45",
-  			    "date_of_birth":"2022_06_22"}
+  			    "date_of_birth":"2022_06_22"},
+ "MB1_VIPcre_CB1-TdTomato":{"description":"MB1_VIPcre_CB1-TdTomato",
+    		            "sex":"Male",
+    	                    "subject_id":"MB1_VIPcre_CB1-TdTomato",
+	 		    "weight":"30g",
+  			    "surgery":"headplate+injection",
+			    "surgery_date":"2022_09_13",
+  	  		    "virus_ID":"",
+  			    "FOVs":"{'1':(0,0)}",
+ 			    "headplate_angle_from_rig_axis_for_recording":"45",
+  			    "date_of_birth":"2022_08_04"}
 }
