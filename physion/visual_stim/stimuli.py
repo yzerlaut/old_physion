@@ -5,8 +5,9 @@ try:
 except ModuleNotFoundError:
     pass
 
-from screens import SCREENS
-from preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.visual_stim.screens import SCREENS
+from physion.visual_stim.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 
 def build_stim(protocol):
