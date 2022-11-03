@@ -5,6 +5,7 @@ import pyqtgraph as pg
 from scipy.interpolate import interp1d
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from pupil import process, roi
 from misc.folders import FOLDERS, python_path
 from misc.guiparts import NewWindow, Slider

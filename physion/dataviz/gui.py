@@ -56,7 +56,7 @@ class MainWindow(guiparts.NewWindow):
         self.no_subsampling = False
         
         super(MainWindow, self).__init__(i=0,
-            title='Data Visualization')
+              title='Data Visualization')
 
         # play button
         self.updateTimer = QtCore.QTimer()

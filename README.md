@@ -1,4 +1,4 @@
-<div><img src="https://github.com/yzerlaut/physion/raw/master/doc/physion.png" alt="physion logo" width="35%" align="right" style="margin-left: 10px"></div>
+<div><img src="https://github.com/yzerlaut/physion/raw/master/docs/physion.png" alt="physion logo" width="35%" align="right" style="margin-left: 10px"></div>
 
 # physion -- Vision Physiology
 
@@ -11,7 +11,7 @@ The software is organized into several modules to perform the acquisition, the p
 ### Software screenshot
 
 <p align="center">
-  <img src="doc/screenshot.jpg"/>
+  <img src="docs/screenshot.jpg"/>
 </p>
 
 --------------------

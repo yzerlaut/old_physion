@@ -2,7 +2,7 @@
 
 ## Experimental procedure
 
-- [imaging window targeting V1](../../doc/drawing-window.png).
+- [imaging window targeting V1](../../docs/drawing-window.png).
 - ...
 
 ## Raw data transfer and conversion to tiff files
@@ -18,7 +18,7 @@ The pipeline relies on [Suite2P](https://github.com/MouseLand/suite2p). Read the
 A minimal interface allow to launch the [Suite2P](https://github.com/MouseLand/suite2p) in the background with presets:
 
 <p align="center">
-  <img src="../../doc/CaImaging-screen.jpg"/>
+  <img src="../../docs/CaImaging-screen.jpg"/>
 </p>
 
 Those settings are set by modifying the default options (see `ops0` in  [process_xml.py file](./process_xml.py)) in the [preprocessing.py file](./preprocessing.py), we modify the keys with a dictionary of the form:
