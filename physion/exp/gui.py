@@ -122,13 +122,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbp.activated.connect(self.update_protocol)
        
         Y+=35
-        # protocol choice
+        # intervention choice
         QtWidgets.QLabel(" Intervention :", self).move(20, Y)
         self.cbi = QtWidgets.QComboBox(self)
-        self.cbi.addItems(['', 'Saline injection', 'CNO injection', 'Compound-21 injection'])
+        self.cbi.addItems(['', 'Saline injection', 'CNO injection', 'Compound-21 injection', 'Photostimulation'])
         self.cbi.setMinimumWidth(390)
         self.cbi.move(130, Y)
-        # self.cbi.activated.connect(self.update_protocol)
        
         
         Y+=45
@@ -377,6 +376,8 @@ class MainWindow(QtWidgets.QMainWindow):
         output_steps = []
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
+        if self.metadata['intervention']=='Photostimulation':
+            output_steps += self.config['STEPS_FOR_PHOTOSTIMULATION']
 
         self.NIdaq_metadata_init()
 

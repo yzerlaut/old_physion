@@ -5,8 +5,9 @@ try:
 except ModuleNotFoundError:
     pass
 
-from .screens import SCREENS
-from .preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[2]))
+from physion.visual_stim.screens import SCREENS
+from physion.visual_stim.preprocess_NI import load, img_after_hist_normalization, adapt_to_screen_resolution
 
 
 def build_stim(protocol):
@@ -1577,6 +1578,125 @@ class gaussian_blobs(vis_stim_image_built):
 
         return ax
 
+#####################################################
+##  ----    PRESENTING LOOMING STIM         --- #####
+#####################################################
+
+class looming_stim(visual_stim):
+
+    def __init__(self, protocol):
+
+        super().__init__(protocol)
+
+        if 'movie_refresh_freq' not in protocol:
+            protocol['movie_refresh_freq'] = 5.
+        self.refresh_freq = protocol['movie_refresh_freq']
+        
+        super().init_experiment(protocol,
+                                ['radius-start', 'radius-end',
+                                 'x-center', 'y-center',
+                                 'color', 'looming-nonlinearity', 'looming-duration',
+                                 'end-duration', 'bg-color'],
+                                run_type='images_sequence')
+
+    def add_dot(self, image, pos, size, color):
+        """
+        add dot
+        """
+        cond = np.sqrt((self.x-pos[0])**2+(self.z-pos[1])**2)<size
+        image[cond] = color
+
+    # def compute_looming_trajectory(self, size_to_speed_ratio, dt=30e-3, start_size=0.5, end_size=100):
+    #     """
+    #     from:
+    #     Computation of Object Approach by a Wide-Field, Motion-Sensitive Neuron
+    #     Fabrizio Gabbiani, Holger G. Krapp and Gilles Laurent
+    #     Journal of Neuroscience 1 February 1999, 19 (3) 1122-1141; DOI: https://doi.org/10.1523/JNEUROSCI.19-03-01122.1999
+    #
+    #     TO BE FIXED     
+    #     """
+    #     time_indices, angles = [0], [end_size*np.pi/180.]
+    #     i=0
+    #     while angles[-1]>(start_size*np.pi/180.) and i<200:
+    #         time_indices.append(time_indices[-1]-dt)
+    #         angles.append(angles[-1]-2*dt*size_to_speed_ratio/(time_indices[-1]**2+size_to_speed_ratio**2))
+    #         i+=1
+    #     return np.array(time_indices)-time_indices[-1], np.array(angles)[::-1]*180/np.pi
+    
+    def compute_looming_trajectory(self, duration=1., nonlinearity=2, dt=30e-3, start_size=0.5, end_size=100):
+        """ SIMPLE """
+        time_indices = np.arange(int(duration/dt))*dt
+        angles = np.linspace(0, 1, len(time_indices))**nonlinearity
+        return time_indices, angles*(end_size-start_size)+start_size
+    
+        
+    def get_frames_sequence(self, index, parent=None):
+        """
+        
+        """
+        cls = (parent if parent is not None else self)
+        
+        interval = cls.experiment['time_stop'][index]-cls.experiment['time_start'][index]
+
+        # background frame:
+        bg = 2*cls.experiment['bg-color'][index]-1.+0.*self.x
+
+        t, angles = self.compute_looming_trajectory(duration=cls.experiment['looming-duration'][index],
+                                                    nonlinearity=cls.experiment['looming-nonlinearity'][index],
+                                                    dt=1./self.refresh_freq,
+                                                    start_size=cls.experiment['radius-start'][index],
+                                                    end_size=cls.experiment['radius-end'][index])
+
+        itend = int(1.2*interval*self.refresh_freq)
+
+        times_index_to_frames, FRAMES = [0], [bg.copy()]
+        for it in range(len(t))[1:]:
+            img = bg.copy()
+            self.add_dot(img, (cls.experiment['x-center'][index], cls.experiment['y-center'][index]),
+                         angles[it],
+                         cls.experiment['color'][index])
+            FRAMES.append(img)
+            times_index_to_frames.append(it)
+        it = len(t)-1
+        while it<len(t)+int(cls.experiment['end-duration'][index]*self.refresh_freq):
+            times_index_to_frames.append(len(FRAMES)-1) # the last one
+            it+=1
+        while it<itend:
+            times_index_to_frames.append(0) # the first one (bg)
+            it+=1
+
+        return times_index_to_frames, FRAMES, self.refresh_freq
+
+    def get_image(self, index, time_from_episode_start=0, parent=None):
+        cls = (parent if parent is not None else self)
+        img = cls.experiment['bg-color'][index]+0.*self.x
+        self.add_dot(img, (cls.experiment['x-center'][index],
+                           cls.experiment['y-center'][index]),
+                     cls.experiment['radius-end'][index]/4.,
+                     cls.experiment['color'][index])
+        return img
+
+    def plot_stim_picture(self, episode,
+                          ax=None, parent=None, label=None, enhance=False,
+                          arrow={'length':10,
+                                 'width_factor':0.05,
+                                 'color':'red'}):
+
+        cls = (parent if parent is not None else self)
+        ax = self.show_frame(episode, ax=ax, label=label, enhance=enhance,
+                             parent=parent)
+
+        l = cls.experiment['radius-end'][episode]/3.8 # just like above
+        for d in np.linspace(0, 2*np.pi, 3, endpoint=False):
+            arrow['center'] = [cls.experiment['x-center'][episode]+np.cos(d)*l+\
+                               np.cos(d)*arrow['length']/2.,
+                               cls.experiment['y-center'][episode]+np.sin(d)*l+\
+                               np.sin(d)*arrow['length']/2.]
+                
+            arrow['direction'] = -180*d/np.pi
+            self.add_arrow(arrow, ax)
+            
+        return ax
 
 #####################################################
 ##  ----    SOME TOOLS TO DEBUG PROTOCOLS   --- #####
