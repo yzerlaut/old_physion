@@ -158,9 +158,13 @@ def add_ophys(nwbfile, args,
     #                                                unit='s',
     #                                                timestamps = 1.*np.arange(2))
     # just a dummy version for now
-    image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries\n raw-data-folder=%s' % args.CaImaging_folder.replace('/', '_'),
+    """
+    HERE JUST ADD READING THE TIFF FILES AND PUT A STACK OF A FEW FRAMES
+    """ 
+    image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                dimension=[2], data=np.ones((2,2,2)),
-                                               imaging_plane=imaging_plane, unit='s', timestamps=1.*np.arange(2)) # TEMPORARY
+                                               imaging_plane=imaging_plane, unit='s', timestamps=1.*np.arange(2),
+                                               comments='raw-data-folder=%s' % args.CaImaging_folder.replace('/', '**')) # TEMPORARY
     
     nwbfile.add_acquisition(image_series)
 
