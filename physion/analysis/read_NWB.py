@@ -23,7 +23,7 @@ class Data:
                  verbose=True):
 
         self.tlim, self.visual_stim, self.nwbfile = None, None, None
-        self.metadata, self.df_name = None, ''
+        self.filename, self.metadata, self.df_name = filename, None, ''
         
         if verbose:
             t0 = time.time()

@@ -40,12 +40,14 @@ for nplanes in [1, 3, 5, 7]:
 # dealing with the specifics of the A1 settings
 for key in list(PREPROCESSING_SETTINGS.keys()):
     PREPROCESSING_SETTINGS[key+'_A1'] = PREPROCESSING_SETTINGS[key].copy()
-    PREPROCESSING_SETTINGS[key+'_A1']['nchannels'] = 2
+    PREPROCESSING_SETTINGS[key+'_A1']['nchannels'] = 1
     PREPROCESSING_SETTINGS[key+'_A1']['functional_chan'] = 2
     PREPROCESSING_SETTINGS[key+'_A1']['align_by_chan'] = 2
 
+for key in list(PREPROCESSING_SETTINGS.keys()):
+    PREPROCESSING_SETTINGS['2Chan_'+key] = PREPROCESSING_SETTINGS[key].copy()
+    PREPROCESSING_SETTINGS['2Chan_'+key]['nchannels'] = 2
     
-print(PREPROCESSING_SETTINGS)
 
 def run_preprocessing(args):
     if args.remove_previous and (os.path.isdir(os.path.join(args.CaImaging_folder, 'suite2p'))):

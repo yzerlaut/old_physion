@@ -51,7 +51,7 @@ def add_ophys(nwbfile, args,
     ##################################################
     ##########  setup-specific quantities ############
     ##################################################
-    if 'A1-2P' in metadata['Rig']:
+    if ('Rig' in metadata) and ('A1-2P' in metadata['Rig']):
         functional_chan = 'Ch2' # green channel is channel 2 downstairs
         laser_key = 'Laser'
         Depth = float(xml['settings']['positionCurrent']['ZAxis']['Z Focus'][0]) # center depth only !
@@ -75,8 +75,9 @@ def add_ophys(nwbfile, args,
     multiplane = (True if len(np.unique(xml['depth_shift']))>1 else False)
     
     if not multiplane:
+        corrected_depth =(float(metadata['Z-sign-correction-for-rig'])*Depth if ('Z-sign-correction-for-rig' in metadata) else Depth) 
         imaging_plane = nwbfile.create_imaging_plane('my_imgpln', optical_channel,
-                                                     description='Depth=%.1f[um]' % (float(metadata['Z-sign-correction-for-rig'])*Depth),
+                                                     description='Depth=%.1f[um]' % corrected_depth,
                                                      device=device,
                                                      excitation_lambda=float(xml['settings']['laserWavelength'][laser_key]),
                                                      imaging_rate=1./float(xml['settings']['framePeriod']),
@@ -157,9 +158,13 @@ def add_ophys(nwbfile, args,
     #                                                unit='s',
     #                                                timestamps = 1.*np.arange(2))
     # just a dummy version for now
-    image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries\n raw-data-folder=%s' % args.CaImaging_folder.replace('/', '_'),
+    """
+    HERE JUST ADD READING THE TIFF FILES AND PUT A STACK OF A FEW FRAMES
+    """ 
+    image_series = pynwb.ophys.TwoPhotonSeries(name='CaImaging-TimeSeries',
                                                dimension=[2], data=np.ones((2,2,2)),
-                                               imaging_plane=imaging_plane, unit='s', timestamps=1.*np.arange(2)) # TEMPORARY
+                                               imaging_plane=imaging_plane, unit='s', timestamps=1.*np.arange(2),
+                                               comments='raw-data-folder=%s' % args.CaImaging_folder.replace('/', '**')) # TEMPORARY
     
     nwbfile.add_acquisition(image_series)
 

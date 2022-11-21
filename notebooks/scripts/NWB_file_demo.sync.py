@@ -39,7 +39,8 @@ import matplotlib.pylab as plt # + matplotlib for vizualization
 
 # %%
 # loading an example file
-filename = os.path.join(os.path.expanduser('~'), 'DATA', 'tofix', '2022_07_07', '2022_07_07-17-19-14.nwb')
+#filename = os.path.join(os.path.expanduser('~'), 'DATA', 'tofix', '2022_07_07', '2022_07_07-17-19-14.nwb')
+filename = os.path.join(os.path.expanduser('~'), 'DATA', 'JO-VIP-CB1', '2022_10_26-17-08-32.nwb')
 io = pynwb.NWBHDF5IO(os.path.join(os.path.expanduser('~'), filename), 'r')
 nwbfile = io.read() # don't forget to close afterwards !! (io.close() )
 
@@ -63,18 +64,26 @@ for i, ax in zip(np.linspace(0, nwbfile.acquisition['FaceCamera'].data.shape[0]-
     ax.axis('off')
     ax.set_title("t=%.1fs" % nwbfile.acquisition['FaceCamera'].timestamps[i])
 
+# %%
+nwbfile.processing['Pupil'].data_interfaces['cx']
+
 # %% [markdown]
 # ### Pupil
 
 # %%
 fig, AX = plt.subplots(1,6, figsize=(16,3))
-for i, ax in zip(np.linspace(0, nwbfile.processing['Pupil'].data.shape[0]-1, 6, dtype=int), AX):
-    ax.imshow(nwbfile.processing['Pupil'].data[i, :, :])
+for i, ax in zip(np.linspace(0, nwbfile.acquisition['Pupil'].data.shape[0]-1, 6, dtype=int), AX):
+    ax.imshow(nwbfile.acquisition['Pupil'].data[i, :, :])
     ax.axis('off')
     ax.set_title("t=%.1fs" % nwbfile.acquisition['Pupil'].timestamps[i])
 
+# %%
+
 # %% [markdown]
 # ### Calcium-Imaging time series
+
+# %%
+nwbfile.acquisition.keys()
 
 # %%
 fig, AX = plt.subplots(1,6, figsize=(16,3))
@@ -118,7 +127,7 @@ meanImg = nwbfile.processing['ophys'].data_interfaces['Backgrounds_0'].images['m
 
 # %%
 # Image Segmentation output
-print(nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations)
+#print(nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations)
 
 # %%
 # fetch quantities
@@ -128,12 +137,19 @@ pixel_masks = Segmentation.columns[1].data[:]
 iscell = Segmentation.columns[2].data[:,0].astype(bool)
 
 # %%
+iscell
+
+# %%
 plt.figure(figsize=(10,8))
 for i in np.arange(len(iscell))[iscell]:
-    indices = np.arange(pixel_masks_index[i], pixel_masks_index[i+1])
+    indices = np.arange(pixel_masks_index[i],
+                        pixel_masks_index[i+1] if (i<len(iscell)-1) else len(pixel_masks))
     x, y = [pixel_masks[ii][1] for ii in indices], [pixel_masks[ii][0] for ii in indices]
     plt.scatter(x, y, color='w', alpha=0.05, s=1)
 plt.imshow(meanImg)
+
+# %%
+plt.plot(nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil'].data[:,0])
 
 # %%
 # Fluorescence and Neuropil
@@ -154,6 +170,10 @@ for k, i in enumerate(np.arange(len(iscell))[iscell]):
 plt.plot([0,10], [k+1,k+1], 'k-', lw=2)
 plt.annotate('10s', (0,k+1.1), size=14)
 plt.axis('off')
+
+# %%
+Neuropil = nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
+Neuropil.timestamps
 
 # %%
 io.close()
