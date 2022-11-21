@@ -377,7 +377,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.metadata['CaImaging']:
             output_steps.append(self.config['STEP_FOR_CA_IMAGING_TRIGGER'])
         if self.metadata['intervention']=='Photostimulation':
-            output_steps += self.config['STEPS_FOR_PHOTOSTIMULATION']
+            output_steps += self.config['STEPS_FOR_PHOTOSTIM']
 
         self.NIdaq_metadata_init()
 
