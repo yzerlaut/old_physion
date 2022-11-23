@@ -445,7 +445,7 @@ class MainWindow(NewWindow):
                                           filename='metadata', extension='.npy')
 
         metadata = {'subject':str(self.subjectBox.currentText()),
-                    'subject_props':self.subjects[self.cbs.currentText()],
+                    'subject_props':self.subjects[self.subjectBox.currentText()],
                     'exposure':self.exposure,
                     'bar-size':float(self.barBox.text()),
                     'acq-freq':float(self.freqBox.text()),
@@ -942,7 +942,7 @@ class AnalysisWindow(NewWindow):
         intrinsic_analysis.plot_phase_power_maps(self.IMAGES,
                                                  self.protocolBox.currentText())
 
-        intrinsic_analysis.ge.show()
+        intrinsic_analysis.ge_screen.show()
 
         self.update_imgButtons()
         print(' -> phase maps calculus done !')
@@ -974,7 +974,7 @@ class AnalysisWindow(NewWindow):
             print(' /!\ need both "right" and "left" maps to compute the altitude map !! /!\   ')
 
         if (fig1 is not None) or (fig2 is not None):
-            intrinsic_analysis.ge.show()
+            intrinsic_analysis.ge_screen.show()
 
         self.update_imgButtons()
 
