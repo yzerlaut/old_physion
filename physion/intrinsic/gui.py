@@ -15,6 +15,7 @@ from misc.guiparts import NewWindow
 from assembling.saving import generate_filename_path, day_folder, last_datafolder_in_dayfolder
 from visual_stim.stimuli import visual_stim, visual
 import multiprocessing # for the camera streams !!
+from intrinsic.Analysis import default_segmentation_params
 from intrinsic import Analysis as intrinsic_analysis
 from intrinsic import RetinotopicMapping
 
@@ -63,7 +64,8 @@ class MainWindow(NewWindow):
 
         # some initialisation
         self.running, self.stim, self.STIM = False, None, None
-        self.datafolder, self.img, self.vasculature_img, self.fluorescence_img = '', None, None, None
+        self.datafolder, self.img = '', None,
+        self.vasculature_img, self.fluorescence_img = None, None
         
         self.t0, self.period, self.TIMES = 0, 1, []
         
@@ -656,18 +658,12 @@ class AnalysisWindow(NewWindow):
         self.add_widget(self.numBox,
                         spec='small-right')
 
-        self.add_widget(QtWidgets.QLabel('  - slow fluct. substr. (s):'),
-                        spec='large-left')
-        self.hpBox = QtWidgets.QLineEdit()
-        self.hpBox.setText('0')
-        self.add_widget(self.hpBox, spec='small-right')
-        
-        self.add_widget(QtWidgets.QLabel('  - spatial-smoothing (pix):'),
+        self.add_widget(QtWidgets.QLabel('  - spatial-subsampling (pix):'),
                         spec='large-left')
         self.ssBox = QtWidgets.QLineEdit()
         self.ssBox.setText('0')
         self.add_widget(self.ssBox, spec='small-right')
-        
+
         self.loadButton = QtWidgets.QPushButton(" === load data === ", self)
         self.loadButton.clicked.connect(self.load_data)
         self.add_widget(self.loadButton)
@@ -679,6 +675,13 @@ class AnalysisWindow(NewWindow):
         self.pmButton.clicked.connect(self.compute_phase_maps)
         self.add_widget(self.pmButton)
         
+        # Map shift
+        self.add_widget(QtWidgets.QLabel('  - (Azimuth, Altitude) shift:'),
+                        spec='large-left')
+        self.phaseMapShiftBox = QtWidgets.QLineEdit()
+        self.phaseMapShiftBox.setText('(0, 0)')
+        self.add_widget(self.phaseMapShiftBox, spec='small-right')
+
         self.rmButton = QtWidgets.QPushButton(" = retinotopic maps = ", self)
         self.rmButton.clicked.connect(self.compute_retinotopic_maps)
         self.add_widget(self.rmButton, spec='large-left')
@@ -686,9 +689,8 @@ class AnalysisWindow(NewWindow):
         self.twoPiBox = QtWidgets.QCheckBox("[0,2pi]")
         self.twoPiBox.setStyleSheet("color: gray;")
         self.add_widget(self.twoPiBox, spec='small-right')
-
-
         # -------------------------------------------------------
+
         self.add_widget(QtWidgets.QLabel(''))
 
         # === -- parameters for area segmentation -- ===
@@ -697,7 +699,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - phaseMapFilterSigma:'),
                         spec='large-left')
         self.phaseMapFilterSigmaBox = QtWidgets.QLineEdit()
-        self.phaseMapFilterSigmaBox.setText('1.0')
+        self.phaseMapFilterSigmaBox.setText(str(default_segmentation_params['phaseMapFilterSigma']))
         self.phaseMapFilterSigmaBox.setToolTip('The sigma value (in pixels) of Gaussian filter for altitude and azimuth maps.\n FLOAT, default = 1.0, recommended range: [0.0, 2.0].\n Large "phaseMapFilterSigma" gives you more patches.\n Small "phaseMapFilterSigma" gives you less patches.')
         self.add_widget(self.phaseMapFilterSigmaBox, spec='small-right')
 
@@ -705,7 +707,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - signMapFilterSigma:'),
                         spec='large-left')
         self.signMapFilterSigmaBox = QtWidgets.QLineEdit()
-        self.signMapFilterSigmaBox.setText('9.0')
+        self.signMapFilterSigmaBox.setText(str(default_segmentation_params['signMapFilterSigma']))
         self.signMapFilterSigmaBox.setToolTip('The sigma value (in pixels) of Gaussian filter for visual sign maps.\n FLOAT, default = 9.0, recommended range: [0.6, 10.0].\n Large "signMapFilterSigma" gives you less patches.\n Small "signMapFilterSigma" gives you more patches.')
         self.add_widget(self.signMapFilterSigmaBox, spec='small-right')
 
@@ -713,7 +715,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - signMapThr:'),
                         spec='large-left')
         self.signMapThrBox = QtWidgets.QLineEdit()
-        self.signMapThrBox.setText('0.35')
+        self.signMapThrBox.setText(str(default_segmentation_params['signMapThr']))
         self.signMapThrBox.setToolTip('Threshold to binarize visual signmap.\n FLOAT, default = 0.35, recommended range: [0.2, 0.5], allowed range: [0, 1).\n Large signMapThr gives you fewer patches.\n Smaller signMapThr gives you more patches.')
         self.add_widget(self.signMapThrBox, spec='small-right')
 
@@ -721,7 +723,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - splitLocalMinCutStep:'),
                         spec='large-left')
         self.splitLocalMinCutStepBox = QtWidgets.QLineEdit()
-        self.splitLocalMinCutStepBox.setText('5.0')
+        self.splitLocalMinCutStepBox.setText(str(default_segmentation_params['splitLocalMinCutStep']))
         self.splitLocalMinCutStepBox.setToolTip('The step width for detecting number of local minimums during spliting. The local minimums detected will be used as marker in the following open cv watershed segmentation.\n FLOAT, default = 5.0, recommend range: [0.5, 15.0].\n Small "splitLocalMinCutStep" will make it more likely to split but into less sub patches.\n Large "splitLocalMinCutStep" will make it less likely to split but into more sub patches.')
         self.add_widget(self.splitLocalMinCutStepBox, spec='small-right')
 
@@ -729,7 +731,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - splitOverlapThr:'),
                         spec='large-left')
         self.splitOverlapThrBox = QtWidgets.QLineEdit()
-        self.splitOverlapThrBox.setText('1.1')
+        self.splitOverlapThrBox.setText(str(default_segmentation_params['splitOverlapThr']))
         self.splitOverlapThrBox.setToolTip('Patches with overlap ration larger than this value will go through the split procedure.\n FLOAT, default = 1.1, recommend range: [1.0, 1.2], should be larger than 1.0.\n Small "splitOverlapThr" will split more patches.\n Large "splitOverlapThr" will split less patches.')
         self.add_widget(self.splitOverlapThrBox, spec='small-right')
 
@@ -737,7 +739,7 @@ class AnalysisWindow(NewWindow):
         self.add_widget(QtWidgets.QLabel('  - mergeOverlapThr:'),
                         spec='large-left')
         self.mergeOverlapThrBox = QtWidgets.QLineEdit()
-        self.mergeOverlapThrBox.setText('0.1')
+        self.mergeOverlapThrBox.setText(str(default_segmentation_params['mergeOverlapThr']))
         self.mergeOverlapThrBox.setToolTip('Considering a patch pair (A and B) with same sign, A has visual coverage a deg2 and B has visual coverage b deg2 and the overlaping visual coverage between this pair is c deg2.\n Then if (c/a < "mergeOverlapThr") and (c/b < "mergeOverlapThr"), these two patches will be merged.\n FLOAT, default = 0.1, recommend range: [0.0, 0.2], should be smaller than 1.0.\n Small "mergeOverlapThr" will merge less patches.\n Large "mergeOverlapThr" will merge more patches.')
         self.add_widget(self.mergeOverlapThrBox, spec='small-right')
         
@@ -765,15 +767,16 @@ class AnalysisWindow(NewWindow):
         self.pixROI.sigRegionChangeFinished.connect(self.moved_pixels)
         self.img1B.addItem(self.pixROI)
 
-       
         self.data = None
         self.show()
 
-    def set_pixROI(self, img=None):
-        if self.img is not None:
-            img = self.img
-        self.pixROI.setSize((10,10))
-        return 
+    def set_pixROI(self):
+
+        if self.data is not None:
+            img = self.data[0,:,:]
+            self.pixROI.setSize((img.shape[0]/10., img.shape[1]/10))
+            xpix, ypix = self.get_pixel_value()
+            self.pixROI.setPos((int(img.shape[0]/2), int(img.shape[1]/2)))
     
     def get_pixel_value(self):
         y, x = int(self.pixROI.pos()[0]), int(self.pixROI.pos()[1])
@@ -802,6 +805,7 @@ class AnalysisWindow(NewWindow):
     def update_img2(self):
         self.update_img(self.img2, self.img2Button)
 
+
     def show_vasc_pic(self):
         pic = os.path.join(self.get_datafolder(), 'vasculature.npy')
         if os.path.isfile(pic):
@@ -811,6 +815,7 @@ class AnalysisWindow(NewWindow):
             
     def refresh(self):
         self.load_data()
+
 
     def update_imgButtons(self):
         self.img1Button.clear()
@@ -827,6 +832,8 @@ class AnalysisWindow(NewWindow):
 
     def load_data(self):
         
+        tic = time.time()
+
         datafolder = self.get_datafolder()
 
         if os.path.isdir(datafolder):
@@ -840,29 +847,23 @@ class AnalysisWindow(NewWindow):
             # load data
             self.params,\
                 (self.t, self.data) = intrinsic_analysis.load_raw_data(self.get_datafolder(),
-                                                                       self.protocolBox.currentText(),
-                                                                       run_id=self.numBox.currentText())
-
-            if float(self.hpBox.text())>0:
-
-                print('    - slow fluct removal [...]')
-                self.data = self.data-intrinsic_analysis.gaussian_filter1d(self.data,
-                                                        int(self.hpBox.text())*self.params['acq-freq'],
-                                                        mode='nearest', axis=0)
+                                                                      self.protocolBox.currentText(),
+                                                                      run_id=self.numBox.currentText())
 
             if float(self.ssBox.text())>0:
 
-                print('    - spatial smoothing [...]')
-                self.data = self.data-intrinsic_analysis.gaussian_filter(self.data,
-                                                        sigma=(0,\
-                                                            int(self.ssBox.text())*self.params['acq-freq'],
-                                                            int(self.ssBox.text())*self.params['acq-freq']))
-
-
-
+                print('    - spatial subsampling [...]')
+                self.data = intrinsic_analysis.resample_img(self.data,
+                                                            int(self.ssBox.text()))
+                
             vasc_img = os.path.join(self.get_datafolder(), 'vasculature.npy')
             if os.path.isfile(vasc_img):
-                self.IMAGES['vasculature'] = np.load(vasc_img)
+                if float(self.ssBox.text())>0:
+                    self.IMAGES['vasculature'] = intrinsic_analysis.resample_img(\
+                                                        np.load(vasc_img),
+                                                        int(self.ssBox.text()))
+                else:
+                    self.IMAGES['vasculature'] = np.load(vasc_img)
 
             self.IMAGES['raw-img-start'] = self.data[0,:,:]
             self.IMAGES['raw-img-mid'] = self.data[int(self.data.shape[0]/2),:,:]
@@ -870,12 +871,10 @@ class AnalysisWindow(NewWindow):
            
             self.update_imgButtons()
 
-            xpix, ypix = self.get_pixel_value()
-            if (xpix+ypix)==0:
-                self.pixROI.setPos((int(self.data.shape[1]/2), int(self.data.shape[2]/2)))
+            self.set_pixROI() 
             self.show_raw_data()
 
-            print('- data loaded !')
+            print('- data loaded !    (in %.1fs)' % (time.time()-tic))
 
         else:
             print(' Data "%s" not found' % datafolder)
@@ -891,24 +890,11 @@ class AnalysisWindow(NewWindow):
 
         new_data = self.data[:,xpix, ypix]
 
-        if float(self.hpBox.text())>0:
-            # add raw data first
-            self.raw_trace.plot(self.t, new_data-new_data.mean())
-            # high pass filter
-            # new_data = intrinsic_analysis.butter_highpass_filter(new_data-new_data.mean(),
-                                                       # float(self.hpBox.text()),
-                                                       # 1, order=5)
-            # substracting sliding average
-            new_data = new_data-intrinsic_analysis.gaussian_filter1d(new_data,
-                                                    int(self.hpBox.text())*p['acq-freq'],
-                                                    mode='nearest')
-            self.raw_trace.plot(self.t, new_data, pen='r')
-        else:
-            new_data = self.data[:,xpix, ypix]
-            self.raw_trace.plot(self.t, new_data)
+        self.raw_trace.plot(self.t, new_data)
 
         spectrum = np.fft.fft((new_data-new_data.mean())/new_data.mean())
         power, phase = np.abs(spectrum), (2*np.pi+np.angle(spectrum))%(2.*np.pi)-np.pi
+
         # if self.twoPiBox.isChecked():
             # power, phase = np.abs(spectrum), -np.angle(spectrum)%(2.*np.pi)
         # else:
@@ -928,6 +914,7 @@ class AnalysisWindow(NewWindow):
 
     def process(self):
         self.compute_phase_maps()
+
         
     def compute_phase_maps(self):
 
@@ -935,6 +922,7 @@ class AnalysisWindow(NewWindow):
 
         intrinsic_analysis.compute_phase_power_maps(self.get_datafolder(), 
                                                     self.protocolBox.currentText(),
+                                                    p=self.params, t=self.t, data=self.data,
                                                     run_id=self.numBox.currentText(),
                                                     maps=self.IMAGES)
 
@@ -956,6 +944,12 @@ class AnalysisWindow(NewWindow):
             intrinsic_analysis.compute_retinotopic_maps(self.get_datafolder(), 'altitude',
                                                         maps=self.IMAGES,
                                                         keep_maps=True)
+            try:
+                alt_shift = float(self.phaseMapShiftBox.text().split(',')[1].replace(')',''))
+                self.IMAGES['altitude-retinotopy'] += alt_shift
+            except BaseException as be:
+                print(be)
+                print('Pb with altitude shift:', self.phaseMapShiftBox.text())
             fig1 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
                                                             'altitude')
         else:
@@ -967,6 +961,12 @@ class AnalysisWindow(NewWindow):
             intrinsic_analysis.compute_retinotopic_maps(self.get_datafolder(), 'azimuth',
                                                         maps=self.IMAGES,
                                                         keep_maps=True)
+            try:
+                azi_shift = float(self.phaseMapShiftBox.text().split(',')[0].replace('(',''))
+                self.IMAGES['azimuth-retinotopy'] += azi_shift
+            except BaseException as be:
+                print(be)
+                print('Pb with azimuth shift:', self.phaseMapShiftBox.text())
             fig2 = intrinsic_analysis.plot_retinotopic_maps(self.IMAGES,
                                                             'azimuth')
         else:
@@ -980,21 +980,47 @@ class AnalysisWindow(NewWindow):
 
         print(' -> retinotopic maps calculus done !')
 
+        intrinsic_analysis.save_maps(self.IMAGES,
+                os.path.join(self.datafolder, 'draft-maps.npy'))
         print('         current maps saved as: ', \
                 os.path.join(self.datafolder, 'draft-maps.npy'))
 
-        intrinsic_analysis.save_maps(self.IMAGES,
-                os.path.join(self.datafolder, 'draft-maps.npy'))
-        
+
+    def add_gui_shift_to_images(self):
+        try:
+            azi_shift = float(self.phaseMapShiftBox.text().split(',')[0].replace('(',''))
+            alt_shift = float(self.phaseMapShiftBox.text().split(',')[1].replace(')',''))
+            self.IMAGES['azimuth-retinotopy'] += azi_shift
+            self.IMAGES['altitude-retinotopy'] += alt_shift
+        except BaseException as be:
+            print(be)
+            print('Pb with altitude, azimuth shift:', self.phaseMapShiftBox.text())
 
     def perform_area_segmentation(self):
         
         print('- performing area segmentation [...]')
-        data = intrinsic_analysis.build_trial_data(self.IMAGES)
+
+        # format images and load default params
+        data = intrinsic_analysis.build_trial_data(self.IMAGES, with_params=True)
+
+        # overwrite with GUI values
+        for key in ['phaseMapFilterSigma',
+                    'signMapFilterSigma',
+                    'signMapThr',
+                    'splitLocalMinCutStep',
+                    'mergeOverlapThr',
+                    'splitOverlapThr']:
+            data['params'][key] = float(getattr(self, key+'Box').text())
+
         trial = RetinotopicMapping.RetinotopicMappingTrial(**data)
         trial.processTrial(isPlot=True)
         print(' -> area segmentation done ! ')
         
+        np.save(os.path.join(self.datafolder, 'analysis.npy'),
+                data)
+        print('         current maps saved as: ', \
+                os.path.join(self.datafolder, 'analysis.npy'))
+
 
     def get_datafolder(self):
 

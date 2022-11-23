@@ -161,7 +161,8 @@ def build_pdf(args):
     AX[1].imshow(maps['vasculature'], cmap='gray', vmin=0, vmax=1)
     AX[1].axis('off')
 
-    trial_data = Analysis.build_trial_data(maps)
+    trial_data = np.load(os.path.join(args.datafolder, 'analysis.npy'), allow_pickle=True).item()
+    # trial_data = Analysis.build_trial_data(maps)
     trial = RetinotopicMapping.RetinotopicMappingTrial(**trial_data)
     trial.processTrial(isPlot=False)
     AX[1].imshow(trial.signMapf, cmap=ge.jet, alpha=0.7)

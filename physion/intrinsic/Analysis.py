@@ -152,11 +152,13 @@ def perform_fft_analysis(data, nrepeat,
 
 def compute_phase_power_maps(datafolder, direction,
                              maps={},
+                             p=None, t=None, data=None,
                              run_id='sum',
                              phase_shift=0):
 
     # load raw data
-    p, (t, data) = load_raw_data(datafolder, direction, run_id=run_id)
+    if (p is None) or (t is None) or (data is None):
+        p, (t, data) = load_raw_data(datafolder, direction, run_id=run_id)
 
     if 'vasculature' not in maps:
         maps['vasculature'] = np.load(os.path.join(datafolder, 'vasculature.npy'))
@@ -242,10 +244,13 @@ def compute_retinotopic_maps(datafolder, map_type,
 
 def build_trial_data(maps, with_params=False):
     """
-    prepare the data to be 
+    prepare the data to be saved 
     """
 
-    output = {'mouseID':'N/A', 'comments':'', 'dateRecorded':'2022-01-01'}
+    output = {'mouseID':'N/A',
+              'comments':'',
+              'dateRecorded':'2022-01-01'}
+
     for key1, key2 in zip(\
             ['vasculature', 'altitude-retinotopy', 'azimuth-retinotopy',\
                             'altitude-power', 'azimuth-power'],
