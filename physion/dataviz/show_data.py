@@ -187,15 +187,15 @@ class MultimodalData(read_NWB.Data):
             _, axb = ge.bar_legend(ax,
                           # X=[0,1], bounds=[0,1],
                           continuous=False, colormap=cmap,
-                          colorbar_inset=dict(rect=[-.06,
+                          colorbar_inset=dict(rect=[-.04,
                                            fig_fraction_start+.2*fig_fraction,
                                            .01,
                                            .6*fig_fraction], facecolor=None),
                           color_discretization=100, no_ticks=True, labelpad=4.,
                           label=('$\Delta$F/F' if (subquantity in ['dFoF', 'dF/F']) else ' fluo.'),
                           fontsize='small')
-            ge.annotate(axb, ' max', (1,1), size='x-small')
-            ge.annotate(axb, ' min', (1,0), size='x-small', va='top')
+            ge.annotate(axb, ' max ', (1,1), size='x-small')
+            ge.annotate(axb, ' min ', (1,0), size='x-small', va='top')
             
         self.add_name_annotation(ax, name, tlim, fig_fraction, fig_fraction_start, rotation=90)
 
@@ -287,7 +287,11 @@ class MultimodalData(read_NWB.Data):
             if with_screen_inset:
                 axi = ax.inset_axes([tstart, 1.01, (tstop-tstart), size], transform=ax.transData)
                 axi.axis('equal')
-                self.visual_stim.plot_stim_picture(i, ax=axi)
+                try:
+                    self.visual_stim.plot_stim_picture(i, ax=axi)
+                except BaseException as be:
+                    # print('pb with visual stim plot')
+                    pass
         ge.annotate(ax, ' '+name, (tlim[1], fig_fraction+fig_fraction_start), color=color, xycoords='data')
 
         
@@ -444,7 +448,8 @@ class MultimodalData(read_NWB.Data):
                            roiIndex=None, roiIndices=[],
                            roi_zoom_factor=10,
                            roi_lw=3,
-                           with_roi_zoom=False,):
+                           with_roi_zoom=False,
+                           with_annotation=True):
         
         if ax is None:
             fig, ax = ge.figure()
@@ -481,7 +486,9 @@ class MultimodalData(read_NWB.Data):
                     color=plt.cm.autumn(np.random.uniform(0,1)),
                     alpha=0.5,
                     ms=0.1)
-        ax.annotate('%i ROIs' % np.sum(self.iscell), (0, 0), xycoords='axes fraction', rotation=90, ha='right')
+
+        if with_annotation:
+            ax.annotate('%i ROIs' % np.sum(self.iscell), (0, 0), xycoords='axes fraction', rotation=90, ha='right')
         
         ge.title(ax, key)
         
@@ -727,7 +734,10 @@ class EpisodeResponse(process_NWB.EpisodeResponse):
                     if with_screen_inset:
                         inset = ge.inset(AX[irow][icol], [.83, .9, .3, .25])
                         istim = np.flatnonzero(cond)[0]
-                        self.visual_stim.plot_stim_picture(istim, ax=inset)
+                        try:
+                            self.visual_stim.plot_stim_picture(istim, ax=inset)
+                        except BaseException as be:
+                            pass
                         
                     if with_annotation:
                         

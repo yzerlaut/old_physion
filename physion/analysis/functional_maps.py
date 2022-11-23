@@ -45,8 +45,8 @@ def show_raw_data(t, data, params, maps,
     AX[0][0].plot(t, data[:,pixel[0], pixel[1]], 'k', lw=1)
     ge.set_plot(AX[0][0], ylabel='pixel\n intensity (a.u.)', xlabel='time (s)',
                 xlim=[t[0], t[-1]])
-    ge.annotate(AX[0][0], 'pixel: %s ' % pixel, (1,1),
-                ha='right', color='r', size='x-small')
+    # ge.annotate(AX[0][0], 'pixel: %s ' % pixel, (1,1),
+                # ha='right', color='r', size='x-small')
 
     AX[1][0].plot(params['STIM']['up-times'], params['STIM']['up-angle'], 'k', lw=1)
     ge.set_plot(AX[1][0], ['left'], 
