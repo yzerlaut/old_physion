@@ -136,8 +136,8 @@ def add_ophys_processing_from_suite2p(save_folder, nwbfile, xml,
             data=traces[i],
             rois=rt_region,
             unit='lumens',
-            # timestamps=CaImaging_timestamps[::nplanes][::2]) # ideally should be shifted for each ROI depending on the plane...
-            timestamps=CaImaging_timestamps[::nplanes][::2]) # QUICKFIX 24/11/2022
+            timestamps=CaImaging_timestamps[::nplanes]) # ideally should be shifted for each ROI depending on the plane...
+            # timestamps=CaImaging_timestamps[::nplanes][::2]) # QUICKFIX 24/11/2022
         fl = Fluorescence(roi_response_series=roi_resp_series, name=nstr)
         ophys_module.add(fl)
 
