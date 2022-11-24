@@ -172,6 +172,9 @@ class Data:
         self.Fluorescence = self.nwbfile.processing['ophys'].data_interfaces['Fluorescence'].roi_response_series['Fluorescence']
         self.Neuropil = self.nwbfile.processing['ophys'].data_interfaces['Neuropil'].roi_response_series['Neuropil']
         self.CaImaging_dt = (self.Neuropil.timestamps[1]-self.Neuropil.timestamps[0])
+        if self.CaImaging_dt<=0:
+            print('   /!\ --------------  /!\   ')
+            print('    ---> problem in Ca Imaging time sampling: dt=0 (i.e. multiple frame per time points, check preprocessing)')
 
         ### ROI properties ###
         self.Segmentation = self.nwbfile.processing['ophys'].data_interfaces['ImageSegmentation'].plane_segmentations['PlaneSegmentation']

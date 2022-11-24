@@ -36,7 +36,7 @@ from datavyz import graph_env
 ge = graph_env('manuscript')
 
 # %%
-filename = os.path.join(os.path.expanduser('~'), 'DATA', 'JO-VIP-CB1', '2022_10_26-18-13-13.nwb')
+filename = os.path.join(os.path.expanduser('~'), 'DATA', 'JO-VIP-CB1', 'Assembled', '2022_10_26-18-13-13.nwb')
 
 # %% [markdown]
 # ## Metadata
@@ -65,7 +65,8 @@ def metadata_fig(data):
     return fig, ax
 
 
-_ = metadata_fig(data)
+fig, ax = metadata_fig(data)
+fig.savefig(os.path.join(tempfile.tempdir, 'metadata.png'), dpi=300)
 
 # %%
 data = MultimodalData(filename)
@@ -208,6 +209,7 @@ data.build_dFoF()
 
 # %%
 # we take 10 second security around each
+tfull_wStim_start = 10
 
 # fetching the grey screen protocol interval
 igrey = np.flatnonzero(data.nwbfile.stimulus['protocol_id'].data[:]==1) # grey
@@ -221,7 +223,7 @@ tblank_stop = tblank_start-10+data.nwbfile.stimulus['time_duration'].data[iblank
 
 # fetching the interval with visual stimulation after the last blank
 tStim_start = tblank_stop+10
-tStim_stop = tfull_wStim_start + data.nwbfile.stimulus['time_duration'].data[iblank][0] # same length
+tStim_stop = tStim_start + data.nwbfile.stimulus['time_duration'].data[iblank][0] # same length
 
 # %%
 RESP = {}
