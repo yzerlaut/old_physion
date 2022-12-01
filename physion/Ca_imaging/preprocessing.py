@@ -47,6 +47,7 @@ for key in list(PREPROCESSING_SETTINGS.keys()):
 for key in list(PREPROCESSING_SETTINGS.keys()):
     PREPROCESSING_SETTINGS['2Chan_'+key] = PREPROCESSING_SETTINGS[key].copy()
     PREPROCESSING_SETTINGS['2Chan_'+key]['nchannels'] = 2
+    PREPROCESSING_SETTINGS['2Chan_'+key]['align_by_chan'] = 1
     
 
 def run_preprocessing(args):
