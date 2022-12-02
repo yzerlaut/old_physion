@@ -21,7 +21,7 @@ dependencies:
   - pynwb=2.0.0
   - ffmpeg=5.0.1
   - pip:
-    - pyqt5-sip=12.11.0
+    - pyqt5-sip==12.11.0
     - pyqt5-qt5==5.15.2
     - pyqt5==5.15.7
     - pyqtdarktheme==1.2.1
